@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADZKIA - Prototype Layout Ujian</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Open Sans (Body) & Outfit (Heading/Aksen) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['"Open Sans"', 'sans-serif'], 
+                        display: ['Outfit', 'sans-serif']
+                    },
+                    colors: { 
+                        primary: {
+                            DEFAULT: '#37b24d',
+                            light: '#b2f2bb'
+                        },
+                        yellow: {
+                            DEFAULT: '#f59f00',
+                            light: '#ffec99'
+                        },
+                        orange: {
+                            DEFAULT: '#f76707',
+                            light: '#ffd8a8'
+                        },
+                        neutral: {
+                            DEFAULT: '#212529',
+                            light: '#ced4da',
+                            bg: '#f4f5f7' 
+                        },
+                        danger: {
+                            DEFAULT: '#f03e3e',
+                            light: '#ffc9c9'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Open Sans', sans-serif; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-neutral-bg flex justify-center">
+
+    <main class="w-full h-full lg:h-screen lg:w-[100vh] bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-neutral-light/50">
+        
+        <!-- HEADER -->
+        <header class="bg-primary text-white p-4 flex justify-between items-center z-10 shrink-0">
+            <div>
+                <h1 class="font-display font-extrabold text-2xl tracking-tight leading-none mb-1">ADZKIA</h1>
+                <p class="font-display text-xs text-primary-light font-semibold tracking-widest uppercase">UTBK SOSHUM - SEJARAH</p>
+            </div>
+            <!-- Timer -->
+            <div class="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl border border-primary-light/40 shadow-inner">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary-light"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="font-display text-sm font-bold tabular-nums tracking-wider text-white">01:45:30</span>
+            </div>
+        </header>
+
+        <!-- PROGRESS BAR -->
+        <div class="h-1 w-full bg-neutral-light/40 shrink-0">
+            <div class="h-full bg-yellow w-[15%] transition-all duration-500 rounded-r-full"></div>
+        </div>
+
+        <!-- AREA SOAL & JAWABAN -->
+        <section class="flex-1 overflow-y-auto p-5 md:p-8 space-y-5">
+            
+            <!-- Teks Paragraf / Soal -->
+            <div class="text-neutral text-base md:text-lg leading-relaxed">
+                <p class="mb-3">
+                    Pada masa pemerintahan Hindia Belanda, sistem Tanam Paksa (Cultuurstelsel) yang diberlakukan oleh Johannes van den Bosch pada tahun 1830 memberikan dampak yang luar biasa, baik bagi Belanda maupun bagi rakyat Indonesia. 
+                </p>
+                <p class="mb-3">
+                    Meski banyak memakan korban jiwa dan menyebabkan penderitaan yang luar biasa akibat eksploitasi, ada beberapa dampak tidak langsung yang memengaruhi sosial-ekonomi masyarakat lokal di kemudian hari.
+                </p>
+                <p class="font-bold mt-4">
+                    Dampak positif yang secara tidak langsung dirasakan oleh bangsa Indonesia dari sistem Tanam Paksa tersebut adalah...
+                </p>
+            </div>
+
+            <!-- Pilihan Jawaban -->
+            <div class="space-y-3 pb-6">
+                <!-- Pilihan Biasa -->
+                <label class="flex items-start gap-3 p-4 rounded-xl border border-neutral-light bg-white hover:border-primary/40 hover:bg-primary-light/20 cursor-pointer transition-all group">
+                    <input type="radio" name="answer" class="mt-0.5 w-4 h-4 text-primary shrink-0 focus:ring-primary">
+                    <span class="text-neutral/80 text-sm md:text-base group-hover:text-neutral leading-snug font-medium">
+                        Meningkatnya kesejahteraan petani berkat pembagian hasil panen yang adil.
+                    </span>
+                </label>
+                
+                <!-- Pilihan Terpilih -->
+                <label class="flex items-start gap-3 p-4 rounded-xl border-2 border-primary bg-primary-light/20 cursor-pointer transition-all">
+                    <input type="radio" name="answer" checked class="mt-0.5 w-4 h-4 text-primary shrink-0 focus:ring-primary accent-primary">
+                    <span class="text-neutral text-sm md:text-base font-semibold leading-snug">
+                        Rakyat Indonesia mulai mengenal berbagai jenis tanaman komoditas ekspor internasional.
+                    </span>
+                </label>
+
+                <!-- Pilihan Biasa -->
+                <label class="flex items-start gap-3 p-4 rounded-xl border border-neutral-light bg-white hover:border-primary/40 hover:bg-primary-light/20 cursor-pointer transition-all group">
+                    <input type="radio" name="answer" class="mt-0.5 w-4 h-4 text-primary shrink-0 focus:ring-primary">
+                    <span class="text-neutral/80 text-sm md:text-base group-hover:text-neutral leading-snug font-medium">
+                        Berakhirnya sistem feodal dan perbudakan di seluruh wilayah Nusantara secara serentak.
+                    </span>
+                </label>
+                
+                <!-- Pilihan Biasa -->
+                <label class="flex items-start gap-3 p-4 rounded-xl border border-neutral-light bg-white hover:border-primary/40 hover:bg-primary-light/20 cursor-pointer transition-all group">
+                    <input type="radio" name="answer" class="mt-0.5 w-4 h-4 text-primary shrink-0 focus:ring-primary">
+                    <span class="text-neutral/80 text-sm md:text-base group-hover:text-neutral leading-snug font-medium">
+                        Munculnya golongan cendekiawan baru yang memimpin pergerakan nasional di kemudian hari.
+                    </span>
+                </label>
+            </div>
+        </section>
+
+        <!-- FOOTER / NAVIGASI NOMOR SOAL -->
+        <footer class="shrink-0 bg-white border-t border-neutral-light/50 flex flex-col z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]">
+            
+            <div class="w-full flex items-center overflow-x-auto hide-scrollbar gap-2.5 px-4 py-3 bg-neutral-light/10">
+                
+                <!-- Soal Sudah Dijawab (#37b24d / bg-primary) -->
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-primary text-white">1</button>
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-primary text-white">2</button>
+                
+                <!-- Soal Sedang Dibuka (#b2f2bb / bg-primary-light) -->
+                <button class="font-display shrink-0 w-10 h-10 rounded-lg text-sm font-extrabold bg-primary-light text-neutral shadow-md mx-1">3</button>
+                
+                <!-- Belum Dibuka (#ced4da / bg-neutral-light) -->
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-neutral-light text-neutral/80">4</button>
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-neutral-light text-neutral/80">5</button>
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-neutral-light text-neutral/80">6</button>
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-neutral-light text-neutral/80">7</button>
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-neutral-light text-neutral/80">8</button>
+                
+                <!-- Sudah Dibuka Tapi Tidak Dijawab (#212529 / bg-neutral) (Contoh nomor 9 dan 10) -->
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-neutral text-white">9</button>
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-neutral text-white">10</button>
+                
+                <!-- Belum Dibuka lagi -->
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-neutral-light text-neutral/80">11</button>
+                <button class="font-display shrink-0 w-9 h-9 rounded-md text-xs font-bold bg-neutral-light text-neutral/80">12</button>
+                
+                <!-- Tombol SUBMIT (Warna #f03e3e / bg-danger) Pindah ke halaman Pembahasan -->
+                <a href="prototype-pembahasan.html" class="font-display shrink-0 h-9 px-4 ml-2 rounded-md text-xs font-bold bg-danger text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm">
+                    SUBMIT
+                </a>
+            </div>
+
+        </footer>
+
+    </main>
+</body>
+</html>

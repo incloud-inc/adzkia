@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADZKIA - Halaman Sekolah</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Open Sans & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['"Open Sans"', 'sans-serif'], 
+                        display: ['Outfit', 'sans-serif']
+                    },
+                    colors: { 
+                        primary: { DEFAULT: '#37b24d', light: '#b2f2bb' },
+                        yellow: { DEFAULT: '#f59f00', light: '#ffec99' },
+                        orange: { DEFAULT: '#f76707', light: '#ffd8a8' },
+                        neutral: { DEFAULT: '#212529', light: '#ced4da', bg: '#f4f5f7' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Open Sans', sans-serif; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .snap-x-mandatory { scroll-snap-type: x mandatory; }
+        .snap-center { scroll-snap-align: center; }
+        .snap-start { scroll-snap-align: start; }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-neutral-bg flex justify-center">
+
+    <main class="w-full h-full lg:h-screen lg:w-[100vh] bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-neutral-light/50">
+        
+        <!-- AREA KONTEN UTAMA (Scrollable) -->
+        <div class="flex-1 overflow-y-auto hide-scrollbar pb-10">
+            
+            <!-- 1. COVER SEKOLAH -->
+            <div class="relative">
+                <div class="h-44 md:h-52 w-full bg-gradient-to-tr from-primary to-emerald-700 relative overflow-hidden">
+                    <svg class="absolute opacity-20 w-full h-full object-cover" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <polygon fill="white" points="0,100 100,0 100,100"/>
+                    </svg>
+                </div>
+                
+                <div class="absolute -bottom-10 left-5 p-1 bg-white rounded-2xl shadow-lg border border-neutral-light/30">
+                    <div class="w-20 h-20 bg-primary-light/30 rounded-xl flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#37b24d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. INFO SEKOLAH -->
+            <div class="pt-14 px-5 pb-6 border-b border-neutral-light/30">
+                <h1 class="font-display font-extrabold text-2xl md:text-3xl text-neutral tracking-tight mb-1">SMA Negeri 1 Nusantara</h1>
+                <p class="text-neutral/60 font-bold text-sm md:text-base font-display mb-2">@SMANSA • KOTA JAKARTA</p>
+                <p class="text-neutral/80 text-sm md:text-base leading-relaxed">
+                    Mewujudkan generasi cerdas, berintegritas, dan berwawasan global.
+                </p>
+            </div>
+
+            <!-- 3. POPULER (Slider ala App Store Featured App) -->
+            <div class="pt-6 pb-2">
+                <div class="px-5 mb-4 flex justify-between items-end">
+                    <h2 class="font-display font-bold text-xl md:text-2xl text-neutral tracking-tight">Terpopuler Saat Ini</h2>
+                </div>
+                
+                <div class="flex overflow-x-auto hide-scrollbar gap-4 px-5 snap-x-mandatory pb-4">
+                    
+                    <!-- Card Populer 1 (Diperlebar presisi) -->
+                    <div class="shrink-0 w-[88%] snap-center rounded-2xl border border-neutral-light/50 shadow-sm overflow-hidden flex flex-col">
+                        <div class="h-40 bg-gradient-to-br from-orange to-red-500 p-5 flex flex-col justify-end relative overflow-hidden">
+                            <svg class="absolute right-[-20px] top-[-20px] opacity-20 w-40 h-40" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            <span class="text-white/80 font-bold text-xs uppercase tracking-wider mb-1 font-display">TryOut Akbar</span>
+                            <h3 class="text-white font-display font-bold text-xl leading-tight">Simulasi UTBK SNBT 2026 Gelombang 1</h3>
+                        </div>
+                        <div class="bg-white p-4 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-orange-light/40 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f76707" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                                </div>
+                                <div class="min-w-0 pr-2">
+                                    <p class="font-bold text-sm text-neutral truncate">Campuran</p>
+                                    <p class="text-xs text-neutral/60 truncate">155 Soal • 195 Menit</p>
+                                </div>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                    </div>
+
+                    <!-- Card Populer 2 -->
+                    <div class="shrink-0 w-[88%] snap-center rounded-2xl border border-neutral-light/50 shadow-sm overflow-hidden flex flex-col">
+                        <div class="h-40 bg-gradient-to-br from-blue-500 to-indigo-600 p-5 flex flex-col justify-end relative overflow-hidden">
+                            <svg class="absolute right-[-10px] top-0 opacity-20 w-32 h-32" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                            <span class="text-white/80 font-bold text-xs uppercase tracking-wider mb-1 font-display">Ujian Akhir Semester</span>
+                            <h3 class="text-white font-display font-bold text-xl leading-tight">Ujian Sekolah Berstandar Nasional</h3>
+                        </div>
+                        <div class="bg-white p-4 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                </div>
+                                <div class="min-w-0 pr-2">
+                                    <p class="font-bold text-sm text-neutral truncate">Wajib Kelas 12</p>
+                                    <p class="text-xs text-neutral/60 truncate">Selesai: 24 Mei</p>
+                                </div>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <hr class="border-neutral-light/40 mx-5 my-2">
+
+            <!-- 4. KELAS 10 -->
+            <div class="py-4">
+                <div class="px-5 mb-4 flex justify-between items-center">
+                    <h2 class="font-display font-bold text-xl md:text-2xl text-neutral tracking-tight flex items-center gap-1.5">
+                        Kelas 10
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-light"><path d="m9 18 6-6-6-6"/></svg>
+                    </h2>
+                </div>
+                
+                <div class="flex overflow-x-auto hide-scrollbar gap-4 px-5 snap-x-mandatory pb-4">
+                    
+                    <!-- Kolom 1 (Berisi 3 item bertumpuk) -->
+                    <div class="shrink-0 w-[88%] flex flex-col snap-start">
+                        <!-- Item 1 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-primary-light/30 rounded-xl flex items-center justify-center shrink-0 border border-primary/20 mr-4">
+                                <span class="font-display font-bold text-primary text-lg">BIO</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Ulangan Harian: Keanekaragaman Hayati</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Biologi • 40 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                        
+                        <!-- Item 2 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-yellow-light/40 rounded-xl flex items-center justify-center shrink-0 border border-yellow/20 mr-4">
+                                <span class="font-display font-bold text-yellow text-lg">MTK</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Quiz Fungsi Kuadrat & Logaritma</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Matematika Wajib • 15 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+
+                        <!-- Item 3 (Tanpa border bawah) -->
+                        <div class="flex items-center py-3 px-5">
+                            <div class="w-14 h-14 bg-orange-light/40 rounded-xl flex items-center justify-center shrink-0 border border-orange/20 mr-4">
+                                <span class="font-display font-bold text-orange text-lg">SEJ</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Tugas Kelompok: Manusia Purba</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Sejarah Indonesia • Essay</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                    </div>
+
+                    <!-- Kolom 2 (Berisi 3 item bertumpuk) -->
+                    <div class="shrink-0 w-[88%] flex flex-col snap-start">
+                        <!-- Item 4 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-slate-100 rounded-xl flex items-center justify-center shrink-0 border border-slate-200 mr-4">
+                                <span class="font-display font-bold text-slate-500 text-lg">ING</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Listening Comprehension Part 1</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Bahasa Inggris • 50 Audio Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                        
+                        <!-- Item 5 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center shrink-0 border border-purple-200 mr-4">
+                                <span class="font-display font-bold text-purple-500 text-lg">FIS</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Quiz Dinamika Partikel & Hukum Newton</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Fisika • 20 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+
+                        <!-- Item 6 (Tanpa border bawah) -->
+                        <div class="flex items-center py-3 px-5">
+                            <div class="w-14 h-14 bg-rose-100 rounded-xl flex items-center justify-center shrink-0 border border-rose-200 mr-4">
+                                <span class="font-display font-bold text-rose-500 text-lg">PKN</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Pancasila sebagai Dasar Negara</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">PPKN • 25 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <hr class="border-neutral-light/40 mx-5 my-2">
+
+            <!-- 5. KELAS 11 -->
+            <div class="py-4">
+                <div class="px-5 mb-4 flex justify-between items-center">
+                    <h2 class="font-display font-bold text-xl md:text-2xl text-neutral tracking-tight flex items-center gap-1.5">
+                        Kelas 11
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-light"><path d="m9 18 6-6-6-6"/></svg>
+                    </h2>
+                </div>
+                
+                <div class="flex overflow-x-auto hide-scrollbar gap-4 px-5 snap-x-mandatory pb-4">
+                    
+                    <!-- Kolom 1 (Berisi 3 item bertumpuk) -->
+                    <div class="shrink-0 w-[88%] flex flex-col snap-start">
+                        <!-- Item 1 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-teal-100 rounded-xl flex items-center justify-center shrink-0 border border-teal-200 mr-4">
+                                <span class="font-display font-bold text-teal-600 text-lg">KIM</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Latihan Laju Reaksi & Termokimia</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Kimia • 30 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                        
+                        <!-- Item 2 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0 border border-indigo-200 mr-4">
+                                <span class="font-display font-bold text-indigo-500 text-lg">EKO</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Quiz: Pendapatan Nasional</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Ekonomi • 20 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+
+                        <!-- Item 3 (Tanpa border bawah) -->
+                        <div class="flex items-center py-3 px-5">
+                            <div class="w-14 h-14 bg-pink-100 rounded-xl flex items-center justify-center shrink-0 border border-pink-200 mr-4">
+                                <span class="font-display font-bold text-pink-500 text-lg">SOS</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Materi Kelompok Sosial</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Sosiologi • 10 Essay</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Kolom 2 Kelas 11 (Menyamakan Kelas 10) -->
+                    <div class="shrink-0 w-[88%] flex flex-col snap-start">
+                        <!-- Item 4 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-cyan-100 rounded-xl flex items-center justify-center shrink-0 border border-cyan-200 mr-4">
+                                <span class="font-display font-bold text-cyan-600 text-lg">TIK</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Praktikum Jaringan Komputer</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Informatika • 15 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                        
+                        <!-- Item 5 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0 border border-emerald-200 mr-4">
+                                <span class="font-display font-bold text-emerald-600 text-lg">SBD</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Teori Seni Rupa 3 Dimensi</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Seni Budaya • 25 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+
+                        <!-- Item 6 -->
+                        <div class="flex items-center py-3 px-5">
+                            <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center shrink-0 border border-red-200 mr-4">
+                                <span class="font-display font-bold text-red-500 text-lg">PJK</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Aturan Permainan Bola Basket</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Penjaskes • 20 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <hr class="border-neutral-light/40 mx-5 my-2">
+
+            <!-- 6. KELAS 12 -->
+            <div class="py-4">
+                <div class="px-5 mb-4 flex justify-between items-center">
+                    <h2 class="font-display font-bold text-xl md:text-2xl text-neutral tracking-tight flex items-center gap-1.5">
+                        Kelas 12
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-light"><path d="m9 18 6-6-6-6"/></svg>
+                    </h2>
+                </div>
+                
+                <div class="flex overflow-x-auto hide-scrollbar gap-4 px-5 snap-x-mandatory pb-4">
+                    
+                    <!-- Kolom 1 (Berisi 3 item bertumpuk) -->
+                    <div class="shrink-0 w-[88%] flex flex-col snap-start">
+                        <!-- Item 1 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-orange-light/40 rounded-xl flex items-center justify-center shrink-0 border border-orange/20 mr-4">
+                                <span class="font-display font-bold text-orange text-lg">GEO</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Ujian Tata Ruang Wilayah & Kota</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Geografi • 35 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                        
+                        <!-- Item 2 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center shrink-0 border border-blue-200 mr-4">
+                                <span class="font-display font-bold text-blue-500 text-lg">B.ID</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">TryOut Teks Editorial & Opini</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Bahasa Indonesia • 45 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+
+                        <!-- Item 3 (Tanpa border bawah) -->
+                        <div class="flex items-center py-3 px-5">
+                            <div class="w-14 h-14 bg-primary-light/30 rounded-xl flex items-center justify-center shrink-0 border border-primary/20 mr-4">
+                                <span class="font-display font-bold text-primary text-lg">PAI</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Evaluasi: Pernikahan dalam Islam</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Agama Islam • 25 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Kolom 2 Kelas 12 (Menyamakan Kelas 10) -->
+                    <div class="shrink-0 w-[88%] flex flex-col snap-start">
+                        <!-- Item 4 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center shrink-0 border border-purple-200 mr-4">
+                                <span class="font-display font-bold text-purple-600 text-lg">MTK</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Ujian Akhir Limit & Turunan</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Matematika Minat • 30 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                        
+                        <!-- Item 5 -->
+                        <div class="flex items-center py-3 px-5 border-b border-neutral-light/40">
+                            <div class="w-14 h-14 bg-yellow-100 rounded-xl flex items-center justify-center shrink-0 border border-yellow-200 mr-4">
+                                <span class="font-display font-bold text-yellow-600 text-lg">KWI</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Proposal Kewirausahaan Siswa</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Kewirausahaan • 10 Essay</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+
+                        <!-- Item 6 -->
+                        <div class="flex items-center py-3 px-5">
+                            <div class="w-14 h-14 bg-sky-100 rounded-xl flex items-center justify-center shrink-0 border border-sky-200 mr-4">
+                                <span class="font-display font-bold text-sky-500 text-lg">ANT</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="font-bold text-neutral text-[15px] leading-snug truncate">Sistem Kekerabatan Suku Nusantara</h3>
+                                <p class="text-sm text-neutral/60 truncate mt-0.5">Antropologi • 40 Soal</p>
+                            </div>
+                            <button class="bg-neutral-light/30 text-primary font-bold text-sm px-4 py-1.5 rounded-full hover:bg-primary-light/50 transition-colors shrink-0">Buka</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+</body>
+</html>

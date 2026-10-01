@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADZKIA - Profil Siswa</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Open Sans & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['"Open Sans"', 'sans-serif'], 
+                        display: ['Outfit', 'sans-serif']
+                    },
+                    colors: { 
+                        primary: { DEFAULT: '#37b24d', light: '#b2f2bb' },
+                        yellow: { DEFAULT: '#f59f00', light: '#ffec99' },
+                        orange: { DEFAULT: '#f76707', light: '#ffd8a8' },
+                        danger: { DEFAULT: '#f03e3e', light: '#ffc9c9' },
+                        neutral: { DEFAULT: '#212529', light: '#ced4da', bg: '#f4f5f7' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Open Sans', sans-serif; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-neutral-bg flex justify-center">
+
+    <main class="w-full h-full lg:h-screen lg:w-[100vh] bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-neutral-light/50">
+        
+        <!-- HEADER NAVIGASI ATAS -->
+        <header class="shrink-0 bg-white border-b border-neutral-light/40 px-5 py-3.5 flex items-center justify-between z-10">
+            <div class="flex items-center gap-3">
+                <a href="prototype-sekolah.html" class="w-9 h-9 rounded-xl border border-neutral-light/60 flex items-center justify-center text-neutral hover:bg-neutral-light/20 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </a>
+                <h1 class="font-display font-bold text-lg text-neutral">Profil Siswa</h1>
+            </div>
+            
+            <button class="w-9 h-9 rounded-xl border border-neutral-light/60 flex items-center justify-center text-neutral hover:bg-neutral-light/20 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </header>
+
+        <!-- KONTEN PROFIL (Scrollable) -->
+        <div class="flex-1 overflow-y-auto hide-scrollbar pb-12">
+            
+            <!-- 1. IDENTITAS SISWA -->
+            <div class="px-5 pt-6 pb-5 border-b border-neutral-light/30">
+                <div class="flex items-start gap-4">
+                    <!-- Avatar Siswa -->
+                    <div class="relative shrink-0">
+                        <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-primary to-emerald-600 flex items-center justify-center text-white font-display font-extrabold text-2xl shadow-sm border border-primary/30">
+                            DP
+                        </div>
+                        <button class="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-lg shadow-md border border-neutral-light/60 flex items-center justify-center text-neutral hover:bg-neutral-bg transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Detail Nama & Sekolah -->
+                    <div class="flex-1 min-w-0 pt-0.5">
+                        <h2 class="font-display font-bold text-xl md:text-2xl text-neutral tracking-tight truncate">
+                            Muhammad Daffa Pratama
+                        </h2>
+                        <p class="text-xs md:text-sm font-semibold text-neutral/60 font-display mb-1.5 truncate">
+                            @daffapratama
+                        </p>
+                        <p class="text-xs md:text-sm text-neutral/80 flex items-center gap-1.5 font-medium truncate">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#37b24d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
+                            SMA Negeri 1 Nusantara • Kelas 12 MIPA 1
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. STATISTIK KILAT (Quick Metrics Grid) -->
+            <div class="px-5 py-6">
+                <h3 class="font-display font-bold text-base md:text-lg text-neutral mb-3">Ringkasan Akademik</h3>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Kartu 1: Rata-rata Skor -->
+                    <div class="p-4 rounded-2xl bg-neutral-bg border border-neutral-light/50 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold text-neutral/60 uppercase tracking-wider font-display">Rata-rata Skor</span>
+                            <div class="w-8 h-8 rounded-lg bg-primary-light/40 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#37b24d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="font-display font-extrabold text-2xl text-neutral">84.5</span>
+                            <span class="text-xs font-bold text-primary ml-1">+3.2 pt</span>
+                        </div>
+                    </div>
+
+                    <!-- Kartu 2: Ujian Selesai -->
+                    <div class="p-4 rounded-2xl bg-neutral-bg border border-neutral-light/50 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold text-neutral/60 uppercase tracking-wider font-display">Ujian Selesai</span>
+                            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="font-display font-extrabold text-2xl text-neutral">38</span>
+                            <span class="text-xs text-neutral/60 ml-1">Paket Soal</span>
+                        </div>
+                    </div>
+
+                    <!-- Kartu 3: Peringkat Kelas -->
+                    <div class="p-4 rounded-2xl bg-neutral-bg border border-neutral-light/50 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold text-neutral/60 uppercase tracking-wider font-display">Peringkat</span>
+                            <div class="w-8 h-8 rounded-lg bg-yellow-light/40 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59f00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 12 2"/></svg>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="font-display font-extrabold text-2xl text-neutral">#3</span>
+                            <span class="text-xs text-neutral/60 ml-1">dari 36 Siswa</span>
+                        </div>
+                    </div>
+
+                    <!-- Kartu 4: Akurasi Jawaban -->
+                    <div class="p-4 rounded-2xl bg-neutral-bg border border-neutral-light/50 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold text-neutral/60 uppercase tracking-wider font-display">Akurasi</span>
+                            <div class="w-8 h-8 rounded-lg bg-orange-light/40 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f76707" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="font-display font-extrabold text-2xl text-neutral">89.2%</span>
+                            <span class="text-xs text-neutral/60 ml-1">Benar</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-neutral-light/40 mx-5">
+
+            <!-- 3. ANALISIS KEKUATAN & KELEMAHAN (Strength & Weakness) -->
+            <div class="px-5 py-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-display font-bold text-base md:text-lg text-neutral">Pemetaan Penguasaan Materi</h3>
+                    <span class="text-xs font-bold text-neutral/60 uppercase font-display">30 Hari Terakhir</span>
+                </div>
+
+                <div class="space-y-3.5">
+                    <!-- Mapel Unggul 1 -->
+                    <div>
+                        <div class="flex justify-between items-center text-xs md:text-sm font-semibold mb-1">
+                            <span class="text-neutral flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-primary"></span>
+                                Biologi
+                            </span>
+                            <span class="font-bold text-primary font-display">94% • Sangat Kuat</span>
+                        </div>
+                        <div class="w-full h-2 bg-neutral-light/30 rounded-full overflow-hidden">
+                            <div class="h-full bg-primary rounded-full" style="width: 94%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Mapel Unggul 2 -->
+                    <div>
+                        <div class="flex justify-between items-center text-xs md:text-sm font-semibold mb-1">
+                            <span class="text-neutral flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-primary"></span>
+                                Bahasa Indonesia
+                            </span>
+                            <span class="font-bold text-primary font-display">88% • Kuat</span>
+                        </div>
+                        <div class="w-full h-2 bg-neutral-light/30 rounded-full overflow-hidden">
+                            <div class="h-full bg-primary rounded-full" style="width: 88%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Mapel Butuh Perhatian 1 -->
+                    <div>
+                        <div class="flex justify-between items-center text-xs md:text-sm font-semibold mb-1">
+                            <span class="text-neutral flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-orange"></span>
+                                Matematika Minat
+                            </span>
+                            <span class="font-bold text-orange font-display">64% • Perlu Latihan</span>
+                        </div>
+                        <div class="w-full h-2 bg-neutral-light/30 rounded-full overflow-hidden">
+                            <div class="h-full bg-orange rounded-full" style="width: 64%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Mapel Butuh Perhatian 2 -->
+                    <div>
+                        <div class="flex justify-between items-center text-xs md:text-sm font-semibold mb-1">
+                            <span class="text-neutral flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-danger"></span>
+                                Fisika
+                            </span>
+                            <span class="font-bold text-danger font-display">55% • Butuh Remedial</span>
+                        </div>
+                        <div class="w-full h-2 bg-neutral-light/30 rounded-full overflow-hidden">
+                            <div class="h-full bg-danger rounded-full" style="width: 55%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-neutral-light/40 mx-5">
+
+            <!-- 4. TARGET KAMPUS & JURUSAN (Target Belajar) -->
+            <div class="px-5 py-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-display font-bold text-base md:text-lg text-neutral">Target Kampus Impian (UTBK)</h3>
+                    <button class="text-xs font-bold text-primary hover:underline font-display">Ubah Target</button>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Target 1 -->
+                    <div class="p-3.5 rounded-xl border border-neutral-light/50 bg-white flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-yellow-light/40 flex items-center justify-center shrink-0 border border-yellow/20">
+                                <span class="font-display font-bold text-yellow text-sm">UI</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-neutral">Pendidikan Dokter</h4>
+                                <p class="text-xs text-neutral/60">Universitas Indonesia • Pilihan 1</p>
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="text-xs font-bold text-primary bg-primary-light/30 px-2.5 py-1 rounded-md font-display">82% Peluang</span>
+                        </div>
+                    </div>
+
+                    <!-- Target 2 -->
+                    <div class="p-3.5 rounded-xl border border-neutral-light/50 bg-white flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200">
+                                <span class="font-display font-bold text-blue-600 text-sm">ITB</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-neutral">Sekolah Farmasi (SF)</h4>
+                                <p class="text-xs text-neutral/60">Institut Teknologi Bandung • Pilihan 2</p>
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="text-xs font-bold text-primary bg-primary-light/30 px-2.5 py-1 rounded-md font-display">89% Peluang</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-neutral-light/40 mx-5">
+
+            <!-- 5. RIWAYAT UJIAN TERKINI (Exam History) -->
+            <div class="px-5 py-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-display font-bold text-base md:text-lg text-neutral">Riwayat Ujian Terakhir</h3>
+                    <span class="text-xs font-bold text-neutral/60 font-display">5 Ujian Terbaru</span>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- History 1 -->
+                    <div class="p-4 rounded-xl border border-neutral-light/50 bg-white flex items-center justify-between">
+                        <div class="flex items-center gap-3.5 min-w-0 pr-2">
+                            <div class="w-11 h-11 bg-primary-light/30 rounded-xl flex items-center justify-center shrink-0 border border-primary/20">
+                                <span class="font-display font-bold text-primary text-base">BIO</span>
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-sm text-neutral truncate">Ulangan Harian: Keanekaragaman Hayati</h4>
+                                <p class="text-xs text-neutral/60 mt-0.5">18 Sep 2026 • 40 Soal</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <div class="text-right">
+                                <span class="font-display font-bold text-base text-primary block">95</span>
+                                <span class="text-[10px] font-bold text-primary bg-primary-light/40 px-1.5 py-0.5 rounded">LULUS</span>
+                            </div>
+                            <a href="prototype-pembahasan.html" class="bg-neutral-light/30 text-neutral font-bold text-xs px-3 py-2 rounded-lg hover:bg-neutral-light/50 transition-colors">
+                                Pembahasan
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- History 2 -->
+                    <div class="p-4 rounded-xl border border-neutral-light/50 bg-white flex items-center justify-between">
+                        <div class="flex items-center gap-3.5 min-w-0 pr-2">
+                            <div class="w-11 h-11 bg-orange-light/40 rounded-xl flex items-center justify-center shrink-0 border border-orange/20">
+                                <span class="font-display font-bold text-orange text-base">TO</span>
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-sm text-neutral truncate">Simulasi UTBK SNBT 2026 Gelombang 1</h4>
+                                <p class="text-xs text-neutral/60 mt-0.5">15 Sep 2026 • 155 Soal</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <div class="text-right">
+                                <span class="font-display font-bold text-base text-orange block">712</span>
+                                <span class="text-[10px] font-bold text-neutral/60 bg-neutral-light/30 px-1.5 py-0.5 rounded">SELESAI</span>
+                            </div>
+                            <a href="prototype-pembahasan.html" class="bg-neutral-light/30 text-neutral font-bold text-xs px-3 py-2 rounded-lg hover:bg-neutral-light/50 transition-colors">
+                                Pembahasan
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- History 3 -->
+                    <div class="p-4 rounded-xl border border-neutral-light/50 bg-white flex items-center justify-between">
+                        <div class="flex items-center gap-3.5 min-w-0 pr-2">
+                            <div class="w-11 h-11 bg-purple-100 rounded-xl flex items-center justify-center shrink-0 border border-purple-200">
+                                <span class="font-display font-bold text-purple-600 text-base">FIS</span>
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-sm text-neutral truncate">Quiz Dinamika Partikel & Hukum Newton</h4>
+                                <p class="text-xs text-neutral/60 mt-0.5">12 Sep 2026 • 20 Soal</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <div class="text-right">
+                                <span class="font-display font-bold text-base text-danger block">55</span>
+                                <span class="text-[10px] font-bold text-danger bg-danger-light/50 px-1.5 py-0.5 rounded">REMEDIAL</span>
+                            </div>
+                            <a href="prototype-pembahasan.html" class="bg-neutral-light/30 text-neutral font-bold text-xs px-3 py-2 rounded-lg hover:bg-neutral-light/50 transition-colors">
+                                Pembahasan
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-neutral-light/40 mx-5">
+
+            <!-- 6. KEAMANAN & SESI AKTIF (Single Active Session & Google Account) -->
+            <div class="px-5 py-6">
+                <h3 class="font-display font-bold text-base md:text-lg text-neutral mb-3">Keamanan & Akun</h3>
+
+                <div class="rounded-2xl border border-neutral-light/50 bg-white overflow-hidden divide-y divide-neutral-light/40">
+                    <!-- Akun Google -->
+                    <div class="p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-neutral-bg flex items-center justify-center shrink-0 border border-neutral-light/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                            </div>
+                            <div>
+                                <p class="text-xs text-neutral/60 font-medium">Akun Google Terhubung</p>
+                                <p class="text-sm font-bold text-neutral">daffa.pratama@gmail.com</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-primary font-display">Terverifikasi</span>
+                    </div>
+
+                    <!-- Single Active Session Info -->
+                    <div class="p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-200">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#37b24d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                            </div>
+                            <div>
+                                <p class="text-xs text-neutral/60 font-medium">Perangkat Aktif (Single Session)</p>
+                                <p class="text-sm font-bold text-neutral">Chrome on Windows 11</p>
+                                <p class="text-[11px] text-neutral/50">Jakarta, Indonesia • Sesi Saat Ini</p>
+                            </div>
+                        </div>
+                        <span class="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary-light/40"></span>
+                    </div>
+
+                    <!-- Tombol Logout -->
+                    <div class="p-4 bg-neutral-bg/50">
+                        <button class="w-full py-2.5 rounded-xl border border-danger/30 text-danger font-bold text-sm hover:bg-danger-light/30 transition-colors flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                            Keluar dari Sesi Ini
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+</body>
+</html>
