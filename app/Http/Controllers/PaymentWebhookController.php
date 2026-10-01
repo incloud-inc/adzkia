@@ -19,13 +19,13 @@ class PaymentWebhookController extends Controller
      */
     public function duitku(Request $request): Response|JsonResponse
     {
-        Log::info('Duitku Webhook Received', $request->all());
+        Log::info('Duitku Webhook Received', $request->except(['signature', 'token', 'customer_phone', 'customer_email']));
 
         // Verify webhook signature
         if (! $this->paymentService->verifyDuitkuWebhook($request)) {
             Log::warning('Duitku Webhook Invalid Signature', [
                 'ip' => $request->ip(),
-                'payload' => $request->all(),
+                'merchantOrderId' => $request->input('merchantOrderId'),
             ]);
 
             return response('Bad Signature', 400);
@@ -48,14 +48,14 @@ class PaymentWebhookController extends Controller
     {
         Log::info('Tripay Webhook Received', [
             'header_event' => $request->header('X-Callback-Event'),
-            'payload' => $request->all(),
+            'payload' => $request->except(['signature', 'token', 'customer_phone', 'customer_email']),
         ]);
 
         // Verify webhook signature (HMAC-SHA256 with private key)
         if (! $this->paymentService->verifyTripayWebhook($request)) {
             Log::warning('Tripay Webhook Invalid Signature', [
                 'ip' => $request->ip(),
-                'signature' => $request->header('X-Callback-Signature'),
+                'merchant_ref' => $request->input('merchant_ref'),
             ]);
 
             return response()->json([

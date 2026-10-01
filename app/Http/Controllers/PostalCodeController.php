@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PostalCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PostalCodeController extends Controller
 {
@@ -16,10 +17,14 @@ class PostalCodeController extends Controller
             return response()->json([]);
         }
 
-        $results = PostalCode::where('postal_code', 'like', "%{$query}%")
-            ->orWhere('urban_village', 'ilike', "%{$query}%")
-            ->orWhere('district_city', 'ilike', "%{$query}%")
-            ->orWhere('sub_district', 'ilike', "%{$query}%")
+        $driver = DB::connection()->getDriverName();
+        $likeOp = $driver === 'pgsql' ? 'ilike' : 'like';
+
+        $results = PostalCode::query()
+            ->where('postal_code', 'like', "%{$query}%")
+            ->orWhere('urban_village', $likeOp, "%{$query}%")
+            ->orWhere('district_city', $likeOp, "%{$query}%")
+            ->orWhere('sub_district', $likeOp, "%{$query}%")
             ->take(15)
             ->get();
 

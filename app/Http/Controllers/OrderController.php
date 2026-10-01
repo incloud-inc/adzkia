@@ -141,6 +141,11 @@ class OrderController extends Controller
      */
     public function checkStatus(Order $order): JsonResponse
     {
+        $user = Auth::user();
+        if ($user && $order->user_id !== $user->id && ! $user->isAdmin() && ! $user->isSuperUser()) {
+            abort(403, 'Akses ditolak.');
+        }
+
         return response()->json([
             'status' => $order->status,
             'is_settled' => $order->isSettled(),
@@ -154,6 +159,10 @@ class OrderController extends Controller
      */
     public function simulatePayment(Order $order): RedirectResponse
     {
+        if (! app()->environment('local', 'testing') && ! auth()->user()?->isSuperUser()) {
+            abort(403, 'Simulasi pembayaran dinonaktifkan di lingkungan produksi.');
+        }
+
         $this->paymentService->simulateSettlement($order);
 
         return redirect()->route('orders.show', $order)

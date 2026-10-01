@@ -55,11 +55,14 @@ Route::post('api/webhooks/payment/duitku', [PaymentWebhookController::class, 'du
 Route::post('api/webhooks/payment/tripay', [PaymentWebhookController::class, 'tripay'])->name('payment.webhook.tripay');
 Route::post('api/webhooks/payment/generic', [PaymentWebhookController::class, 'generic'])->name('payment.webhook.generic');
 
-Route::get('/run-storage-link', function () {
-    $kernel = app()->make(Kernel::class);
-    $kernel->call('storage:link');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/run-storage-link', function () {
+        abort_unless(auth()->user()?->isSuperUser(), 403, 'Akses ditolak.');
+        $kernel = app()->make(Kernel::class);
+        $kernel->call('storage:link');
 
-    return $kernel->output();
+        return response()->json(['output' => $kernel->output()]);
+    });
 });
 
 // ─── Guest Routes (Unauthenticated) ───────────────────────────

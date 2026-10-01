@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -133,6 +134,12 @@ class ProfileController extends Controller
 
         $request->user()->update([
             'password' => Hash::make($validated['password']),
+        ]);
+
+        Log::info('Security Audit: User password changed', [
+            'user_id' => $request->user()->id,
+            'ip' => $request->ip(),
+            'timestamp' => now()->toIso8601String(),
         ]);
 
         return redirect()->route('profile.edit')->with('success_password', 'Kata sandi akun Anda berhasil diperbarui dengan aman.');
