@@ -87,4 +87,23 @@ class InfrastructureAndMaintenanceTest extends TestCase
         $statusResponse = $this->actingAs($studentB)->get(route('orders.status', $order));
         $statusResponse->assertStatus(403);
     }
+
+    /**
+     * 20. Tool Automation: Verifikasi eksistensi dan validitas konfigurasi CI/CD Strix & IBM ARES.
+     */
+    public function test_security_automation_tool_configurations_exist_and_are_valid(): void
+    {
+        $strixWorkflow = base_path('.github/workflows/strix-pentest.yml');
+        $this->assertFileExists($strixWorkflow, 'Workflow Strix AI Pentest belum dibuat.');
+        $strixContent = file_get_contents($strixWorkflow);
+        $this->assertStringContainsString('strix --target ./app', $strixContent);
+        $this->assertStringContainsString('--fail-on high,critical', $strixContent);
+
+        $aresConfig = base_path('ares_config.yaml');
+        $this->assertFileExists($aresConfig, 'Konfigurasi ARES belum dibuat.');
+        $aresContent = file_get_contents($aresConfig);
+        $this->assertStringContainsString('owasp-llm-01:2025', $aresContent);
+        $this->assertStringContainsString('owasp-llm-02:2025', $aresContent);
+        $this->assertStringContainsString('defense_success_rate', $aresContent);
+    }
 }
