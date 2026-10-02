@@ -24,17 +24,25 @@
             </div>
 
             @if($canManage)
-                @if($canCreate)
-                    <a href="{{ route('assessments.wizard') }}" 
-                       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-9 hover:bg-green-10 active:bg-green-11 text-white text-sm font-semibold transition-all shadow-[0_1px_2px_rgba(0,0,0,0.06)] active:scale-[0.98] cursor-pointer">
-                        <x-radix-icon name="plus" class="w-4 h-4" />
-                        <span>Buat Ujian Baru (Wizard 8 Langkah)</span>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <a href="{{ route('question-generator.index') }}" 
+                       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" 
+                       title="Buat soal otomatis dengan DeepSeek AI">
+                        <x-radix-icon name="magic-wand" class="w-4 h-4" />
+                        <span>Studio Pembuat Soal AI</span>
                     </a>
-                @else
-                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold" title="Paket Starter hanya menyajikan kurasi ujian ADZKIA. Guru bertindak sebagai Pengawas.">
-                        <span>🥉 Paket STARTER: Fokus Pengawasan Ujian ADZKIA</span>
-                    </div>
-                @endif
+                    @if($canCreate)
+                        <a href="{{ route('assessments.wizard') }}" 
+                           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-9 hover:bg-green-10 active:bg-green-11 text-white text-sm font-semibold transition-all shadow-[0_1px_2px_rgba(0,0,0,0.06)] active:scale-[0.98] cursor-pointer">
+                            <x-radix-icon name="plus" class="w-4 h-4" />
+                            <span>Buat Ujian Baru (Wizard 8 Langkah)</span>
+                        </a>
+                    @else
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold" title="Paket Starter hanya menyajikan kurasi ujian ADZKIA. Guru bertindak sebagai Pengawas.">
+                            <span>🥉 Paket STARTER: Fokus Pengawasan Ujian ADZKIA</span>
+                        </div>
+                    @endif
+                </div>
             @endif
         </div>
 

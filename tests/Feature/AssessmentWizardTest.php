@@ -344,23 +344,81 @@ class AssessmentWizardTest extends TestCase
         $data = $response->json();
         $this->assertNotEmpty($data['items']);
 
-        // Check that standalone math question contains LaTeX formula
+        // 1. Standalone math question (MCQ Single with LaTeX, Underline, Bold, and Points 2.5)
         $q1 = collect($data['items'])->first(fn ($item) => ! ($item['is_group'] ?? false) && str_contains($item['prompt'] ?? '', '$$x ='));
         $this->assertNotNull($q1, 'Soal matematika dengan formula LaTeX harus ditemukan.');
+        $this->assertEquals('mcq_single', $q1['type']);
+        $this->assertEquals(2.5, $q1['points']);
         $this->assertStringContainsString('$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$', $q1['prompt']);
-        $this->assertStringContainsString('**x^2 - 5x + 6 = 0**', $q1['prompt']);
-        $this->assertStringContainsString('<u>a = 1</u>', $q1['prompt']);
-
-        // Check options
+        $this->assertStringContainsString('**2x^2 - 7x + 3 = 0**', $q1['prompt']);
+        $this->assertStringContainsString('<u>persamaan kuadrat</u>', $q1['prompt']);
         $this->assertCount(4, $q1['options']);
         $this->assertEquals('A', $q1['options'][0]['label']);
         $this->assertTrue($q1['options'][0]['is_correct']);
-        $this->assertStringContainsString('$$x_1 = 2$$', $q1['options'][0]['option_text']);
+        $this->assertEquals(2.5, $q1['options'][0]['score']);
+        $this->assertStringContainsString('$$x_1 = 3$$', $q1['options'][0]['option_text']);
 
-        // Check narrative stimulus group exists
+        // 2. TKP / Weighted MCQ (Format 2: A. [5] Opsi...)
+        $qTkp = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'mcq_weighted');
+        $this->assertNotNull($qTkp, 'Soal TKP / Pilihan Ganda Berbobot (Format 2) harus terdeteksi.');
+        $this->assertEquals('mcq_weighted', $qTkp['type']);
+        $this->assertEquals(5.0, $qTkp['points']);
+        $this->assertCount(5, $qTkp['options']);
+        $this->assertEquals(5.0, $qTkp['options'][0]['score']);
+        $this->assertEquals(4.0, $qTkp['options'][1]['score']);
+        $this->assertEquals(3.0, $qTkp['options'][2]['score']);
+        $this->assertEquals(2.0, $qTkp['options'][3]['score']);
+        $this->assertEquals(1.0, $qTkp['options'][4]['score']);
+        // Verify brackets [5] were sanitized from the option text for clean rendering
+        $this->assertStringNotContainsString('[5]', $qTkp['options'][0]['option_text']);
+
+        // 3. Complex MCQ (Multi-Answer KUNCI: A, C)
+        $qComplex = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'mcq_multiple');
+        $this->assertNotNull($qComplex, 'Soal Pilihan Ganda Kompleks harus terdeteksi.');
+        $this->assertEquals(2.0, $qComplex['points']);
+        $this->assertTrue($qComplex['options'][0]['is_correct']); // A
+        $this->assertFalse($qComplex['options'][1]['is_correct']); // B
+        $this->assertTrue($qComplex['options'][2]['is_correct']); // C
+
+        // 4. Binary Matrix (Tabel Dikotomi Benar/Salah)
+        $qBinary = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'binary_matrix');
+        $this->assertNotNull($qBinary, 'Soal Tabel Dikotomi / Benar Salah harus terdeteksi.');
+        $this->assertEquals(3.0, $qBinary['points']);
+        $this->assertCount(3, $qBinary['options']);
+        $this->assertEquals('Benar', $qBinary['options'][0]['match_key']);
+        $this->assertEquals('Salah', $qBinary['options'][1]['match_key']);
+        $this->assertEquals('Benar', $qBinary['options'][2]['match_key']);
+
+        // 5. Matching (Menjodohkan)
+        $qMatching = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'matching');
+        $this->assertNotNull($qMatching, 'Soal Menjodohkan harus terdeteksi.');
+        $this->assertEquals(4.0, $qMatching['points']);
+        $this->assertCount(4, $qMatching['options']);
+        $this->assertEquals('New York, Amerika Serikat', $qMatching['options'][0]['match_key']);
+
+        // 6. Ordering (Mengurutkan Tahapan)
+        $qOrdering = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'ordering');
+        $this->assertNotNull($qOrdering, 'Soal Mengurutkan harus terdeteksi.');
+        $this->assertEquals(3.0, $qOrdering['points']);
+        $this->assertCount(5, $qOrdering['options']);
+
+        // 7. Short Answer (Isian Singkat)
+        $qShort = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'short_answer');
+        $this->assertNotNull($qShort, 'Soal Isian Singkat harus terdeteksi.');
+        $this->assertEquals(2.0, $qShort['points']);
+        $this->assertEquals('Jantung', $qShort['options'][0]['option_text']);
+
+        // 8. Essay (Uraian)
+        $qEssay = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'essay');
+        $this->assertNotNull($qEssay, 'Soal Esai harus terdeteksi.');
+        $this->assertEquals(5.0, $qEssay['points']);
+
+        // 9. Narrative Stimulus Group
         $narrativeItem = collect($data['items'])->firstWhere('is_group', true);
-        $this->assertNotNull($narrativeItem);
-        $this->assertNotEmpty($narrativeItem['questions']);
+        $this->assertNotNull($narrativeItem, 'Grup Soal Berseri (Stimulus Narasi) harus terdeteksi.');
+        $this->assertCount(2, $narrativeItem['questions']);
+        $this->assertEquals(2.0, $narrativeItem['questions'][0]['points']);
+        $this->assertEquals(2.0, $narrativeItem['questions'][1]['points']);
 
         // Clean up temp file
         if (file_exists($tempPath)) {

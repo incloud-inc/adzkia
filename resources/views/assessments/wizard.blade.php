@@ -3164,55 +3164,173 @@
                     </button>
                 </div>
 
-                <div class="space-y-4 text-xs text-gray-12">
+                <div x-data="{ formatTab: 'pg' }" class="space-y-4 text-xs text-gray-12">
                     <div class="p-3.5 rounded-xl bg-blue-2/30 border border-blue-6/50 text-blue-11 leading-relaxed">
-                        <strong class="block font-bold mb-1">Struktur Format Word Standar:</strong>
-                        Setiap butir soal dituliskan nomor soal, teks pertanyaan, opsi jawaban (A, B, C, D, E), serta penanda kunci jawaban <code class="px-1.5 py-0.5 rounded bg-blue-3 font-mono font-bold">KUNCI: [A/B/C/D/E]</code> di baris baru.
+                        <strong class="block font-bold mb-1">Mendukung Seluruh Tipe Soal &amp; Formula Matematika (LaTeX):</strong>
+                        Dokumen Word (.docx) mendukung teks tebal (bold), miring (italic), garis bawah (underline), formula matematika <code class="px-1.5 py-0.5 rounded bg-blue-3 font-mono font-bold">$$formula$$</code>, serta penetapan bobot soal fleksibel <code class="px-1.5 py-0.5 rounded bg-blue-3 font-mono font-bold">BOBOT: 2.5</code>.
                     </div>
 
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="font-bold text-gray-12">1. Contoh Soal Pilihan Ganda Tunggal:</span>
-                        </div>
-                        <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">1. Nilai dari 2 + 3 x 4 adalah ...
-A. 14
-B. 20
-C. 24
-D. 10
+                    <!-- Tab Buttons -->
+                    <div class="flex items-center gap-1.5 p-1 bg-gray-3 rounded-xl overflow-x-auto">
+                        <button type="button" @click="formatTab = 'pg'"
+                                :class="formatTab === 'pg' ? 'bg-white text-gray-12 shadow-xs font-bold' : 'text-gray-11 hover:text-gray-12 font-medium'"
+                                class="px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap cursor-pointer">
+                            PG Tunggal &amp; TKP (Berbobot)
+                        </button>
+                        <button type="button" @click="formatTab = 'kompleks_bs'"
+                                :class="formatTab === 'kompleks_bs' ? 'bg-white text-gray-12 shadow-xs font-bold' : 'text-gray-11 hover:text-gray-12 font-medium'"
+                                class="px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap cursor-pointer">
+                            PG Kompleks &amp; Benar-Salah
+                        </button>
+                        <button type="button" @click="formatTab = 'jodoh_urut'"
+                                :class="formatTab === 'jodoh_urut' ? 'bg-white text-gray-12 shadow-xs font-bold' : 'text-gray-11 hover:text-gray-12 font-medium'"
+                                class="px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap cursor-pointer">
+                            Menjodohkan &amp; Urutan
+                        </button>
+                        <button type="button" @click="formatTab = 'isian_esai'"
+                                :class="formatTab === 'isian_esai' ? 'bg-white text-gray-12 shadow-xs font-bold' : 'text-gray-11 hover:text-gray-12 font-medium'"
+                                class="px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap cursor-pointer">
+                            Isian, Esai &amp; Wacana
+                        </button>
+                    </div>
+
+                    <!-- TAB 1: PG & TKP -->
+                    <div x-show="formatTab === 'pg'" class="space-y-4">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-gray-12">1. Pilihan Ganda Tunggal (dengan Bobot &gt;= 2.0 &amp; LaTeX):</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-3 text-blue-11 font-mono">BOBOT: 2.5</span>
+                            </div>
+                            <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">1. Himpunan penyelesaian persamaan $$2x^2 - 7x + 3 = 0$$ adalah ...
+A. $$x_1 = 3$$ atau $$x_2 = \frac{1}{2}$$
+B. $$x_1 = -3$$ atau $$x_2 = -\frac{1}{2}$$
+C. $$x_1 = 1$$ atau $$x_2 = 6$$
+D. $$x_1 = 2$$ atau $$x_2 = 5$$
 KUNCI: A
-PEMBAHASAN: Sesuai urutan operasi matematika, perkalian dikerjakan terlebih dahulu: 3 x 4 = 12, lalu 2 + 12 = 14.</pre>
+BOBOT: 2.5
+PEMBAHASAN: Nilai D = 25. Maka x = (7 +/- 5)/4, sehingga x1 = 3 dan x2 = 1/2.</pre>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-green-11">2. TKP / PG Berbobot (Format 2: Skor di Awal Opsi):</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-3 text-green-11 font-mono">[TKP]</span>
+                            </div>
+                            <pre class="p-3.5 rounded-xl bg-green-2/30 border border-green-6/50 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[TKP]
+2. Rekan kerja meminta dilayani terlebih dahulu saat antrean warga sangat padat. Sikap Anda ...
+A. [5] Menolak santun dan memintanya mengambil nomor antrean sesuai prosedur.
+B. [4] Menjelaskan bahwa sistem antrean digital otomatis terpantau.
+C. [3] Memintanya menunggu hingga jam istirahat kantor.
+D. [2] Membantu cepat setelah warga yang di depan loket selesai.
+E. [1] Langsung mendahulukan rekan kerja karena sungkan.
+PEMBAHASAN: Menjunjung asas integritas dan transparansi publik tanpa diskriminasi.</pre>
+                        </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="font-bold text-gray-12">2. Contoh Soal Berseri (Stimulus Narasi / Wacana):</span>
+                    <!-- TAB 2: KOMPLEKS & BENAR SALAH -->
+                    <div x-show="formatTab === 'kompleks_bs'" class="space-y-4" style="display: none;">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-purple-11">1. Pilihan Ganda Kompleks (Jawaban &gt; 1):</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-3 text-purple-11 font-mono">[KOMPLEKS]</span>
+                            </div>
+                            <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[KOMPLEKS]
+3. Manakah yang tergolong Energi Terbarukan (EBT)? (Pilih semua yang benar)
+A. Pembangkit Listrik Tenaga Surya (PLTS)
+B. Pembangkit Listrik Tenaga Batubara (PLTU)
+C. Pembangkit Listrik Tenaga Bayu/Angin (PLTB)
+D. Pembangkit Diesel Berbahan Bakar Minyak
+KUNCI: A, C
+BOBOT: 2.0</pre>
                         </div>
-                        <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[NARASI]
-Judul: Konservasi Terumbu Karang di Indonesia
-Teks: Indonesia memiliki keanekaragaman terumbu karang tertinggi di dunia yang dikenal sebagai Segitiga Terumbu Karang (Coral Triangle). Namun, ancaman pemanasan global dan penangkapan ikan dengan bahan peledak menyebabkan kerusakan terumbu karang di beberapa wilayah perairan.
+
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-amber-11">2. Tabel Dikotomi / Analisis Benar-Salah:</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-3 text-amber-11 font-mono">[BENAR SALAH]</span>
+                            </div>
+                            <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[BENAR SALAH]
+4. Analisislah pernyataan mengenai fotosintesis tumbuhan berikut!
+KOLOM: Benar | Salah
+1) Fotosintesis menghasilkan glukosa dan oksigen [BENAR]
+2) Reaksi terang berlangsung di stroma tanpa cahaya [SALAH]
+3) Klorofil merupakan pigmen penyerap cahaya matahari [BENAR]
+BOBOT: 3.0</pre>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: JODOH & URUT -->
+                    <div x-show="formatTab === 'jodoh_urut'" class="space-y-4" style="display: none;">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-teal-11">1. Menjodohkan (Matching Premis -&gt; Pasangan):</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-3 text-teal-11 font-mono">[MENJODOHKAN]</span>
+                            </div>
+                            <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[MENJODOHKAN]
+5. Pasangkan organisasi internasional berikut dengan lokasi markas besarnya!
+1) Perserikatan Bangsa-Bangsa (PBB) -> New York, AS
+2) Organisasi Kesehatan Dunia (WHO) -> Jenewa, Swiss
+3) Sekretariat Jenderal ASEAN -> Jakarta, Indonesia
+BOBOT: 3.0</pre>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-cyan-11">2. Mengurutkan Tahapan (Ordering / Sequencing):</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-3 text-cyan-11 font-mono">[MENGURUTKAN]</span>
+                            </div>
+                            <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[MENGURUTKAN]
+6. Urutkan tahapan metode ilmiah berikut mulai dari awal hingga kesimpulan!
+1) Merumuskan masalah penelitian
+2) Mengumpulkan data observasi awal
+3) Menyusun hipotesis ilmiah
+4) Melakukan eksperimen teruji
+5) Menarik kesimpulan
+BOBOT: 3.0</pre>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: ISIAN, ESAI & WACANA -->
+                    <div x-show="formatTab === 'isian_esai'" class="space-y-4" style="display: none;">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-pink-11">1. Isian Singkat &amp; Soal Esai / Uraian:</span>
+                            </div>
+                            <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[ISIAN]
+7. Organ tubuh yang memompa darah beroksigen ke seluruh tubuh adalah ...
+KUNCI: Jantung
+BOBOT: 2.0
+
+[ESAI]
+8. Jelaskan 3 faktor utama pemicu pemanasan global dan mitigasinya di sekolah!
+BOBOT: 5.0
+PEMBAHASAN: Rubrik: 1. Efek gas rumah kaca, 2. Deforestasi, 3. Mitigasi sekolah (hemat listrik, pemilahan sampah).</pre>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-indigo-11">2. Stimulus Narasi / Wacana Bacaan Berseri:</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-3 text-indigo-11 font-mono">[NARASI]</span>
+                            </div>
+                            <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[NARASI]
+Judul: Konservasi Segitiga Karang Dunia
+Teks: Indonesia memiliki keanekaragaman karang laut tertinggi di Coral Triangle...
 [AKHIR NARASI]
 
-2. Berdasarkan narasi di atas, apa faktor utama pemicu kerusakan terumbu karang?
-A. Penurunan suhu air laut
-B. Pemanasan global dan penangkapan ikan destruktif
-C. Wisata bahari berlebihan
-D. Gelombang pasang alami
-KUNCI: B
-
-3. Kawasan keanekaragaman terumbu karang di Indonesia dikenal dengan istilah ...
-A. Ring of Fire
-B. Coral Triangle
-C. Sunda Shelf
-D. Sahul Shelf
-KUNCI: B</pre>
+9. Wilayah perairan Indonesia dengan karang tertinggi dijuluki ...
+A. Coral Triangle
+B. Ring of Fire
+KUNCI: A
+BOBOT: 2.0</pre>
+                        </div>
                     </div>
                 </div>
 
                 <div class="flex items-center justify-between gap-3 pt-3 border-t border-gray-5">
                     <a href="{{ route('assessments.download-template') }}" target="_blank"
-                       class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-green-9 text-white text-xs font-bold hover:bg-green-10 transition-colors shadow-xs cursor-pointer">
+                       class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-9 text-white text-xs font-bold hover:bg-green-10 transition-colors shadow-xs cursor-pointer">
                         <x-radix-icon name="download" class="w-4 h-4" />
-                        <span>Download File Word (.docx) Contoh</span>
+                        <span>Download Template Lengkap Word (.docx)</span>
                     </a>
                     <button type="button" @click="showFormatModal = false" class="px-5 py-2 rounded-xl bg-gray-3 hover:bg-gray-4 text-gray-12 text-xs font-bold transition-colors cursor-pointer">
                         Tutup

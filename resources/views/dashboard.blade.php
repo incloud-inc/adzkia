@@ -7,11 +7,13 @@
             activeTab: 'tenants',
             showModal: false,
             modalMode: 'create',
+            addType: 'single',
             modalUser: { id: null, name: '', email: '', role: 'T', whatsapp_number: '', tenant_id: '{{ $tenants->first()?->id ?? '' }}' },
             showDetailModal: false,
             detailUser: {},
             openCreateModal(defaultRole = 'T') {
                 this.modalMode = 'create';
+                this.addType = 'single';
                 this.modalUser = { id: null, name: '', email: '', role: defaultRole, whatsapp_number: '', tenant_id: '{{ $tenants->first()?->id ?? '' }}' };
                 this.showModal = true;
             },
@@ -798,6 +800,7 @@
             copied: false,
             showModal: false,
             modalMode: 'create',
+            addType: 'single',
             modalUser: { id: null, name: '', email: '', role: 'T', whatsapp_number: '', tenant_id: '{{ $tenant->id ?? '' }}' },
             showDetailModal: false,
             detailUser: {},
@@ -811,6 +814,7 @@
             },
             openCreateModal(defaultRole = 'T') {
                 this.modalMode = 'create';
+                this.addType = 'single';
                 this.modalUser = { id: null, name: '', email: '', role: defaultRole, whatsapp_number: '', tenant_id: '{{ $tenant->id ?? '' }}' };
                 this.showModal = true;
             },

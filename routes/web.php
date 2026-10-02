@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssessmentAnalyticsController;
 use App\Http\Controllers\AssessmentExplanationController;
 use App\Http\Controllers\AssessmentWizardController;
+use App\Http\Controllers\Auth\ForceChangePasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\PostalCodeController;
 use App\Http\Controllers\ProctoringController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestionBankController;
+use App\Http\Controllers\QuestionGeneratorController;
 use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SubjectController;
@@ -97,6 +99,10 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 
+    // Wajib Ganti Password Bawaan (Force Change Password)
+    Route::get('force-change-password', [ForceChangePasswordController::class, 'show'])->name('password.force_change');
+    Route::post('force-change-password', [ForceChangePasswordController::class, 'update'])->name('password.force_change.update');
+
     Route::get('select-tenant', [TenantController::class, 'select'])->name('tenant.select');
     Route::post('switch-tenant/{tenant}', [TenantController::class, 'switch'])->name('tenant.switch');
 
@@ -135,6 +141,12 @@ Route::middleware(['auth'])->group(function () {
 
     // Bank Soal (Question Banks)
     Route::resource('question-banks', QuestionBankController::class);
+
+    // AI Question Generator Studio (DeepSeek AI)
+    Route::get('question-generator', [QuestionGeneratorController::class, 'index'])->name('question-generator.index');
+    Route::post('question-generator/generate', [QuestionGeneratorController::class, 'generate'])->name('question-generator.generate');
+    Route::post('question-generator/export-word', [QuestionGeneratorController::class, 'exportWord'])->name('question-generator.export-word');
+    Route::post('question-generator/save-to-bank', [QuestionGeneratorController::class, 'saveToBank'])->name('question-generator.save-to-bank');
 
     // Assessment Engine & 8-Step Wizard
     Route::get('assessments/wizard', [AssessmentWizardController::class, 'create'])->name('assessments.wizard');

@@ -1,0 +1,1042 @@
+<?php
+
+namespace Database\Seeders\Data;
+
+class BahasaIndonesiaGrade1ATSData
+{
+    public static function getAssessments(): array
+    {
+        return [
+            self::getPaket01(),
+            self::getPaket02(),
+            self::getPaket03(),
+        ];
+    }
+
+    public static function getPaket01(): array
+    {
+        return [
+            'title' => 'Asesmen Tengah Semester 1 (ATS) - Paket 01',
+            'type' => 'pts',
+            'duration_minutes' => 60,
+            'description' => 'Asesmen Tengah Semester (ATS) 1 Bahasa Indonesia Paket 01: Menguji capaian Bab 1 (Bunyi Apa?) dan Bab 2 (Ayo Bermain!).',
+            'sections' => [
+                [
+                    'title' => 'Bagian I: Pilihan Ganda',
+                    'instructions' => 'Pilihlah salah satu jawaban yang paling tepat (A, B, atau C).',
+                    'order' => 1,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Suara tiruan bel sepeda saat ditekan berbunyi ....',
+                            'explanation' => 'Bel sepeda berbunyi kring-kring.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Kring-kring', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Tin-tin', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Dor-dor', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Bunyi ayam berkokok menandakan waktu sudah ....',
+                            'explanation' => 'Ayam jantan berkokok di waktu pagi hari menyambut matahari terbit.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Pagi hari', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Tengah malam', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Petang hari', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Huruf pertama dari kata "baju" adalah ....',
+                            'explanation' => 'Kata "baju" diawali dengan huruf b.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'b', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'd', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'p', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Boni ingin bermain bola. Tempat yang paling aman adalah ....',
+                            'explanation' => 'Lapangan sepak bola berumput adalah tempat aman untuk bermain.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Lapangan rumput', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Jalan raya ramai kendaraan', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Tepi jurang curam', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Huruf awal dari kata "cacing" adalah ....',
+                            'explanation' => 'Kata "cacing" berawalan huruf c.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'c', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'k', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 's', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 6,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Saat bermain ayunan di taman, kita harus ....',
+                            'explanation' => 'Kita harus mengantre dan bergantian dengan tertib bersama teman.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Bergantian secara tertib', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Mendorong teman sampai jatuh', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Bermain sendirian sepanjang hari', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 7,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Huruf awal dari kata "harimau" adalah ....',
+                            'explanation' => 'Kata "harimau" berawalan huruf h.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'h', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'm', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'n', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 8,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Tiruan bunyi saat balon meletus adalah ....',
+                            'explanation' => 'Balon meletus berbunyi dor.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Dor!', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Kring!', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Tik-tik!', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 9,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Suku kata awal dari kata "boneka" adalah ....',
+                            'explanation' => 'Bo-ne-ka diawali oleh suku kata "bo".',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'bo', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'ba', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'bu', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 10,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Tanda baca yang dipakai di akhir kalimat peringatan "Hati-hati!" adalah ....',
+                            'explanation' => 'Tanda seru (!) dipakai pada kalimat seruan atau peringatan.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Tanda seru (!)', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Tanda tanya (?)', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Tanda titik (.)', 'is_correct' => false],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian II: Pilihan Ganda Kompleks',
+                    'instructions' => 'Pilihlah semua jawaban yang benar (jawaban benar lebih dari satu).',
+                    'order' => 2,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Manakah bunyi di bawah ini yang tergolong bunyi keras? (Pilih dua)',
+                            'explanation' => 'Petir dan letusan balon terdengar keras menggelegar.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Suara guntur halilintar', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Letusan balon karet', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Suara detik jarum jam dinding', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Kata mana saja yang diawali oleh huruf "b"? (Pilih dua)',
+                            'explanation' => 'Batu dan Buku diawali huruf b. Cincin diawali c.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Batu', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Buku', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Cincin', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Pilihlah dua permainan tradisional Indonesia!',
+                            'explanation' => 'Petak umpet dan lompat tali adalah permainan tradisional anak-anak.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Petak umpet', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Lompat tali karet', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Bermain game online di ponsel', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Sikap yang baik saat bermain bersama teman adalah .... (Pilih dua)',
+                            'explanation' => 'Jujur mematuhi aturan dan menghibur teman yang kalah mencerminkan jiwa sportif.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Jujur dan mematuhi aturan main', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Menghibur teman yang kalah', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Mengejek teman yang terjatuh', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Kata mana saja yang diawali oleh suku kata "ha"? (Pilih dua)',
+                            'explanation' => 'Harimau dan Handuk diawali suku kata ha. Hidung diawali hi.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Harimau', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Handuk', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Hidung', 'is_correct' => false],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian III: Menjodohkan',
+                    'instructions' => 'Pasangkanlah pernyataan di sebelah kiri dengan pasangannya di sebelah kanan.',
+                    'order' => 3,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan hewan dengan tiruan bunyinya!',
+                            'explanation' => 'Bebek berbunyi kwek-kwek, kucing meong, kambing mbeee, ayam kukuruyuk, anjing guk-guk.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Bebek', 'match_key' => 'Kwek-kwek', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Kucing', 'match_key' => 'Meong-meong', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Kambing', 'match_key' => 'Mbeeek', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Ayam jago', 'match_key' => 'Kukuruyuk', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Anjing', 'match_key' => 'Guk-guk', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan benda dengan huruf awal namanya!',
+                            'explanation' => 'Bola awal b, Cacing awal c, Harimau awal h, Meja awal m, Topi awal t.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Bola', 'match_key' => 'Huruf B', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Cangkir', 'match_key' => 'Huruf C', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Hujan', 'match_key' => 'Huruf H', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Buku', 'match_key' => 'Huruf B', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Cabai', 'match_key' => 'Huruf C', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan permainan dengan perlengkapannya!',
+                            'explanation' => 'Sepak bola butuh bola, lompat tali butuh karet, layangan butuh benang, kelereng butuh kelereng, bersepeda butuh helm.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Sepak bola', 'match_key' => 'Bola sepak bulat', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Lompat tali', 'match_key' => 'Untaian karet gelang', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Layang-layang', 'match_key' => 'Benang dan kertas kerangka', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Bersepeda', 'match_key' => 'Helm pelindung kepala', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Kelereng', 'match_key' => 'Bola kaca bening kecil', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan suku kata dengan kata bendanya!',
+                            'explanation' => 'ba -> balon, bi -> bibir, ca -> cacing, ci -> cincin, ha -> hati.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'ba', 'match_key' => 'Balon', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'bi', 'match_key' => 'Bibir', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'ca', 'match_key' => 'Cacing', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'ci', 'match_key' => 'Cincin', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'ha', 'match_key' => 'Hati', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan bunyi dengan indra yang merasakannya!',
+                            'explanation' => 'Suara didengar telinga, warna dilihat mata, aroma dicium hidung, rasa dikecap lidah, raba dirasa kulit.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Mendengarkan kicau burung', 'match_key' => 'Telinga', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Melihat warna-warni layangan', 'match_key' => 'Mata', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Mencium harum bunga mawar', 'match_key' => 'Hidung', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Mengecap manisnya es krim', 'match_key' => 'Lidah', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Merasakan halusnya bulu kelinci', 'match_key' => 'Kulit tangan', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian IV: Isian Singkat',
+                    'instructions' => 'Isilah titik-titik berikut dengan satu kata yang tepat dan benar!',
+                    'order' => 4,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Tiruan bunyi saat air hujan jatuh ke atap rumah adalah ....',
+                            'explanation' => 'Air hujan berbunyi tik-tik-tik.',
+                            'options' => [
+                                ['option_text' => 'tik', 'is_correct' => true],
+                                ['option_text' => 'tik-tik', 'is_correct' => true],
+                                ['option_text' => 'tik-tik-tik', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Benda bulat yang biasa ditendang saat bermain di lapangan bernama ....',
+                            'explanation' => 'Benda itu adalah bola.',
+                            'options' => [
+                                ['option_text' => 'bola', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Alat indra di kepala kita yang digunakan untuk mendengar aneka bunyi adalah ....',
+                            'explanation' => 'Telinga adalah organ pendengaran.',
+                            'options' => [
+                                ['option_text' => 'telinga', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Sebelum pergi bermain ke luar rumah bersama teman, kita harus meminta .... kepada orang tua.',
+                            'explanation' => 'Kita wajib meminta izin atau pamit kepada orang tua.',
+                            'options' => [
+                                ['option_text' => 'izin', 'is_correct' => true],
+                                ['option_text' => 'ijin', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Pelindung kepala yang wajib dipakai saat belajar bersepeda adalah ....',
+                            'explanation' => 'Helm melindungi kepala saat bersepeda.',
+                            'options' => [
+                                ['option_text' => 'helm', 'is_correct' => true],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public static function getPaket02(): array
+    {
+        return [
+            'title' => 'Asesmen Tengah Semester 1 (ATS) - Paket 02',
+            'type' => 'pts',
+            'duration_minutes' => 60,
+            'description' => 'Asesmen Tengah Semester (ATS) 1 Bahasa Indonesia Paket 02: Evaluasi komprehensif Bab 1 & Bab 2 dengan variasi soal objektif dan isian.',
+            'sections' => [
+                [
+                    'title' => 'Bagian I: Pilihan Ganda',
+                    'instructions' => 'Pilihlah salah satu jawaban yang paling tepat (A, B, atau C).',
+                    'order' => 1,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Kucing yang sedang lapar akan bersuara ....',
+                            'explanation' => 'Suara kucing adalah meong-meong.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Meong-meong', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Mooo-mooo', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Kwek-kwek', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Benda yang menghasilkan bunyi jika ditiup dengan mulut adalah ....',
+                            'explanation' => 'Peluit berbunyi ketika ditiup dengan mulut.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Peluit', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Drum', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Gitar', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Suku kata awal dari nama hewan "bebek" adalah ....',
+                            'explanation' => 'Bebek diawali suku kata "be".',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'be', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'ba', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'bi', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Saat ada teman yang terjatuh di halaman bermain, sikap kita adalah ....',
+                            'explanation' => 'Kita harus segera membantunya bangkit dan menolongnya.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Segera menolongnya berdiri', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Menertawakannya dengan keras', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Mendorongnya lagi', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Hewan melata di tanah yang berawalan huruf "c" adalah ....',
+                            'explanation' => 'Cacing hidup di dalam tanah gembur.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Cacing', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Capung', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Cicak', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 6,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Suku kata awal dari kata "celana" adalah ....',
+                            'explanation' => 'Ce-la-na diawali suku kata "ce".',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'ce', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'ca', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'ci', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 7,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Ketika bermain petak umpet, anak yang menjadi penjaga bertugas ....',
+                            'explanation' => 'Penjaga menutup mata dan berhitung, lalu mencari teman-teman yang bersembunyi.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Mencari teman yang bersembunyi', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Ikut bersembunyi di dalam rumah', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Pulang ke rumah sendiri', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 8,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Benda di langit yang bersinar di malam hari dan berawalan huruf "b" adalah ....',
+                            'explanation' => 'Bintang bersinar gemerlap di langit malam.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Bintang', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Bulan', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Awan', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 9,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Kata "hujan" terdiri dari berapa suku kata? ....',
+                            'explanation' => 'Hu-jan terdiri dari 2 suku kata.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => '2 suku kata', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => '3 suku kata', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => '1 suku kata', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 10,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Ucapan yang baik saat teman memberi kita giliran bermain adalah ....',
+                            'explanation' => 'Mengucapkan terima kasih adalah ungkapan syukur dan kesopanan.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => '"Terima kasih"', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => '"Awas jangan dekat-dekat"', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => '"Aku tidak mau"', 'is_correct' => false],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian II: Pilihan Ganda Kompleks',
+                    'instructions' => 'Pilihlah semua jawaban yang benar (jawaban benar lebih dari satu).',
+                    'order' => 2,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Manakah bunyi yang tergolong bunyi lembut? (Pilih dua)',
+                            'explanation' => 'Suara bisikan dan jarum jam berbunyi pelan lembut.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Suara bisikan di telinga', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Detik jarum jam dinding', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Dentuman bom meriam', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Pilihlah dua kata yang berawalan suku kata "ca"!',
+                            'explanation' => 'Cacing dan Cabai diawali suku kata ca. Cincin diawali ci.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Cacing', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Cabai', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Cincin', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Apa saja bahaya bermain di dekat jalan raya? (Pilih dua)',
+                            'explanation' => 'Tertabrak kendaraan dan menghirup asap debu berbahaya bagi anak.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Bisa tertabrak kendaraan bermotor', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Menghirup asap knalpot dan debu tebal', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Mendapatkan banyak teman baru dengan aman', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Kata mana saja yang diawali oleh suku kata "bi"? (Pilih dua)',
+                            'explanation' => 'Biru dan Bis diawali bi. Bola diawali bo.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Biru', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Bis', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Bola', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Pilihlah perlengkapan keselamatan saat bermain sepatu roda atau sepeda!',
+                            'explanation' => 'Helm dan pelindung lutut melindungi dari benturan saat jatuh.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Helm pelindung kepala', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Pelindung lutut dan siku', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Kipas angin portabel', 'is_correct' => false],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian III: Menjodohkan',
+                    'instructions' => 'Pasangkanlah konsep sebelah kiri dengan jawaban yang sesuai di sebelah kanan.',
+                    'order' => 3,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan benda dengan tiruan bunyinya!',
+                            'explanation' => 'Gendang dung-dung, peluit priiit, pintu tok-tok, bel kring, terompet tet-tot.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Gendang dipukul', 'match_key' => 'Dung-dung-dung', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Peluit wasit ditiup', 'match_key' => 'Priiiit', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Pintu rumah diketuk', 'match_key' => 'Tok-tok-tok', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Bel sepeda dibunyikan', 'match_key' => 'Kring-kring', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Terompet ditiup', 'match_key' => 'Tet-tot-tet-tot', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan kata dengan jumlah suku katanya!',
+                            'explanation' => 'Bo-la (2), Ca-cing (2), Se-pe-da (3), Ha-ri-mau (3), Bu-ku (2).',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Bola', 'match_key' => '2 suku kata (bo - la)', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Cacing', 'match_key' => '2 suku kata (ca - cing)', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Sepeda', 'match_key' => '3 suku kata (se - pe - da)', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Harimau', 'match_key' => '3 suku kata (ha - ri - mau)', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Helikopter', 'match_key' => '4 suku kata (he-li-kop-ter)', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan suku kata dengan kata benda yang sesuai!',
+                            'explanation' => 'ba -> batu, bu -> buaya, ci -> cicak, cu -> cumi, hu -> hutan.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Ba', 'match_key' => 'Batu', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Bu', 'match_key' => 'Buaya', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Ci', 'match_key' => 'Cicak', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Cu', 'match_key' => 'Cumi-cumi', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Hu', 'match_key' => 'Hutan', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan jenis permainan dengan jumlah pemainnya!',
+                            'explanation' => 'Ular naga banyak pemain, lompat tali minimal 3, catur 2 orang.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Ular naga', 'match_key' => 'Banyak anak berkelompok', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Lompat tali', 'match_key' => 'Minimal tiga anak', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Catur', 'match_key' => 'Dua anak berhadapan', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Sepak bola', 'match_key' => 'Dua regu di lapangan', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Puzzle balok', 'match_key' => 'Bisa sendiri secara mandiri', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan kata dengan huruf awal huruf kapitalnya!',
+                            'explanation' => 'budi -> B, cici -> C, hasan -> H, lani -> L, tono -> T.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'budi', 'match_key' => 'Huruf B', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'cici', 'match_key' => 'Huruf C', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'hasan', 'match_key' => 'Huruf H', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'lani', 'match_key' => 'Huruf L', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'dodi', 'match_key' => 'Huruf D', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian IV: Isian Singkat',
+                    'instructions' => 'Isilah titik-titik berikut dengan satu kata yang tepat!',
+                    'order' => 4,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Hewan yang bersuara "kwek-kwek" dan pandai berenang di kolam adalah ....',
+                            'explanation' => 'Hewan itu adalah bebek.',
+                            'options' => [
+                                ['option_text' => 'bebek', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Huruf pertama dari kata "cangkir" adalah huruf ....',
+                            'explanation' => 'Huruf c.',
+                            'options' => [
+                                ['option_text' => 'c', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Tiruan bunyi ketukan pada pintu kayu adalah ....',
+                            'explanation' => 'Ketukan pintu berbunyi tok-tok-tok.',
+                            'options' => [
+                                ['option_text' => 'tok', 'is_correct' => true],
+                                ['option_text' => 'tok-tok', 'is_correct' => true],
+                                ['option_text' => 'tok-tok-tok', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Taman bermain yang banyak ditumbuhi rumput hijau disebut ....',
+                            'explanation' => 'Lapangan atau taman.',
+                            'options' => [
+                                ['option_text' => 'lapangan', 'is_correct' => true],
+                                ['option_text' => 'taman', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Saat teman tidak sengaja menyenggol kita, ia sebaiknya meminta ....',
+                            'explanation' => 'Ia harus meminta maaf.',
+                            'options' => [
+                                ['option_text' => 'maaf', 'is_correct' => true],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public static function getPaket03(): array
+    {
+        return [
+            'title' => 'Asesmen Tengah Semester 1 (ATS) - Paket 03',
+            'type' => 'pts',
+            'duration_minutes' => 60,
+            'description' => 'Asesmen Tengah Semester (ATS) 1 Bahasa Indonesia Paket 03: Paket pengayaan dan remedial Bab 1 & Bab 2 dengan penekanan pada literasi awal.',
+            'sections' => [
+                [
+                    'title' => 'Bagian I: Pilihan Ganda',
+                    'instructions' => 'Pilihlah salah satu jawaban yang paling tepat (A, B, atau C).',
+                    'order' => 1,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Tiruan suara gonggongan anjing adalah ....',
+                            'explanation' => 'Anjing menggonggong guk-guk.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Guk-guk', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Kwek-kwek', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Cuit-cuit', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Benda berbentuk lingkaran yang menggelinding saat dimainkan adalah ....',
+                            'explanation' => 'Bola dan ban berbentuk bundar/lingkaran.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Bola', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Buku', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Meja', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Huruf pertama dari kata "burung" adalah ....',
+                            'explanation' => 'Kata "burung" berawalan huruf b.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'b', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'd', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'p', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Permainan anak yang melatih konsentrasi saat membidik bola kaca bundar kecil adalah ....',
+                            'explanation' => 'Permainan kelereng membidik kelereng lain dengan jari.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Kelereng', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Ayunan', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Perosotan', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Suku kata awal dari kata "cabai" yang rasanya pedas adalah ....',
+                            'explanation' => 'Ca-bai berawalan suku kata "ca".',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'ca', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'ci', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'cu', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 6,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Ketika teman kita menang dalam permainan, kita sebaiknya ....',
+                            'explanation' => 'Memberi selamat adalah sikap berjiwa besar dan sportif.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Memberi selamat dengan tulus', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Menangis tersedu-sedu', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Mengambil hadiah miliknya', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 7,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Suku kata awal dari kata "hidung" adalah ....',
+                            'explanation' => 'Hi-dung berawalan suku kata "hi".',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'hi', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'ha', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'hu', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 8,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Tiruan suara guntur petir yang menggelegar adalah ....',
+                            'explanation' => 'Petir bersuara dar-der-dor atau gelegar keras.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Gelegar keras!', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Tik-tik pelan', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Cuit-cuit merdu', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 9,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Kata "cincin" diawali oleh huruf ....',
+                            'explanation' => 'Kata cincin diawali huruf c.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'c', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 's', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 't', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 10,
+                            'type' => 'mcq_single',
+                            'points' => 1.0,
+                            'prompt' => 'Sikap kita saat bermain petak umpet adalah bersembunyi di tempat yang ....',
+                            'explanation' => 'Tempat bersembunyi harus aman dan tidak membahayakan diri.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Aman dan tidak berbahaya', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Dekat stopkontak listrik', 'is_correct' => false],
+                                ['label' => 'C', 'option_text' => 'Di tengah jalan raya', 'is_correct' => false],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian II: Pilihan Ganda Kompleks',
+                    'instructions' => 'Pilihlah semua jawaban yang benar (jawaban benar lebih dari satu).',
+                    'order' => 2,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Pilihlah bunyi yang berasal dari alat musik! (Pilih dua)',
+                            'explanation' => 'Petikan gitar dan tabuhan drum dari alat musik, kicau burung dari hewan.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Petikan senar gitar', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Pukulan membran drum', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Kicau burung gereja di pohon', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Kata mana saja yang diawali suku kata "bu"? (Pilih dua)',
+                            'explanation' => 'Buku dan Bunga diawali bu. Batu diawali ba.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Buku', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Bunga', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Batu', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Hal apa saja yang membuat permainan bersama menjadi menyenangkan? (Pilih dua)',
+                            'explanation' => 'Bermain rukun dan tertib antre membuat suasana bermain ceria.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Saling menyayangi dan tidak bertengkar', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Tertib mematuhi giliran bermain', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Berebut mainan hingga rusak', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Kata mana saja yang diawali suku kata "cu"? (Pilih dua)',
+                            'explanation' => 'Cumi-cumi dan Cuka diawali cu. Cabai diawali ca.',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Cumi-cumi', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Cuka', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Cabai', 'is_correct' => false],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'mcq_multiple',
+                            'points' => 1.0,
+                            'prompt' => 'Pilihlah kata yang terdiri atas 2 suku kata!',
+                            'explanation' => 'Bo-la (2) dan Ca-ca (2). Ke-re-ta (3).',
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Bola', 'is_correct' => true],
+                                ['label' => 'B', 'option_text' => 'Caca', 'is_correct' => true],
+                                ['label' => 'C', 'option_text' => 'Kereta', 'is_correct' => false],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian III: Menjodohkan',
+                    'instructions' => 'Pasangkanlah premis di sebelah kiri dengan jawaban di sebelah kanan.',
+                    'order' => 3,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan tiruan bunyi dengan sumbernya!',
+                            'explanation' => 'Meong dari kucing, kukuruyuk dari ayam, kring dari bel sepeda, kwek dari bebek, cit-cit dari tikus.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Meong-meong', 'match_key' => 'Suara kucing', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Kukuruyuk', 'match_key' => 'Kokok ayam jantan', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Kring-kring', 'match_key' => 'Bel sepeda gowes', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Kwek-kwek', 'match_key' => 'Suara bebek di kolam', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Cit-cit-cit', 'match_key' => 'Suara cicit tikus', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan gambar benda permainan dengan tempat bermainnya!',
+                            'explanation' => 'Bola di lapangan, ayunan di taman, catur di meja, renang di kolam, layangan di tanah lapang.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Bola sepak', 'match_key' => 'Lapangan bola berumput', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Ayunan rantai', 'match_key' => 'Taman bermain anak', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Papan catur', 'match_key' => 'Meja teras rumah', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Kacamata renang', 'match_key' => 'Kolam renang', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'Layang-layang', 'match_key' => 'Tanah lapang terbuka', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan suku kata dengan kata yang sesuai!',
+                            'explanation' => 'bo -> botol, bi -> bisu, ce -> cerek, ha -> halte, he -> helm.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'Bo', 'match_key' => 'Botol', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'Bi', 'match_key' => 'Bisu', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'Ce', 'match_key' => 'Cerek', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'Ha', 'match_key' => 'Halte', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'He', 'match_key' => 'Helm', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan ucapan dengan situasinya saat bermain!',
+                            'explanation' => 'Maaf saat menabrak, terima kasih saat dipinjamkan, tolong saat butuh bantuan.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => '"Tolong ambilkan bolanya!"', 'match_key' => 'Meminta bantuan teman', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => '"Maaf, aku tidak sengaja."', 'match_key' => 'Menyenggol teman hingga jatuh', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => '"Terima kasih atas bantuanmu."', 'match_key' => 'Setelah dibantu oleh teman', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => '"Ayo kita mulai permainannya!"', 'match_key' => 'Mengajak bermain bersama', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => '"Sampai jumpa besok lagi ya!"', 'match_key' => 'Berpamitan selesai bermain', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'matching',
+                            'points' => 1.0,
+                            'prompt' => 'Pasangkan kata dengan huruf kecil pasangannya!',
+                            'explanation' => 'B -> b, C -> c, H -> h, A -> a, M -> m.',
+                            'options' => [
+                                ['label' => '1', 'option_text' => 'B kapital', 'match_key' => 'Huruf kecil b', 'is_correct' => true, 'order' => 1],
+                                ['label' => '2', 'option_text' => 'C kapital', 'match_key' => 'Huruf kecil c', 'is_correct' => true, 'order' => 2],
+                                ['label' => '3', 'option_text' => 'H kapital', 'match_key' => 'Huruf kecil h', 'is_correct' => true, 'order' => 3],
+                                ['label' => '4', 'option_text' => 'A kapital', 'match_key' => 'Huruf kecil a', 'is_correct' => true, 'order' => 4],
+                                ['label' => '5', 'option_text' => 'M kapital', 'match_key' => 'Huruf kecil m', 'is_correct' => true, 'order' => 5],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian IV: Isian Singkat',
+                    'instructions' => 'Isilah titik-titik berikut dengan satu kata yang tepat!',
+                    'order' => 4,
+                    'questions' => [
+                        [
+                            'order' => 1,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Bunyi tiruan saat balon ditiup terlalu besar lalu meletus adalah ....',
+                            'explanation' => 'Balon meletus berbunyi dor.',
+                            'options' => [
+                                ['option_text' => 'dor', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 2,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Buku yang kita baca terbuat dari lembaran-lembaran ....',
+                            'explanation' => 'Buku terbuat dari kertas.',
+                            'options' => [
+                                ['option_text' => 'kertas', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 3,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Huruf pertama dari kata "harimau" adalah huruf ....',
+                            'explanation' => 'Huruf h.',
+                            'options' => [
+                                ['option_text' => 'h', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 4,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Jalinan karet gelang biasanya digunakan untuk permainan lompat ....',
+                            'explanation' => 'Lompat tali.',
+                            'options' => [
+                                ['option_text' => 'tali', 'is_correct' => true],
+                            ],
+                        ],
+                        [
+                            'order' => 5,
+                            'type' => 'short_answer',
+                            'points' => 1.0,
+                            'prompt' => 'Setelah selesai bermain, semua mainan harus kita .... ke tempatnya.',
+                            'explanation' => 'Harus dirapikan atau disimpan.',
+                            'options' => [
+                                ['option_text' => 'rapikan', 'is_correct' => true],
+                                ['option_text' => 'simpan', 'is_correct' => true],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+}

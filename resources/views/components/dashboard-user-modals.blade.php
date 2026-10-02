@@ -26,13 +26,30 @@
             <div class="flex items-center justify-between border-b border-gray-5 pb-3.5">
                 <div>
                     <h3 class="font-display font-bold text-lg text-gray-12 tracking-tight" 
-                        x-text="modalMode === 'create' ? 'Tambah' : 'Edit Data'"></h3>
+                        x-text="modalMode === 'create' ? 'Tambah Pengguna' : 'Edit Data Pengguna'"></h3>
                     <p class="text-xs text-gray-11 mt-0.5">Kelola akun dan hak akses guru, siswa, dan admin institusi.</p>
                 </div>
                 <button type="button" @click="showModal = false" class="text-gray-9 hover:text-gray-12 p-1.5 rounded-xl hover:bg-gray-3 transition-colors">
                     <x-radix-icon name="cross-1" class="w-4 h-4" />
                 </button>
             </div>
+
+            <!-- Tab Mode Tambah: Input Tunggal vs Massal (Bulk Add) -->
+            <template x-if="modalMode === 'create'">
+                <div class="flex items-center gap-1.5 p-1 bg-gray-3 rounded-xl border border-gray-5">
+                    <button type="button" @click="addType = 'single'"
+                            :class="addType === 'single' ? 'bg-white text-gray-12 shadow-xs font-bold' : 'text-gray-10 hover:text-gray-12 font-medium'"
+                            class="flex-1 py-1.5 px-3 rounded-lg text-xs transition-all cursor-pointer text-center">
+                        Input Satu Pengguna
+                    </button>
+                    <button type="button" @click="addType = 'bulk'"
+                            :class="addType === 'bulk' ? 'bg-white text-gray-12 shadow-xs font-bold' : 'text-gray-10 hover:text-gray-12 font-medium'"
+                            class="flex-1 py-1.5 px-3 rounded-lg text-xs transition-all cursor-pointer text-center flex items-center justify-center gap-1.5">
+                        <span>⚡ Tambah Massal (Bulk Add)</span>
+                    </button>
+                </div>
+            </template>
+            <input type="hidden" name="add_type" :value="addType">
 
             <!-- Pilihan Jenis Anggota (Guru / Siswa / Admin) -->
             <div class="space-y-1.5">
@@ -70,34 +87,59 @@
                 <input type="hidden" name="role" :value="modalUser.role">
             </div>
 
-            <!-- Nama Lengkap -->
-            <div class="space-y-1">
-                <label for="modal_user_name" class="block text-xs font-semibold text-gray-12">
-                    Nama Lengkap <span class="text-red-9">*</span>
+            <!-- Area Bulk Add (Textarea Plain Text dengan Petunjuk) -->
+            <div x-show="modalMode === 'create' && addType === 'bulk'" class="space-y-2">
+                <label for="modal_user_bulk" class="block text-xs font-semibold text-gray-12">
+                    Daftar Email (Pisahkan dengan tanda koma) <span class="text-red-9">*</span>
                 </label>
-                <input type="text" id="modal_user_name" name="name" x-model="modalUser.name" required
-                       placeholder="Contoh: Muhammad Ihsan, S.Pd"
-                       class="w-full rounded-xl border border-gray-7 bg-white px-3.5 py-2.5 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none">
+                <textarea id="modal_user_bulk" name="bulk_emails" rows="5"
+                          placeholder="siswa1@sekolah.sch.id, siswa2@gmail.com, siswa3@domain.com"
+                          :required="modalMode === 'create' && addType === 'bulk'"
+                          class="w-full rounded-xl border border-gray-7 bg-white p-3 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none font-mono"></textarea>
+                <div class="rounded-xl bg-blue-2 border border-blue-6/70 p-3 text-[11.5px] text-blue-12 leading-relaxed">
+                    <strong>💡 Petunjuk Pengisian:</strong>
+                    <ul class="list-disc list-inside mt-1 space-y-0.5 text-blue-11">
+                        <li>Masukkan daftar email yang dipisahkan dengan tanda koma (<code class="font-mono font-bold bg-blue-3 px-1 py-0.5 rounded">,</code>).</li>
+                        <li>Di database, kolom <strong>Nama</strong> dan <strong>Email</strong> akan otomatis disamakan.</li>
+                        <li>Password default otomatis disetel ke: <strong class="font-mono text-blue-12">Masuk123!</strong></li>
+                        <li>Pengguna wajib mengganti password saat pertama kali login dan relogin.</li>
+                    </ul>
+                </div>
             </div>
 
-            <!-- Email Login -->
-            <div class="space-y-1">
-                <label for="modal_user_email" class="block text-xs font-semibold text-gray-12">
-                    Alamat Email Akun <span class="text-red-9">*</span>
-                </label>
-                <input type="email" id="modal_user_email" name="email" x-model="modalUser.email" required
-                       placeholder="email@sekolah.sch.id"
-                       class="w-full rounded-xl border border-gray-7 bg-white px-3.5 py-2.5 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none">
-            </div>
+            <!-- Area Input Tunggal (Nama, Email, WhatsApp) -->
+            <div x-show="modalMode === 'edit' || addType === 'single'" class="space-y-4">
+                <!-- Nama Lengkap -->
+                <div class="space-y-1">
+                    <label for="modal_user_name" class="block text-xs font-semibold text-gray-12">
+                        Nama Lengkap <span class="text-red-9">*</span>
+                    </label>
+                    <input type="text" id="modal_user_name" name="name" x-model="modalUser.name"
+                           :required="modalMode === 'edit' || addType === 'single'"
+                           placeholder="Contoh: Muhammad Ihsan, S.Pd"
+                           class="w-full rounded-xl border border-gray-7 bg-white px-3.5 py-2.5 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none">
+                </div>
 
-            <!-- Kontak WhatsApp -->
-            <div class="space-y-1">
-                <label for="modal_user_wa" class="block text-xs font-semibold text-gray-12">
-                    Nomor Kontak WhatsApp (Opsional)
-                </label>
-                <input type="text" id="modal_user_wa" name="whatsapp_number" x-model="modalUser.whatsapp_number"
-                       placeholder="Contoh: 081234567890"
-                       class="w-full rounded-xl border border-gray-7 bg-white px-3.5 py-2.5 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none font-mono">
+                <!-- Email Login -->
+                <div class="space-y-1">
+                    <label for="modal_user_email" class="block text-xs font-semibold text-gray-12">
+                        Alamat Email Akun <span class="text-red-9">*</span>
+                    </label>
+                    <input type="email" id="modal_user_email" name="email" x-model="modalUser.email"
+                           :required="modalMode === 'edit' || addType === 'single'"
+                           placeholder="email@sekolah.sch.id"
+                           class="w-full rounded-xl border border-gray-7 bg-white px-3.5 py-2.5 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none">
+                </div>
+
+                <!-- Kontak WhatsApp -->
+                <div class="space-y-1">
+                    <label for="modal_user_wa" class="block text-xs font-semibold text-gray-12">
+                        Nomor Kontak WhatsApp (Opsional)
+                    </label>
+                    <input type="text" id="modal_user_wa" name="whatsapp_number" x-model="modalUser.whatsapp_number"
+                           placeholder="Contoh: 081234567890"
+                           class="w-full rounded-xl border border-gray-7 bg-white px-3.5 py-2.5 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none font-mono">
+                </div>
             </div>
 
             <!-- Pilihan Tenant / Institusi -->

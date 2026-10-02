@@ -138,6 +138,33 @@
             <div class="relative h-56 sm:h-64 w-full overflow-hidden" style="min-height: 224px; background: linear-gradient(135deg, #0284c7, #0369a1);">
                 <img src="{{ $tenant->cover_photo_url }}" alt="Cover {{ $tenant->name }}" class="absolute inset-0 h-full w-full object-cover">
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/10 pointer-events-none"></div>
+
+                <!-- Tombol LOGIN & DAFTAR di Pojok Kanan Atas Cover -->
+                @php
+                    $isEnterprise = $tenant->isEnterprise();
+                    $loginBtnColor = ($isEnterprise && !empty($tenant->theme_color)) ? $tenant->theme_color : '#16a34a';
+                @endphp
+                <div class="absolute top-4 right-4 z-20 flex items-center gap-2">
+                    @auth
+                        <a href="{{ route('dashboard') }}" 
+                           style="background-color: {{ $loginBtnColor }};"
+                           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs sm:text-sm font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200 backdrop-blur-xs">
+                            <x-radix-icon name="dashboard" class="w-4 h-4" />
+                            <span>Dashboard</span>
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}" 
+                           style="background-color: {{ $loginBtnColor }};"
+                           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs sm:text-sm font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200 backdrop-blur-xs">
+                            <x-radix-icon name="enter" class="w-4 h-4" />
+                            <span>LOGIN</span>
+                        </a>
+                        <a href="{{ route('register') }}"
+                           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-white text-gray-900 text-xs sm:text-sm font-bold shadow-lg backdrop-blur-md hover:brightness-105 active:scale-95 transition-all duration-200">
+                            <span>Daftar</span>
+                        </a>
+                    @endauth
+                </div>
             </div>
 
             <!-- Body: Grid Bulletproof untuk Overlap Logo 50/50 & Identitas Sekolah -->

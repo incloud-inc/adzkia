@@ -10,6 +10,12 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <a href="{{ route('question-generator.index') }}" 
+                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" 
+                   title="Buat soal otomatis dengan DeepSeek AI">
+                    <x-radix-icon name="magic-wand" class="w-4 h-4" />
+                    <span>Studio Pembuat Soal AI</span>
+                </a>
                 <a href="{{ route('assessments.index') }}" 
                    class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-semibold transition-all shadow-xs cursor-pointer hover:opacity-90 active:scale-95" 
                    style="background-color: #0f172a !important; color: #ffffff !important;"

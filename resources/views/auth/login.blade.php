@@ -107,9 +107,7 @@
     <footer class="shrink-0 bg-white border-t border-gray-6 flex flex-col z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
         <div class="w-full flex items-center justify-between px-6 py-3 bg-gray-2/70">
             <div class="text-xs font-medium text-gray-11">
-                @if(!app()->has('currentTenant'))
-                    Belum punya akun? <a href="{{ route('register') }}" class="text-green-11 hover:text-green-12 hover:underline font-semibold">Daftar</a>
-                @endif
+                Belum punya akun? <a href="{{ route('register') }}" class="text-green-11 hover:text-green-12 hover:underline font-semibold">Daftar</a>
             </div>
 
             <button onclick="document.getElementById('login-form').submit()" class="shrink-0 h-9 px-5 rounded-lg text-xs font-semibold bg-green-9 hover:bg-green-10 active:bg-green-11 text-white flex items-center justify-center gap-1.5 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.06)] active:scale-[0.98] cursor-pointer">

@@ -53,6 +53,19 @@
                 <span class="truncate transition-opacity duration-300 text-base" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Manajemen Tenant</span>
             </a>
 
+            <a href="{{ route('question-generator.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('question-generator.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Studio Pembuat Soal AI">
+                <x-radix-icon name="magic-wand" class="w-6 h-6 shrink-0 {{ request()->routeIs('question-generator.*') ? 'text-green-11' : 'text-emerald-600' }}" />
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Studio AI</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md">
+                        AI
+                    </span>
+                </span>
+            </a>
+
             <a href="{{ route('assessments.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('assessments.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
@@ -125,6 +138,19 @@
                 <span class="truncate transition-opacity duration-300 text-base" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Dashboard</span>
             </a>
 
+            <a href="{{ route('question-generator.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('question-generator.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Studio Pembuat Soal AI">
+                <x-radix-icon name="magic-wand" class="w-6 h-6 shrink-0 {{ request()->routeIs('question-generator.*') ? 'text-green-11' : 'text-emerald-600' }}" />
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Studio AI</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md">
+                        AI
+                    </span>
+                </span>
+            </a>
+
             <a href="{{ route('assessments.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('assessments.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
@@ -176,6 +202,19 @@
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
                 <x-radix-icon name="dashboard" class="w-6 h-6 shrink-0" />
                 <span class="truncate transition-opacity duration-300 text-base" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Dashboard Guru</span>
+            </a>
+
+            <a href="{{ route('question-generator.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('question-generator.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Studio Pembuat Soal AI">
+                <x-radix-icon name="magic-wand" class="w-6 h-6 shrink-0 {{ request()->routeIs('question-generator.*') ? 'text-green-11' : 'text-emerald-600' }}" />
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Studio AI</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md">
+                        AI
+                    </span>
+                </span>
             </a>
 
             <a href="{{ route('assessments.index') }}" 

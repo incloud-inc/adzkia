@@ -15,7 +15,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
-    'name', 'email', 'email_verified_at', 'password', 'current_tenant_id',
+    'name', 'email', 'email_verified_at', 'password', 'must_change_password', 'current_tenant_id',
     'username', 'whatsapp_number', 'whatsapp_verified_at',
     'postal_code', 'address', 'profile_photo_path', 'cover_photo_path', 'bio',
     'google_id', 'avatar_url',
@@ -45,6 +45,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'whatsapp_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
         ];
     }
 

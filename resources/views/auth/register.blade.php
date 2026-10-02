@@ -1,9 +1,19 @@
 <x-layouts.guest>
     {{-- HEADER --}}
-    <header class="bg-green-9 text-white px-6 py-4 flex justify-between items-center z-10 shrink-0">
-        <div>
-            <h1 class="font-display font-extrabold text-2xl tracking-tight leading-none mb-1">ADZKIA</h1>
-            <p class="font-display text-xs text-green-3 font-semibold tracking-widest uppercase">Registrasi Akun</p>
+    @php
+        $targetTenant = $tenant ?? (app()->has('currentTenant') ? app('currentTenant') : null);
+        $registerLogo = ($targetTenant && $targetTenant->logo_path) 
+            ? $targetTenant->logo_url 
+            : asset('images/logo-adzkia.png');
+        $registerTitle = ($targetTenant && $targetTenant->logo_path) 
+            ? $targetTenant->name 
+            : 'ADZKIA';
+    @endphp
+    <header class="text-white px-6 py-4 flex items-center justify-between z-10 shrink-0 shadow-xs" style="background-color: #212529;">
+        <div class="flex items-center">
+            <a href="/" title="{{ $registerTitle }}" class="inline-flex items-center">
+                <img src="{{ $registerLogo }}" alt="{{ $registerTitle }}" class="h-10 sm:h-12 w-auto max-h-12 object-contain">
+            </a>
         </div>
     </header>
 
@@ -11,23 +21,31 @@
     <section class="flex-1 flex flex-col justify-center p-6 sm:p-12 overflow-y-auto">
         <div class="w-full max-w-sm mx-auto">
 
-            {{-- Banner Info Undangan --}}
+            {{-- Banner Info Tenant / Undangan --}}
             <div class="mb-6 rounded-xl border border-green-6/50 bg-green-3 p-4">
                 <div class="flex items-start gap-3">
                     <div class="shrink-0 mt-0.5 text-green-11">
-                        <x-radix-icon name="envelope-closed" class="w-5 h-5" />
+                        @if($inviteToken)
+                            <x-radix-icon name="envelope-closed" class="w-5 h-5" />
+                        @else
+                            <x-radix-icon name="id-card" class="w-5 h-5" />
+                        @endif
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm text-green-11 font-semibold leading-snug">
-                            Anda diundang ke <span class="font-bold">{{ $tenantName }}</span>
+                            @if($inviteToken)
+                                Anda diundang ke <span class="font-bold">{{ $tenantName }}</span>
+                            @else
+                                Pendaftaran Siswa Baru di <span class="font-bold">{{ $tenantName }}</span>
+                            @endif
                         </p>
                         <p class="mt-1 text-xs text-green-11/80">
-                            Sebagai:
+                            Peran:
                             <span class="inline-flex items-center rounded-full bg-green-9 text-white font-semibold px-2 py-0.5 text-[10px] uppercase tracking-wider ml-1">
                                 @switch($role)
                                     @case('A') Administrator @break
-                                    @case('T') Guru/Tenaga Pendidik @break
-                                    @case('U') Siswa/Peserta @break
+                                    @case('T') Guru / Pengawas @break
+                                    @case('U') Siswa / Murid @break
                                     @default {{ $role }}
                                 @endswitch
                             </span>
@@ -38,7 +56,9 @@
 
             <form id="register-form" method="POST" action="{{ route('register') }}" class="space-y-4">
                 @csrf
-                <input type="hidden" name="invite_token" value="{{ $inviteToken }}">
+                @if($inviteToken)
+                    <input type="hidden" name="invite_token" value="{{ $inviteToken }}">
+                @endif
 
                 {{-- Nama Lengkap --}}
                 <div class="flex flex-col gap-1.5">
@@ -56,15 +76,17 @@
                     @enderror
                 </div>
 
-                {{-- Email (readonly, pre-filled dari invitation) --}}
+                {{-- Email --}}
                 <div class="flex flex-col gap-1.5">
                     <label for="email" class="font-medium text-xs text-gray-11">Email</label>
                     <div class="relative flex items-center">
                         <span class="absolute left-3 text-gray-9 pointer-events-none">
                             <x-radix-icon name="envelope-closed" class="w-4 h-4" />
                         </span>
-                        <input id="email" type="email" name="email" value="{{ old('email', $email) }}" readonly
-                               class="w-full rounded-lg border border-gray-6 bg-gray-2 pl-9 pr-3.5 py-2 text-sm text-gray-11 cursor-not-allowed outline-none" />
+                        <input id="email" type="email" name="email" value="{{ old('email', $email) }}" required autocomplete="username"
+                               placeholder="nama@email.com"
+                               @if($inviteToken) readonly class="w-full rounded-lg border border-gray-6 bg-gray-2 pl-9 pr-3.5 py-2 text-sm text-gray-11 cursor-not-allowed outline-none"
+                               @else class="w-full rounded-lg border border-gray-7 bg-white pl-9 pr-3.5 py-2 text-sm text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none @error('email') border-red-8 focus:border-red-8 focus:ring-red-8 @enderror" @endif />
                     </div>
                     @error('email')
                         <p class="text-red-11 text-xs font-medium">{{ $message }}</p>
