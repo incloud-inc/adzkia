@@ -191,9 +191,9 @@
         </header>
 
         <!-- PROGRESS BAR -->
-        <div class="h-1.5 w-full bg-slate-200 shrink-0">
-            <div class="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500 rounded-r-full"
-                 :style="'width:' + Math.round(answeredCount / Math.max(questions.length, 1) * 100) + '%'"></div>
+        <div class="h-2 w-full bg-slate-200/90 shadow-inner shrink-0 overflow-hidden">
+            <div class="h-full transition-all duration-500 rounded-r-full shadow-sm"
+                 :style="'width:' + Math.round(answeredCount / Math.max(questions.length, 1) * 100) + '%; background: linear-gradient(to right, #ff922b, #d9480f);'"></div>
         </div>
 
         <!-- WARNING BANNER -->
