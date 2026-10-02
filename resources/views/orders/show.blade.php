@@ -53,7 +53,7 @@
             </div>
 
             <div class="pt-2">
-                <a href="{{ route('exam.gate.show', $order->assessment_id) }}"
+                <a href="{{ route('exam.gate.show', $order->assessment ?? $order->assessment_id) }}"
                    class="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-green-9 hover:bg-green-10 active:bg-green-11 text-white text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer">
                     <x-radix-icon name="play" class="w-4 h-4" />
                     <span>Mulai Kerjakan Ujian Sekarang</span>

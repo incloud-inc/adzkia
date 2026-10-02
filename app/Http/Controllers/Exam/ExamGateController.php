@@ -35,7 +35,7 @@ class ExamGateController extends Controller
             ->first();
 
         if ($session) {
-            return redirect()->route('exam.gate.show', ['assessment' => $session->assessment_id]);
+            return redirect()->route('exam.gate.show', ['assessment' => $session->assessment]);
         }
 
         // 2) Cari assessment berdasarkan token di dalam settings JSON
@@ -49,7 +49,7 @@ class ExamGateController extends Controller
                 ->with('error', 'Token ujian tidak valid atau sudah tidak aktif.');
         }
 
-        return redirect()->route('exam.gate.show', ['assessment' => $assessment->id]);
+        return redirect()->route('exam.gate.show', ['assessment' => $assessment]);
     }
 
     /**

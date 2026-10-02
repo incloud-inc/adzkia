@@ -32,7 +32,7 @@ class ExamWorkspaceController extends Controller
         }
 
         if ($session->status === 'cancelled') {
-            return redirect()->route('exam.gate.show', ['assessment' => $session->assessment_id])
+            return redirect()->route('exam.gate.show', ['assessment' => $session->assessment])
                 ->with('error', 'Sesi ujian Anda telah dihentikan oleh pengawas ujian.');
         }
 
@@ -596,7 +596,7 @@ class ExamWorkspaceController extends Controller
             return response()->json([
                 'status' => 'cancelled',
                 'is_locked' => true,
-                'redirect_url' => route('exam.gate.show', ['assessment' => $session->assessment_id]),
+                'redirect_url' => route('exam.gate.show', ['assessment' => $session->assessment]),
                 'message' => 'Sesi ujian Anda dihentikan oleh pengawas ujian.',
             ]);
         }

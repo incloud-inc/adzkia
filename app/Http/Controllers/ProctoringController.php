@@ -394,7 +394,7 @@ class ProctoringController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'redirect_url' => route('exam.gate.show', ['assessment' => $session->assessment_id]),
+                'redirect_url' => route('exam.gate.show', ['assessment' => $session->assessment]),
             ]);
         }
 

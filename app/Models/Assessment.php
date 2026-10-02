@@ -17,6 +17,107 @@ class Assessment extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::creating(function (Assessment $assessment) {
+            $settings = (array) ($assessment->settings ?? []);
+            if (empty($settings['token'])) {
+                $settings['token'] = self::generateUniqueToken();
+                $assessment->settings = $settings;
+            }
+        });
+    }
+
+    /**
+     * Generate token unik untuk asesmen (format: ADZ + 3 digit angka).
+     */
+    public static function generateUniqueToken(): string
+    {
+        for ($i = 0; $i < 10; $i++) {
+            $token = 'ADZ'.mt_rand(100, 999);
+            $exists = self::withoutGlobalScopes()
+                ->where(function ($q) use ($token) {
+                    $q->where('settings->token', $token)
+                        ->orWhere('settings', 'like', '%"token":"'.$token.'"%');
+                })
+                ->exists();
+
+            if (! $exists) {
+                return $token;
+            }
+        }
+
+        return 'ADZ'.mt_rand(1000, 9999);
+    }
+
+    /**
+     * Get the route key for the model.
+     * Menggunakan Token CBT sebagai slug URL publik untuk keamanan & penyamaran ID database.
+     */
+    public function getRouteKey(): mixed
+    {
+        $token = data_get($this->settings, 'token');
+        if (! empty($token)) {
+            return strtoupper((string) $token);
+        }
+
+        return 'ADZ'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Retrieve the model for a bound value.
+     * Mendukung pencarian via Token CBT (e.g. ADZ123) dan fallback ke numeric ID.
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field && $field !== 'token') {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        $upper = strtoupper(trim((string) $value));
+
+        // 1. Cari berdasarkan settings->token
+        $assessment = self::withoutGlobalScopes()
+            ->where(function ($q) use ($upper) {
+                $q->where('settings->token', $upper)
+                    ->orWhere('settings', 'like', '%"token":"'.$upper.'"%');
+            })
+            ->first();
+
+        if ($assessment) {
+            return $assessment;
+        }
+
+        // 2. Jika format ADZ001, coba ekstrak ID numerik
+        if (preg_match('/^ADZ(\d+)$/', $upper, $matches)) {
+            $fallbackId = (int) $matches[1];
+            $found = self::withoutGlobalScopes()->find($fallbackId);
+            if ($found) {
+                return $found;
+            }
+        }
+
+        // 3. Fallback: jika berupa numeric ID murni (backward compatibility)
+        if (is_numeric($value)) {
+            return self::withoutGlobalScopes()->find($value);
+        }
+
+        return null;
+    }
+
+    /**
+     * Accessor untuk token asesmen yang aman dan konsisten.
+     */
+    public function getTokenAttribute(): string
+    {
+        $token = data_get($this->settings, 'token');
+        if (! empty($token)) {
+            return strtoupper((string) $token);
+        }
+
+        return 'ADZ'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
+    }
+
     protected $fillable = [
         'tenant_id',
         'subject_id',
