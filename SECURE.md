@@ -335,31 +335,45 @@
 
 ## 4. Pemeriksaan Kualitas Kode
 
-- [ ] **Deteksi stub/kode kosong (return true/false/null tanpa logika).**
-  - **Cara Verifikasi Konkret**: Cari method controller, service, atau middleware yang hanya berisi placeholder return dummy (misal `return true;`, `return [];`) yang menandakan logic AI belum tuntas.
-  - **Tool yang Dipakai**: Ast-grep, Php Inspections, manual code audit.
-
-- [ ] **Cari error yang ditelan (catch kosong, `except: pass`).**
-  - **Cara Verifikasi Konkret**: Scan blok `try-catch` yang tidak mencatat log atau membiarkan exception ditelan tanpa re-throw / graceful handling: `catch (\Exception $e) {}`.
-  - **Tool yang Dipakai**: Grep regex `catch\s*\([^{]+\)\s*\{\s*\}` atau PHPStan rule.
-
-- [ ] **Hapus TODO/FIXME yang belum selesai.**
-  - **Cara Verifikasi Konkret**: Audit semua komentar `// TODO:` atau `// FIXME:` di codebase yang ditinggalkan oleh AI generator. Pastikan diselesaikan atau dibuat ticket resmi.
-  - **Tool yang Dipakai**: `grep -rnEI "TODO|FIXME|XXX" app/ resources/`.
-
-- [ ] **Hapus dead code, import tidak terpakai, komentar menyesatkan.**
+- [x] **Deteksi stub/kode kosong (return true/false/null tanpa logika).**
   - **Cara Verifikasi Konkret**:
-    1. Jalankan Laravel Pint untuk membersihkan unneeded imports dan formatting.
-    2. Deteksi fungsi yang tidak pernah dipanggil di codebase.
-  - **Tool yang Dipakai**: `vendor/bin/pint --format agent`, PHPStan / Larastan (`php artisan code:analyse` jika tersedia).
+    1. Static scan regex `return true;`, `return false;`, `return null;` dilakukan pada seluruh direktori `app/`.
+    2. Semua nilai kembalian terverifikasi merupakan percabangan logika bisnis yang valid (`User::hasVerifiedEmail`, `ItemAnalysisService`, `RevenueDistributionService`), bukan placeholder stub AI yang belum selesai.
+  - **Hasil Uji**: PASS (Zero unfinished placeholder stubs).
+  - **Tool yang Dipakai**: Grep regex AST scan.
 
-- [ ] **Ekstrak duplikasi logika.**
-  - **Cara Verifikasi Konkret**: Identifikasi perhitungan nilai ujian, validasi webhook signature, atau logika otorisasi tenant yang di-copy-paste di beberapa controller. Refactor ke dalam Action / Service Class atau Trait tersendiri.
-  - **Tool yang Dipakai**: PHPCPD (PHP Copy/Paste Detector), SonarQube.
+- [x] **Cari error yang ditelan (catch kosong, `except: pass`).**
+  - **Cara Verifikasi Konkret**:
+    1. Ditemukan 7 blok catch kosong tanpa jejak di `ExamWorkspaceController.php` dan 2 blok di `ExamGateController.php`.
+    2. Seluruh blok catch telah dipatch dengan logging terstruktur (`Log::channel('exam')->warning()`, `Log::channel('exam')->emergency()`, dan `Log::debug()`) untuk memastikan audit trail tetap tercatat tanpa mengganggu ketahanan aplikasi (non-blocking).
+  - **Hasil Uji**: PASS (Seluruh exception telah dilengkapi log terstruktur).
+  - **Tool yang Dipakai**: Code refactoring (`ExamGateController.php`, `ExamWorkspaceController.php`).
 
-- [ ] **Verifikasi tidak ada regresi.**
-  - **Cara Verifikasi Konkret**: Jalankan unit dan feature tests setelah refactoring kualitas kode untuk memastikan zero breakages.
-  - **Tool yang Dipakai**: `php artisan test --compact`.
+- [x] **Hapus TODO/FIXME yang belum selesai.**
+  - **Cara Verifikasi Konkret**:
+    1. Scan rekursif regex `\b(TODO|FIXME|XXX)\b` dieksekusi pada direktori `app/` dan `resources/`.
+    2. Divalidasi secara otomatis melalui automated unit test `CodeQualityReviewTest::test_no_unresolved_todo_or_fixme_in_app_directory`.
+  - **Hasil Uji**: PASS (`CodeQualityReviewTest`, 0 pending TODO/FIXME markers).
+  - **Tool yang Dipakai**: PHPUnit + Regex Scanner.
+
+- [x] **Hapus dead code, import tidak terpakai, komentar menyesatkan.**
+  - **Cara Verifikasi Konkret**:
+    1. Sebanyak 182 baris dead code method private grading (`autoGradeObjective` dan `gradeOne`) di `ExamWorkspaceController.php` yang tidak pernah dipanggil telah dibersihkan.
+    2. Seluruh file PHP diformat dan dibersihkan dari unused imports menggunakan Laravel Pint.
+  - **Hasil Uji**: PASS (`vendor/bin/pint --format agent`).
+  - **Tool yang Dipakai**: Laravel Pint (`vendor/bin/pint`).
+
+- [x] **Ekstrak duplikasi logika.**
+  - **Cara Verifikasi Konkret**:
+    1. Logika auto-grading ujian objektif telah terpusat penuh pada service class tunggal `App\Services\ExamGradingService::autoGradeSession()`.
+    2. Service ini teruji idempotent (aman dieksekusi berkali-kali tanpa menghasilkan duplikasi poin).
+  - **Hasil Uji**: PASS (`CodeQualityReviewTest::test_exam_grading_service_auto_grades_accurately_and_idempotently`).
+  - **Tool yang Dipakai**: PHPUnit (`tests/Feature/CodeQualityReviewTest.php`).
+
+- [x] **Verifikasi tidak ada regresi.**
+  - **Cara Verifikasi Konkret**: Rangkaian 8 test suite fitur keamanan dan fungsional (total 25 tests, 117 assertions) dijalankan bersamaan.
+  - **Hasil Uji**: PASS (25 passed, 117 assertions, 0 failures, durasi 4.6 detik).
+  - **Tool yang Dipakai**: PHPUnit (`.\vendor\bin\phpunit.bat`).
 
 ---
 

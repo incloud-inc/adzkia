@@ -262,8 +262,11 @@ class ExamGateController extends Controller
                 'ip' => $request->ip(),
                 'occurred_at' => now(),
             ]);
-        } catch (\Throwable) {
-            // Non-blocking
+        } catch (\Throwable $e) {
+            Log::channel('exam')->warning('Non-blocking: Gagal mencatat event start ujian', [
+                'session_uuid' => $session->uuid,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         Log::channel('exam')->info('exam.session.started', [
@@ -352,7 +355,12 @@ class ExamGateController extends Controller
                 ->withCount('questions')
                 ->get()
                 ->sum('questions_count');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Log::channel('exam')->warning('Gagal menghitung jumlah soal asesmen', [
+                'assessment_id' => $assessment->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return 0;
         }
     }

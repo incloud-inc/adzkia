@@ -46,7 +46,11 @@ class ExamWorkspaceController extends Controller
         // Touch last_activity (best-effort)
         try {
             $session->forceFill(['last_activity_at' => now()])->save();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Log::debug('Best-effort: Gagal memperbarui last_activity_at di workspace', [
+                'session_uuid' => $session->uuid,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         $payload = $this->buildPayload($session);
@@ -106,7 +110,11 @@ class ExamWorkspaceController extends Controller
 
         try {
             $session->forceFill(['last_activity_at' => now()])->save();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Log::debug('Best-effort: Gagal memperbarui last_activity_at di saveAnswer', [
+                'session_uuid' => $session->uuid,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return response()->json([
@@ -139,7 +147,12 @@ class ExamWorkspaceController extends Controller
                 'ip' => $request->ip(),
                 'occurred_at' => $data['occurred_at'] ?? now(),
             ]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Log::channel('exam')->warning('Gagal mencatat event pengawasan ujian', [
+                'session_uuid' => $session->uuid,
+                'event_type' => $data['event_type'],
+                'error' => $e->getMessage(),
+            ]);
         }
 
         // Catat pelanggaran aktif untuk pengawasan real-time
@@ -159,7 +172,11 @@ class ExamWorkspaceController extends Controller
 
             try {
                 $session->forceFill(['meta' => $meta])->save();
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                Log::channel('exam')->warning('Gagal memperbarui metadata pelanggaran ujian', [
+                    'session_uuid' => $session->uuid,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -174,7 +191,11 @@ class ExamWorkspaceController extends Controller
                     $meta['expired_sections'] = array_values(array_unique($expiredSections));
                     try {
                         $session->forceFill(['meta' => $meta])->save();
-                    } catch (\Throwable) {
+                    } catch (\Throwable $e) {
+                        Log::channel('exam')->warning('Gagal memperbarui status section kedaluwarsa', [
+                            'session_uuid' => $session->uuid,
+                            'error' => $e->getMessage(),
+                        ]);
                     }
                 }
             }
@@ -184,7 +205,11 @@ class ExamWorkspaceController extends Controller
         if (in_array($data['event_type'], ['heartbeat', 'resume', 'tab_visible', 'window_focus', 'online'], true)) {
             try {
                 $session->forceFill(['last_activity_at' => now()])->save();
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                Log::debug('Best-effort: Gagal memperbarui heartbeat/last_activity_at', [
+                    'session_uuid' => $session->uuid,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -244,7 +269,11 @@ class ExamWorkspaceController extends Controller
                         'submit_fallback' => true,
                     ]),
                 ])->save();
-            } catch (\Throwable) {
+            } catch (\Throwable $fallbackEx) {
+                Log::channel('exam')->emergency('Emergency fallback finalize failed', [
+                    'session_uuid' => $session->uuid,
+                    'error' => $fallbackEx->getMessage(),
+                ]);
             }
         }
 
@@ -554,190 +583,6 @@ class ExamWorkspaceController extends Controller
                 Log::warning('Failed incrementing attempts_used in finalizeSession: '.$e->getMessage());
             }
         });
-    }
-
-    /**
-     * Auto-grade tipe objektif saat submit.
-     * Soal Essay dikosongkan untuk penilaian manual guru (Sprint E).
-     */
-    private function autoGradeObjective(ExamSession $session): void
-    {
-        $questions = Question::query()
-            ->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $session->assessment_id))
-            ->with('options')
-            ->get()
-            ->keyBy('id');
-
-        $answers = ExamAnswer::query()
-            ->where('exam_session_id', $session->id)
-            ->get();
-
-        $objectiveTypes = ['mcq_single', 'mcq_multiple', 'mcq_weighted', 'binary_matrix', 'boolean_matrix', 'matching', 'short_answer', 'fill_blank', 'ordering', 'reorder'];
-
-        $totalScore = 0.0;
-        $maxScore = $questions->sum(fn ($q) => (float) ($q->points ?? 1));
-
-        foreach ($answers as $ans) {
-            $q = $questions->get($ans->question_id);
-
-            if (! $q || ! in_array($q->type, $objectiveTypes, true)) {
-                continue; // Essay → menunggu guru
-            }
-
-            [$isCorrect, $points] = $this->gradeOne($q, $ans);
-
-            $ans->forceFill([
-                'is_correct' => $isCorrect,
-                'points_awarded' => $points,
-            ])->save();
-
-            $totalScore += (float) $points;
-        }
-
-        $session->forceFill([
-            'score' => $totalScore,
-            'max_score' => $maxScore,
-        ])->save();
-    }
-
-    /**
-     * Return [is_correct, points_awarded] untuk satu soal objektif.
-     *
-     * @return array{bool, float}
-     */
-    private function gradeOne(Question $question, ExamAnswer $answer): array
-    {
-        $payload = $answer->answer_payload ?? [];
-        $maxPoints = (float) ($question->points ?? 1);
-        $correctIds = $question->options
-            ->where('is_correct', true)
-            ->pluck('id')
-            ->map(fn ($i) => (int) $i)
-            ->all();
-
-        return match ($question->type) {
-            'mcq_single' => (function () use ($payload, $correctIds, $maxPoints) {
-                $picked = (int) ($payload['option_id'] ?? 0);
-                $correct = in_array($picked, $correctIds, true);
-
-                return [$correct, $correct ? $maxPoints : 0.0];
-            })(),
-
-            'mcq_weighted' => (function () use ($payload, $question, $maxPoints) {
-                $picked = (int) ($payload['option_id'] ?? 0);
-                $option = $question->options->firstWhere('id', $picked);
-                if (! $option) {
-                    return [false, 0.0];
-                }
-                $points = (float) ($option->score ?? $option->weight ?? ($option->is_correct ? $maxPoints : 0.0));
-
-                return [$points > 0, $points];
-            })(),
-
-            'mcq_multiple' => (function () use ($payload, $correctIds, $maxPoints) {
-                $picked = array_map('intval', (array) ($payload['option_ids'] ?? []));
-                sort($picked);
-                sort($correctIds);
-                $correct = ! empty($correctIds) && $picked === $correctIds;
-
-                return [$correct, $correct ? $maxPoints : 0.0];
-            })(),
-
-            'short_answer', 'fill_blank' => (function () use ($payload, $question, $maxPoints) {
-                $given = strtolower(trim((string) ($payload['value'] ?? '')));
-                $valid = $question->options->pluck('option_text')->map(fn ($v) => strtolower(trim($v)))->all();
-                $correct = $given !== '' && in_array($given, $valid, true);
-
-                return [$correct, $correct ? $maxPoints : 0.0];
-            })(),
-
-            'binary_matrix', 'boolean_matrix' => (function () use ($payload, $question, $maxPoints) {
-                $givenAnswers = (array) ($payload['answers'] ?? []);
-                if (empty($givenAnswers)) {
-                    return [false, 0.0];
-                }
-
-                $total = $question->options->count();
-                if ($total === 0) {
-                    return [false, 0.0];
-                }
-
-                $correctCount = 0;
-                foreach ($question->options as $opt) {
-                    $val = $givenAnswers[$opt->id] ?? null;
-                    if ($val === null) {
-                        continue;
-                    }
-
-                    $expectedKey = strtolower(trim((string) ($opt->match_key ?? '')));
-                    $isExpectedTrue = in_array($expectedKey, ['benar', 'true', '1', 'yes', 'ya'], true);
-                    $isGivenTrue = ($val === true || $val === 1 || in_array(strtolower(trim((string) $val)), ['benar', 'true', '1', 'yes', 'ya'], true));
-
-                    if ($isExpectedTrue === $isGivenTrue) {
-                        $correctCount++;
-                    }
-                }
-
-                $points = round(($correctCount / $total) * $maxPoints, 2);
-
-                return [$correctCount === $total, $points];
-            })(),
-
-            'matching' => (function () use ($payload, $question, $maxPoints) {
-                $givenPairs = (array) ($payload['pairs'] ?? []);
-                if (empty($givenPairs)) {
-                    return [false, 0.0];
-                }
-
-                $total = $question->options->count();
-                if ($total === 0) {
-                    return [false, 0.0];
-                }
-
-                $correctCount = 0;
-                foreach ($question->options as $opt) {
-                    $selected = $givenPairs[$opt->id] ?? null;
-                    if ($selected === null || $selected === '') {
-                        continue;
-                    }
-
-                    $expected = trim((string) ($opt->match_key ?? ''));
-                    if (strcasecmp((string) $selected, $expected) === 0) {
-                        $correctCount++;
-                    }
-                }
-
-                $points = round(($correctCount / $total) * $maxPoints, 2);
-
-                return [$correctCount === $total, $points];
-            })(),
-
-            'ordering', 'reorder' => (function () use ($payload, $question, $maxPoints) {
-                $givenOrder = array_map('intval', (array) ($payload['order'] ?? []));
-                if (empty($givenOrder)) {
-                    return [false, 0.0];
-                }
-
-                $expectedOrder = $question->options->sortBy('order')->pluck('id')->map(fn ($i) => (int) $i)->values()->all();
-                $total = count($expectedOrder);
-                if ($total === 0) {
-                    return [false, 0.0];
-                }
-
-                $correctPositions = 0;
-                foreach ($expectedOrder as $idx => $optId) {
-                    if (isset($givenOrder[$idx]) && $givenOrder[$idx] === $optId) {
-                        $correctPositions++;
-                    }
-                }
-
-                $points = round(($correctPositions / $total) * $maxPoints, 2);
-
-                return [$correctPositions === $total, $points];
-            })(),
-
-            default => [false, 0.0],
-        };
     }
 
     /**
