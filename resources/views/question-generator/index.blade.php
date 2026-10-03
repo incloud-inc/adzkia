@@ -26,10 +26,11 @@
 
             <!-- Model Badge & Quick Actions -->
             <div class="flex items-center gap-2">
-                <a href="{{ route('assessments.wizard') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-6 bg-white hover:bg-gray-3 text-gray-12 text-xs font-semibold transition-colors cursor-pointer shadow-2xs">
+                <button type="button" @click="goToWizard()" :disabled="isSendingToWizard"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-6 bg-white hover:bg-gray-3 text-gray-12 text-xs font-semibold transition-colors cursor-pointer shadow-2xs disabled:opacity-60">
                     <x-radix-icon name="magic-wand" class="w-3.5 h-3.5 text-indigo-11" />
-                    <span>Ke Wizard Ujian</span>
-                </a>
+                    <span x-text="isSendingToWizard ? 'Menyiapkan...' : 'Ke Wizard Ujian'"></span>
+                </button>
             </div>
         </div>
 
@@ -91,23 +92,25 @@
                     
                     <!-- 1. Form Siswa Sekolah -->
                     <div x-show="category === 'school'" class="space-y-4 pt-2">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-11 mb-1.5">Kurikulum Nasional:</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <label :class="curriculum === 'merdeka' ? 'border-blue-9 bg-blue-2/30 text-blue-11 font-bold' : 'border-gray-6 text-gray-12'"
-                                           class="flex items-center gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors">
-                                        <input type="radio" value="merdeka" x-model="curriculum" @change="onFilterChange()" class="text-blue-9 focus:ring-0">
-                                        <span>Merdeka Belajar</span>
-                                    </label>
-                                    <label :class="curriculum === 'k13' ? 'border-blue-9 bg-blue-2/30 text-blue-11 font-bold' : 'border-gray-6 text-gray-12'"
-                                           class="flex items-center gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors">
-                                        <input type="radio" value="k13" x-model="curriculum" @change="onFilterChange()" class="text-blue-9 focus:ring-0">
-                                        <span>Kurikulum 2013</span>
-                                    </label>
-                                </div>
+                        <!-- Kurikulum Radio -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-11 mb-1.5">Kurikulum Nasional:</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label :class="curriculum === 'merdeka' ? 'border-blue-9 bg-blue-2/30 text-blue-11 font-bold' : 'border-gray-6 text-gray-12'"
+                                       class="flex items-center gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors">
+                                    <input type="radio" value="merdeka" x-model="curriculum" @change="onFilterChange()" class="text-blue-9 focus:ring-0">
+                                    <span>Merdeka Belajar</span>
+                                </label>
+                                <label :class="curriculum === 'k13' ? 'border-blue-9 bg-blue-2/30 text-blue-11 font-bold' : 'border-gray-6 text-gray-12'"
+                                       class="flex items-center gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors">
+                                    <input type="radio" value="k13" x-model="curriculum" @change="onFilterChange()" class="text-blue-9 focus:ring-0">
+                                    <span>Kurikulum 2013</span>
+                                </label>
                             </div>
+                        </div>
 
+                        <!-- Dropdown Tingkat Kelas & Dropdown Mata Pelajaran Berdampingan -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-11 mb-1.5">Tingkat Kelas (1 - 12):</label>
                                 <select x-model="grade_level" @change="onFilterChange()"
@@ -132,21 +135,27 @@
                                     </optgroup>
                                 </select>
                             </div>
-                        </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-gray-11 mb-1.5">Mata Pelajaran:</label>
-                            <select x-model="subject" @change="onFilterChange()"
-                                    class="w-full px-3 py-2.5 bg-gray-2 border border-gray-6 rounded-xl text-xs font-semibold text-gray-12 focus:bg-white focus:border-blue-9 focus:ring-2 focus:ring-blue-9/20 transition-all">
-                                <option value="matematika">Matematika</option>
-                                <option value="bahasa_indonesia">Bahasa Indonesia</option>
-                                <option value="ipa">Ilmu Pengetahuan Alam (IPA)</option>
-                                <option value="fisika">Fisika</option>
-                                <option value="biologi">Biologi</option>
-                                <option value="kimia">Kimia</option>
-                                <option value="pendidikan_pancasila">Pendidikan Pancasila (PPKn)</option>
-                                <option value="bahasa_inggris">Bahasa Inggris</option>
-                            </select>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-11 mb-1.5">Mata Pelajaran:</label>
+                                <select x-model="subject" @change="onFilterChange()"
+                                        class="w-full px-3 py-2.5 bg-gray-2 border border-gray-6 rounded-xl text-xs font-semibold text-gray-12 focus:bg-white focus:border-blue-9 focus:ring-2 focus:ring-blue-9/20 transition-all">
+                                    <option value="matematika">Matematika</option>
+                                    <option value="bahasa_indonesia">Bahasa Indonesia</option>
+                                    <option value="bahasa_inggris">Bahasa Inggris</option>
+                                    <option value="ipa">Ilmu Pengetahuan Alam (IPA)</option>
+                                    <option value="ips">Ilmu Pengetahuan Sosial (IPS)</option>
+                                    <option value="fisika">Fisika</option>
+                                    <option value="biologi">Biologi</option>
+                                    <option value="kimia">Kimia</option>
+                                    <option value="ekonomi">Ekonomi</option>
+                                    <option value="sosiologi">Sosiologi</option>
+                                    <option value="geografi">Geografi</option>
+                                    <option value="sejarah">Sejarah</option>
+                                    <option value="pendidikan_pancasila">Pendidikan Pancasila (PPKn)</option>
+                                    <option value="informatika">Informatika</option>
+                                </select>
+                            </div>
                         </div>
 
                         <!-- CHECKLIST SEMUA BAB DALAM MAPEL SESUAI KURIKULUM -->
@@ -168,7 +177,7 @@
                             </div>
 
                             <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-                                <template x-for="ch in availableChapters" :key="ch.id">
+                                <template x-for="(ch, idx) in availableChapters" :key="ch.id || ch.title || idx">
                                     <label class="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-gray-6/70 text-xs text-gray-12 hover:bg-blue-2/20 cursor-pointer transition-colors">
                                         <input type="checkbox" :value="ch.title" x-model="selectedChapters" class="mt-0.5 text-blue-9 focus:ring-0 rounded">
                                         <div class="flex-1">
@@ -300,47 +309,91 @@
                     </div>
                 </div>
 
-                <!-- BAGIAN 2: Format & Bentuk Soal + Mode Stimulus -->
+                <!-- BAGIAN 2: Format & Bentuk Soal + Mode Stimulus (Checklist Multi-Tipe) -->
                 <div class="bg-white border border-gray-6 rounded-2xl p-5 shadow-xs space-y-4">
                     <div class="flex items-center justify-between border-b border-gray-5 pb-3">
                         <div class="flex items-center gap-2">
                             <span class="w-7 h-7 rounded-lg bg-emerald-3 text-emerald-11 flex items-center justify-center font-bold text-xs">2</span>
-                            <h2 class="font-display font-bold text-sm text-gray-12">Format Soal, Stimulus & Tingkat Kognitif</h2>
+                            <div>
+                                <h2 class="font-display font-bold text-sm text-gray-12">Format Soal, Stimulus & Tingkat Kognitif</h2>
+                                <p class="text-[11px] text-gray-10">Pilih kombinasi tipe soal sesuai kebutuhan asesmen terpadu.</p>
+                            </div>
+                        </div>
+
+                        <!-- Presets Quick Buttons -->
+                        <div class="hidden sm:flex items-center gap-1.5">
+                            <span class="text-[10px] font-bold text-gray-10 uppercase tracking-wider mr-1">Preset:</span>
+                            <button type="button" @click="applyPreset('standard_pg')" class="px-2 py-1 rounded-md text-[10px] font-bold bg-gray-2 hover:bg-gray-3 text-gray-11 border border-gray-5">Hanya PG</button>
+                            <button type="button" @click="applyPreset('akm_mix')" class="px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-2 hover:bg-emerald-3 text-emerald-11 border border-emerald-5">Standar AKM</button>
+                            <button type="button" @click="applyPreset('lengkap')" class="px-2 py-1 rounded-md text-[10px] font-bold bg-indigo-2 hover:bg-indigo-3 text-indigo-11 border border-indigo-5">Asesmen Lengkap</button>
                         </div>
                     </div>
 
-                    <!-- Mode Stimulus Wacana vs Soal Mandiri -->
-                    <div class="space-y-2">
-                        <label class="block text-xs font-bold text-gray-11">Pola Stimulus Konteks:</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <label :class="stimulus_mode === 'standalone' ? 'border-emerald-9 bg-emerald-2/30 text-emerald-11 font-bold' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   class="flex items-start gap-2.5 p-3 rounded-xl border text-xs cursor-pointer transition-all">
-                                <input type="radio" value="standalone" x-model="stimulus_mode" class="mt-0.5 text-emerald-9 focus:ring-0">
-                                <div>
-                                    <span class="block">🔘 Soal Mandiri</span>
-                                    <span class="text-[10px] text-gray-10 font-normal">Setiap butir soal berdiri sendiri tanpa teks wacana panjang bersama.</span>
-                                </div>
-                            </label>
+                    <!-- CHECKLIST BENTUK / TIPE SOAL & DISTRIBUSI STIMULUS -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-gray-11">Centang Tipe Soal & Tentukan Distribusi:</label>
+                            <span class="text-[11px] font-bold text-emerald-11 bg-emerald-2 px-2.5 py-0.5 rounded-full border border-emerald-5">
+                                Total: <span x-text="getTotalQuestions()"></span> Soal (<span x-text="getTotalStandalone()"></span> Mandiri + <span x-text="getTotalStimulusQuestions()"></span> dari <span x-text="getTotalStimulusTexts()"></span> Wacana)
+                            </span>
+                        </div>
 
-                            <label :class="stimulus_mode === 'stimulus_group' ? 'border-emerald-9 bg-emerald-2/30 text-emerald-11 font-bold' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   class="flex items-start gap-2.5 p-3 rounded-xl border text-xs cursor-pointer transition-all">
-                                <input type="radio" value="stimulus_group" x-model="stimulus_mode" class="mt-0.5 text-emerald-9 focus:ring-0">
-                                <div>
-                                    <span class="block">📑 Wacana Berseri (Standar AKM)</span>
-                                    <span class="text-[10px] text-gray-10 font-normal">1 Wacana/studi kasus menaungi serangkaian anak soal di bawahnya.</span>
+                        <div class="space-y-2.5">
+                            <template x-for="(t, index) in question_types" :key="t.key">
+                                <div :class="t.enabled ? 'border-emerald-6 bg-emerald-1/30 shadow-2xs' : 'border-gray-5 bg-gray-1/50 opacity-80'"
+                                     class="border rounded-xl p-3 transition-all space-y-2.5">
+                                    <div class="flex items-center justify-between flex-wrap gap-2">
+                                        <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                                            <input type="checkbox" x-model="t.enabled" class="rounded text-emerald-9 focus:ring-emerald-9/20 h-4 w-4">
+                                            <span class="text-xs font-bold text-gray-12" x-text="t.icon + ' ' + t.label"></span>
+                                        </label>
+
+                                        <span class="text-[10px] text-gray-10 italic" x-text="t.desc"></span>
+                                    </div>
+
+                                    <!-- Input Konfigurasi Soal Mandiri & Stimulus (Aktif saat dicentang) -->
+                                    <div x-show="t.enabled" x-collapse class="pt-2 border-t border-gray-4/60 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                        <div class="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-gray-5">
+                                            <span class="text-[11px] text-gray-11">Soal Mandiri:</span>
+                                            <div class="flex items-center gap-1">
+                                                <input type="number" min="0" max="30" x-model.number="t.standalone_count"
+                                                       class="w-14 text-center py-1 bg-gray-2 border border-gray-5 rounded-md font-bold text-gray-12 focus:bg-white focus:border-emerald-9">
+                                                <span class="text-[10px] text-gray-10">butir</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-gray-5">
+                                            <span class="text-[11px] text-gray-11">Jumlah Teks Stimulus:</span>
+                                            <div class="flex items-center gap-1">
+                                                <input type="number" min="0" max="5" x-model.number="t.stimulus_count"
+                                                       class="w-14 text-center py-1 bg-gray-2 border border-gray-5 rounded-md font-bold text-gray-12 focus:bg-white focus:border-emerald-9">
+                                                <span class="text-[10px] text-gray-10">teks</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-gray-5">
+                                            <span class="text-[11px] text-gray-11">Soal per Stimulus:</span>
+                                            <div class="flex items-center gap-1">
+                                                <input type="number" min="0" max="10" x-model.number="t.stimulus_questions"
+                                                       :disabled="t.stimulus_count === 0"
+                                                       class="w-14 text-center py-1 bg-gray-2 border border-gray-5 rounded-md font-bold text-gray-12 focus:bg-white focus:border-emerald-9 disabled:opacity-40">
+                                                <span class="text-[10px] text-gray-10">butir</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </label>
+                            </template>
                         </div>
                     </div>
 
-                    <!-- Pengaturan Tambahan jika Mode Stimulus Berseri dipilih -->
-                    <div x-show="stimulus_mode === 'stimulus_group'" class="p-3.5 bg-gray-2 rounded-xl border border-gray-5 space-y-3" style="display: none;">
-                        <label class="block text-xs font-bold text-gray-11">Sumber Teks Wacana:</label>
+                    <!-- SUMBER STIMULUS JIKA MEMILIH TEKS WACANA -->
+                    <div x-show="getTotalStimulusTexts() > 0" class="p-3.5 bg-gray-2 rounded-xl border border-gray-5 space-y-3" style="display: none;">
+                        <label class="block text-xs font-bold text-gray-11">Sumber Teks Wacana / Stimulus:</label>
                         <div class="grid grid-cols-2 gap-2">
                             <label :class="stimulus_source === 'ai_generate' ? 'border-emerald-9 bg-white text-emerald-11 font-bold shadow-2xs' : 'border-gray-6 text-gray-12'"
                                    class="flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer">
                                 <input type="radio" value="ai_generate" x-model="stimulus_source" class="text-emerald-9 focus:ring-0">
-                                <span>🤖 AI Auto-Generate</span>
+                                <span>🤖 AI Auto-Generate Wacana</span>
                             </label>
                             <label :class="stimulus_source === 'custom_text' ? 'border-emerald-9 bg-white text-emerald-11 font-bold shadow-2xs' : 'border-gray-6 text-gray-12'"
                                    class="flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer">
@@ -355,73 +408,15 @@
                         </div>
                     </div>
 
-                    <!-- TIPE SOAL (Visual Chip Selector) -->
-                    <div class="space-y-2">
-                        <label class="block text-xs font-bold text-gray-11">Bentuk / Tipe Soal:</label>
-                        <div class="flex flex-wrap gap-1.5">
-                            <button type="button" @click="question_type = 'mcq_single'" :disabled="category === 'skd' && subtest === 'TKP'"
-                                    :class="question_type === 'mcq_single' ? 'bg-blue-9 text-white font-bold' : 'bg-gray-3 hover:bg-gray-4 text-gray-12'"
-                                    class="px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-40">
-                                🔘 PG Tunggal
-                            </button>
-                            <button type="button" @click="question_type = 'mcq_weighted'"
-                                    :class="question_type === 'mcq_weighted' ? 'bg-emerald-9 text-white font-bold' : 'bg-gray-3 hover:bg-gray-4 text-gray-12'"
-                                    class="px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer">
-                                🎯 TKP (Bobot 1-5)
-                            </button>
-                            <button type="button" @click="question_type = 'mcq_multiple'" :disabled="category === 'skd' && subtest === 'TKP'"
-                                    :class="question_type === 'mcq_multiple' ? 'bg-purple-9 text-white font-bold' : 'bg-gray-3 hover:bg-gray-4 text-gray-12'"
-                                    class="px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-40">
-                                ☑️ PG Kompleks
-                            </button>
-                            <button type="button" @click="question_type = 'binary_matrix'" :disabled="category === 'skd' && subtest === 'TKP'"
-                                    :class="question_type === 'binary_matrix' ? 'bg-amber-9 text-white font-bold' : 'bg-gray-3 hover:bg-gray-4 text-gray-12'"
-                                    class="px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-40">
-                                ⚖️ Benar/Salah
-                            </button>
-                            <button type="button" @click="question_type = 'matching'" :disabled="category === 'skd' && subtest === 'TKP'"
-                                    :class="question_type === 'matching' ? 'bg-teal-9 text-white font-bold' : 'bg-gray-3 hover:bg-gray-4 text-gray-12'"
-                                    class="px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-40">
-                                🔗 Menjodohkan
-                            </button>
-                            <button type="button" @click="question_type = 'ordering'" :disabled="category === 'skd' && subtest === 'TKP'"
-                                    :class="question_type === 'ordering' ? 'bg-cyan-9 text-white font-bold' : 'bg-gray-3 hover:bg-gray-4 text-gray-12'"
-                                    class="px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-40">
-                                🔢 Mengurutkan
-                            </button>
-                            <button type="button" @click="question_type = 'short_answer'" :disabled="category === 'skd' && subtest === 'TKP'"
-                                    :class="question_type === 'short_answer' ? 'bg-pink-9 text-white font-bold' : 'bg-gray-3 hover:bg-gray-4 text-gray-12'"
-                                    class="px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-40">
-                                ✍️ Isian Singkat
-                            </button>
-                            <button type="button" @click="question_type = 'essay'" :disabled="category === 'skd' && subtest === 'TKP'"
-                                    :class="question_type === 'essay' ? 'bg-rose-9 text-white font-bold' : 'bg-gray-3 hover:bg-gray-4 text-gray-12'"
-                                    class="px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-40">
-                                📝 Esai / Uraian
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Jumlah Soal, Kesulitan, & Kognitif (3 Kolom) -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <!-- Kesulitan & Kognitif (2 Kolom) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                         <div>
-                            <label class="block text-xs font-bold text-gray-11 mb-1">Jumlah Butir Soal:</label>
-                            <select x-model.number="question_count"
-                                    class="w-full px-3 py-2 bg-gray-2 border border-gray-6 rounded-xl text-xs font-bold text-gray-12 focus:bg-white focus:border-emerald-9 transition-all">
-                                <option :value="1">1 Butir Soal</option>
-                                <option :value="3">3 Butir Soal</option>
-                                <option :value="5">5 Butir Soal (Standar)</option>
-                                <option :value="10">10 Butir Soal</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-gray-11 mb-1">Tingkat Kesulitan:</label>
+                            <label class="block text-xs font-bold text-gray-11 mb-1">Tingkat Kesulitan Dominan:</label>
                             <select x-model="difficulty"
                                     class="w-full px-3 py-2 bg-gray-2 border border-gray-6 rounded-xl text-xs font-semibold text-gray-12 focus:bg-white focus:border-emerald-9 transition-all">
-                                <option value="mudah">Mudah (Dasar)</option>
-                                <option value="sedang">Sedang (Standar Ujian)</option>
-                                <option value="sukar">Sukar (Tantangan Tinggi)</option>
+                                <option value="mudah">Mudah (Dasar & Fondasi Konsep)</option>
+                                <option value="sedang">Sedang (Standar Asesmen Nasional)</option>
+                                <option value="sukar">Sukar (Tantangan Tinggi / Analisis Mendalam)</option>
                             </select>
                         </div>
 
@@ -705,12 +700,21 @@
                             </button>
                         </div>
 
-                        <!-- Tombol Simpan ke Bank Soal -->
-                        <button type="button" @click="saveToQuestionBank()" :disabled="isSaving"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-9 hover:bg-emerald-10 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-75">
-                            <x-radix-icon name="archive" class="w-4 h-4" />
-                            <span x-text="isSaving ? 'Menyimpan...' : 'Simpan ke Bank Soal'"></span>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <!-- Tombol Simpan ke Bank Soal -->
+                            <button type="button" @click="saveToQuestionBank()" :disabled="isSaving"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-3 hover:bg-gray-4 text-gray-12 text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-75">
+                                <x-radix-icon name="archive" class="w-4 h-4" />
+                                <span x-text="isSaving ? 'Menyimpan...' : 'Simpan ke Bank Soal'"></span>
+                            </button>
+
+                            <!-- Tombol Langsung Kirim ke Wizard Asesmen -->
+                            <button type="button" @click="sendToWizard()" :disabled="isSendingToWizard"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-9 hover:bg-indigo-10 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-75">
+                                <x-radix-icon name="magic-wand" class="w-4 h-4" />
+                                <span x-text="isSendingToWizard ? 'Menyiapkan Wizard...' : 'Lanjut ke Wizard Ujian →'"></span>
+                            </button>
+                        </div>
                     </div>
 
                 </div>
@@ -789,10 +793,91 @@
 
                 difficulty: 'sedang',
                 cognitive_level: 'C3-C4 (MOTS)',
-                question_type: 'mcq_single',
-                question_count: 5,
 
-                stimulus_mode: 'standalone',
+                // Multi-tipe Soal & Distribusi Checklist
+                question_types: [
+                    {
+                        key: 'mcq_single',
+                        label: 'Pilihan Ganda Tunggal',
+                        icon: '🔘',
+                        desc: '1 jawaban benar (A-E/A-D)',
+                        enabled: true,
+                        standalone_count: 5,
+                        stimulus_count: 0,
+                        stimulus_questions: 0
+                    },
+                    {
+                        key: 'mcq_multiple',
+                        label: 'Pilihan Ganda Kompleks',
+                        icon: '☑️',
+                        desc: 'Lebih dari 1 pernyataan/jawaban benar',
+                        enabled: false,
+                        standalone_count: 2,
+                        stimulus_count: 0,
+                        stimulus_questions: 0
+                    },
+                    {
+                        key: 'binary_matrix',
+                        label: 'Benar / Salah (Matrix)',
+                        icon: '⚖️',
+                        desc: 'Tabel evaluasi Benar-Salah / Ya-Tidak',
+                        enabled: false,
+                        standalone_count: 2,
+                        stimulus_count: 0,
+                        stimulus_questions: 0
+                    },
+                    {
+                        key: 'matching',
+                        label: 'Menjodohkan (Matching)',
+                        icon: '🔗',
+                        desc: 'Premis kiri dipasangkan dengan opsi kanan',
+                        enabled: false,
+                        standalone_count: 2,
+                        stimulus_count: 0,
+                        stimulus_questions: 0
+                    },
+                    {
+                        key: 'ordering',
+                        label: 'Mengurutkan (Ordering)',
+                        icon: '🔢',
+                        desc: 'Menyusun urutan tahapan / kronologi',
+                        enabled: false,
+                        standalone_count: 1,
+                        stimulus_count: 0,
+                        stimulus_questions: 0
+                    },
+                    {
+                        key: 'short_answer',
+                        label: 'Isian Singkat',
+                        icon: '✍️',
+                        desc: 'Jawaban kata kunci atau angka pasti',
+                        enabled: false,
+                        standalone_count: 2,
+                        stimulus_count: 0,
+                        stimulus_questions: 0
+                    },
+                    {
+                        key: 'essay',
+                        label: 'Esai / Uraian Bebas',
+                        icon: '📝',
+                        desc: 'Analisis mendalam dengan rubrik penilaian',
+                        enabled: false,
+                        standalone_count: 1,
+                        stimulus_count: 0,
+                        stimulus_questions: 0
+                    },
+                    {
+                        key: 'mcq_weighted',
+                        label: 'TKP / Skala Bertingkat (Bobot 1-5)',
+                        icon: '🎯',
+                        desc: 'Setiap opsi bernilai 1 sampai 5 poin',
+                        enabled: false,
+                        standalone_count: 5,
+                        stimulus_count: 0,
+                        stimulus_questions: 0
+                    }
+                ],
+
                 stimulus_source: 'ai_generate',
                 custom_stimulus_text: '',
 
@@ -808,6 +893,7 @@
                 copied: false,
 
                 isSaving: false,
+                isSendingToWizard: false,
                 showSavedModal: false,
                 savedMessage: '',
                 savedBankId: null,
@@ -820,11 +906,82 @@
                     this.category = cat;
                     if (cat === 'skd') {
                         this.subtest = 'TIU';
+                        this.applyPreset('skd');
                     } else if (cat === 'utbk') {
                         this.utbk_group = 'tps';
                         this.subtest = 'PU';
+                        this.applyPreset('akm_mix');
+                    } else {
+                        this.applyPreset('standard_pg');
                     }
                     this.onFilterChange();
+                },
+
+                getTotalStandalone() {
+                    return this.question_types
+                        .filter(t => t.enabled)
+                        .reduce((acc, t) => acc + (Number(t.standalone_count) || 0), 0);
+                },
+
+                getTotalStimulusTexts() {
+                    return this.question_types
+                        .filter(t => t.enabled)
+                        .reduce((acc, t) => acc + (Number(t.stimulus_count) || 0), 0);
+                },
+
+                getTotalStimulusQuestions() {
+                    return this.question_types
+                        .filter(t => t.enabled)
+                        .reduce((acc, t) => acc + ((Number(t.stimulus_count) || 0) * (Number(t.stimulus_questions) || 0)), 0);
+                },
+
+                getTotalQuestions() {
+                    const total = this.getTotalStandalone() + this.getTotalStimulusQuestions();
+                    return total > 0 ? total : 0;
+                },
+
+                applyPreset(preset) {
+                    this.question_types.forEach(t => {
+                        t.enabled = false;
+                        t.standalone_count = 0;
+                        t.stimulus_count = 0;
+                        t.stimulus_questions = 0;
+                    });
+
+                    if (preset === 'standard_pg') {
+                        const pg = this.question_types.find(t => t.key === 'mcq_single');
+                        if (pg) {
+                            pg.enabled = true;
+                            pg.standalone_count = 5;
+                        }
+                    } else if (preset === 'akm_mix') {
+                        const pg = this.question_types.find(t => t.key === 'mcq_single');
+                        if (pg) { pg.enabled = true; pg.standalone_count = 2; pg.stimulus_count = 1; pg.stimulus_questions = 2; }
+
+                        const pgk = this.question_types.find(t => t.key === 'mcq_multiple');
+                        if (pgk) { pgk.enabled = true; pgk.standalone_count = 1; pgk.stimulus_count = 1; pgk.stimulus_questions = 1; }
+
+                        const bs = this.question_types.find(t => t.key === 'binary_matrix');
+                        if (bs) { bs.enabled = true; bs.standalone_count = 1; }
+
+                        const es = this.question_types.find(t => t.key === 'essay');
+                        if (es) { es.enabled = true; es.standalone_count = 1; }
+                    } else if (preset === 'lengkap') {
+                        this.question_types.forEach(t => {
+                            if (t.key !== 'mcq_weighted') {
+                                t.enabled = true;
+                                t.standalone_count = 1;
+                            }
+                        });
+                    } else if (preset === 'skd') {
+                        if (this.subtest === 'TKP') {
+                            const tkp = this.question_types.find(t => t.key === 'mcq_weighted');
+                            if (tkp) { tkp.enabled = true; tkp.standalone_count = 5; }
+                        } else {
+                            const pg = this.question_types.find(t => t.key === 'mcq_single');
+                            if (pg) { pg.enabled = true; pg.standalone_count = 5; }
+                        }
+                    }
                 },
 
                 onFilterChange() {
@@ -832,7 +989,22 @@
                         const curData = this.syllabus[this.curriculum] || {};
                         const gradeData = curData[this.grade_level] || {};
                         const subData = gradeData[this.subject] || {};
-                        this.availableChapters = subData.chapters || [];
+                        let chapters = subData.chapters || [];
+
+                        // Fallback dinamis jika kombinasi tertentu belum didefinisikan secara statis
+                        if (chapters.length === 0) {
+                            const subName = this.subject ? this.subject.replace(/_/g, ' ').toUpperCase() : 'MATA PELAJARAN';
+                            const curName = this.curriculum === 'k13' ? 'Kurikulum 2013' : 'Kurikulum Merdeka';
+                            chapters = [
+                                { id: 'fb_1', title: `Bab 1: Fondasi & Konsep Inti ${subName} (${curName})`, semester: 1 },
+                                { id: 'fb_2', title: `Bab 2: Teori, Prinsip & Aplikasi ${subName}`, semester: 1 },
+                                { id: 'fb_3', title: `Bab 3: Pemecahan Masalah & Prosedur Analisis ${subName}`, semester: 1 },
+                                { id: 'fb_4', title: `Bab 4: Eksplorasi Lanjutan & Kajian Kontekstual ${subName}`, semester: 2 },
+                                { id: 'fb_5', title: `Bab 5: Studi Kasus Terapan & Proyek Evaluasi ${subName}`, semester: 2 }
+                            ];
+                        }
+
+                        this.availableChapters = chapters;
                         this.selectedChapters = this.availableChapters.slice(0, 2).map(c => c.title);
                     }
                 },
@@ -858,16 +1030,27 @@
                 },
 
                 onSkdSubtestChange() {
-                    if (this.subtest === 'TKP') {
-                        this.question_type = 'mcq_weighted';
-                    } else if (this.question_type === 'mcq_weighted') {
-                        this.question_type = 'mcq_single';
-                    }
+                    this.applyPreset('skd');
                 },
 
                 async generateQuestions() {
+                    const activeTypes = this.question_types.filter(t => t.enabled);
+                    if (activeTypes.length === 0) {
+                        alert('Silakan centang minimal 1 bentuk/tipe soal pada Bagian 2!');
+                        return;
+                    }
+
+                    const totalCount = this.getTotalQuestions();
+                    if (totalCount <= 0) {
+                        alert('Jumlah butir soal tidak boleh 0. Silakan isi jumlah soal mandiri atau stimulus!');
+                        return;
+                    }
+
                     this.generating = true;
                     this.generatingText = 'Menghubungi DeepSeek Engine (' + (this.ai_model === 'deepseek-reasoner' ? 'Deep Reasoning R1' : 'V3 Chat') + ')...';
+
+                    const primaryType = activeTypes[0].key;
+                    const hasStimulus = this.getTotalStimulusTexts() > 0;
 
                     const payload = {
                         category: this.category,
@@ -880,11 +1063,18 @@
                         subtest: this.subtest,
                         difficulty: this.difficulty,
                         cognitive_level: this.cognitive_level,
-                        stimulus_mode: this.stimulus_mode,
+                        stimulus_mode: hasStimulus ? 'stimulus_group' : 'standalone',
                         stimulus_source: this.stimulus_source,
                         custom_stimulus_text: this.custom_stimulus_text,
-                        question_type: this.question_type,
-                        question_count: this.question_count,
+                        question_type: primaryType,
+                        question_count: Math.min(totalCount, 50),
+                        type_distributions: activeTypes.map(t => ({
+                            type: t.key,
+                            label: t.label,
+                            standalone_count: Number(t.standalone_count) || 0,
+                            stimulus_count: Number(t.stimulus_count) || 0,
+                            stimulus_questions: Number(t.stimulus_questions) || 0
+                        })),
                         custom_prompt: this.custom_prompt,
                         ai_model: this.ai_model,
                         _token: '{{ csrf_token() }}'
@@ -948,6 +1138,49 @@
                     document.body.appendChild(form);
                     form.submit();
                     document.body.removeChild(form);
+                },
+
+                async sendToWizard() {
+                    if (!this.resultPackage) {
+                        window.location.href = '{{ route('assessments.wizard') }}';
+                        return;
+                    }
+
+                    this.isSendingToWizard = true;
+
+                    try {
+                        const res = await fetch('{{ route('question-generator.to-wizard') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                package: this.resultPackage,
+                                _token: '{{ csrf_token() }}'
+                            })
+                        });
+
+                        const data = await res.json();
+                        if (data.status === 'success' && data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            alert('Gagal menyiapkan Wizard: ' + (data.message || 'Terjadi kesalahan'));
+                        }
+                    } catch (e) {
+                        alert('Koneksi bermasalah: ' + e.message);
+                    } finally {
+                        this.isSendingToWizard = false;
+                    }
+                },
+
+                goToWizard() {
+                    if (this.resultPackage) {
+                        this.sendToWizard();
+                    } else {
+                        window.location.href = '{{ route('assessments.wizard') }}';
+                    }
                 },
 
                 async saveToQuestionBank() {

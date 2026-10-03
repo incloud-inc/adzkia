@@ -227,7 +227,9 @@ class AssessmentWizardController extends Controller
         // Grade Levels grouped by group from Database
         $gradeLevels = GradeLevel::where('is_active', true)->orderBy('order')->get()->groupBy('group');
 
-        return view('assessments.wizard', compact('subjects', 'assessmentTypes', 'questionTypes', 'binaryMatrixPresets', 'gradeLevels'));
+        $wizardPrefill = session()->pull('wizard_prefill');
+
+        return view('assessments.wizard', compact('subjects', 'assessmentTypes', 'questionTypes', 'binaryMatrixPresets', 'gradeLevels', 'wizardPrefill'));
     }
 
     /**

@@ -70,9 +70,14 @@ class QuestionGeneratorController extends Controller
             'stimulus_source' => 'nullable|string|in:ai_generate,custom_text',
             'custom_stimulus_text' => 'nullable|string|max:5000',
             'question_type' => 'nullable|string',
-            'question_count' => 'nullable|integer|min:1|max:20',
+            'question_count' => 'nullable|integer|min:1|max:50',
             'custom_prompt' => 'nullable|string|max:2000',
             'ai_model' => 'nullable|string|in:deepseek-chat,deepseek-reasoner',
+            'type_distributions' => 'nullable|array',
+            'type_distributions.*.type' => 'required|string',
+            'type_distributions.*.standalone_count' => 'nullable|integer|min:0|max:50',
+            'type_distributions.*.stimulus_count' => 'nullable|integer|min:0|max:10',
+            'type_distributions.*.stimulus_questions' => 'nullable|integer|min:0|max:10',
         ]);
 
         try {
@@ -251,5 +256,183 @@ class QuestionGeneratorController extends Controller
                 'message' => 'Gagal menyimpan ke Bank Soal: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Send generated package and parameters to Assessment 8-Step Wizard.
+     */
+    public function toWizard(Request $request): JsonResponse
+    {
+        $this->authorizeStaffAccess();
+
+        if (is_string($request->input('package'))) {
+            $decoded = json_decode($request->input('package'), true);
+            if (is_array($decoded)) {
+                $request->merge(['package' => $decoded]);
+            }
+        }
+
+        $validated = $request->validate([
+            'package' => 'nullable|array',
+            'category' => 'nullable|string',
+            'curriculum' => 'nullable|string',
+            'grade_level' => 'nullable|string',
+            'subject' => 'nullable|string',
+            'subtest' => 'nullable|string',
+            'difficulty' => 'nullable|string',
+        ]);
+
+        $package = $validated['package'] ?? null;
+        $category = $validated['category'] ?? 'school';
+        $subjectName = $validated['subject'] ?? ($package['subject'] ?? null);
+        $gradeLevelInput = $validated['grade_level'] ?? ($package['grade_level'] ?? null);
+
+        // 1. Resolve Subject ID
+        $subjectId = null;
+        if ($subjectName) {
+            $matchedSubject = Subject::where('name', 'like', "%{$subjectName}%")->first();
+            if ($matchedSubject) {
+                $subjectId = $matchedSubject->id;
+            }
+        }
+        if (! $subjectId) {
+            $subjectId = Subject::first()?->id;
+        }
+
+        // 2. Resolve Grade Level
+        $gradeLevelName = '10 SMA';
+        if ($gradeLevelInput) {
+            if (is_numeric($gradeLevelInput)) {
+                $intVal = (int) $gradeLevelInput;
+                if ($intVal <= 6) {
+                    $gradeLevelName = "Kelas {$intVal} SD";
+                } elseif ($intVal <= 9) {
+                    $gradeLevelName = "Kelas {$intVal} SMP";
+                } else {
+                    $gradeLevelName = "Kelas {$intVal} SMA/SMK";
+                }
+            } else {
+                $gradeLevelName = (string) $gradeLevelInput;
+            }
+        }
+
+        // 3. Resolve Assessment Type (ph, pts, pas, tka, utbk, custom)
+        $title = $package['assessment_title'] ?? ($subjectName ? 'Asesmen Pembelajaran '.ucfirst($subjectName) : 'Naskah Asesmen ADZKIA');
+        $assessmentType = 'ph';
+        if ($category === 'utbk') {
+            $assessmentType = 'utbk';
+        } elseif ($category === 'tka') {
+            $assessmentType = 'tka';
+        } elseif ($category === 'skd' || $category === 'custom') {
+            $assessmentType = 'custom';
+        } else {
+            $upperTitle = strtoupper($title);
+            if (str_contains($upperTitle, 'PTS') || str_contains($upperTitle, 'TENGAH')) {
+                $assessmentType = 'pts';
+            } elseif (str_contains($upperTitle, 'PAS') || str_contains($upperTitle, 'PAT') || str_contains($upperTitle, 'AKHIR')) {
+                $assessmentType = 'pas';
+            } else {
+                $assessmentType = 'ph';
+            }
+        }
+
+        // 4. Transform package items into 1 Section
+        $sectionItems = [];
+        $totalItemCount = 0;
+
+        if ($package && ! empty($package['items'])) {
+            $items = $package['items'];
+            $totalItemCount = count($items);
+            $hasStimulus = ! empty($package['stimulus']['content']);
+
+            if ($hasStimulus) {
+                $childQuestions = [];
+                foreach ($items as $idx => $it) {
+                    $childQuestions[] = [
+                        'id' => 'cq_'.uniqid().'_'.$idx,
+                        'type' => $it['type'] ?? 'mcq_single',
+                        'prompt' => $it['prompt'] ?? '',
+                        'explanation' => $it['explanation'] ?? '',
+                        'points' => (float) ($it['points'] ?? 1.0),
+                        'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
+                        'options' => array_map(function ($opt, $oIdx) {
+                            return [
+                                'id' => 'copt_'.uniqid().'_'.$oIdx,
+                                'label' => $opt['label'] ?? (string) ($oIdx + 1),
+                                'option_text' => $opt['option_text'] ?? '',
+                                'is_correct' => ! empty($opt['is_correct']),
+                                'score' => (float) ($opt['score'] ?? 0.0),
+                                'match_key' => $opt['match_key'] ?? null,
+                            ];
+                        }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
+                    ];
+                }
+
+                $sectionItems[] = [
+                    'id' => 'grp_'.uniqid(),
+                    'is_group' => true,
+                    'title' => $package['stimulus']['title'] ?? 'Wacana Stimulus Terpadu',
+                    'stimulus_type' => 'text',
+                    'stimulus_content' => $package['stimulus']['content'],
+                    'questions' => $childQuestions,
+                ];
+            } else {
+                foreach ($items as $idx => $it) {
+                    $sectionItems[] = [
+                        'id' => 'q_'.uniqid().'_'.$idx,
+                        'is_group' => false,
+                        'type' => $it['type'] ?? 'mcq_single',
+                        'prompt' => $it['prompt'] ?? '',
+                        'explanation' => $it['explanation'] ?? '',
+                        'points' => (float) ($it['points'] ?? 1.0),
+                        'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
+                        'options' => array_map(function ($opt, $oIdx) {
+                            return [
+                                'id' => 'opt_'.uniqid().'_'.$oIdx,
+                                'label' => $opt['label'] ?? (string) ($oIdx + 1),
+                                'option_text' => $opt['option_text'] ?? '',
+                                'is_correct' => ! empty($opt['is_correct']),
+                                'score' => (float) ($opt['score'] ?? 0.0),
+                                'match_key' => $opt['match_key'] ?? null,
+                            ];
+                        }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
+                    ];
+                }
+            }
+        }
+
+        $sectionTitle = 'Bagian 1: Naskah Soal Terpadu';
+        if ($totalItemCount > 0) {
+            $sectionTitle = "Bagian 1: Naskah Soal ({$totalItemCount} Butir)";
+        }
+
+        $sections = [
+            [
+                'id' => 'sec_ai_'.uniqid(),
+                'title' => $sectionTitle,
+                'instructions' => 'Pilihlah salah satu jawaban yang paling tepat atau kerjakan sesuai petunjuk instruksi soal.',
+                'duration_minutes' => null,
+                'items' => $sectionItems,
+            ],
+        ];
+
+        $prefillData = [
+            'title' => $title,
+            'type' => $assessmentType,
+            'subject_id' => $subjectId,
+            'grade_level' => $gradeLevelName,
+            'description' => 'Disusun otomatis melalui Studio Pembuat Soal AI (DeepSeek Engine).',
+            'duration_minutes' => 90,
+            'sections' => $sections,
+            'item_count' => $totalItemCount,
+        ];
+
+        session()->put('wizard_prefill', $prefillData);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Naskah soal dan data asesmen berhasil dialihkan ke Wizard Ujian.',
+            'redirect_url' => route('assessments.wizard'),
+        ]);
     }
 }

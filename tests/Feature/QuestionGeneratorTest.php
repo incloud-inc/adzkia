@@ -25,6 +25,7 @@ class QuestionGeneratorTest extends TestCase
         $this->tenant = Tenant::create([
             'name' => 'KEMENTERIAN PENDIDIKAN',
             'subdomain' => 'kemendik',
+            'plan' => 'premium',
             'is_active' => true,
         ]);
 
@@ -286,5 +287,107 @@ class QuestionGeneratorTest extends TestCase
         $this->assertDatabaseHas('subjects', [
             'name' => 'Astronomi',
         ]);
+    }
+
+    public function test_question_generator_can_prefill_wizard_session(): void
+    {
+        $package = [
+            'assessment_title' => 'Asesmen Sumatif Matematika Kelas 10',
+            'subject' => 'Matematika',
+            'grade_level' => '10',
+            'stimulus' => [
+                'title' => 'Wacana Eksponen',
+                'content' => 'Pertumbuhan bakteri membelah diri setiap 20 menit...',
+            ],
+            'items' => [
+                [
+                    'number' => 1,
+                    'type' => 'mcq_single',
+                    'prompt' => 'Berapakah jumlah bakteri setelah 1 jam?',
+                    'points' => 2.0,
+                    'options' => [
+                        ['label' => 'A', 'option_text' => '8', 'is_correct' => true, 'score' => 2.0],
+                        ['label' => 'B', 'option_text' => '4', 'is_correct' => false, 'score' => 0.0],
+                    ],
+                ],
+                [
+                    'number' => 2,
+                    'type' => 'essay',
+                    'prompt' => 'Jelaskan model matematika dari pertumbuhan eksponensial di atas!',
+                    'points' => 4.0,
+                    'options' => [],
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson(route('question-generator.to-wizard'), [
+            'package' => $package,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+            'redirect_url' => route('assessments.wizard'),
+        ]);
+
+        $sessionData = session('wizard_prefill');
+        $this->assertNotNull($sessionData);
+        $this->assertEquals('Asesmen Sumatif Matematika Kelas 10', $sessionData['title']);
+        $this->assertCount(1, $sessionData['sections']);
+        $this->assertCount(1, $sessionData['sections'][0]['items']);
+        $groupItem = $sessionData['sections'][0]['items'][0];
+        $this->assertTrue($groupItem['is_group']);
+        $this->assertCount(2, $groupItem['questions']);
+        $this->assertEquals('mcq_single', $groupItem['questions'][0]['type']);
+        $this->assertEquals('essay', $groupItem['questions'][1]['type']);
+
+        // Test that visiting the wizard consumes the prefill
+        $wizardResponse = $this->actingAs($this->user)->get(route('assessments.wizard'));
+        $wizardResponse->assertStatus(200);
+        $wizardResponse->assertSee('Asesmen Sumatif Matematika Kelas 10');
+    }
+
+    public function test_question_generator_supports_multi_type_distributions(): void
+    {
+        $payload = [
+            'category' => 'school',
+            'curriculum' => 'k13',
+            'grade_level' => '11',
+            'subject' => 'fisika',
+            'chapters' => ['Dinamika Rotasi', 'Keseimbangan Benda Tegar'],
+            'difficulty' => 'sedang',
+            'cognitive_level' => 'C3-C4 (MOTS)',
+            'stimulus_mode' => 'standalone',
+            'question_type' => 'mcq_single',
+            'question_count' => 6,
+            'type_distributions' => [
+                [
+                    'type' => 'mcq_single',
+                    'standalone_count' => 2,
+                    'stimulus_count' => 0,
+                    'stimulus_questions' => 0,
+                ],
+                [
+                    'type' => 'mcq_multiple',
+                    'standalone_count' => 2,
+                    'stimulus_count' => 0,
+                    'stimulus_questions' => 0,
+                ],
+                [
+                    'type' => 'essay',
+                    'standalone_count' => 2,
+                    'stimulus_count' => 0,
+                    'stimulus_questions' => 0,
+                ],
+            ],
+            'ai_model' => 'deepseek-reasoner',
+        ];
+
+        $response = $this->actingAs($this->user)->postJson(route('question-generator.generate'), $payload);
+        $response->assertStatus(200);
+        $data = $response->json();
+
+        $this->assertEquals('success', $data['status']);
+        $this->assertGreaterThanOrEqual(1, count($data['package']['items']));
     }
 }

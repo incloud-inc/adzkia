@@ -16,6 +16,47 @@
                 selectedWordFile: null,
                 selectedWordFileName: '',
                 isImporting: false,
+                wizardPrefill: @json($wizardPrefill ?? null),
+                prefillNotice: null,
+
+                init() {
+                    if (this.wizardPrefill) {
+                        if (this.wizardPrefill.type) {
+                            this.selectAssessmentType(this.wizardPrefill.type);
+                        }
+                        if (this.wizardPrefill.title) {
+                            this.form.title = this.wizardPrefill.title;
+                        }
+                        if (this.wizardPrefill.subject_id) {
+                            this.form.subject_id = this.wizardPrefill.subject_id;
+                        }
+                        if (this.wizardPrefill.grade_level) {
+                            this.form.grade_level = this.wizardPrefill.grade_level;
+                        }
+                        if (this.wizardPrefill.description) {
+                            this.form.description = this.wizardPrefill.description;
+                        }
+                        if (this.wizardPrefill.duration_minutes) {
+                            this.form.duration_minutes = this.wizardPrefill.duration_minutes;
+                        }
+                        if (this.wizardPrefill.sections && this.wizardPrefill.sections.length > 0) {
+                            this.form.sections = this.wizardPrefill.sections;
+                        }
+                        const count = this.wizardPrefill.item_count || 0;
+                        this.prefillNotice = count > 0 
+                            ? 'Berhasil memuat ' + count + ' butir soal dari Studio AI ke dalam 1 Section terpadu. Tipe ujian dan judul telah disesuaikan otomatis.'
+                            : 'Data pilihan dari Studio AI berhasil dimuat ke dalam formulir ujian.';
+                        
+                        this.currentStep = 2;
+                        
+                        this.$nextTick(() => {
+                            if (typeof window.triggerKaTeX === 'function') {
+                                window.triggerKaTeX();
+                            }
+                        });
+                    }
+                },
+
                 stepNames: [
                     'Tipe',
                     'Informasi',
@@ -1087,6 +1128,27 @@
                 </template>
             </div>
         </div>
+
+        <!-- Prefill Notice from AI Question Generator Studio -->
+        <template x-if="prefillNotice">
+            <div class="p-4 rounded-2xl bg-emerald-2 border border-emerald-6 text-emerald-12 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div class="flex items-center gap-3">
+                    <span class="w-8 h-8 rounded-xl bg-emerald-4 text-emerald-11 flex items-center justify-center font-bold text-base shadow-2xs shrink-0">✨</span>
+                    <div>
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-emerald-11">Sinkronisasi Studio AI Berhasil</h4>
+                        <p class="text-xs text-emerald-12 mt-0.5" x-text="prefillNotice"></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" @click="goToStep(4)" class="px-3.5 py-1.5 rounded-lg bg-emerald-9 hover:bg-emerald-10 text-white text-xs font-bold transition-colors cursor-pointer">
+                        Lihat Butir Soal (Langkah 4) →
+                    </button>
+                    <button type="button" @click="prefillNotice = null" class="p-1.5 text-emerald-10 hover:text-emerald-12 transition-colors cursor-pointer">
+                        <x-radix-icon name="cross-2" class="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        </template>
 
         <!-- Wizard Step Content Cards -->
         <div class="bg-white border border-gray-6 rounded-2xl p-6 md:p-8 shadow-[0_1px_3px_rgba(0,0,0,0.03)] min-h-[500px]">

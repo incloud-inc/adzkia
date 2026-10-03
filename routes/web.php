@@ -147,6 +147,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('question-generator/generate', [QuestionGeneratorController::class, 'generate'])->name('question-generator.generate');
     Route::post('question-generator/export-word', [QuestionGeneratorController::class, 'exportWord'])->name('question-generator.export-word');
     Route::post('question-generator/save-to-bank', [QuestionGeneratorController::class, 'saveToBank'])->name('question-generator.save-to-bank');
+    Route::post('question-generator/to-wizard', [QuestionGeneratorController::class, 'toWizard'])->name('question-generator.to-wizard');
 
     // Assessment Engine & 8-Step Wizard
     Route::get('assessments/wizard', [AssessmentWizardController::class, 'create'])->name('assessments.wizard');
