@@ -226,6 +226,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/exam/session/{session}/lock-status', [ExamWorkspaceController::class, 'checkLockStatus'])
         ->name('exam.session.lock_status');
 
+    // API: Polling status auto-grading (Phase 2)
+    Route::get('/exam/session/{session}/grading-status', [ExamWorkspaceController::class, 'checkGradingStatus'])
+        ->name('exam.session.grading_status');
+
     // API: Verifikasi PIN buka kunci siswa
     Route::post('/exam/session/{session}/verify-pin', [ExamWorkspaceController::class, 'verifyPin'])
         ->name('exam.session.verify_pin');

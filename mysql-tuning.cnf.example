@@ -1,0 +1,12 @@
+[mysqld]
+# Connection Pool (Lebih besar dari total HTTP workers + Queue workers)
+max_connections = 500
+
+# Buffer Pool untuk menampung data di RAM
+innodb_buffer_pool_size = 4G     ; Sesuaikan dengan 60-70% total RAM DB Server
+innodb_buffer_pool_instances = 4
+
+# Throughput Disk untuk Upsert Massal
+innodb_flush_log_at_trx_commit = 2
+innodb_lock_wait_timeout = 50
+max_allowed_packet = 64M

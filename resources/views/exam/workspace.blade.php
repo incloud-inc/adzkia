@@ -1643,10 +1643,16 @@
                 this.submitting = true;
                 this.showSubmitModal = false;
 
+                // Flush sisa timer autosave lokal
                 const flushPromises = Object.keys(this._saveTimers).map(qid => {
                     clearTimeout(this._saveTimers[qid]);
                     return this.pushSave(parseInt(qid));
                 });
+                await Promise.allSettled(flushPromises);
+
+                // CLIENT JITTERING: Acak request antara 0 - 2500ms untuk meratakan kurva spike
+                const jitterMs = Math.floor(Math.random() * 2500);
+                await new Promise(resolve => setTimeout(resolve, jitterMs));
 
                 const submitPromise = (async () => {
                     try {
@@ -1667,7 +1673,6 @@
                     }
                 })();
 
-                await Promise.allSettled(flushPromises);
                 const redirectUrl = await submitPromise;
 
                 const countdownInterval = setInterval(() => {

@@ -29,6 +29,9 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
+        // Logout dari device lain untuk memastikan hanya 1 device aktif per user
+        Auth::logoutOtherDevices($request->password);
+
         $user = Auth::user();
 
         // 1. Super User / OWNER directly enters dashboard without choosing a tenant

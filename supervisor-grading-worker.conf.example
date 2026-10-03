@@ -1,0 +1,10 @@
+[program:adzkia-grading-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/adzkia/artisan queue:work redis --queue=grading,default --sleep=0 --tries=3 --timeout=90 --memory=512
+autostart=true
+autorestart=true
+user=www-data
+numprocs=16               ; 16 worker paralel
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/adzkia-grading.log
+stopwaitsecs=120

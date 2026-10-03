@@ -63,6 +63,13 @@
 
     <main class="w-full h-full lg:h-screen lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60">
 
+        <!-- OVERLAY GRADING PENDING -->
+        <div x-show="gradingStatus === 'pending' || gradingStatus === 'processing'" class="absolute inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 text-center space-y-4">
+            <div class="w-16 h-16 border-4 border-[#339af0] border-t-transparent rounded-full animate-spin"></div>
+            <h2 class="text-2xl font-bold text-[#212529] font-display">Sedang Menilai Jawaban...</h2>
+            <p class="text-gray-600 max-w-sm">Mohon tunggu sebentar, sistem sedang merekap hasil ujian Anda. Halaman ini akan termuat otomatis setelah selesai.</p>
+        </div>
+
         @php
             $tenant = $session->tenant ?? $session->assessment->tenant ?? auth()->user()->currentTenant ?? (app()->has('currentTenant') ? app('currentTenant') : null);
             $authUser = auth()->user();
@@ -897,13 +904,36 @@
                 return html;
             },
 
+            // Polling State
+            gradingStatus: '{{ $session->grading_status }}',
+            sessionUuid: '{{ $session->uuid }}',
+
             init() {
+                if (this.gradingStatus === 'pending' || this.gradingStatus === 'processing') {
+                    this.startPolling();
+                }
+
                 this.$watch('currentCardIndex', () => {
                     this.renderMath();
                 });
                 this.$nextTick(() => {
                     this.renderMath();
                 });
+            },
+
+            startPolling() {
+                const interval = setInterval(async () => {
+                    try {
+                        const res = await fetch(`/exam/session/${this.sessionUuid}/grading-status`, {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        const data = await res.json();
+                        if (data.is_ready || data.status === 'completed' || data.status === 'failed') {
+                            clearInterval(interval);
+                            window.location.reload();
+                        }
+                    } catch (e) {}
+                }, 3000); // Polling setiap 3 detik untuk mengurangi beban di Cloudflare & VPS
             },
 
             renderMath() {

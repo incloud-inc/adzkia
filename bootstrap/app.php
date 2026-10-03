@@ -15,10 +15,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Percayai IP dari Cloudflare Tunnel / Traefik
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
             IdentifyTenantByDomain::class,
             SecurityHeaders::class,
             EnsurePasswordIsChanged::class,
+            \Illuminate\Session\Middleware\AuthenticateSession::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'api/webhooks/*',

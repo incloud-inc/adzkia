@@ -72,6 +72,7 @@ class ExamResultController extends Controller
             if ($session->isExpired()) {
                 $session->forceFill([
                     'status' => 'completed',
+                    'grading_status' => 'pending',
                     'completed_at' => now(),
                     'meta' => array_merge((array) $session->meta, [
                         'finalize_reason' => 'auto_expired_on_result_view',
@@ -79,19 +80,17 @@ class ExamResultController extends Controller
                     ]),
                 ])->save();
 
-                $this->gradingService->autoGradeSession($session);
+                \App\Jobs\GradeExamSessionJob::dispatch($session->id)
+                    ->onQueue('grading')
+                    ->afterCommit();
             } else {
                 return redirect()->route('exam.workspace', ['session' => $session->uuid]);
             }
         }
 
-        // Pastikan seluruh butir soal objektif dinilai jika belum pernah digrade
-        $needsGrading = $session->answers()
-            ->whereHas('question', fn ($q) => $q->where('type', '!=', 'essay'))
-            ->whereNull('points_awarded')
-            ->exists();
-        if ($needsGrading || $session->score === null) {
-            $this->gradingService->autoGradeSession($session);
+        // Fallback grading sinkronus HANYA jika gagal/tersangkut atau bukan pending
+        if ($session->grading_status === 'failed' || ($session->grading_status !== 'pending' && $session->grading_status !== 'processing' && $session->grading_status !== 'completed')) {
+            $this->gradingService->autoGradeSessionOptimized($session);
             $session->refresh();
         }
 

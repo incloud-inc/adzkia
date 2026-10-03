@@ -6,6 +6,7 @@ use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class ExamGradingService
 {
@@ -87,6 +88,87 @@ class ExamGradingService
             $session->forceFill([
                 'score' => $finalScore,
                 'max_score' => $maxScore > 0 ? $maxScore : $session->max_score,
+            ])->save();
+        });
+    }
+
+    public static function autoGradeSessionOptimized(ExamSession $session): void
+    {
+        $assessmentId = $session->assessment_id;
+
+        // 1. CACHE MASTER SOAL & KUNCI DI REDIS (TTL: 12 Jam)
+        $cacheKey = "assessment:grading_keys:{$assessmentId}";
+        $questionMap = Cache::remember($cacheKey, 43200, function () use ($assessmentId) {
+            return Question::query()
+                ->where(function ($query) use ($assessmentId) {
+                    $query->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $assessmentId))
+                        ->orWhereHas('questionGroup.assessmentSection', fn ($q) => $q->where('assessment_id', $assessmentId));
+                })
+                ->with(['options' => fn ($q) => $q->orderBy('order')])
+                ->get()
+                ->keyBy('id');
+        });
+
+        // 2. Ambil seluruh jawaban siswa (1 Single Query)
+        $answers = ExamAnswer::query()
+            ->where('exam_session_id', $session->id)
+            ->get();
+
+        $totalScore = 0.0;
+        $maxScore = (float) $questionMap->sum(fn ($q) => (float) ($q->points ?? 1));
+        $bulkUpsertRows = [];
+        $now = now();
+
+        $objectiveTypes = [
+            'mcq_single', 'mcq_multiple', 'mcq_weighted', 'binary_matrix',
+            'boolean_matrix', 'matching', 'short_answer', 'fill_blank', 'ordering', 'reorder',
+        ];
+
+        foreach ($answers as $ans) {
+            $q = $questionMap->get($ans->question_id);
+            if (! $q) continue;
+
+            if ($q->type === 'essay') {
+                if ($ans->points_awarded !== null) {
+                    $totalScore += (float) $ans->points_awarded;
+                }
+                continue;
+            }
+
+            if (! in_array($q->type, $objectiveTypes, true)) continue;
+
+            [$isCorrect, $points] = self::gradeOne($q, $ans);
+            $totalScore += (float) $points;
+
+            // Kumpulkan ke array untuk 1 kali Bulk Upsert
+            $bulkUpsertRows[] = [
+                'id' => $ans->id,
+                'exam_session_id' => $session->id,
+                'question_id' => $ans->question_id,
+                'is_correct' => $isCorrect,
+                'points_awarded' => $points,
+                'updated_at' => $now,
+            ];
+        }
+
+        $scorePenalty = (float) data_get($session->meta, 'score_penalty', 0);
+        $finalScore = max(0.0, $totalScore - $scorePenalty);
+
+        // 3. Simpan Jawaban Menggunakan Bulk Upsert (1 Single SQL Query!)
+        DB::transaction(function () use ($bulkUpsertRows, $session, $finalScore, $maxScore, $now) {
+            if (! empty($bulkUpsertRows)) {
+                ExamAnswer::query()->upsert(
+                    $bulkUpsertRows,
+                    ['id'],
+                    ['is_correct', 'points_awarded', 'updated_at']
+                );
+            }
+
+            $session->forceFill([
+                'score' => $finalScore,
+                'max_score' => $maxScore > 0 ? $maxScore : $session->max_score,
+                'grading_status' => 'completed',
+                'graded_at' => $now,
             ])->save();
         });
     }

@@ -14,6 +14,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use App\Jobs\GradeExamSessionJob;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -250,9 +252,15 @@ class ExamWorkspaceController extends Controller
         }
 
         try {
-            $this->finalizeSession($session, $reason, $request->ip());
+            $this->fastFinalizeSession($session, $reason, $request->ip());
+
+            // Dispatch Background Job untuk Penilaian (High Priority Queue)
+            GradeExamSessionJob::dispatch($session->id)
+                ->onQueue('grading')
+                ->afterCommit();
+
         } catch (\Throwable $e) {
-            Log::channel('exam')->error('finalizeSession error on submit', [
+            Log::channel('exam')->error('fastFinalizeSession error on submit', [
                 'session_uuid' => $session->uuid,
                 'error' => $e->getMessage(),
             ]);
@@ -261,6 +269,7 @@ class ExamWorkspaceController extends Controller
             try {
                 $session->forceFill([
                     'status' => 'completed',
+                    'grading_status' => 'pending',
                     'completed_at' => now(),
                     'submitted_ip' => $request->ip() ?? $session->ip_address,
                     'meta' => array_merge((array) $session->meta, [
@@ -269,6 +278,10 @@ class ExamWorkspaceController extends Controller
                         'submit_fallback' => true,
                     ]),
                 ])->save();
+                
+                GradeExamSessionJob::dispatch($session->id)
+                    ->onQueue('grading')
+                    ->afterCommit();
             } catch (\Throwable $fallbackEx) {
                 Log::channel('exam')->emergency('Emergency fallback finalize failed', [
                     'session_uuid' => $session->uuid,
@@ -277,7 +290,7 @@ class ExamWorkspaceController extends Controller
             }
         }
 
-        Log::channel('exam')->info('exam.session.submitted', [
+        Log::channel('exam')->info('exam.session.submitted_fastpath', [
             'session_uuid' => $session->uuid,
             'user_id' => $session->user_id,
             'ip' => $request->ip(),
@@ -542,45 +555,33 @@ class ExamWorkspaceController extends Controller
             ->count();
     }
 
-    private function finalizeSession(ExamSession $session, string $reason, ?string $ip = null): void
+    private function fastFinalizeSession(ExamSession $session, string $reason, ?string $ip = null): void
     {
         DB::transaction(function () use ($session, $reason, $ip) {
-            /** @var ExamSession|null $fresh */
-            $fresh = ExamSession::query()->lockForUpdate()->find($session->id);
-
-            if (! $fresh || $fresh->isCompleted()) {
-                return;
-            }
-
-            try {
-                ExamGradingService::autoGradeSession($fresh);
-            } catch (\Throwable $e) {
-                Log::channel('exam')->error('Auto-grading failed in finalizeSession: '.$e->getMessage(), [
-                    'session_id' => $fresh->id,
-                    'exception' => $e,
+            $affected = ExamSession::query()
+                ->where('id', $session->id)
+                ->where('status', '!=', 'completed')
+                ->update([
+                    'status' => 'completed',
+                    'grading_status' => 'pending',
+                    'completed_at' => now(),
+                    'submitted_ip' => $ip ?? $session->ip_address,
+                    'meta' => array_merge((array) $session->meta, [
+                        'finalize_reason' => $reason,
+                        'finalized_at' => now()->toIso8601String(),
+                    ]),
+                    'updated_at' => now(),
                 ]);
-            }
 
-            $fresh->forceFill([
-                'status' => 'completed',
-                'completed_at' => now(),
-                'submitted_ip' => $ip ?? $fresh->ip_address,
-                'meta' => array_merge((array) $fresh->meta, [
-                    'finalize_reason' => $reason,
-                    'finalized_at' => now()->toIso8601String(),
-                ]),
-            ])->save();
-
-            // Increment attempts_used if student has paid assessment access
-            try {
-                $access = UserAssessmentAccess::where('user_id', $fresh->user_id)
-                    ->where('assessment_id', $fresh->assessment_id)
-                    ->first();
-                if ($access) {
-                    $access->increment('attempts_used');
+            if ($affected > 0) {
+                // Increment attempts_used if student has paid assessment access
+                try {
+                    UserAssessmentAccess::where('user_id', $session->user_id)
+                        ->where('assessment_id', $session->assessment_id)
+                        ->increment('attempts_used');
+                } catch (\Throwable $e) {
+                    Log::warning('Failed incrementing attempts_used in fastFinalizeSession: '.$e->getMessage());
                 }
-            } catch (\Throwable $e) {
-                Log::warning('Failed incrementing attempts_used in finalizeSession: '.$e->getMessage());
             }
         });
     }
@@ -615,6 +616,29 @@ class ExamWorkspaceController extends Controller
             'remaining_seconds' => $session->remainingSeconds(),
             'server_time' => now()->toIso8601String(),
         ]);
+    }
+
+    /**
+     * Micro-polling status grading untuk halaman Result.
+     */
+    public function checkGradingStatus(Request $request, ExamSession $session): JsonResponse
+    {
+        $this->authorizeSession($request, $session);
+
+        // Ambil dari Cache Redis terlebih dahulu (TTL 10 menit), fallback ke DB
+        $cacheKey = "exam_session:grading_status:{$session->id}";
+        $statusData = Cache::remember($cacheKey, 600, function () use ($session) {
+            $fresh = ExamSession::query()->select(['id', 'grading_status', 'score', 'max_score'])->find($session->id);
+            return [
+                'status' => $fresh->grading_status ?? 'pending',
+                'is_ready' => ($fresh->grading_status === 'completed'),
+                'score' => $fresh->score,
+            ];
+        });
+
+        return response()->json($statusData)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 
     /**
