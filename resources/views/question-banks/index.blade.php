@@ -1,6 +1,14 @@
 <x-layouts.app>
     <x-slot:title>Bank Soal - ADZKIA</x-slot:title>
 
+    @php
+        $user = auth()->user();
+        $isSuper = $user && $user->isSuperUser();
+        $currentTenant = $user?->currentTenant ?? $user?->tenants()->first();
+        $canCreate = $user && ($isSuper || ($currentTenant && $currentTenant->canCreateAssessments()));
+        $canAccessStudioAi = $user && ($isSuper || ($currentTenant && $currentTenant->canAccessStudioAi()));
+    @endphp
+
     <div class="space-y-6">
         <!-- Header & Action Button -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -10,12 +18,14 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <a href="{{ route('question-generator.index') }}" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" 
-                   title="Buat soal otomatis dengan DeepSeek AI">
-                    <x-radix-icon name="magic-wand" class="w-4 h-4" />
-                    <span>Studio Pembuat Soal AI</span>
-                </a>
+                @if($canAccessStudioAi)
+                    <a href="{{ route('question-generator.index') }}" 
+                       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" 
+                       title="Buat soal otomatis dengan DeepSeek AI">
+                        <x-radix-icon name="magic-wand" class="w-4 h-4" />
+                        <span>Studio Pembuat Soal AI</span>
+                    </a>
+                @endif
                 <a href="{{ route('assessments.index') }}" 
                    class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-semibold transition-all shadow-xs cursor-pointer hover:opacity-90 active:scale-95" 
                    style="background-color: #0f172a !important; color: #ffffff !important;"
@@ -26,10 +36,12 @@
                     <x-radix-icon name="file-text" class="w-4 h-4" />
                     <span>Kelola Mapel</span>
                 </a>
-                <a href="{{ route('assessments.wizard') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-9 hover:bg-green-10 text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer">
-                    <x-radix-icon name="plus" class="w-4 h-4" />
-                    <span>Buat Ujian Baru (Wizard)</span>
-                </a>
+                @if($canCreate)
+                    <a href="{{ route('assessments.wizard') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-9 hover:bg-green-10 text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer">
+                        <x-radix-icon name="plus" class="w-4 h-4" />
+                        <span>Buat Ujian Baru (Wizard)</span>
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -111,11 +123,15 @@
             @empty
                 <div class="col-span-full bg-white border border-gray-6 rounded-2xl p-12 text-center text-gray-11">
                     <p class="font-semibold text-sm text-gray-12">Belum ada bank soal tercatat</p>
-                    <p class="text-xs text-gray-9 mt-1 mb-4">Gunakan tombol "Buat Ujian Baru (Wizard)" untuk mulai menyusun paket ujian dan bank soal.</p>
-                    <a href="{{ route('assessments.wizard') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-9 text-white text-xs font-semibold hover:bg-green-10 transition-colors">
-                        <x-radix-icon name="plus" class="w-4 h-4" />
-                        <span>Mulai Buat Ujian</span>
-                    </a>
+                    <p class="text-xs text-gray-9 mt-1 mb-4">
+                        {{ $canCreate ? 'Gunakan tombol "Buat Ujian Baru (Wizard)" untuk mulai menyusun paket ujian dan bank soal.' : 'Bank soal dan ujian kurasi ADZKIA akan tampil di halaman pengawasan.' }}
+                    </p>
+                    @if($canCreate)
+                        <a href="{{ route('assessments.wizard') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-9 text-white text-xs font-semibold hover:bg-green-10 transition-colors">
+                            <x-radix-icon name="plus" class="w-4 h-4" />
+                            <span>Mulai Buat Ujian</span>
+                        </a>
+                    @endif
                 </div>
             @endforelse
         </div>

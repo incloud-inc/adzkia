@@ -17,7 +17,7 @@ class AssessmentWizardTest extends TestCase
 
     public function test_teacher_can_access_assessment_wizard(): void
     {
-        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'premium']);
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
         $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
 
@@ -36,7 +36,7 @@ class AssessmentWizardTest extends TestCase
 
     public function test_teacher_can_store_assessment_with_all_8_question_types_and_stimulus_narasi(): void
     {
-        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'premium']);
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
         $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
 
@@ -303,7 +303,7 @@ class AssessmentWizardTest extends TestCase
 
     public function test_user_can_download_word_template(): void
     {
-        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8']);
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
         $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
 
@@ -315,7 +315,7 @@ class AssessmentWizardTest extends TestCase
 
     public function test_user_can_import_questions_from_word_docx(): void
     {
-        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8']);
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
         $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
 
@@ -501,5 +501,44 @@ class AssessmentWizardTest extends TestCase
         $response->assertSee('Ada 1 Soal Essay');
         $response->assertSee('Target KKM');
         $response->assertSee('75');
+    }
+
+    public function test_starter_tenant_cannot_create_assessment_or_access_wizard(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'Starter School', 'plan' => 'gratis']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        // 1. Wizard form redirects with warning
+        $response = $this->actingAs($teacher)->get(route('assessments.wizard'));
+        $response->assertRedirect(route('assessments.index'));
+        $response->assertSessionHas('error');
+
+        // 2. Direct POST to store is blocked with 403
+        $storeResponse = $this->actingAs($teacher)->postJson(route('assessments.store'), [
+            'title' => 'Ujian Ilegal',
+        ]);
+        $storeResponse->assertStatus(403);
+    }
+
+    public function test_pro_tenant_cannot_create_assessment_or_access_wizard(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'Pro School', 'plan' => 'premium']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        // 1. Wizard form redirects with warning
+        $response = $this->actingAs($teacher)->get(route('assessments.wizard'));
+        $response->assertRedirect(route('assessments.index'));
+        $response->assertSessionHas('error');
+
+        // 2. Direct POST to store is blocked with 403
+        $storeResponse = $this->actingAs($teacher)->postJson(route('assessments.store'), [
+            'title' => 'Ujian Ilegal Pro',
+        ]);
+        $storeResponse->assertStatus(403);
+
+        // 3. Download template & import word are blocked with 403
+        $this->actingAs($teacher)->get(route('assessments.download-template'))->assertStatus(403);
     }
 }

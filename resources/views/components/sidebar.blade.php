@@ -4,7 +4,7 @@
 >
     <!-- Brand / Logo -->
     @php
-        $currentTenant = app()->has('currentTenant') ? app('currentTenant') : null;
+        $currentTenant = app()->has('currentTenant') ? app('currentTenant') : (auth()->user()?->currentTenant ?? auth()->user()?->tenants()->first());
         $logoSrc = ($currentTenant && $currentTenant->logo_path) ? $currentTenant->logo_url : asset('images/logo-adzkia.png');
         $iconSrc = ($currentTenant && $currentTenant->favicon_path) ? $currentTenant->favicon_url : asset('images/icon-adzkia.png');
         $brandTitle = ($currentTenant && $currentTenant->logo_path) ? $currentTenant->name : 'ADZKIA';
@@ -138,6 +138,7 @@
                 <span class="truncate transition-opacity duration-300 text-base" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Dashboard</span>
             </a>
 
+            @if($currentTenant && $currentTenant->canAccessStudioAi())
             <a href="{{ route('question-generator.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('question-generator.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
@@ -150,6 +151,7 @@
                     </span>
                 </span>
             </a>
+            @endif
 
             <a href="{{ route('assessments.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('assessments.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
@@ -204,6 +206,7 @@
                 <span class="truncate transition-opacity duration-300 text-base" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Dashboard Guru</span>
             </a>
 
+            @if($currentTenant && $currentTenant->canAccessStudioAi())
             <a href="{{ route('question-generator.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('question-generator.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
@@ -216,6 +219,7 @@
                     </span>
                 </span>
             </a>
+            @endif
 
             <a href="{{ route('assessments.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('assessments.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"

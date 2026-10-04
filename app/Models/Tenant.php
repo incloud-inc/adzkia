@@ -96,13 +96,13 @@ class Tenant extends Model
 
     public function isEnterprise(): bool
     {
-        return $this->plan === 'whitelabel';
+        return $this->plan === 'whitelabel' || $this->plan === 'enterprise';
     }
 
     public function getLevelLabelAttribute(): string
     {
         return match ($this->plan) {
-            'whitelabel' => 'ENTERPRISE',
+            'whitelabel', 'enterprise' => 'ENTERPRISE',
             'premium' => 'PRO',
             default => 'STARTER',
         };
@@ -121,7 +121,7 @@ class Tenant extends Model
     public function getRevenueSharePlatformPct(): int
     {
         return match ($this->plan) {
-            'whitelabel' => 25,
+            'whitelabel', 'enterprise' => 25,
             'premium' => 50,
             default => 75,
         };
@@ -136,7 +136,7 @@ class Tenant extends Model
     public function getRevenueShareTenantPct(): int
     {
         return match ($this->plan) {
-            'whitelabel' => 75,
+            'whitelabel', 'enterprise' => 75,
             'premium' => 50,
             default => 25,
         };
@@ -145,23 +145,31 @@ class Tenant extends Model
     public function getRevenueShareRatioAttribute(): string
     {
         return match ($this->plan) {
-            'whitelabel' => '25:75',
+            'whitelabel', 'enterprise' => '25:75',
             'premium' => '50:50',
             default => '75:25',
         };
     }
 
     /* =========================================================================
-     * ATURAN & HAK KELOLA ASESMEN
+     * ATURAN & HAK KELOLA ASESMEN DAN STUDIO AI
      * ========================================================================= */
 
     /**
-     * Level 1 (Starter) TIDAK BISA membuat asesmen sendiri.
-     * Level 2 (Pro) dan Level 3 (Enterprise) BISA membuat asesmen sendiri.
+     * Fasilitas pembuatan asesmen mandiri HANYA untuk Level ENTERPRISE.
+     * Level STARTER dan PRO berfokus pada Pengawasan Ujian kurasi ADZKIA.
      */
     public function canCreateAssessments(): bool
     {
-        return $this->isPro() || $this->isEnterprise();
+        return $this->isEnterprise();
+    }
+
+    /**
+     * Fasilitas Studio Pembuat Soal AI (DeepSeek Engine) HANYA untuk Level ENTERPRISE.
+     */
+    public function canAccessStudioAi(): bool
+    {
+        return $this->isEnterprise();
     }
 
     /**

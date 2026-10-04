@@ -125,14 +125,36 @@ class AssessmentWizardController extends Controller
     }
 
     /**
+     * Authorize that the user's tenant has permission to create assessments (ENTERPRISE only).
+     */
+    protected function authorizeEnterpriseTenantAccess(): void
+    {
+        $user = Auth::user();
+        if (! $user) {
+            abort(401);
+        }
+
+        if ($user->isSuperUser()) {
+            return;
+        }
+
+        $currentTenant = $user->currentTenant ?? $user->tenants()->first();
+        if (! $currentTenant || ! $currentTenant->canCreateAssessments()) {
+            abort(403, 'Akses ditolak: Pembuatan asesmen mandiri hanya tersedia untuk tenant level ENTERPRISE.');
+        }
+    }
+
+    /**
      * Show the 8-Step Wizard form for creating an assessment.
      */
     public function create(): View|RedirectResponse
     {
         $user = Auth::user();
-        $currentTenant = $user?->currentTenant;
-        if ($currentTenant && ! $user->isSuperUser() && ! $currentTenant->canCreateAssessments()) {
-            return redirect()->route('assessments.index')->with('error', 'Institusi Anda berada pada paket STARTER. Guru pada paket ini berfokus sebagai Pengawas Ujian kurasi ADZKIA. Upgrade ke paket PRO untuk membuat asesmen dan bank soal mandiri.');
+        $currentTenant = $user?->currentTenant ?? $user?->tenants()->first();
+        if ($user && ! $user->isSuperUser() && (! $currentTenant || ! $currentTenant->canCreateAssessments())) {
+            $tierName = $currentTenant?->level_label ?? 'STARTER';
+
+            return redirect()->route('assessments.index')->with('error', "Institusi Anda berada pada paket {$tierName}. Guru pada paket ini berfokus sebagai Pengawas Ujian kurasi ADZKIA. Fasilitas pembuatan asesmen mandiri hanya tersedia untuk tenant level ENTERPRISE.");
         }
 
         $subjects = Subject::orderBy('name')->get();
@@ -237,11 +259,7 @@ class AssessmentWizardController extends Controller
      */
     public function store(Request $request): JsonResponse|RedirectResponse
     {
-        $user = Auth::user();
-        $currentTenant = $user?->currentTenant;
-        if ($currentTenant && ! $user->isSuperUser() && ! $currentTenant->canCreateAssessments()) {
-            abort(403, 'Akses ditolak: Pembuatan asesmen mandiri hanya tersedia untuk paket PRO atau ENTERPRISE.');
-        }
+        $this->authorizeEnterpriseTenantAccess();
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -465,6 +483,8 @@ class AssessmentWizardController extends Controller
      */
     public function downloadTemplate(WordQuestionService $service): BinaryFileResponse
     {
+        $this->authorizeEnterpriseTenantAccess();
+
         $tmp = tempnam(sys_get_temp_dir(), 'docx_tpl_');
         $filePath = $tmp.'.docx';
         @unlink($tmp);
@@ -481,6 +501,7 @@ class AssessmentWizardController extends Controller
      */
     public function importWord(Request $request, WordQuestionService $service): JsonResponse
     {
+        $this->authorizeEnterpriseTenantAccess();
         $request->validate([
             'word_file' => 'required|file|max:10240',
         ]);
@@ -654,6 +675,8 @@ class AssessmentWizardController extends Controller
      */
     public function uploadMedia(Request $request): JsonResponse
     {
+        $this->authorizeEnterpriseTenantAccess();
+
         $request->validate([
             'media' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg,webp,mp3,wav,ogg,m4a,aac,mp4,webm,ogv,mov|max:51200',
             'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg,webp,mp3,wav,ogg,m4a,aac,mp4,webm,ogv,mov|max:51200',

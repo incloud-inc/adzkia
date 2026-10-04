@@ -7,8 +7,9 @@
         $isAdmin = $user && $user->isAdmin();
         $isTeacher = $user && $user->isTeacher();
         $canManage = $user && ($isTeacher || $isAdmin || $isSuper);
-        $currentTenant = $user?->currentTenant;
+        $currentTenant = $user?->currentTenant ?? $user?->tenants()->first();
         $canCreate = $user && ($isSuper || ($currentTenant && $currentTenant->canCreateAssessments()));
+        $canAccessStudioAi = $user && ($isSuper || ($currentTenant && $currentTenant->canAccessStudioAi()));
     @endphp
 
     <div class="space-y-6">
@@ -25,12 +26,14 @@
 
             @if($canManage)
                 <div class="flex flex-wrap items-center gap-2.5">
-                    <a href="{{ route('question-generator.index') }}" 
-                       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" 
-                       title="Buat soal otomatis dengan DeepSeek AI">
-                        <x-radix-icon name="magic-wand" class="w-4 h-4" />
-                        <span>Studio Pembuat Soal AI</span>
-                    </a>
+                    @if($canAccessStudioAi)
+                        <a href="{{ route('question-generator.index') }}" 
+                           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" 
+                           title="Buat soal otomatis dengan DeepSeek AI">
+                            <x-radix-icon name="magic-wand" class="w-4 h-4" />
+                            <span>Studio Pembuat Soal AI</span>
+                        </a>
+                    @endif
                     @if($canCreate)
                         <a href="{{ route('assessments.wizard') }}" 
                            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-9 hover:bg-green-10 active:bg-green-11 text-white text-sm font-semibold transition-all shadow-[0_1px_2px_rgba(0,0,0,0.06)] active:scale-[0.98] cursor-pointer">
@@ -38,8 +41,8 @@
                             <span>Buat Ujian Baru (Wizard 8 Langkah)</span>
                         </a>
                     @else
-                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold" title="Paket Starter hanya menyajikan kurasi ujian ADZKIA. Guru bertindak sebagai Pengawas.">
-                            <span>🥉 Paket STARTER: Fokus Pengawasan Ujian ADZKIA</span>
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold" title="Pembuatan asesmen mandiri dan Studio AI hanya tersedia untuk paket ENTERPRISE. Guru pada paket STARTER dan PRO berfokus pada Pengawasan Ujian kurasi ADZKIA.">
+                            <span>🔒 Pembuatan Asesmen & Studio AI: Khusus Tenant ENTERPRISE</span>
                         </div>
                     @endif
                 </div>
@@ -269,7 +272,7 @@
                                         <p class="text-xs text-gray-9 mt-1 mb-4">
                                             {{ $canManage ? 'Gunakan Wizard 8 Langkah untuk mulai membuat ujian pertama Anda.' : 'Ujian yang diterbitkan oleh dewan guru akan ditampilkan di halaman ini.' }}
                                         </p>
-                                        @if($canManage)
+                                        @if($canCreate)
                                             <a href="{{ route('assessments.wizard') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-9 text-white text-xs font-semibold hover:bg-green-10 transition-colors">
                                                 <x-radix-icon name="plus" class="w-4 h-4" />
                                                 <span>Mulai Buat Ujian</span>

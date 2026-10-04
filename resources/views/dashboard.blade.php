@@ -639,7 +639,7 @@
                     <!-- Quick Action Buttons Guru -->
                     <div class="flex flex-wrap sm:flex-col gap-2.5 shrink-0">
                         @if($tenant && ! $tenant->canCreateAssessments())
-                            <a href="{{ route('assessments.index') }}" class="px-4 py-2.5 rounded-xl bg-gray-12 text-white hover:bg-black active:scale-[0.98] text-xs font-semibold transition-all duration-200 shadow-xs text-center flex items-center justify-center" title="Paket Starter berfokus pada pengawasan ujian kurasi ADZKIA">
+                            <a href="{{ route('assessments.index') }}" class="px-4 py-2.5 rounded-xl bg-gray-12 text-white hover:bg-black active:scale-[0.98] text-xs font-semibold transition-all duration-200 shadow-xs text-center flex items-center justify-center" title="Paket Starter & Pro berfokus pada pengawasan ujian kurasi ADZKIA">
                                 <span>Pengawasan Ujian ADZKIA</span>
                             </a>
                         @else
@@ -716,10 +716,12 @@
                         <h2 class="font-display font-bold text-lg text-gray-12 tracking-tight">Asesmen &amp; Ujian Binaan Saya</h2>
                         <p class="font-sans text-xs text-gray-11 mt-0.5">Daftar evaluasi yang telah Anda rancang melalui CBT Engine.</p>
                     </div>
+                    @if($tenant && $tenant->canCreateAssessments())
                     <a href="{{ route('assessments.wizard') }}" class="px-4 py-2 rounded-xl bg-green-9 hover:bg-green-10 text-white text-xs font-bold transition-all duration-200 flex items-center gap-1.5 shadow-xs active:scale-95">
                         <x-radix-icon name="plus" class="w-4 h-4" />
                         <span>Buat Ujian</span>
                     </a>
+                    @endif
                 </div>
 
                 @if($myAssessments && $myAssessments->count() > 0)
@@ -773,10 +775,16 @@
                         </div>
                         <h4 class="font-display font-bold text-sm text-gray-12">Belum ada asesmen yang dibuat</h4>
                         <p class="font-sans text-xs text-gray-11 mt-1 mb-4">Mulai rancang ujian perdana Anda dengan wizard komprehensif 8 langkah.</p>
+                        @if($tenant && $tenant->canCreateAssessments())
                         <a href="{{ route('assessments.wizard') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-9 text-white text-xs font-bold hover:bg-green-10 shadow-xs transition-all duration-200 active:scale-95">
                             <x-radix-icon name="plus" class="w-4 h-4" />
                             <span>Mulai Rancang Ujian</span>
                         </a>
+                        @else
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold">
+                            <span>🔒 Pembuatan Asesmen Mandiri Khusus Tenant Level ENTERPRISE</span>
+                        </div>
+                        @endif
                     </div>
                 @endif
             </section>

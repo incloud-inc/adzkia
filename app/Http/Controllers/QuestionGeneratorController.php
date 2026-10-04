@@ -18,13 +18,27 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class QuestionGeneratorController extends Controller
 {
     /**
-     * Authorize that the authenticated user is a teacher, admin, or superuser.
+     * Authorize that the authenticated user is a teacher, admin, or superuser,
+     * and their tenant has an ENTERPRISE plan.
      */
     protected function authorizeStaffAccess(): void
     {
         $user = Auth::user();
-        if ($user && $user->isStudent()) {
+        if (! $user) {
+            abort(401);
+        }
+
+        if ($user->isStudent()) {
             abort(403, 'Akses Studio AI terbatas untuk Guru dan Administrator.');
+        }
+
+        if ($user->isSuperUser()) {
+            return;
+        }
+
+        $tenant = $user->currentTenant ?? $user->tenants()->first();
+        if (! $tenant || ! $tenant->canAccessStudioAi()) {
+            abort(403, 'Fasilitas Studio AI hanya tersedia untuk tenant level ENTERPRISE.');
         }
     }
 

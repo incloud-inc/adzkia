@@ -25,7 +25,7 @@ class QuestionGeneratorTest extends TestCase
         $this->tenant = Tenant::create([
             'name' => 'KEMENTERIAN PENDIDIKAN',
             'subdomain' => 'kemendik',
-            'plan' => 'premium',
+            'plan' => 'whitelabel',
             'is_active' => true,
         ]);
 
@@ -389,5 +389,49 @@ class QuestionGeneratorTest extends TestCase
 
         $this->assertEquals('success', $data['status']);
         $this->assertGreaterThanOrEqual(1, count($data['package']['items']));
+    }
+
+    public function test_starter_tenant_cannot_access_studio_ai(): void
+    {
+        $starterTenant = Tenant::create([
+            'name' => 'SD Starter School',
+            'subdomain' => 'sd-starter',
+            'plan' => 'gratis',
+            'is_active' => true,
+        ]);
+
+        $teacher = User::factory()->create([
+            'current_tenant_id' => $starterTenant->id,
+            'must_change_password' => false,
+        ]);
+        $teacher->tenants()->attach($starterTenant->id, ['role' => 'T']);
+
+        $response = $this->actingAs($teacher)->get(route('question-generator.index'));
+        $response->assertStatus(403);
+    }
+
+    public function test_pro_tenant_cannot_access_studio_ai(): void
+    {
+        $proTenant = Tenant::create([
+            'name' => 'SMP Pro School',
+            'subdomain' => 'smp-pro',
+            'plan' => 'premium',
+            'is_active' => true,
+        ]);
+
+        $teacher = User::factory()->create([
+            'current_tenant_id' => $proTenant->id,
+            'must_change_password' => false,
+        ]);
+        $teacher->tenants()->attach($proTenant->id, ['role' => 'T']);
+
+        $response = $this->actingAs($teacher)->get(route('question-generator.index'));
+        $response->assertStatus(403);
+
+        $generateResponse = $this->actingAs($teacher)->postJson(route('question-generator.generate'), [
+            'category' => 'school',
+            'question_count' => 1,
+        ]);
+        $generateResponse->assertStatus(403);
     }
 }
