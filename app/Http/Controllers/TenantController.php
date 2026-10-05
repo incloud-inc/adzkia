@@ -59,28 +59,30 @@ class TenantController extends Controller
             ];
         });
 
-        // Deteksi jenjang tenant untuk Card 1
-        $tenantNameUpper = strtoupper($tenant->name);
-        $jenjangLabel = 'Asesmen';
-        if (str_contains($tenantNameUpper, 'SMA') || str_contains($tenantNameUpper, 'SMK') || str_contains($tenantNameUpper, 'MA')) {
-            $jenjangAssessmentsCount = count($assessmentGroups['sma']);
-        } elseif (str_contains($tenantNameUpper, 'SMP') || str_contains($tenantNameUpper, 'MTS')) {
-            $jenjangAssessmentsCount = count($assessmentGroups['smp']);
-        } elseif (str_contains($tenantNameUpper, 'SD') || str_contains($tenantNameUpper, 'MI')) {
-            $jenjangAssessmentsCount = count($assessmentGroups['sd']);
-        } else {
-            $jenjangAssessmentsCount = count($assessmentGroups['umum']) + count($assessmentGroups['sma']);
-        }
-
         // ON/OFF Jenjang dari setting tenant
         $showGradeSd = $tenant->showGrade('sd');
         $showGradeSmp = $tenant->showGrade('smp');
         $showGradeSma = $tenant->showGrade('sma');
 
+        // Hitung total asesmen unik yang aktif dan tampil pada portal publik tenant ini
+        $portalAssessmentIds = collect($assessmentGroups['umum'])->pluck('id');
+        if ($showGradeSd) {
+            $portalAssessmentIds = $portalAssessmentIds->merge(collect($assessmentGroups['sd'])->pluck('id'));
+        }
+        if ($showGradeSmp) {
+            $portalAssessmentIds = $portalAssessmentIds->merge(collect($assessmentGroups['smp'])->pluck('id'));
+        }
+        if ($showGradeSma) {
+            $portalAssessmentIds = $portalAssessmentIds->merge(collect($assessmentGroups['sma'])->pluck('id'));
+        }
+
+        $totalAssessmentsCount = $portalAssessmentIds->filter()->unique()->count();
+
         return view('tenants.public', [
             'tenant' => $tenant,
-            'jenjangLabel' => $jenjangLabel,
-            'jenjangAssessmentsCount' => $jenjangAssessmentsCount,
+            'jenjangLabel' => 'Asesmen',
+            'jenjangAssessmentsCount' => $totalAssessmentsCount,
+            'totalAssessments' => $totalAssessmentsCount,
             'totalTeachers' => $totalTeachers,
             'totalStudents' => $totalStudents,
             'allTeachers' => $teachers,

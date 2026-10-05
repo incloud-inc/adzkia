@@ -27,7 +27,17 @@
         $roleTitle = $isTeacher ? 'Profil Tenaga Pendidik' : ($isAdmin ? 'Profil Administrator Lembaga' : 'Profil Siswa');
     @endphp
 
-    <title>{{ $user->name }} ({{ '@' . ($user->username ?? $user->id) }}) - {{ $roleTitle }} | Adzkia</title>
+    @php
+        $tenantName = $tenant?->name ?: ($tenant?->app_name ?: null);
+        $isEnterpriseTenant = $tenant && $tenant->isEnterprise();
+
+        if ($isEnterpriseTenant) {
+            $pageTitle = $tenantName ? "{$user->name} - {$tenantName}" : $user->name;
+        } else {
+            $pageTitle = $tenantName ? "{$user->name} - {$tenantName} - ADZKIA" : "{$user->name} - ADZKIA";
+        }
+    @endphp
+    <title>{{ $pageTitle }}</title>
     <link rel="icon" type="image/png" href="{{ isset($tenant) && $tenant->favicon_url ? $tenant->favicon_url : asset('images/icon-adzkia.png') }}">
     <link rel="apple-touch-icon" href="{{ isset($tenant) && $tenant->favicon_url ? $tenant->favicon_url : asset('images/icon-adzkia.png') }}">
 
@@ -69,31 +79,7 @@
 </head>
 <body class="bg-gray-2 text-gray-12 font-sans antialiased min-h-screen py-8 px-4 sm:px-6 flex flex-col items-center">
 
-    <div x-data="{
-        copied: false,
-        copyUrl() {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                this.copied = true;
-                setTimeout(() => { this.copied = false; }, 2500);
-            }).catch(() => {
-                alert('Tautan berhasil disalin!');
-            });
-        }
-    }" class="w-full max-w-xl flex flex-col gap-6">
-
-        <!-- Toast Salin URL -->
-        <div x-show="copied" 
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0 translate-y-2"
-             x-transition:enter-end="opacity-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100 translate-y-0"
-             x-transition:leave-end="opacity-0 translate-y-2"
-             style="display: none;" 
-             class="fixed bottom-6 right-6 z-50 bg-gray-12 text-gray-1 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold border border-gray-11">
-            <span class="w-5 h-5 rounded-full bg-green-9 text-white flex items-center justify-center font-bold">✓</span>
-            <span>Tautan profil publik berhasil disalin ke clipboard!</span>
-        </div>
+    <div class="w-full max-w-xl flex flex-col gap-6">
 
         <!-- ========================================================= -->
         <!-- CARD 1: IDENTITAS PROFIL SISWA & GURU                     -->
@@ -119,13 +105,6 @@
                             <x-radix-icon name="check-circled" class="w-5 h-5" />
                         </span>
                     </h1>
-
-                    <!-- @username -->
-                    <div class="mt-1">
-                        <a href="{{ route('global.student.profile', $user->username ?? $user->id) }}" class="font-sans text-xs font-bold text-blue-11 hover:underline">
-                            {{ '@' . ($user->username ?? $user->id) }}
-                        </a>
-                    </div>
                 </div>
 
                 <!-- BIO -->
@@ -141,31 +120,27 @@
                 <dl class="grid grid-cols-3 divide-x divide-gray-5 rounded-xl border border-gray-6 bg-gray-1 p-3 text-center mt-1">
                     <div class="px-2">
                         <dd class="font-display font-black text-2xl text-gray-12">{{ $completedCount }}</dd>
-                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">{{ $isTeacher ? 'Ujian Dibuat' : 'Asesmen Selesai' }}</dt>
+                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">{{ $isTeacher ? 'Ujian Dibuat' : 'kali ASESMEN' }}</dt>
                     </div>
                     <div class="px-2">
                         <dd class="font-display font-black text-2xl text-gray-12">{{ $totalScore }}</dd>
-                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">{{ $isTeacher ? 'Total Soal' : 'Total Nilai' }}</dt>
+                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">{{ $isTeacher ? 'Total Soal' : 'TOTAL NILAI' }}</dt>
                     </div>
                     <div class="px-2">
-                        <dd class="font-display font-black text-2xl text-gray-12">{{ $rank ? '#'.$rank : 'Top 10' }}</dd>
-                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">{{ $isTeacher ? 'Peringkat Guru' : 'Ranking Siswa' }}</dt>
+                        <dd class="font-display font-black text-2xl text-gray-12">{{ $rank ? '#'.$rank : '-' }}</dd>
+                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">{{ $isTeacher ? 'Peringkat Guru' : 'RANK' }}</dt>
                     </div>
                 </dl>
 
-                <!-- Tombol Aksi (WhatsApp / Salin Tautan) -->
-                <div class="flex items-center gap-3 mt-1">
-                    @if($user->whatsapp_number)
-                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $user->whatsapp_number) }}" target="_blank" class="flex-1 py-2.5 px-4 rounded-full text-xs font-bold bg-green-9 hover:bg-green-10 text-white shadow-xs transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2">
+                <!-- Tombol Aksi (WhatsApp jika nomor tersedia) -->
+                @if($user->whatsapp_number)
+                    <div class="flex justify-center mt-1">
+                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $user->whatsapp_number) }}" target="_blank" class="w-full max-w-xs py-2.5 px-4 rounded-full text-xs font-bold bg-green-9 hover:bg-green-10 text-white shadow-xs transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2">
                             <span>💬</span>
                             <span>{{ $isTeacher ? 'Konsultasi Guru' : 'Hubungi WhatsApp' }}</span>
                         </a>
-                    @endif
-                    <button type="button" @click="copyUrl()" class="flex-1 py-2.5 px-4 rounded-full text-xs font-bold bg-gray-2 hover:bg-gray-3 text-gray-12 border border-gray-6 shadow-xs transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2">
-                        <x-radix-icon name="copy" class="w-4 h-4 text-gray-11" />
-                        <span>Bagikan Profil</span>
-                    </button>
-                </div>
+                    </div>
+                @endif
             </div>
         </article>
 
@@ -509,7 +484,13 @@
 
         <!-- Footer -->
         <footer class="text-center font-sans text-xs text-gray-11 py-4">
-            <p>&copy; {{ date('Y') }} {{ $tenant->name ?? 'ADZKIA' }} • Portal Profil Resmi Evaluasi Belajar</p>
+            @if($tenant && $tenant->showsPoweredByAdzkia())
+                <p>&copy; {{ date('Y') }} {{ $tenant->app_name }} • Powered by Aplikasi Ujian <strong class="font-black tracking-wide"><span style="color: #1c7ed6;">A</span><span style="color: #37b24d;">D</span><span style="color: #f76707;">Z</span><span style="color: #1c7ed6;">K</span><span style="color: #37b24d;">I</span><span style="color: #f76707;">A</span></strong></p>
+            @elseif($tenant)
+                <p>&copy; {{ date('Y') }} {{ $tenant->app_name }}. Seluruh Hak Cipta Dilindungi.</p>
+            @else
+                <p>&copy; {{ date('Y') }} ADZKIA • Powered by Aplikasi Ujian <strong class="font-black tracking-wide"><span style="color: #1c7ed6;">A</span><span style="color: #37b24d;">D</span><span style="color: #f76707;">Z</span><span style="color: #1c7ed6;">K</span><span style="color: #37b24d;">I</span><span style="color: #f76707;">A</span></strong></p>
+            @endif
         </footer>
 
     </div>

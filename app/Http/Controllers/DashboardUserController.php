@@ -23,9 +23,23 @@ class DashboardUserController extends Controller
         $authUser = Auth::user();
         abort_unless($authUser && ($authUser->isAdmin() || $authUser->isSuperUser()), 403);
 
-        $tenantId = $request->input('tenant_id');
-        $tenant = $tenantId ? Tenant::find($tenantId) : ($authUser->currentTenant ?? $authUser->tenants()->first() ?? Tenant::first());
-        abort_unless($tenant, 403, 'Institusi / Tenant belum tersedia.');
+        $activeTenant = $authUser->currentTenant ?? $authUser->tenants()->first();
+        abort_unless($activeTenant, 403, 'Institusi / Tenant belum tersedia.');
+
+        // Proteksi Multi-Tenant:
+        // Admin tenant hanya bisa membuat akun untuk tenant miliknya yang sedang aktif saat login!
+        if (! $authUser->isSuperUser()) {
+            $requestedTenantId = $request->input('tenant_id');
+            if ($requestedTenantId && (int) $requestedTenantId !== (int) $activeTenant->id) {
+                abort(403, 'Akses ditolak: Anda hanya dapat membuat akun untuk institusi/tenant Anda sendiri.');
+            }
+            $tenant = $activeTenant;
+        } else {
+            // Super User dapat memilih tenant jika diisi
+            $tenantId = $request->input('tenant_id');
+            $tenant = $tenantId ? Tenant::find($tenantId) : $activeTenant;
+            abort_unless($tenant, 403, 'Institusi / Tenant yang dipilih tidak valid.');
+        }
 
         $role = $request->input('role', 'U');
         if (! in_array($role, ['T', 'U', 'A'], true)) {
@@ -123,6 +137,10 @@ class DashboardUserController extends Controller
 
         $tenant = $authUser->currentTenant ?? $authUser->tenants()->first() ?? $user->tenants()->first() ?? Tenant::first();
 
+        if (! $authUser->isSuperUser()) {
+            abort_unless($tenant && $user->tenants()->where('tenant_id', $tenant->id)->exists(), 403, 'Akses ditolak: Pengguna tidak terdaftar pada institusi Anda.');
+        }
+
         $pivotRole = $user->tenants()->where('tenant_id', $tenant?->id)->first()?->pivot?->role
             ?? $user->tenants()->first()?->pivot?->role
             ?? ($user->isTeacher() ? 'T' : ($user->isAdmin() ? 'A' : 'U'));
@@ -156,6 +174,10 @@ class DashboardUserController extends Controller
 
         $tenant = $authUser->currentTenant ?? $authUser->tenants()->first() ?? $user->tenants()->first() ?? Tenant::first();
         abort_unless($tenant, 403);
+
+        if (! $authUser->isSuperUser()) {
+            abort_unless($user->tenants()->where('tenant_id', $tenant->id)->exists(), 403, 'Akses ditolak: Pengguna tidak terdaftar pada institusi Anda.');
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -191,6 +213,11 @@ class DashboardUserController extends Controller
         abort_if($user->id === $authUser->id, 403, 'Anda tidak dapat menghapus akun Anda sendiri.');
 
         $tenant = $authUser->currentTenant ?? $authUser->tenants()->first() ?? $user->tenants()->first();
+        abort_unless($tenant, 403);
+
+        if (! $authUser->isSuperUser()) {
+            abort_unless($user->tenants()->where('tenant_id', $tenant->id)->exists(), 403, 'Akses ditolak: Pengguna tidak terdaftar pada institusi Anda.');
+        }
 
         $name = $user->name;
         if ($tenant && $user->tenants()->where('tenant_id', $tenant->id)->exists()) {

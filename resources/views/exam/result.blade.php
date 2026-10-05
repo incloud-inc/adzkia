@@ -5,11 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Hasil Ujian CBT — {{ $assessment->title }}</title>
+    @php
+        $examTenant = ($session->tenant ?? null) ?? ($assessment->tenant ?? null) ?? auth()->user()?->currentTenant ?? auth()->user()?->tenants()->first();
+        $examFavicon = ($examTenant && $examTenant->favicon_path) ? $examTenant->favicon_url : asset('adzkia black app.png');
+    @endphp
+    <title>{{ \App\Support\PageTitleResolver::resolve("Hasil Ujian — {$assessment->title}", $examTenant, auth()->user()) }}</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('adzkia black app.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
+    <link rel="icon" type="image/png" href="{{ $examFavicon }}">
+    <link rel="apple-touch-icon" href="{{ $examFavicon }}">
 
     <!-- Font Open Sans & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

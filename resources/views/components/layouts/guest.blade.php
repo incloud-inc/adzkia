@@ -3,11 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>{{ config('app.name', 'ADZKIA') }}</title>
+    @php
+        $guestSubdomain = request()->route('subdomain');
+        $guestTenant = $guestSubdomain ? \App\Models\Tenant::where('subdomain', $guestSubdomain)->first() : (auth()->user()?->currentTenant ?? null);
+        $resolvedTitle = \App\Support\PageTitleResolver::resolve($title ?? null, $guestTenant, auth()->user());
+        $faviconUrl = ($guestTenant && $guestTenant->favicon_path) ? $guestTenant->favicon_url : asset('adzkia black app.png');
+    @endphp
+    <title>{{ $resolvedTitle }}</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('adzkia black app.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
+    <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
+    <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

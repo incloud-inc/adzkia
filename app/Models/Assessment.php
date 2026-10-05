@@ -259,12 +259,8 @@ class Assessment extends Model
         $umum = $all->filter(function ($item) {
             $grade = trim((string) $item->grade_level);
 
-            return empty($grade) || stripos($grade, 'umum') !== false || $item->type === 'custom' || $item->type === 'umum';
+            return empty($grade) || stripos($grade, 'umum') !== false || in_array($item->type, ['custom', 'umum', 'tryout', 'to']);
         });
-
-        if ($umum->isEmpty()) {
-            $umum = $all->take(6);
-        }
 
         // 2. Asesmen SD
         $sd = $all->filter(function ($item) {

@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ isset($title) ? $title . ' | ' . config('app.name', 'ADZKIA') : config('app.name', 'ADZKIA') }}</title>
-    
     @php
-        $currentTenant = auth()->check() ? auth()->user()->currentTenant : null;
+        $currentTenant = app()->has('currentTenant') ? app('currentTenant') : (auth()->check() ? (auth()->user()->currentTenant ?? auth()->user()->tenants()->first()) : null);
+        $resolvedTitle = \App\Support\PageTitleResolver::resolve($title ?? null, $currentTenant, auth()->user());
+        $faviconUrl = ($currentTenant && $currentTenant->favicon_path) ? $currentTenant->favicon_url : asset('adzkia black app.png');
     @endphp
-    <link rel="icon" type="image/png" href="{{ $currentTenant && $currentTenant->favicon_url ? $currentTenant->favicon_url : asset('adzkia black app.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
+    <title>{{ $resolvedTitle }}</title>
+    <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
+    <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

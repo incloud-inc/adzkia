@@ -635,4 +635,46 @@ class StudentDashboardAndProfileTest extends TestCase
         ]);
         $saveSection2->assertOk();
     }
+
+    public function test_sidebar_renders_adzkia_brand_and_does_not_error_for_tenant_admin(): void
+    {
+        $tenant = Tenant::factory()->create([
+            'name' => 'PENDIDIKAN DASAR DAN MENENGAH',
+            'subdomain' => 'dikdasmen-test',
+            'logo_path' => 'tenants/logos/custom.png',
+            'favicon_path' => 'tenants/favicons/custom.png',
+        ]);
+
+        $admin = User::factory()->create([
+            'current_tenant_id' => $tenant->id,
+        ]);
+        $admin->tenants()->attach($tenant->id, ['role' => 'A']);
+
+        $response = $this->actingAs($admin)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('APLIKASI UJIAN.png');
+        $response->assertSee('Aplikasi Ujian ADZKIA');
+        $response->assertSee($tenant->favicon_url);
+    }
+
+    public function test_student_and_teacher_under_tenant_use_tenant_favicon(): void
+    {
+        $tenant = Tenant::factory()->create([
+            'name' => 'SMA Taruna Bangsa',
+            'subdomain' => 'taruna',
+            'favicon_path' => 'tenants/favicons/taruna.png',
+        ]);
+
+        $student = User::factory()->create([
+            'current_tenant_id' => $tenant->id,
+        ]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $response = $this->actingAs($student)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee($tenant->favicon_url);
+        $response->assertSee('APLIKASI UJIAN.png');
+    }
 }

@@ -143,7 +143,7 @@
             </div>
 
             <!-- Pilihan Tenant / Institusi -->
-            @if($tenants->count() > 1)
+            @if(auth()->user()?->isSuperUser() && $tenants->count() > 1)
                 <div class="space-y-1">
                     <label for="modal_user_tenant" class="block text-xs font-semibold text-gray-12">
                         Pilih Institusi / Cabang <span class="text-red-9">*</span>
@@ -155,10 +155,17 @@
                         @endforeach
                     </select>
                 </div>
-            @elseif($currentTenant)
-                <input type="hidden" name="tenant_id" value="{{ $currentTenant->id }}">
-            @elseif($tenants->isNotEmpty())
-                <input type="hidden" name="tenant_id" value="{{ $tenants->first()->id }}">
+            @else
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-gray-12">
+                        Institusi / Tenant
+                    </label>
+                    <div class="w-full rounded-xl border border-gray-6 bg-gray-2 px-3.5 py-2.5 text-xs text-gray-12 flex items-center justify-between">
+                        <span class="font-medium text-gray-12">{{ $currentTenant?->name ?? $tenants->first()?->name ?? 'Institusi Utama' }}</span>
+                        <span class="text-[10px] bg-green-3 text-green-11 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Aktif</span>
+                    </div>
+                    <input type="hidden" name="tenant_id" value="{{ $currentTenant?->id ?? $tenants->first()?->id }}">
+                </div>
             @endif
 
             <!-- Notifikasi Password Default -->

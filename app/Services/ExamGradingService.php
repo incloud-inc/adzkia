@@ -5,11 +5,43 @@ namespace App\Services;
 use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ExamGradingService
 {
+    /**
+     * Cache in-memory per-request untuk mencegah overhead query berulang
+     * tanpa risiko serialization __PHP_Incomplete_Class.
+     *
+     * @var array<int, Collection<int, Question>>
+     */
+    protected static array $inMemoryQuestions = [];
+
+    /**
+     * Ambil pertanyaan asesmen secara aman (in-memory memoized).
+     *
+     * @return Collection<int, Question>
+     */
+    public static function getAssessmentQuestions(int $assessmentId): Collection
+    {
+        if (isset(self::$inMemoryQuestions[$assessmentId])) {
+            return self::$inMemoryQuestions[$assessmentId];
+        }
+
+        $questions = Question::query()
+            ->where(function ($query) use ($assessmentId) {
+                $query->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $assessmentId))
+                    ->orWhereHas('questionGroup.assessmentSection', fn ($q) => $q->where('assessment_id', $assessmentId));
+            })
+            ->with(['options' => fn ($q) => $q->orderBy('order')])
+            ->get()
+            ->keyBy('id');
+
+        return self::$inMemoryQuestions[$assessmentId] = $questions;
+    }
+
     /**
      * Auto-grade seluruh jawaban objektif pada sesi ujian dan hitung total skor.
      * Metode ini bersifat idempotent (aman dijalankan berkali-kali).
@@ -22,15 +54,8 @@ class ExamGradingService
                 return;
             }
 
-            // Ambil semua soal asesmen (baik direct section maupun via group)
-            $questions = Question::query()
-                ->where(function ($query) use ($assessment) {
-                    $query->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $assessment->id))
-                        ->orWhereHas('questionGroup.assessmentSection', fn ($q) => $q->where('assessment_id', $assessment->id));
-                })
-                ->with(['options' => fn ($q) => $q->orderBy('order')])
-                ->get()
-                ->keyBy('id');
+            // Ambil semua soal asesmen (in-memory memoized)
+            $questions = self::getAssessmentQuestions($assessment->id);
 
             $answers = ExamAnswer::query()
                 ->where('exam_session_id', $session->id)
@@ -95,19 +120,16 @@ class ExamGradingService
     public static function autoGradeSessionOptimized(ExamSession $session): void
     {
         $assessmentId = $session->assessment_id;
+        if (! $assessmentId) {
+            return;
+        }
 
-        // 1. CACHE MASTER SOAL & KUNCI DI REDIS (TTL: 12 Jam)
+        // Hapus cache Redis/File lama yang mungkin rusak/poisoned
         $cacheKey = "assessment:grading_keys:{$assessmentId}";
-        $questionMap = Cache::remember($cacheKey, 43200, function () use ($assessmentId) {
-            return Question::query()
-                ->where(function ($query) use ($assessmentId) {
-                    $query->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $assessmentId))
-                        ->orWhereHas('questionGroup.assessmentSection', fn ($q) => $q->where('assessment_id', $assessmentId));
-                })
-                ->with(['options' => fn ($q) => $q->orderBy('order')])
-                ->get()
-                ->keyBy('id');
-        });
+        Cache::forget($cacheKey);
+
+        // 1. Ambil master soal & opsi secara aman (in-memory per-request memoized)
+        $questionMap = self::getAssessmentQuestions($assessmentId);
 
         // 2. Ambil seluruh jawaban siswa (1 Single Query)
         $answers = ExamAnswer::query()
@@ -126,16 +148,21 @@ class ExamGradingService
 
         foreach ($answers as $ans) {
             $q = $questionMap->get($ans->question_id);
-            if (! $q) continue;
+            if (! $q) {
+                continue;
+            }
 
             if ($q->type === 'essay') {
                 if ($ans->points_awarded !== null) {
                     $totalScore += (float) $ans->points_awarded;
                 }
+
                 continue;
             }
 
-            if (! in_array($q->type, $objectiveTypes, true)) continue;
+            if (! in_array($q->type, $objectiveTypes, true)) {
+                continue;
+            }
 
             [$isCorrect, $points] = self::gradeOne($q, $ans);
             $totalScore += (float) $points;

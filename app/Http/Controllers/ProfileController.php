@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assessment;
+use App\Models\ExamSession;
+use App\Models\Question;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -307,11 +310,12 @@ class ProfileController extends Controller
 
         $assessmentGroups = $this->getProfileAssessments($tenant);
 
-        // Card 1: Statistik Siswa & Guru
+        // Card 1: Statistik Siswa & Guru (Data Riil)
         $isTeacher = $user->isTeacher();
-        $completedCount = $isTeacher ? $user->assessments()->count() : 8;
-        $totalScore = $isTeacher ? '-' : 765;
-        $rank = $isTeacher ? null : 4;
+        $stats = $this->calculateProfileStats($user, $tenant, $isTeacher);
+        $completedCount = $stats['completedCount'];
+        $totalScore = $stats['totalScore'];
+        $rank = $stats['rank'];
 
         // Card 3, 4, 5 ON/OFF dari Tenant Admin
         $showGradeSd = $tenant ? $tenant->showGrade('sd') : true;
@@ -332,6 +336,75 @@ class ProfileController extends Controller
             'showGradeSmp' => $showGradeSmp,
             'showGradeSma' => $showGradeSma,
         ]);
+    }
+
+    /**
+     * Hitung statistik riil siswa / guru untuk Card 1.
+     *
+     * @return array{completedCount: int, totalScore: string, rank: ?int}
+     */
+    protected function calculateProfileStats(User $user, ?Tenant $tenant, bool $isTeacher): array
+    {
+        if ($isTeacher) {
+            $completedCount = $user->assessments()
+                ->when($tenant, fn ($q) => $q->where('tenant_id', $tenant->id))
+                ->count();
+
+            $totalQuestions = Question::whereHas('assessmentSection.assessment', function ($q) use ($user, $tenant) {
+                $q->where('created_by', $user->id)
+                    ->when($tenant, fn ($tq) => $tq->where('tenant_id', $tenant->id));
+            })->count();
+
+            return [
+                'completedCount' => $completedCount,
+                'totalScore' => $totalQuestions > 0 ? (string) $totalQuestions : '-',
+                'rank' => null,
+            ];
+        }
+
+        // Statistik Siswa / Murid:
+        $sessionsQuery = ExamSession::where('user_id', $user->id)
+            ->where('status', 'completed');
+
+        if ($tenant) {
+            $hasTenantSessions = (clone $sessionsQuery)->where('tenant_id', $tenant->id)->exists();
+            if ($hasTenantSessions) {
+                $sessionsQuery->where('tenant_id', $tenant->id);
+            }
+        }
+
+        $completedCount = (clone $sessionsQuery)->count();
+        $rawTotalScore = (float) (clone $sessionsQuery)->sum('score');
+
+        if ($completedCount > 0) {
+            $formattedTotalScore = (fmod($rawTotalScore, 1) === 0.0)
+                ? (string) (int) $rawTotalScore
+                : (string) round($rawTotalScore, 1);
+        } else {
+            $formattedTotalScore = '0';
+        }
+
+        $rank = null;
+        if ($completedCount > 0) {
+            $scoresSubquery = DB::table('exam_sessions')
+                ->select('user_id', DB::raw('SUM(score) as sum_score'))
+                ->where('status', 'completed')
+                ->when($tenant, fn ($q) => $q->where('tenant_id', $tenant->id))
+                ->groupBy('user_id');
+
+            $betterRankCount = DB::query()
+                ->fromSub($scoresSubquery, 'student_scores')
+                ->where('sum_score', '>', $rawTotalScore)
+                ->count();
+
+            $rank = $betterRankCount + 1;
+        }
+
+        return [
+            'completedCount' => $completedCount,
+            'totalScore' => $formattedTotalScore,
+            'rank' => $rank,
+        ];
     }
 
     /**

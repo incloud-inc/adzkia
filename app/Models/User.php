@@ -240,6 +240,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Get exam sessions of the user.
+     *
+     * @return HasMany<ExamSession, $this>
+     */
+    public function examSessions(): HasMany
+    {
+        return $this->hasMany(ExamSession::class);
+    }
+
+    /**
      * Get orders placed by the user.
      */
     public function orders(): HasMany

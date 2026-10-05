@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    @if($tenant->isWhiteLabel())
-        <title>{{ $tenant->app_name }} - Portal &amp; Profil Resmi</title>
-    @else
-        <title>{{ $tenant->name }} - Portal &amp; Profil Lembaga | Adzkia</title>
-    @endif
+    @php
+        $isEnterprise = $tenant->isEnterprise();
+        $tenantTitle = $isEnterprise ? $tenant->name : "{$tenant->name} - ADZKIA";
+    @endphp
+    <title>{{ $tenantTitle }}</title>
     
     @if($tenant->favicon_path)
         <link rel="icon" href="{{ $tenant->favicon_url }}">

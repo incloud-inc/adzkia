@@ -2,34 +2,20 @@
     class="bg-white border-r border-gray-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col transition-all duration-300 ease-in-out shrink-0 h-full z-20 absolute lg:relative"
     :class="sidebarOpen ? 'w-72 translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-[84px]'"
 >
-    <!-- Brand / Logo -->
     @php
         $currentTenant = app()->has('currentTenant') ? app('currentTenant') : (auth()->user()?->currentTenant ?? auth()->user()?->tenants()->first());
-        $isOwner = auth()->check() && auth()->user()->isSuperUser();
-        $logoSrc = ($isOwner || ! ($currentTenant && $currentTenant->logo_path))
-            ? asset('APLIKASI UJIAN.png')
-            : $currentTenant->logo_url;
-        $iconSrc = ($isOwner || ! ($currentTenant && $currentTenant->favicon_path))
-            ? asset('adzkia black app.png')
-            : $currentTenant->favicon_url;
-        $brandTitle = ($currentTenant && $currentTenant->logo_path && ! $isOwner) ? $currentTenant->name : 'Aplikasi Ujian ADZKIA';
     @endphp
+    <!-- Brand / Logo: Logo & Icon ADZKIA permanen, tidak berubah walaupun level ENTERPRISE -->
     <div class="h-20 flex items-center justify-center border-b border-gray-6 shrink-0 relative overflow-hidden transition-all duration-300 px-3">
         <!-- Logo Brand Lengkap (Saat Sidebar Terbuka) -->
         <a href="{{ route('dashboard') }}" 
            x-show="sidebarOpen"
            x-cloak
            class="w-full flex items-center justify-center px-2 py-1.5 select-none transition-all duration-300"
-           title="{{ $brandTitle }}">
-            @if($isOwner || ! ($currentTenant && $currentTenant->logo_path))
-                <img src="{{ $logoSrc }}" 
-                     alt="{{ $brandTitle }}" 
-                     class="h-11 w-auto max-w-[200px] object-contain drop-shadow-xs transition-transform duration-200 hover:scale-105">
-            @else
-                <img src="{{ $logoSrc }}" 
-                     alt="{{ $brandTitle }}" 
-                     class="h-11 w-auto max-w-full object-contain drop-shadow-xs transition-transform duration-200 hover:scale-105">
-            @endif
+           title="Aplikasi Ujian ADZKIA">
+            <img src="{{ asset('APLIKASI UJIAN.png') }}" 
+                 alt="Aplikasi Ujian ADZKIA" 
+                 class="h-11 w-auto max-w-[200px] object-contain drop-shadow-xs transition-transform duration-200 hover:scale-105">
         </a>
 
         <!-- Icon Brand (Saat Sidebar Di-minimize) -->
@@ -37,9 +23,9 @@
            x-show="!sidebarOpen"
            x-cloak
            class="w-full flex items-center justify-center select-none py-1.5 transition-all duration-300"
-           title="{{ $brandTitle }}">
-            <img src="{{ $iconSrc }}" 
-                 alt="{{ $brandTitle }}" 
+           title="Aplikasi Ujian ADZKIA">
+            <img src="{{ asset('adzkia black app.png') }}" 
+                 alt="Aplikasi Ujian ADZKIA" 
                  class="w-12 h-12 max-w-[48px] max-h-[48px] object-contain drop-shadow-xs transition-transform duration-200 hover:scale-110">
         </a>
     </div>

@@ -5,10 +5,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Gerbang Ujian — {{ $assessment->title }}</title>
+    @php
+        $examTenant = $assessment->tenant ?? auth()->user()?->currentTenant ?? auth()->user()?->tenants()->first();
+        $examFavicon = ($examTenant && $examTenant->favicon_path) ? $examTenant->favicon_url : asset('adzkia black app.png');
+    @endphp
+    <title>{{ \App\Support\PageTitleResolver::resolve("Gerbang Ujian — {$assessment->title}", $examTenant, auth()->user()) }}</title>
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('adzkia black app.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
+    <link rel="icon" type="image/png" href="{{ $examFavicon }}">
+    <link rel="apple-touch-icon" href="{{ $examFavicon }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         html, body {
