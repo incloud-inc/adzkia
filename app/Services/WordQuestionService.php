@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use ZipArchive;
 
 class WordQuestionService
 {
     /**
-     * Parse a .docx file and extract structured questions with formatting and LaTeX preserved.
+     * Parse a .docx file and extract structured questions with formatting, LaTeX, and embedded images preserved.
      */
     public function parseDocx(string $filePath): array
     {
@@ -16,27 +18,235 @@ class WordQuestionService
             throw new \RuntimeException('Gagal membuka file Word (.docx). Pastikan file tidak rusak.');
         }
 
-        $xmlIndex = $zip->locateName('word/document.xml');
-        if ($xmlIndex === false) {
+        try {
+            $xmlIndex = $zip->locateName('word/document.xml');
+            if ($xmlIndex === false) {
+                throw new \RuntimeException('Struktur dokumen Word tidak valid (word/document.xml tidak ditemukan).');
+            }
+
+            $xmlContent = $zip->getFromIndex($xmlIndex);
+
+            // Extract document relationships (e.g. image mappings)
+            $relationships = $this->extractRelationships($zip);
+
+            $imageCache = [];
+
+            // Parse XML content preserving formatting runs and extracting images
+            $paragraphs = $this->extractParagraphsWithFormatting($xmlContent, $zip, $relationships, $imageCache);
+
+            // Parse lines into structured items (Standalone Questions & Question Groups)
+            return $this->buildStructuredItems($paragraphs);
+        } finally {
             $zip->close();
-            throw new \RuntimeException('Struktur dokumen Word tidak valid (word/document.xml tidak ditemukan).');
         }
-
-        $xmlContent = $zip->getFromIndex($xmlIndex);
-        $zip->close();
-
-        // Parse XML content preserving formatting runs
-        $paragraphs = $this->extractParagraphsWithFormatting($xmlContent);
-
-        // Parse lines into structured items (Standalone Questions & Question Groups)
-        return $this->buildStructuredItems($paragraphs);
     }
 
     /**
-     * Extract paragraphs from Word XML while preserving Bold, Italic, Underline, and LaTeX.
+     * Extract relationship definitions from word/_rels/document.xml.rels.
      */
-    protected function extractParagraphsWithFormatting(string $xmlContent): array
+    protected function extractRelationships(ZipArchive $zip): array
     {
+        $relationships = [];
+        $relsIndex = $zip->locateName('word/_rels/document.xml.rels');
+        if ($relsIndex === false) {
+            return $relationships;
+        }
+
+        $relsXml = $zip->getFromIndex($relsIndex);
+        if ($relsXml === false) {
+            return $relationships;
+        }
+
+        $dom = new \DOMDocument;
+        libxml_use_internal_errors(true);
+        $dom->loadXML($relsXml);
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('rel', 'http://schemas.openxmlformats.org/package/2006/relationships');
+
+        $relNodes = $xpath->query('//rel:Relationship | //*[local-name()="Relationship"]');
+        foreach ($relNodes as $relNode) {
+            $id = $relNode->getAttribute('Id');
+            $target = $relNode->getAttribute('Target');
+            $type = $relNode->getAttribute('Type');
+            $targetMode = $relNode->getAttribute('TargetMode');
+
+            if ($id && $target) {
+                $relationships[$id] = [
+                    'target' => $target,
+                    'type' => $type,
+                    'target_mode' => $targetMode,
+                ];
+            }
+        }
+
+        return $relationships;
+    }
+
+    /**
+     * Resolve relationship ID to a stored media URL (object storage, public disk, or base64 fallback).
+     */
+    protected function resolveAndUploadImage(
+        string $relId,
+        array $relationships,
+        ZipArchive $zip,
+        array &$imageCache
+    ): ?string {
+        if (isset($imageCache[$relId])) {
+            return $imageCache[$relId];
+        }
+
+        if (! isset($relationships[$relId])) {
+            return null;
+        }
+
+        $rel = $relationships[$relId];
+        $target = $rel['target'];
+
+        // If target is external URL
+        if (
+            strcasecmp((string) ($rel['target_mode'] ?? ''), 'External') === 0 ||
+            str_starts_with($target, 'http://') ||
+            str_starts_with($target, 'https://')
+        ) {
+            $imageCache[$relId] = $target;
+
+            return $target;
+        }
+
+        $zipEntry = $this->resolveZipEntryPath($target, $zip);
+        if (! $zipEntry) {
+            return null;
+        }
+
+        $binary = $zip->getFromName($zipEntry);
+        if ($binary === false || strlen($binary) === 0) {
+            return null;
+        }
+
+        $url = $this->storeMediaFile($binary, basename($target));
+        if ($url) {
+            $imageCache[$relId] = $url;
+        }
+
+        return $url;
+    }
+
+    /**
+     * Resolve ZIP entry path for a relationship target.
+     */
+    protected function resolveZipEntryPath(string $target, ZipArchive $zip): ?string
+    {
+        $normalized = str_replace('\\', '/', $target);
+        $normalized = ltrim($normalized, '/');
+
+        $candidates = [];
+
+        if (str_starts_with($normalized, 'word/')) {
+            $candidates[] = $normalized;
+            $candidates[] = substr($normalized, 5);
+        } elseif (str_starts_with($normalized, '../')) {
+            $candidates[] = 'word/'.substr($normalized, 3);
+            $candidates[] = substr($normalized, 3);
+        } else {
+            $candidates[] = 'word/'.$normalized;
+            $candidates[] = $normalized;
+        }
+
+        $base = basename($normalized);
+        $candidates[] = 'word/media/'.$base;
+        $candidates[] = 'media/'.$base;
+
+        foreach ($candidates as $cand) {
+            if ($zip->locateName($cand) !== false) {
+                return $cand;
+            }
+        }
+
+        // Case-insensitive fallback search in zip
+        $lowerBase = strtolower($base);
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (strtolower(basename($name)) === $lowerBase) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Store extracted image from docx into object storage, public disk, or data URI fallback.
+     */
+    public function storeMediaFile(string $imageBinary, string $originalFilename): string
+    {
+        $ext = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
+        if (empty($ext) || ! in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'], true)) {
+            $ext = 'png';
+            if (class_exists(\finfo::class)) {
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                $mime = $finfo->buffer($imageBinary);
+                $ext = match ($mime) {
+                    'image/jpeg' => 'jpg',
+                    'image/png' => 'png',
+                    'image/gif' => 'gif',
+                    'image/webp' => 'webp',
+                    'image/svg+xml' => 'svg',
+                    'image/bmp' => 'bmp',
+                    default => 'png',
+                };
+            }
+        }
+
+        $randomSuffix = bin2hex(random_bytes(6));
+        if (class_exists(Str::class)) {
+            $randomSuffix = Str::random(12);
+        }
+        $filename = 'word_'.date('Ymd_His').'_'.$randomSuffix.'.'.$ext;
+        $path = 'asesmen/'.$filename;
+
+        // Try Laravel Storage if available
+        if (class_exists(Storage::class) && function_exists('app') && app()->has('filesystem')) {
+            $preferredDisk = function_exists('config') ? config('filesystems.upload_disk', 'r2') : 'public';
+            $disksToTry = array_values(array_unique([$preferredDisk, 'public']));
+
+            foreach ($disksToTry as $disk) {
+                try {
+                    if (Storage::disk($disk)->put($path, $imageBinary, 'public')) {
+                        $url = Storage::disk($disk)->url($path);
+                        if (! empty($url)) {
+                            return $url;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Try next disk if any failure occurs
+                }
+            }
+        }
+
+        // Resilient fallback: data URI (guaranteed to render under any environment)
+        $mime = match ($ext) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            default => 'image/png',
+        };
+
+        return 'data:'.$mime.';base64,'.base64_encode($imageBinary);
+    }
+
+    /**
+     * Extract paragraphs from Word XML while preserving Bold, Italic, Underline, LaTeX, and embedded Images.
+     */
+    protected function extractParagraphsWithFormatting(
+        string $xmlContent,
+        ZipArchive $zip,
+        array $relationships,
+        array &$imageCache
+    ): array {
         $paragraphs = [];
 
         $dom = new \DOMDocument;
@@ -46,49 +256,199 @@ class WordQuestionService
 
         $xpath = new \DOMXPath($dom);
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+        $xpath->registerNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
+        $xpath->registerNamespace('a', 'http://schemas.openxmlformats.org/drawingml/2006/main');
+        $xpath->registerNamespace('pic', 'http://schemas.openxmlformats.org/drawingml/2006/picture');
+        $xpath->registerNamespace('wp', 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing');
+        $xpath->registerNamespace('v', 'urn:schemas-microsoft-com:vml');
+        $xpath->registerNamespace('o', 'urn:schemas-microsoft-com:office:office');
+        $xpath->registerNamespace('mc', 'http://schemas.openxmlformats.org/markup-compatibility/2006');
 
         $pNodes = $xpath->query('//w:p');
         foreach ($pNodes as $pNode) {
-            $pText = '';
-            $rNodes = $xpath->query('.//w:r', $pNode);
+            $pText = $this->extractParagraphContent($pNode, $xpath, $zip, $relationships, $imageCache);
 
-            foreach ($rNodes as $rNode) {
-                $isBold = $xpath->query('.//w:rPr/w:b', $rNode)->length > 0 || $xpath->query('.//w:rPr/w:bCs', $rNode)->length > 0;
-                $isItalic = $xpath->query('.//w:rPr/w:i', $rNode)->length > 0 || $xpath->query('.//w:rPr/w:iCs', $rNode)->length > 0;
-                $isUnderline = $xpath->query('.//w:rPr/w:u', $rNode)->length > 0;
-
-                $tNodes = $xpath->query('.//w:t', $rNode);
-                $runText = '';
-                foreach ($tNodes as $tNode) {
-                    $runText .= $tNode->nodeValue;
+            $lines = preg_split('/\r?\n/', $pText);
+            foreach ($lines as $line) {
+                $trimmed = trim($line);
+                if ($trimmed !== '') {
+                    $paragraphs[] = $trimmed;
                 }
-
-                if ($runText === '') {
-                    continue;
-                }
-
-                if (trim($runText) !== '') {
-                    if ($isBold) {
-                        $runText = "**{$runText}**";
-                    }
-                    if ($isItalic) {
-                        $runText = "*{$runText}*";
-                    }
-                    if ($isUnderline) {
-                        $runText = "<u>{$runText}</u>";
-                    }
-                }
-
-                $pText .= $runText;
-            }
-
-            $trimmed = trim($pText);
-            if ($trimmed !== '') {
-                $paragraphs[] = $trimmed;
             }
         }
 
         return $paragraphs;
+    }
+
+    /**
+     * Extract content of a single paragraph in exact document order (text and drawings).
+     */
+    protected function extractParagraphContent(
+        \DOMNode $pNode,
+        \DOMXPath $xpath,
+        ZipArchive $zip,
+        array $relationships,
+        array &$imageCache
+    ): string {
+        $pText = '';
+
+        // Select all runs and non-run drawings in document order, excluding mc:Fallback to prevent duplicates
+        $contentNodes = $xpath->query(
+            '(.//w:r | .//w:drawing[not(ancestor::w:r)] | .//w:pict[not(ancestor::w:r)])[not(ancestor::mc:Fallback)]',
+            $pNode
+        );
+
+        foreach ($contentNodes as $node) {
+            if ($node->nodeName === 'w:drawing' || $node->nodeName === 'w:pict') {
+                $imgMd = $this->extractImagesFromElement($node, $xpath, $zip, $relationships, $imageCache);
+                if ($imgMd) {
+                    if ($pText !== '' && ! str_ends_with($pText, "\n")) {
+                        $pText .= "\n";
+                    }
+                    $pText .= $imgMd."\n";
+                }
+
+                continue;
+            }
+
+            // Node is w:r
+            $isBold = $xpath->query('.//w:rPr/w:b | .//w:rPr/w:bCs', $node)->length > 0;
+            $isItalic = $xpath->query('.//w:rPr/w:i | .//w:rPr/w:iCs', $node)->length > 0;
+            $isUnderline = $xpath->query('.//w:rPr/w:u', $node)->length > 0;
+
+            // Iterate child nodes of the run in document order
+            $hasChildDrawing = false;
+            foreach ($node->childNodes as $child) {
+                if ($child->nodeName === 'w:t') {
+                    $runText = $child->nodeValue;
+                    if ($runText === '') {
+                        continue;
+                    }
+
+                    if (trim($runText) !== '') {
+                        if ($isBold) {
+                            $runText = "**{$runText}**";
+                        }
+                        if ($isItalic) {
+                            $runText = "*{$runText}*";
+                        }
+                        if ($isUnderline) {
+                            $runText = "<u>{$runText}</u>";
+                        }
+                    }
+
+                    $pText .= $runText;
+                } elseif ($child->nodeName === 'w:br') {
+                    $pText .= "\n";
+                } elseif ($child->nodeName === 'w:tab') {
+                    $pText .= "\t";
+                } elseif ($child->nodeName === 'w:drawing' || $child->nodeName === 'w:pict' || $child->nodeName === 'mc:AlternateContent') {
+                    $hasChildDrawing = true;
+                    $imgMd = $this->extractImagesFromElement($child, $xpath, $zip, $relationships, $imageCache);
+                    if ($imgMd) {
+                        if ($pText !== '' && ! str_ends_with($pText, "\n")) {
+                            $pText .= "\n";
+                        }
+                        $pText .= $imgMd."\n";
+                    }
+                }
+            }
+
+            // Extra check for nested drawing if not caught by direct childNodes
+            if (! $hasChildDrawing) {
+                $nestedDrawingNodes = $xpath->query(
+                    '(.//w:drawing | .//w:pict)[not(ancestor::mc:Fallback)]',
+                    $node
+                );
+                if ($nestedDrawingNodes->length > 0) {
+                    foreach ($nestedDrawingNodes as $dNode) {
+                        $imgMd = $this->extractImagesFromElement($dNode, $xpath, $zip, $relationships, $imageCache);
+                        if ($imgMd) {
+                            if ($pText !== '' && ! str_ends_with($pText, "\n")) {
+                                $pText .= "\n";
+                            }
+                            $pText .= $imgMd."\n";
+                        }
+                    }
+                }
+            }
+        }
+
+        return $pText;
+    }
+
+    /**
+     * Extract DrawingML or VML images from an element and return markdown format (![alt](url)).
+     */
+    protected function extractImagesFromElement(
+        \DOMNode $element,
+        \DOMXPath $xpath,
+        ZipArchive $zip,
+        array $relationships,
+        array &$imageCache
+    ): ?string {
+        $markdowns = [];
+
+        // 1. DrawingML blip nodes (excluding mc:Fallback)
+        $blipNodes = $xpath->query(
+            './/a:blip[not(ancestor::mc:Fallback)] | .//*[local-name()="blip"][not(ancestor::*[local-name()="Fallback"])]',
+            $element
+        );
+        foreach ($blipNodes as $blip) {
+            $relId = $blip->getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed')
+                ?: $blip->getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'link')
+                ?: $blip->getAttribute('r:embed')
+                ?: $blip->getAttribute('r:link')
+                ?: $blip->getAttribute('embed')
+                ?: $blip->getAttribute('link');
+
+            if (! $relId) {
+                continue;
+            }
+
+            $alt = 'Gambar Soal';
+            $docPrNodes = $xpath->query('ancestor::w:drawing//wp:docPr | .//wp:docPr | .//*[local-name()="docPr"]', $blip);
+            if ($docPrNodes->length > 0) {
+                $docPr = $docPrNodes->item(0);
+                $descr = $docPr->getAttribute('descr') ?: $docPr->getAttribute('title') ?: $docPr->getAttribute('name');
+                if (! empty($descr) && ! preg_match('/^(?:Picture|Image)\s*\d+$/i', $descr)) {
+                    $alt = $descr;
+                }
+            }
+
+            $url = $this->resolveAndUploadImage($relId, $relationships, $zip, $imageCache);
+            if ($url) {
+                $cleanAlt = trim(preg_replace('/[\[\]\(\)\r\n]+/', ' ', $alt));
+                $markdowns[] = "![{$cleanAlt}]({$url})";
+            }
+        }
+
+        // 2. VML imagedata nodes (excluding mc:Fallback and only if no DrawingML blip found)
+        if (empty($markdowns)) {
+            $vmlNodes = $xpath->query(
+                './/v:imagedata[not(ancestor::mc:Fallback)] | .//*[local-name()="imagedata"][not(ancestor::*[local-name()="Fallback"])]',
+                $element
+            );
+            foreach ($vmlNodes as $vml) {
+                $relId = $vml->getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')
+                    ?: $vml->getAttribute('r:id')
+                    ?: $vml->getAttribute('id')
+                    ?: $vml->getAttribute('o:relid');
+
+                if (! $relId) {
+                    continue;
+                }
+
+                $alt = $vml->getAttribute('o:title') ?: $vml->getAttribute('title') ?: 'Gambar Soal';
+                $url = $this->resolveAndUploadImage($relId, $relationships, $zip, $imageCache);
+                if ($url) {
+                    $cleanAlt = trim(preg_replace('/[\[\]\(\)\r\n]+/', ' ', $alt));
+                    $markdowns[] = "![{$cleanAlt}]({$url})";
+                }
+            }
+        }
+
+        return ! empty($markdowns) ? implode("\n", $markdowns) : null;
     }
 
     /**
@@ -107,6 +467,8 @@ class WordQuestionService
     {
         $items = [];
         $inNarrative = false;
+        $inExplanation = false;
+        $preambleLines = [];
         $currentNarrative = [
             'title' => '',
             'content' => [],
@@ -116,7 +478,8 @@ class WordQuestionService
         $currentQuestion = null;
         $pendingType = null;
 
-        $saveCurrentQuestion = function () use (&$items, &$currentNarrative, &$currentQuestion, &$inNarrative) {
+        $saveCurrentQuestion = function () use (&$items, &$currentNarrative, &$currentQuestion, &$inNarrative, &$inExplanation) {
+            $inExplanation = false;
             if (! $currentQuestion) {
                 return;
             }
@@ -421,6 +784,7 @@ class WordQuestionService
             if ($currentQuestion && preg_match('/^(?:PEMBAHASAN|PENJELASAN|KETERANGAN|RUBRIK)\s*:\s*(.*)$/i', $cleanLine, $matchesClean)) {
                 preg_match('/^(?:(?:\*\*|\*|<u>)?(?:PEMBAHASAN|PENJELASAN|KETERANGAN|RUBRIK)\s*:(?:\*\*|\*|<\/u>)?\s*)(.*)$/i', $line, $matchesLine);
                 $currentQuestion['explanation'] = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : trim($matchesClean[1]);
+                $inExplanation = true;
 
                 continue;
             }
@@ -528,11 +892,26 @@ class WordQuestionService
                 continue;
             }
 
+            // Pre-question preamble (e.g. image placed right before question 1)
+            if (! $currentQuestion && ! $inNarrative) {
+                if (str_contains($line, '![')) {
+                    $preambleLines[] = $line;
+
+                    continue;
+                }
+            }
+
             // Question Prompt Check: "1. Teks soal..." or "1) Teks soal..." or "Soal 1. ..."
             if (preg_match('/^(?:Soal\s*)?(\d+)[\.\)]\s*(.*)$/i', $cleanLine, $matchesClean)) {
                 $saveCurrentQuestion();
+                $inExplanation = false;
                 preg_match('/^(?:(?:\*\*|\*|<u>)?(?:Soal\s*)?\d+[\.\)](?:\*\*|\*|<\/u>)?\s*)(.*)$/i', $line, $matchesLine);
                 $promptText = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : trim($matchesClean[2]);
+
+                if (! empty($preambleLines)) {
+                    $promptText = implode("\n", $preambleLines)."\n".$promptText;
+                    $preambleLines = [];
+                }
 
                 $detectedType = $pendingType ?: 'mcq_single';
 
@@ -580,9 +959,11 @@ class WordQuestionService
                 continue;
             }
 
-            // Multiline continuation for prompt or last option
+            // Multiline continuation for prompt, explanation, or last option
             if ($currentQuestion) {
-                if (empty($currentQuestion['options'])) {
+                if ($inExplanation) {
+                    $currentQuestion['explanation'] .= "\n".$line;
+                } elseif (empty($currentQuestion['options'])) {
                     $currentQuestion['prompt'] .= "\n".$line;
                 } else {
                     $lastIdx = count($currentQuestion['options']) - 1;
@@ -893,98 +1274,142 @@ class WordQuestionService
             $bodyXml .= '<w:p><w:r><w:t></w:t></w:r></w:p>';
         }
 
-        // Items
+        // Items grouped by question type in pedagogical order
         $items = $package['items'] ?? [];
-        foreach ($items as $item) {
-            $num = (int) ($item['number'] ?? 1);
-            $type = $item['type'] ?? 'mcq_single';
-            $prompt = htmlspecialchars(trim($item['prompt'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-            $points = (float) ($item['points'] ?? 1.0);
-            $options = $item['options'] ?? [];
-            $explanation = htmlspecialchars(trim($item['explanation'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $preferredTypeOrder = [
+            'mcq_single',
+            'mcq_multiple',
+            'binary_matrix',
+            'matching',
+            'ordering',
+            'short_answer',
+            'essay',
+            'mcq_weighted',
+        ];
 
-            if ($type === 'mcq_weighted') {
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="2f9e44"/></w:rPr><w:t>[TKP]</w:t></w:r></w:p>';
-            } elseif ($type === 'mcq_multiple') {
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="7950f2"/></w:rPr><w:t>[KOMPLEKS]</w:t></w:r></w:p>';
-            } elseif ($type === 'binary_matrix') {
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="e67700"/></w:rPr><w:t>[BENAR SALAH]</w:t></w:r></w:p>';
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KOLOM: Benar | Salah</w:t></w:r></w:p>';
-            } elseif ($type === 'matching') {
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="0ca678"/></w:rPr><w:t>[MENJODOHKAN]</w:t></w:r></w:p>';
-            } elseif ($type === 'ordering') {
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="22b8cf"/></w:rPr><w:t>[MENGURUTKAN]</w:t></w:r></w:p>';
-            } elseif ($type === 'short_answer') {
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="ae3ec9"/></w:rPr><w:t>[ISIAN]</w:t></w:r></w:p>';
-            } elseif ($type === 'essay') {
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="d6336c"/></w:rPr><w:t>[ESAI]</w:t></w:r></w:p>';
+        $groupedByType = [];
+        foreach ($items as $it) {
+            $t = $it['type'] ?? 'mcq_single';
+            if (! isset($groupedByType[$t])) {
+                $groupedByType[$t] = [];
             }
+            $groupedByType[$t][] = $it;
+        }
 
-            $bodyXml .= '<w:p><w:r><w:t>'.$num.'. '.$prompt.'</w:t></w:r></w:p>';
+        uksort($groupedByType, function ($a, $b) use ($preferredTypeOrder) {
+            $posA = array_search($a, $preferredTypeOrder, true);
+            $posB = array_search($b, $preferredTypeOrder, true);
+            $idxA = $posA === false ? 999 : $posA;
+            $idxB = $posB === false ? 999 : $posB;
 
-            if ($type === 'mcq_weighted') {
-                foreach ($options as $opt) {
-                    $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $score = (int) ($opt['score'] ?? 0);
-                    $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. ['.$score.'] '.$text.'</w:t></w:r></w:p>';
+            return $idxA <=> $idxB;
+        });
+
+        $partLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        $secIdx = 0;
+
+        foreach ($groupedByType as $type => $typeItems) {
+            $letter = $partLetters[$secIdx] ?? chr(65 + $secIdx);
+            $typeMeta = $this->getQuestionTypeMeta($type);
+            $count = count($typeItems);
+
+            // Part Header Banner (Without document section break)
+            $partTitle = '=== BAGIAN '.$letter.': '.strtoupper($typeMeta['name']).' ('.$count.' Butir Soal) ===';
+            $bodyXml .= '<w:p><w:pPr><w:spacing w:before="360" w:after="80"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:color w:val="1c7ed6"/></w:rPr><w:t>'.htmlspecialchars($partTitle, ENT_QUOTES | ENT_XML1, 'UTF-8').'</w:t></w:r></w:p>';
+            $bodyXml .= '<w:p><w:pPr><w:spacing w:before="0" w:after="160"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="19"/><w:color w:val="495057"/></w:rPr><w:t>'.htmlspecialchars($typeMeta['instructions'], ENT_QUOTES | ENT_XML1, 'UTF-8').'</w:t></w:r></w:p>';
+
+            foreach ($typeItems as $item) {
+                $num = (int) ($item['number'] ?? 1);
+                $prompt = htmlspecialchars(trim($item['prompt'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $points = (float) ($item['points'] ?? 1.0);
+                $options = $item['options'] ?? [];
+                $explanation = htmlspecialchars(trim($item['explanation'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+
+                if ($type === 'mcq_weighted') {
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="2f9e44"/></w:rPr><w:t>[TKP]</w:t></w:r></w:p>';
+                } elseif ($type === 'mcq_multiple') {
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="7950f2"/></w:rPr><w:t>[KOMPLEKS]</w:t></w:r></w:p>';
+                } elseif ($type === 'binary_matrix') {
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="e67700"/></w:rPr><w:t>[BENAR SALAH]</w:t></w:r></w:p>';
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KOLOM: Benar | Salah</w:t></w:r></w:p>';
+                } elseif ($type === 'matching') {
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="0ca678"/></w:rPr><w:t>[MENJODOHKAN]</w:t></w:r></w:p>';
+                } elseif ($type === 'ordering') {
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="22b8cf"/></w:rPr><w:t>[MENGURUTKAN]</w:t></w:r></w:p>';
+                } elseif ($type === 'short_answer') {
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="ae3ec9"/></w:rPr><w:t>[ISIAN]</w:t></w:r></w:p>';
+                } elseif ($type === 'essay') {
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="d6336c"/></w:rPr><w:t>[ESAI]</w:t></w:r></w:p>';
                 }
-            } elseif ($type === 'mcq_single') {
-                $correctLetter = 'A';
-                foreach ($options as $opt) {
-                    $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. '.$text.'</w:t></w:r></w:p>';
-                    if (! empty($opt['is_correct'])) {
-                        $correctLetter = $lbl;
+
+                $bodyXml .= '<w:p><w:r><w:t>'.$num.'. '.$prompt.'</w:t></w:r></w:p>';
+
+                if ($type === 'mcq_weighted') {
+                    foreach ($options as $opt) {
+                        $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $score = (int) ($opt['score'] ?? 0);
+                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. ['.$score.'] '.$text.'</w:t></w:r></w:p>';
                     }
-                }
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.$correctLetter.'</w:t></w:r></w:p>';
-            } elseif ($type === 'mcq_multiple') {
-                $correctLetters = [];
-                foreach ($options as $opt) {
-                    $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. '.$text.'</w:t></w:r></w:p>';
-                    if (! empty($opt['is_correct'])) {
-                        $correctLetters[] = $lbl;
+                } elseif ($type === 'mcq_single') {
+                    $correctLetter = 'A';
+                    foreach ($options as $opt) {
+                        $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. '.$text.'</w:t></w:r></w:p>';
+                        if (! empty($opt['is_correct'])) {
+                            $correctLetter = $lbl;
+                        }
                     }
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.$correctLetter.'</w:t></w:r></w:p>';
+                } elseif ($type === 'mcq_multiple') {
+                    $correctLetters = [];
+                    foreach ($options as $opt) {
+                        $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. '.$text.'</w:t></w:r></w:p>';
+                        if (! empty($opt['is_correct'])) {
+                            $correctLetters[] = $lbl;
+                        }
+                    }
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.implode(', ', $correctLetters).'</w:t></w:r></w:p>';
+                } elseif ($type === 'binary_matrix') {
+                    foreach ($options as $idx => $opt) {
+                        $iNum = $idx + 1;
+                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $key = htmlspecialchars(strtoupper($opt['match_key'] ?? 'BENAR'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.' ['.$key.']</w:t></w:r></w:p>';
+                    }
+                } elseif ($type === 'matching') {
+                    foreach ($options as $idx => $opt) {
+                        $iNum = $idx + 1;
+                        $left = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $right = htmlspecialchars(trim($opt['match_key'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$left.' -&gt; '.$right.'</w:t></w:r></w:p>';
+                    }
+                } elseif ($type === 'ordering') {
+                    foreach ($options as $idx => $opt) {
+                        $iNum = $idx + 1;
+                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.'</w:t></w:r></w:p>';
+                    }
+                } elseif ($type === 'short_answer') {
+                    $key = htmlspecialchars(trim($options[0]['option_text'] ?? 'Jawaban'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.$key.'</w:t></w:r></w:p>';
                 }
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.implode(', ', $correctLetters).'</w:t></w:r></w:p>';
-            } elseif ($type === 'binary_matrix') {
-                foreach ($options as $idx => $opt) {
-                    $iNum = $idx + 1;
-                    $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $key = htmlspecialchars(strtoupper($opt['match_key'] ?? 'BENAR'), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.' ['.$key.']</w:t></w:r></w:p>';
+
+                if ($points > 0 && $type !== 'mcq_weighted') {
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="d9480f"/></w:rPr><w:t>BOBOT: '.number_format($points, 1).'</w:t></w:r></w:p>';
                 }
-            } elseif ($type === 'matching') {
-                foreach ($options as $idx => $opt) {
-                    $iNum = $idx + 1;
-                    $left = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $right = htmlspecialchars(trim($opt['match_key'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$left.' -&gt; '.$right.'</w:t></w:r></w:p>';
+
+                if ($explanation !== '') {
+                    $bodyXml .= '<w:p><w:r><w:rPr><w:i/></w:rPr><w:t>PEMBAHASAN: '.$explanation.'</w:t></w:r></w:p>';
                 }
-            } elseif ($type === 'ordering') {
-                foreach ($options as $idx => $opt) {
-                    $iNum = $idx + 1;
-                    $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.'</w:t></w:r></w:p>';
-                }
-            } elseif ($type === 'short_answer') {
-                $key = htmlspecialchars(trim($options[0]['option_text'] ?? 'Jawaban'), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.$key.'</w:t></w:r></w:p>';
+
+                $bodyXml .= '<w:p><w:r><w:t></w:t></w:r></w:p>';
             }
 
-            if ($points > 0 && $type !== 'mcq_weighted') {
-                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="d9480f"/></w:rPr><w:t>BOBOT: '.number_format($points, 1).'</w:t></w:r></w:p>';
-            }
-
-            if ($explanation !== '') {
-                $bodyXml .= '<w:p><w:r><w:rPr><w:i/></w:rPr><w:t>PEMBAHASAN: '.$explanation.'</w:t></w:r></w:p>';
-            }
-
-            $bodyXml .= '<w:p><w:r><w:t></w:t></w:r></w:p>';
+            $secIdx++;
         }
 
         $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -996,5 +1421,50 @@ class WordQuestionService
         $zip->close();
 
         return $outputPath;
+    }
+
+    /**
+     * Get human-readable title and clear instructions for each question type.
+     */
+    public function getQuestionTypeMeta(string $type): array
+    {
+        return match ($type) {
+            'mcq_single' => [
+                'name' => 'Pilihan Ganda (Tunggal)',
+                'instructions' => 'Petunjuk Pengerjaan: Pilihlah salah satu jawaban yang paling tepat (A, B, C, D, atau E) untuk setiap butir soal.',
+            ],
+            'mcq_multiple' => [
+                'name' => 'Pilihan Ganda Kompleks',
+                'instructions' => 'Petunjuk Pengerjaan: Pilihlah satu atau lebih pilihan jawaban yang benar sesuai dengan pertanyaan atau pernyataan yang disajikan.',
+            ],
+            'binary_matrix', 'boolean_matrix' => [
+                'name' => 'Benar / Salah (Matriks Pernyataan)',
+                'instructions' => 'Petunjuk Pengerjaan: Tentukan nilai kebenaran (Benar atau Salah) pada setiap baris pernyataan yang disediakan.',
+            ],
+            'matching' => [
+                'name' => 'Menjodohkan',
+                'instructions' => 'Petunjuk Pengerjaan: Pasangkan setiap premis atau pertanyaan di kolom kiri dengan jawaban yang sesuai di kolom kanan.',
+            ],
+            'ordering', 'reorder' => [
+                'name' => 'Mengurutkan',
+                'instructions' => 'Petunjuk Pengerjaan: Susun dan urutkan butir-butir pernyataan/tahapan berikut agar menjadi urutan yang tepat dan logis.',
+            ],
+            'short_answer', 'fill_blank' => [
+                'name' => 'Isian Singkat',
+                'instructions' => 'Petunjuk Pengerjaan: Isilah bagian yang rumpang dengan jawaban singkat, presisi, dan tepat.',
+            ],
+            'essay' => [
+                'name' => 'Uraian / Esai',
+                'instructions' => 'Petunjuk Pengerjaan: Jawablah pertanyaan-pertanyaan berikut dengan penjelasan lengkap, terstruktur, analitis, dan jelas.',
+            ],
+            'mcq_weighted' => [
+                'name' => 'Pilihan Berbobot (Karakteristik Pribadi)',
+                'instructions' => 'Petunjuk Pengerjaan: Pilihlah opsi tindakan yang menurut Anda paling berintegritas, solutif, dan profesional.',
+            ],
+            default => [
+                'name' => 'Soal Campuran',
+                'instructions' => 'Petunjuk Pengerjaan: Kerjakan butir-butir soal berikut sesuai instruksi yang tertera.',
+            ],
+        };
     }
 }

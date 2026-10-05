@@ -251,6 +251,58 @@ class QuestionGeneratorTest extends TestCase
         $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     }
 
+    public function test_question_generator_to_wizard_creates_sections_by_question_type(): void
+    {
+        $package = [
+            'assessment_title' => 'Simulasi Asesmen Campuran Terpadu',
+            'subject' => 'Matematika',
+            'grade_level' => '10 SMA',
+            'items' => [
+                [
+                    'number' => 1,
+                    'type' => 'mcq_single',
+                    'prompt' => 'Nilai dari 2^3 adalah...',
+                    'points' => 1.0,
+                    'options' => [
+                        ['label' => 'A', 'option_text' => '8', 'is_correct' => true, 'score' => 1.0],
+                        ['label' => 'B', 'option_text' => '6', 'is_correct' => false, 'score' => 0.0],
+                    ],
+                ],
+                [
+                    'number' => 2,
+                    'type' => 'essay',
+                    'prompt' => 'Jelaskan sifat-sifat eksponensial!',
+                    'points' => 5.0,
+                    'options' => [],
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson(route('question-generator.to-wizard'), [
+            'package' => $package,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['status' => 'success']);
+
+        $wizardData = session('wizard_prefill');
+        $this->assertNotEmpty($wizardData);
+        $this->assertArrayHasKey('sections', $wizardData);
+        $this->assertCount(2, $wizardData['sections']);
+
+        // Section 1: MCQ Single
+        $this->assertStringContainsString('Pilihan Ganda', $wizardData['sections'][0]['title']);
+        $this->assertNotEmpty($wizardData['sections'][0]['instructions']);
+        $this->assertCount(1, $wizardData['sections'][0]['items']);
+        $this->assertEquals('mcq_single', $wizardData['sections'][0]['items'][0]['type']);
+
+        // Section 2: Essay
+        $this->assertStringContainsString('Uraian / Esai', $wizardData['sections'][1]['title']);
+        $this->assertNotEmpty($wizardData['sections'][1]['instructions']);
+        $this->assertCount(1, $wizardData['sections'][1]['items']);
+        $this->assertEquals('essay', $wizardData['sections'][1]['items'][0]['type']);
+    }
+
     public function test_question_generator_save_to_bank_auto_creates_subject_when_omitted(): void
     {
         $package = [
@@ -332,14 +384,11 @@ class QuestionGeneratorTest extends TestCase
 
         $sessionData = session('wizard_prefill');
         $this->assertNotNull($sessionData);
-        $this->assertEquals('Asesmen Sumatif Matematika Kelas 10', $sessionData['title']);
-        $this->assertCount(1, $sessionData['sections']);
+        $this->assertCount(2, $sessionData['sections']);
+        $this->assertStringContainsString('Pilihan Ganda', $sessionData['sections'][0]['title']);
+        $this->assertStringContainsString('Uraian / Esai', $sessionData['sections'][1]['title']);
         $this->assertCount(1, $sessionData['sections'][0]['items']);
-        $groupItem = $sessionData['sections'][0]['items'][0];
-        $this->assertTrue($groupItem['is_group']);
-        $this->assertCount(2, $groupItem['questions']);
-        $this->assertEquals('mcq_single', $groupItem['questions'][0]['type']);
-        $this->assertEquals('essay', $groupItem['questions'][1]['type']);
+        $this->assertCount(1, $sessionData['sections'][1]['items']);
 
         // Test that visiting the wizard consumes the prefill
         $wizardResponse = $this->actingAs($this->user)->get(route('assessments.wizard'));

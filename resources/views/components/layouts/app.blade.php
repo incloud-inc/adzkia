@@ -10,8 +10,8 @@
     @php
         $currentTenant = auth()->check() ? auth()->user()->currentTenant : null;
     @endphp
-    <link rel="icon" type="image/png" href="{{ $currentTenant && $currentTenant->favicon_url ? $currentTenant->favicon_url : asset('images/icon-adzkia.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/icon-adzkia.png') }}">
+    <link rel="icon" type="image/png" href="{{ $currentTenant && $currentTenant->favicon_url ? $currentTenant->favicon_url : asset('adzkia black app.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -113,4 +113,126 @@ class WordQuestionServiceTest extends TestCase
         $this->assertEquals('mcq_multiple', $grp['questions'][1]['type']);
         $this->assertEquals(2.0, $grp['questions'][1]['points']);
     }
+
+    public function test_it_parses_questions_with_embedded_images(): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'test_img_docx_').'.docx';
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($tmp, \ZipArchive::CREATE | \ZipArchive::OVERWRITE));
+
+        $pngData = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+
+        $zip->addFromString('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+    <Default Extension="xml" ContentType="application/xml"/>
+    <Default Extension="png" ContentType="image/png"/>
+    <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>');
+
+        $zip->addFromString('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>');
+
+        $zip->addFromString('word/_rels/document.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rIdImg1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>
+    <Relationship Id="rIdImg2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image2.png"/>
+</Relationships>');
+
+        $zip->addFromString('word/media/image1.png', $pngData);
+        $zip->addFromString('word/media/image2.png', $pngData);
+
+        $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+            xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+            xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+            xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+    <w:body>
+        <w:p>
+            <w:r><w:t>1. Perhatikan gambar siklus sel di bawah ini:</w:t></w:r>
+        </w:p>
+        <w:p>
+            <w:r>
+                <w:drawing>
+                    <wp:inline>
+                        <wp:docPr id="1" name="Diagram Sel" descr="Gambar Siklus Sel"/>
+                        <a:graphic>
+                            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                                <pic:pic>
+                                    <pic:blipFill>
+                                        <a:blip r:embed="rIdImg1"/>
+                                    </pic:blipFill>
+                                </pic:pic>
+                            </a:graphicData>
+                        </a:graphic>
+                    </wp:inline>
+                </w:drawing>
+            </w:r>
+        </w:p>
+        <w:p>
+            <w:r><w:t>Fase pembelahan yang ditunjukkan adalah ...</w:t></w:r>
+        </w:p>
+        <w:p><w:r><w:t>A. Metafase</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Anafase</w:t></w:r></w:p>
+        <w:p><w:r><w:t>C. Telofase</w:t></w:r></w:p>
+        <w:p><w:r><w:t>D. Profase</w:t></w:r></w:p>
+        <w:p><w:r><w:t>KUNCI: A</w:t></w:r></w:p>
+        <w:p><w:r><w:t>PEMBAHASAN: Pada metafase, kromosom berjajar di bidang ekuator.</w:t></w:r></w:p>
+        <w:p>
+            <w:r><w:t>2. [KOMPLEKS] Manakah organel yang memiliki membran ganda?</w:t></w:r>
+        </w:p>
+        <w:p><w:r><w:t>A. Mitokondria</w:t></w:r></w:p>
+        <w:p>
+            <w:r><w:t>B. Kloroplas </w:t></w:r>
+            <w:r>
+                <w:drawing>
+                    <wp:inline>
+                        <wp:docPr id="2" name="Kloroplas" descr="Gambar Kloroplas"/>
+                        <a:graphic>
+                            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                                <pic:pic>
+                                    <pic:blipFill>
+                                        <a:blip r:embed="rIdImg2"/>
+                                    </pic:blipFill>
+                                </pic:pic>
+                            </a:graphicData>
+                        </a:graphic>
+                    </wp:inline>
+                </w:drawing>
+            </w:r>
+        </w:p>
+        <w:p><w:r><w:t>C. Ribosom</w:t></w:r></w:p>
+        <w:p><w:r><w:t>KUNCI: A, B</w:t></w:r></w:p>
+    </w:body>
+</w:document>';
+        $zip->addFromString('word/document.xml', $documentXml);
+        $zip->close();
+
+        $items = $this->service->parseDocx($tmp);
+        @unlink($tmp);
+
+        $this->assertCount(2, $items);
+
+        // Q1: prompt has image
+        $q1 = $items[0];
+        $this->assertEquals('mcq_single', $q1['type']);
+        $this->assertStringContainsString('Perhatikan gambar siklus sel di bawah ini:', $q1['prompt']);
+        $this->assertStringContainsString('Fase pembelahan yang ditunjukkan adalah ...', $q1['prompt']);
+        $this->assertStringContainsString('![Gambar Siklus Sel](', $q1['prompt']);
+        $this->assertStringContainsString('Pada metafase, kromosom berjajar di bidang ekuator.', $q1['explanation']);
+
+        // Q2: option B has image
+        $q2 = $items[1];
+        $this->assertEquals('mcq_multiple', $q2['type']);
+        $this->assertCount(3, $q2['options']);
+        $this->assertEquals('Mitokondria', $q2['options'][0]['option_text']);
+        $this->assertStringContainsString('Kloroplas', $q2['options'][1]['option_text']);
+        $this->assertStringContainsString('![Gambar Kloroplas](', $q2['options'][1]['option_text']);
+        $this->assertTrue($q2['options'][0]['is_correct']);
+        $this->assertTrue($q2['options'][1]['is_correct']);
+        $this->assertFalse($q2['options'][2]['is_correct']);
+    }
 }

@@ -503,7 +503,7 @@ class AssessmentWizardController extends Controller
     {
         $this->authorizeEnterpriseTenantAccess();
         $request->validate([
-            'word_file' => 'required|file|max:10240',
+            'word_file' => 'required|file|max:30720',
         ]);
 
         try {

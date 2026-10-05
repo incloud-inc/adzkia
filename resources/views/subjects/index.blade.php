@@ -44,14 +44,15 @@
 
         <!-- Subjects Table -->
         <div class="bg-white border border-gray-6 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
+            <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                <table class="w-full min-w-[720px] sm:min-w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-gray-6 bg-gray-2/50 text-gray-11 uppercase tracking-wider font-semibold">
                             <th class="py-3.5 px-5">Nama Mata Pelajaran</th>
                             <th class="py-3.5 px-4">Kode</th>
+                            <th class="py-3.5 px-4 text-center">Asesmen</th>
                             <th class="py-3.5 px-4 text-center">Bank Soal</th>
-                            <th class="py-3.5 px-4 text-center">Total Ujian</th>
+                            <th class="py-3.5 px-4 text-center">Ujian</th>
                             <th class="py-3.5 px-4">Keterangan</th>
                             <th class="py-3.5 px-5 text-right">Aksi</th>
                         </tr>
@@ -59,26 +60,31 @@
                     <tbody class="divide-y divide-gray-5">
                         @forelse($subjects as $item)
                             <tr class="hover:bg-gray-2/40 transition-colors">
-                                <td class="py-3.5 px-5 font-semibold text-gray-12 text-sm">
+                                <td class="py-3.5 px-5 font-semibold text-gray-12 text-sm whitespace-nowrap">
                                     {{ $item->name }}
                                 </td>
-                                <td class="py-3.5 px-4 font-mono font-bold text-gray-11">
+                                <td class="py-3.5 px-4 font-mono font-bold text-gray-11 whitespace-nowrap">
                                     {{ $item->code ?? '-' }}
                                 </td>
-                                <td class="py-3.5 px-4 text-center">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md font-semibold text-blue-11 bg-blue-3 border border-blue-6/50">
-                                        {{ $item->question_banks_count }} bank
+                                <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md font-semibold text-purple-11 bg-purple-3 border border-purple-6/50 font-mono">
+                                        {{ number_format($item->assessments_count ?? 0) }} asesmen
                                     </span>
                                 </td>
-                                <td class="py-3.5 px-4 text-center">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md font-semibold text-green-11 bg-green-3 border border-green-6/50">
-                                        {{ $item->assessments_count }} ujian
+                                <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md font-semibold text-blue-11 bg-blue-3 border border-blue-6/50 font-mono">
+                                        {{ number_format($item->questions_count ?? 0) }} soal
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md font-semibold text-green-11 bg-green-3 border border-green-6/50 font-mono">
+                                        {{ number_format($item->exam_sessions_count ?? 0) }} kali dikerjakan
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-4 text-gray-11 max-w-xs truncate">
                                     {{ $item->description ?? '-' }}
                                 </td>
-                                <td class="py-3.5 px-5 text-right">
+                                <td class="py-3.5 px-5 text-right whitespace-nowrap">
                                     <div class="flex items-center justify-end gap-2">
                                         <button type="button" 
                                                 @click="isEdit = true; form = { id: '{{ $item->id }}', name: '{{ addslashes($item->name) }}', code: '{{ $item->code }}', description: '{{ addslashes($item->description) }}' }; showModal = true"
@@ -97,7 +103,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-12 text-center text-gray-11">
+                                <td colspan="7" class="py-12 text-center text-gray-11">
                                     Belum ada mata pelajaran. Klik tombol "Tambah Mata Pelajaran" untuk membuat.
                                 </td>
                             </tr>

@@ -185,8 +185,8 @@ Route::middleware(['auth'])->group(function () {
 
     // Analisis Butir Soal & Rekap Nilai Asesmen (Reporting & Analytics)
     Route::get('assessments/{assessment}/analytics', [AssessmentAnalyticsController::class, 'index'])->name('assessments.analytics');
+    Route::get('assessments/{assessment}/analytics/preview', [AssessmentAnalyticsController::class, 'previewMatrix'])->name('assessments.analytics.preview');
     Route::get('assessments/{assessment}/analytics/export', [AssessmentAnalyticsController::class, 'exportExcel'])->name('assessments.analytics.export');
-    Route::get('assessments/{assessment}/analytics/print', [AssessmentAnalyticsController::class, 'printPdf'])->name('assessments.analytics.print');
 
     // ─── CBT Exam Engine ────────────────────────────────────────
     // Token shortcut: /exam/ADZ456 → resolve ke gate

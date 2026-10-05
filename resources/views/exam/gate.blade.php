@@ -7,8 +7,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Gerbang Ujian — {{ $assessment->title }}</title>
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('images/icon-adzkia.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/icon-adzkia.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('adzkia black app.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         html, body {

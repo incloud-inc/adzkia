@@ -31,10 +31,10 @@
             </div>
         </div>
 
-        <!-- 4 Summary Metric Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 4 Summary Metric Cards - Swipeable Snap Carousel on Mobile -->
+        <div class="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
             <!-- 1. Total Penjualan Bruto -->
-            <div class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs flex flex-col justify-between">
+            <div class="min-w-[260px] xs:min-w-[280px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-bold text-gray-11 uppercase tracking-wider">Total Omzet Bruto</span>
                     <div class="w-9 h-9 rounded-xl bg-gray-3 text-gray-12 flex items-center justify-center">
@@ -48,7 +48,7 @@
             </div>
 
             <!-- 2. Total Pendapatan ADZKIA (Platform) -->
-            <div class="bg-white p-5 rounded-2xl border border-blue-6/60 bg-blue-2/20 shadow-xs flex flex-col justify-between">
+            <div class="min-w-[260px] xs:min-w-[280px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-blue-6/60 bg-blue-2/20 shadow-xs flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-bold text-blue-11 uppercase tracking-wider">Total Pendapatan ADZKIA</span>
                     <div class="w-9 h-9 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center">
@@ -62,7 +62,7 @@
             </div>
 
             <!-- 3. Total Pendapatan Tenant -->
-            <div class="bg-white p-5 rounded-2xl border border-green-6/60 bg-green-2/20 shadow-xs flex flex-col justify-between">
+            <div class="min-w-[260px] xs:min-w-[280px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-green-6/60 bg-green-2/20 shadow-xs flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-bold text-green-11 uppercase tracking-wider">Total Pendapatan Tenant</span>
                     <div class="w-9 h-9 rounded-xl bg-green-3 text-green-11 flex items-center justify-center">
@@ -76,7 +76,7 @@
             </div>
 
             <!-- 4. Total Transaksi Settled -->
-            <div class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs flex flex-col justify-between">
+            <div class="min-w-[260px] xs:min-w-[280px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-bold text-gray-11 uppercase tracking-wider">Transaksi Lunas</span>
                     <div class="w-9 h-9 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center">
@@ -154,8 +154,8 @@
                 <span class="text-xs text-gray-11">Total {{ $orders->total() }} entri data</span>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs border-collapse">
+            <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                <table class="w-full min-w-[760px] sm:min-w-full text-left text-xs border-collapse">
                     <thead class="bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold border-b border-gray-5">
                         <tr>
                             <th class="py-3 px-4">No. Order &amp; Waktu</th>
@@ -171,36 +171,36 @@
                     <tbody class="divide-y divide-gray-5">
                         @forelse($orders as $order)
                             <tr class="hover:bg-gray-2/40 transition-colors">
-                                <td class="py-3 px-4">
+                                <td class="py-3 px-4 whitespace-nowrap">
                                     <span class="font-mono font-bold text-gray-12 block">{{ $order->order_number }}</span>
                                     <span class="text-[11px] text-gray-9">{{ $order->created_at->format('d M Y H:i') }}</span>
                                 </td>
-                                <td class="py-3 px-4">
+                                <td class="py-3 px-4 whitespace-nowrap">
                                     <span class="font-semibold text-gray-12 block">{{ $order->user?->name ?? '—' }}</span>
                                     <span class="text-[11px] text-gray-10">{{ $order->user?->email }}</span>
                                 </td>
-                                <td class="py-3 px-4">
+                                <td class="py-3 px-4 whitespace-nowrap">
                                     <span class="font-semibold text-gray-12 block">{{ $order->assessment?->title ?? '—' }}</span>
                                     <span class="text-[11px] text-gray-10">{{ $order->payment_method ?? 'Gateway' }}</span>
                                 </td>
-                                <td class="py-3 px-4">
+                                <td class="py-3 px-4 whitespace-nowrap">
                                     <span class="font-semibold text-gray-12 block">{{ $order->tenant?->name ?? 'Platform Global' }}</span>
                                     <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-3 text-gray-11">
                                         {{ $order->tenant_tier_snapshot }}
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 text-right font-mono font-bold text-gray-12">
+                                <td class="py-3 px-4 text-right font-mono font-bold text-gray-12 whitespace-nowrap">
                                     Rp {{ number_format($order->price_amount, 0, ',', '.') }}
                                 </td>
-                                <td class="py-3 px-4 text-right font-mono bg-blue-50/30 text-blue-900">
+                                <td class="py-3 px-4 text-right font-mono bg-blue-50/30 text-blue-900 whitespace-nowrap">
                                     <strong class="block">Rp {{ number_format($order->platform_revenue_amount, 0, ',', '.') }}</strong>
                                     <span class="text-[10px] text-blue-700">({{ $order->revenue_share_platform_pct }}%)</span>
                                 </td>
-                                <td class="py-3 px-4 text-right font-mono bg-green-50/30 text-green-900">
+                                <td class="py-3 px-4 text-right font-mono bg-green-50/30 text-green-900 whitespace-nowrap">
                                     <strong class="block">Rp {{ number_format($order->tenant_revenue_amount, 0, ',', '.') }}</strong>
                                     <span class="text-[10px] text-green-700">({{ $order->revenue_share_tenant_pct }}%)</span>
                                 </td>
-                                <td class="py-3 px-4 text-center">
+                                <td class="py-3 px-4 text-center whitespace-nowrap">
                                     @if($order->status === 'settled')
                                         <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-3 text-green-11 border border-green-6/50">
                                             Lunas

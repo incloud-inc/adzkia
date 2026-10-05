@@ -5,20 +5,31 @@
     <!-- Brand / Logo -->
     @php
         $currentTenant = app()->has('currentTenant') ? app('currentTenant') : (auth()->user()?->currentTenant ?? auth()->user()?->tenants()->first());
-        $logoSrc = ($currentTenant && $currentTenant->logo_path) ? $currentTenant->logo_url : asset('images/logo-adzkia.png');
-        $iconSrc = ($currentTenant && $currentTenant->favicon_path) ? $currentTenant->favicon_url : asset('images/icon-adzkia.png');
-        $brandTitle = ($currentTenant && $currentTenant->logo_path) ? $currentTenant->name : 'ADZKIA';
+        $isOwner = auth()->check() && auth()->user()->isSuperUser();
+        $logoSrc = ($isOwner || ! ($currentTenant && $currentTenant->logo_path))
+            ? asset('APLIKASI UJIAN.png')
+            : $currentTenant->logo_url;
+        $iconSrc = ($isOwner || ! ($currentTenant && $currentTenant->favicon_path))
+            ? asset('adzkia black app.png')
+            : $currentTenant->favicon_url;
+        $brandTitle = ($currentTenant && $currentTenant->logo_path && ! $isOwner) ? $currentTenant->name : 'Aplikasi Ujian ADZKIA';
     @endphp
     <div class="h-20 flex items-center justify-center border-b border-gray-6 shrink-0 relative overflow-hidden transition-all duration-300 px-3">
         <!-- Logo Brand Lengkap (Saat Sidebar Terbuka) -->
         <a href="{{ route('dashboard') }}" 
            x-show="sidebarOpen"
            x-cloak
-           class="w-full flex items-center justify-center select-none py-1.5 transition-all duration-300"
+           class="w-full flex items-center justify-center px-2 py-1.5 select-none transition-all duration-300"
            title="{{ $brandTitle }}">
-            <img src="{{ $logoSrc }}" 
-                 alt="{{ $brandTitle }}" 
-                 class="h-14 sm:h-15 w-auto max-h-16 max-w-[215px] object-contain drop-shadow-xs transition-transform duration-200 hover:scale-105">
+            @if($isOwner || ! ($currentTenant && $currentTenant->logo_path))
+                <img src="{{ $logoSrc }}" 
+                     alt="{{ $brandTitle }}" 
+                     class="h-11 w-auto max-w-[200px] object-contain drop-shadow-xs transition-transform duration-200 hover:scale-105">
+            @else
+                <img src="{{ $logoSrc }}" 
+                     alt="{{ $brandTitle }}" 
+                     class="h-11 w-auto max-w-full object-contain drop-shadow-xs transition-transform duration-200 hover:scale-105">
+            @endif
         </a>
 
         <!-- Icon Brand (Saat Sidebar Di-minimize) -->

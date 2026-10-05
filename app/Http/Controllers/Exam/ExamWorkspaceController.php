@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Exam;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GradeExamSessionJob;
 use App\Models\ExamAnswer;
 use App\Models\ExamEvent;
 use App\Models\ExamSession;
@@ -12,10 +13,9 @@ use App\Services\ExamGradingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use App\Jobs\GradeExamSessionJob;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -278,7 +278,7 @@ class ExamWorkspaceController extends Controller
                         'submit_fallback' => true,
                     ]),
                 ])->save();
-                
+
                 GradeExamSessionJob::dispatch($session->id)
                     ->onQueue('grading')
                     ->afterCommit();
@@ -625,16 +625,19 @@ class ExamWorkspaceController extends Controller
     {
         $this->authorizeSession($request, $session);
 
-        // Ambil dari Cache Redis terlebih dahulu (TTL 10 menit), fallback ke DB
-        $cacheKey = "exam_session:grading_status:{$session->id}";
-        $statusData = Cache::remember($cacheKey, 600, function () use ($session) {
+        $fresh = ExamSession::query()->select(['id', 'grading_status', 'score', 'max_score'])->find($session->id);
+
+        if ($fresh && $fresh->grading_status !== 'completed') {
+            app(ExamGradingService::class)->autoGradeSessionOptimized($session);
             $fresh = ExamSession::query()->select(['id', 'grading_status', 'score', 'max_score'])->find($session->id);
-            return [
-                'status' => $fresh->grading_status ?? 'pending',
-                'is_ready' => ($fresh->grading_status === 'completed'),
-                'score' => $fresh->score,
-            ];
-        });
+            Cache::forget("exam_session:grading_status:{$session->id}");
+        }
+
+        $statusData = [
+            'status' => $fresh->grading_status ?? 'completed',
+            'is_ready' => ($fresh->grading_status === 'completed'),
+            'score' => $fresh->score ?? 0,
+        ];
 
         return response()->json($statusData)
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')

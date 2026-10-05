@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Exam;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GradeExamSessionJob;
 use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
@@ -80,7 +81,7 @@ class ExamResultController extends Controller
                     ]),
                 ])->save();
 
-                \App\Jobs\GradeExamSessionJob::dispatch($session->id)
+                GradeExamSessionJob::dispatch($session->id)
                     ->onQueue('grading')
                     ->afterCommit();
             } else {
@@ -88,8 +89,8 @@ class ExamResultController extends Controller
             }
         }
 
-        // Fallback grading sinkronus HANYA jika gagal/tersangkut atau bukan pending
-        if ($session->grading_status === 'failed' || ($session->grading_status !== 'pending' && $session->grading_status !== 'processing' && $session->grading_status !== 'completed')) {
+        // Auto-grade langsung jika belum completed (menjamin hasil langsung siap tanpa stuck di pending saat queue belum jalan)
+        if ($session->grading_status !== 'completed') {
             $this->gradingService->autoGradeSessionOptimized($session);
             $session->refresh();
         }

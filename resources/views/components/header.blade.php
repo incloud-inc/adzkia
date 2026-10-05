@@ -1,4 +1,25 @@
 <header class="bg-white border-b border-gray-6 px-6 py-3 h-20 flex items-center justify-between shrink-0 relative z-40 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+    @php
+        $routeName = request()->route()?->getName() ?? '';
+        $pageTitle = match(true) {
+            $routeName === 'dashboard'                       => 'Dashboard',
+            str_starts_with($routeName, 'tenants.')         => 'Manajemen Tenant',
+            str_starts_with($routeName, 'assessments.wizard')  => 'Wizard Buat Ujian',
+            str_starts_with($routeName, 'assessments.analytics') => 'Analitik Asesmen',
+            str_starts_with($routeName, 'assessments.')     => 'Asesmen & Ujian',
+            str_starts_with($routeName, 'question-banks.')  => 'Bank Soal Global',
+            str_starts_with($routeName, 'question-generator') => 'Studio AI',
+            str_starts_with($routeName, 'grade-levels.')    => 'Tingkat Kelas / Jenjang',
+            str_starts_with($routeName, 'subjects.')        => 'Mata Pelajaran',
+            str_starts_with($routeName, 'profile.')         => 'Profil Akun',
+            str_starts_with($routeName, 'wallet.')          => 'Dompet & Saldo',
+            str_starts_with($routeName, 'reports.')         => 'Laporan Penjualan',
+            str_starts_with($routeName, 'exam.')            => 'Ujian',
+            str_starts_with($routeName, 'dashboard.users.') => 'Detail Pengguna',
+            str_starts_with($routeName, 'exam-history.')    => 'Riwayat Ujian',
+            default                                          => config('app.name', 'ADZKIA'),
+        };
+    @endphp
     <!-- Left side -->
     <div class="flex items-center gap-4">
         <button 
@@ -8,7 +29,7 @@
             <x-radix-icon name="hamburger-menu" class="w-6 h-6" />
         </button>
         <h1 class="font-display font-bold text-xl text-gray-12 hidden sm:block tracking-tight">
-            Dashboard
+            {{ $pageTitle }}
         </h1>
     </div>
 

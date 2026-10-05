@@ -77,10 +77,11 @@
                 </div>
             </header>
 
-            <!-- Quick Stats Cards (4 Radix Metrics) -->
-            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            <!-- Quick Stats Cards (4 Radix Metrics) - Swipeable Snap Carousel on Mobile -->
+            <section class="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
                 <!-- Total Tenant -->
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
+                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Total Tenant</span>
                         <div class="w-10 h-10 rounded-xl bg-green-3 text-green-11 flex items-center justify-center shadow-xs">
@@ -94,7 +95,7 @@
                 </article>
 
                 <!-- Total Guru -->
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
+                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Total Guru</span>
                         <div class="w-10 h-10 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center shadow-xs">
@@ -108,7 +109,7 @@
                 </article>
 
                 <!-- Total Murid -->
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
+                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Total Siswa</span>
                         <div class="w-10 h-10 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center shadow-xs">
@@ -122,7 +123,7 @@
                 </article>
 
                 <!-- Total Admin Tenant -->
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-red-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
+                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-red-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Admin Cabang</span>
                         <div class="w-10 h-10 rounded-xl bg-red-3 text-red-11 flex items-center justify-center shadow-xs">
@@ -138,7 +139,7 @@
 
             <!-- Tab Navigation & Data Table Card -->
             <section class="space-y-4">
-                <nav class="flex items-center gap-2 border-b border-gray-6 pb-2 overflow-x-auto hide-scrollbar">
+                <nav class="flex items-center gap-2 border-b border-gray-6 pb-2 overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x">
                     <button 
                         @click="activeTab = 'tenants'"
                         :class="activeTab === 'tenants' ? 'bg-green-3 text-green-11 border-green-7 font-bold shadow-xs' : 'text-gray-11 hover:bg-gray-2 hover:text-gray-12 font-medium border-transparent'"
@@ -176,10 +177,15 @@
                 <!-- Table Card Container -->
                 <div class="bg-white border border-gray-6 rounded-2xl shadow-xs overflow-hidden">
                     <!-- Tab: Tenants -->
-                    <div x-show="activeTab === 'tenants'" class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
+                    <div x-show="activeTab === 'tenants'" class="overflow-x-auto touch-pan-x hide-scrollbar">
+                        <!-- Mobile Swipe Hint for Table -->
+                        <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-green-9 animate-pulse shrink-0" />
+                            <span>Geser tabel ke samping untuk melihat kolom lengkap</span>
+                        </div>
+                        <table class="w-full text-left border-collapse text-xs min-w-[640px] sm:min-w-full">
                             <thead>
-                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold">
+                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold whitespace-nowrap">
                                     <th class="py-3.5 px-5">Nama Tenant</th>
                                     <th class="py-3.5 px-4">Subdomain</th>
                                     <th class="py-3.5 px-4 text-center">Guru</th>
@@ -191,29 +197,29 @@
                             <tbody class="divide-y divide-gray-5">
                                 @forelse($tenants as $t)
                                     <tr class="hover:bg-gray-2/50 transition-colors">
-                                        <td class="py-3.5 px-5 font-semibold text-gray-12">
+                                        <td class="py-3.5 px-5 font-semibold text-gray-12 whitespace-nowrap">
                                             <a href="{{ route('tenants.show', $t) }}" class="hover:text-green-11 transition-colors flex items-center gap-2">
-                                                <span class="w-2 h-2 rounded-full bg-green-9"></span>
+                                                <span class="w-2 h-2 rounded-full bg-green-9 shrink-0"></span>
                                                 <span>{{ $t->name }}</span>
                                             </a>
                                         </td>
-                                        <td class="py-3.5 px-4 font-mono text-gray-11">{{ $t->subdomain }}.{{ config('app.url_base_domain', 'localhost') }}</td>
-                                        <td class="py-3.5 px-4 text-center">
+                                        <td class="py-3.5 px-4 font-mono text-gray-11 whitespace-nowrap">{{ $t->subdomain }}.{{ config('app.url_base_domain', 'localhost') }}</td>
+                                        <td class="py-3.5 px-4 text-center whitespace-nowrap">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-blue-11 bg-blue-3 border border-blue-6/60">
                                                 {{ $t->teachers_count }} guru
                                             </span>
                                         </td>
-                                        <td class="py-3.5 px-4 text-center">
+                                        <td class="py-3.5 px-4 text-center whitespace-nowrap">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-amber-11 bg-amber-3 border border-amber-6/60">
                                                 {{ $t->students_count }} siswa
                                             </span>
                                         </td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-bold text-green-11 bg-green-3 border border-green-6/60 uppercase text-[10px]">
                                                 {{ $t->plan ?? 'Gratis' }}
                                             </span>
                                         </td>
-                                        <td class="py-3.5 px-5 text-right">
+                                        <td class="py-3.5 px-5 text-right whitespace-nowrap">
                                             <div class="flex items-center justify-end gap-2">
                                                 <a href="{{ route('tenants.branding.edit', $t) }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-2 hover:bg-gray-3 text-gray-12 border border-gray-6 transition-all duration-200 active:scale-95 flex items-center gap-1.5">
                                                     <x-radix-icon name="image" class="w-3.5 h-3.5 text-gray-11" />
@@ -236,10 +242,15 @@
                     </div>
 
                     <!-- Tab: Teachers -->
-                    <div x-show="activeTab === 'teachers'" style="display: none;" class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
+                    <div x-show="activeTab === 'teachers'" style="display: none;" class="overflow-x-auto touch-pan-x hide-scrollbar">
+                        <!-- Mobile Swipe Hint -->
+                        <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-blue-9 animate-pulse shrink-0" />
+                            <span>Geser tabel ke samping untuk melihat kolom lengkap</span>
+                        </div>
+                        <table class="w-full text-left border-collapse text-xs min-w-[580px] sm:min-w-full">
                             <thead>
-                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold">
+                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold whitespace-nowrap">
                                     <th class="py-3.5 px-5">Nama Guru</th>
                                     <th class="py-3.5 px-4">Email</th>
                                     <th class="py-3.5 px-4">Institusi</th>
@@ -249,9 +260,9 @@
                             <tbody class="divide-y divide-gray-5">
                                 @forelse($teachers as $tch)
                                     <tr class="hover:bg-gray-2/50 transition-colors">
-                                        <td class="py-3.5 px-5 font-semibold text-gray-12">{{ $tch->name }}</td>
-                                        <td class="py-3.5 px-4 font-mono text-gray-11">{{ $tch->email }}</td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-5 font-semibold text-gray-12 whitespace-nowrap">{{ $tch->name }}</td>
+                                        <td class="py-3.5 px-4 font-mono text-gray-11 whitespace-nowrap">{{ $tch->email }}</td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <div class="flex flex-wrap gap-1.5">
                                                 @foreach($tch->tenants as $t)
                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium text-blue-11 bg-blue-3 border border-blue-6/60 text-[10px]">
@@ -260,7 +271,7 @@
                                                 @endforeach
                                             </div>
                                         </td>
-                                        <td class="py-3.5 px-5 text-right">
+                                        <td class="py-3.5 px-5 text-right whitespace-nowrap">
                                             <div class="flex items-center justify-end gap-1.5">
                                                 <button type="button" @click="openDetailModal({{ $tch->id }})" 
                                                         class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-3 hover:bg-gray-4 text-gray-12 transition-colors cursor-pointer">
@@ -291,10 +302,15 @@
                     </div>
 
                     <!-- Tab: Students -->
-                    <div x-show="activeTab === 'students'" style="display: none;" class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
+                    <div x-show="activeTab === 'students'" style="display: none;" class="overflow-x-auto touch-pan-x hide-scrollbar">
+                        <!-- Mobile Swipe Hint -->
+                        <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-amber-9 animate-pulse shrink-0" />
+                            <span>Geser tabel ke samping untuk melihat kolom lengkap</span>
+                        </div>
+                        <table class="w-full text-left border-collapse text-xs min-w-[580px] sm:min-w-full">
                             <thead>
-                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold">
+                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold whitespace-nowrap">
                                     <th class="py-3.5 px-5">Nama Siswa</th>
                                     <th class="py-3.5 px-4">Email</th>
                                     <th class="py-3.5 px-4">Institusi</th>
@@ -304,9 +320,9 @@
                             <tbody class="divide-y divide-gray-5">
                                 @forelse($students as $stu)
                                     <tr class="hover:bg-gray-2/50 transition-colors">
-                                        <td class="py-3.5 px-5 font-semibold text-gray-12">{{ $stu->name }}</td>
-                                        <td class="py-3.5 px-4 font-mono text-gray-11">{{ $stu->email }}</td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-5 font-semibold text-gray-12 whitespace-nowrap">{{ $stu->name }}</td>
+                                        <td class="py-3.5 px-4 font-mono text-gray-11 whitespace-nowrap">{{ $stu->email }}</td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <div class="flex flex-wrap gap-1.5">
                                                 @foreach($stu->tenants as $t)
                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium text-amber-11 bg-amber-3 border border-amber-6/60 text-[10px]">
@@ -315,7 +331,7 @@
                                                 @endforeach
                                             </div>
                                         </td>
-                                        <td class="py-3.5 px-5 text-right">
+                                        <td class="py-3.5 px-5 text-right whitespace-nowrap">
                                             <div class="flex items-center justify-end gap-1.5">
                                                 <button type="button" @click="openDetailModal({{ $stu->id }})" 
                                                         class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-3 hover:bg-gray-4 text-gray-12 transition-colors cursor-pointer">
@@ -346,10 +362,15 @@
                     </div>
 
                     <!-- Tab: Admins -->
-                    <div x-show="activeTab === 'admins'" style="display: none;" class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
+                    <div x-show="activeTab === 'admins'" style="display: none;" class="overflow-x-auto touch-pan-x hide-scrollbar">
+                        <!-- Mobile Swipe Hint -->
+                        <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-red-9 animate-pulse shrink-0" />
+                            <span>Geser tabel ke samping untuk melihat kolom lengkap</span>
+                        </div>
+                        <table class="w-full text-left border-collapse text-xs min-w-[580px] sm:min-w-full">
                             <thead>
-                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold">
+                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold whitespace-nowrap">
                                     <th class="py-3.5 px-5">Nama Admin</th>
                                     <th class="py-3.5 px-4">Email</th>
                                     <th class="py-3.5 px-4">Institusi Kelolaan</th>
@@ -359,9 +380,9 @@
                             <tbody class="divide-y divide-gray-5">
                                 @forelse($admins as $adm)
                                     <tr class="hover:bg-gray-2/50 transition-colors">
-                                        <td class="py-3.5 px-5 font-semibold text-gray-12">{{ $adm->name }}</td>
-                                        <td class="py-3.5 px-4 font-mono text-gray-11">{{ $adm->email }}</td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-5 font-semibold text-gray-12 whitespace-nowrap">{{ $adm->name }}</td>
+                                        <td class="py-3.5 px-4 font-mono text-gray-11 whitespace-nowrap">{{ $adm->email }}</td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <div class="flex flex-wrap gap-1.5">
                                                 @foreach($adm->tenants as $t)
                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium text-red-11 bg-red-3 border border-red-6/60 text-[10px]">
@@ -370,7 +391,7 @@
                                                 @endforeach
                                             </div>
                                         </td>
-                                        <td class="py-3.5 px-5 text-right">
+                                        <td class="py-3.5 px-5 text-right whitespace-nowrap">
                                             <div class="flex items-center justify-end gap-1.5">
                                                 <button type="button" @click="openDetailModal({{ $adm->id }})" 
                                                         class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-3 hover:bg-gray-4 text-gray-12 transition-colors cursor-pointer">
@@ -466,9 +487,10 @@
                 </div>
             </header>
 
-            <!-- Stats Ringkasan Siswa (4 Metric Cards) -->
-            <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+
+            <!-- Stats Ringkasan Siswa (4 Metric Cards) - Swipeable Snap Carousel on Mobile -->
+            <section class="flex overflow-x-auto sm:grid grid-cols-2 sm:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Ujian Tersedia</span>
                         <div class="w-9 h-9 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center">
@@ -479,7 +501,7 @@
                     <div class="font-sans text-xs text-blue-11 font-medium mt-1">Siap dikerjakan</div>
                 </article>
 
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-indigo-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-indigo-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Mata Pelajaran</span>
                         <div class="w-9 h-9 rounded-xl bg-indigo-3 text-indigo-11 flex items-center justify-center">
@@ -490,7 +512,7 @@
                     <div class="font-sans text-xs text-indigo-11 font-medium mt-1">Bidang studi aktif</div>
                 </article>
 
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Status Akun</span>
                         <div class="w-9 h-9 rounded-xl bg-green-3 text-green-11 flex items-center justify-center">
@@ -501,7 +523,7 @@
                     <div class="font-sans text-xs text-gray-11 mt-0.5">Siswa Terdaftar</div>
                 </article>
 
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Institusi Mitra</span>
                         <div class="w-9 h-9 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center">
@@ -524,26 +546,34 @@
             </section>
 
             <!-- Asesmen & Ujian Siap Dikerjakan -->
-            <section class="bg-white border border-gray-6 rounded-2xl p-6 shadow-xs">
+            <section class="bg-white border border-gray-6 rounded-2xl p-4 sm:p-6 shadow-xs">
                 <div class="flex items-center justify-between mb-5">
                     <div>
                         <h2 class="font-display font-bold text-lg text-gray-12 tracking-tight">Ujian &amp; Asesmen Siap Dikerjakan</h2>
                         <p class="font-sans text-xs text-gray-11 mt-0.5">Pilih salah satu asesmen di bawah ini untuk memulai evaluasi belajar mandiri.</p>
                     </div>
-                    <a href="{{ route('assessments.index') }}" class="font-sans text-xs font-bold text-blue-11 hover:text-blue-12 hover:underline inline-flex items-center gap-1">
+                    <a href="{{ route('assessments.index') }}" class="font-sans text-xs font-bold text-blue-11 hover:text-blue-12 hover:underline inline-flex items-center gap-1 shrink-0">
                         <span>Lihat Semua Ujian</span>
                         <x-radix-icon name="arrow-right" class="w-3.5 h-3.5" />
                     </a>
                 </div>
 
                 @if($availableAssessments && $availableAssessments->count() > 0)
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Mobile Swipe Hint for Exam Cards -->
+                    <div class="md:hidden flex items-center justify-end text-[11px] text-blue-11 font-medium pb-2 px-1">
+                        <span class="flex items-center gap-1">
+                            <span>Geser kartu ujian ke samping</span>
+                            <x-radix-icon name="arrow-right" class="w-3 h-3 animate-pulse" />
+                        </span>
+                    </div>
+
+                    <div class="flex overflow-x-auto md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x md:overflow-visible">
                         @foreach($availableAssessments as $exam)
                             @php
                                 $access = $exam->accesses?->first();
                                 $isPurchased = !is_null($access);
                             @endphp
-                            <article class="p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] {{ $isPurchased ? 'border-amber-400 shadow-xs' : 'border-gray-6 bg-gray-1 hover:bg-white hover:border-blue-6' }}"
+                            <article class="min-w-[280px] xs:min-w-[320px] md:min-w-0 snap-start shrink-0 md:shrink flex-1 p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] {{ $isPurchased ? 'border-amber-400 shadow-xs' : 'border-gray-6 bg-gray-1 hover:bg-white hover:border-blue-6' }}"
                                      style="{{ $isPurchased ? 'background-color: #ffd8a8 !important;' : '' }}">
                                 <div>
                                     <div class="flex items-center justify-between gap-2 mb-2.5">
@@ -662,9 +692,10 @@
                 </div>
             </header>
 
-            <!-- Stats Ringkasan Guru -->
-            <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+
+            <!-- Stats Ringkasan Guru - Swipeable Snap Carousel on Mobile -->
+            <section class="flex overflow-x-auto sm:grid grid-cols-2 sm:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Ujian Dibuat</span>
                         <div class="w-9 h-9 rounded-xl bg-green-3 text-green-11 flex items-center justify-center">
@@ -675,7 +706,7 @@
                     <div class="font-sans text-xs text-green-11 font-medium mt-1">Asesmen binaan saya</div>
                 </article>
 
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Bank Soal</span>
                         <div class="w-9 h-9 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center">
@@ -686,7 +717,7 @@
                     <div class="font-sans text-xs text-blue-11 font-medium mt-1">Paket soal tersimpan</div>
                 </article>
 
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Siswa Terdaftar</span>
                         <div class="w-9 h-9 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center">
@@ -697,7 +728,7 @@
                     <div class="font-sans text-xs text-amber-11 font-medium mt-1">Peserta didik aktif</div>
                 </article>
 
-                <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-teal-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-teal-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Institusi Sekolah</span>
                         <div class="w-9 h-9 rounded-xl bg-teal-3 text-teal-11 flex items-center justify-center">
@@ -710,14 +741,14 @@
             </section>
 
             <!-- Asesmen Binaan Pendidik -->
-            <section class="bg-white border border-gray-6 rounded-2xl p-6 shadow-xs">
+            <section class="bg-white border border-gray-6 rounded-2xl p-4 sm:p-6 shadow-xs">
                 <div class="flex items-center justify-between mb-5">
                     <div>
                         <h2 class="font-display font-bold text-lg text-gray-12 tracking-tight">Asesmen &amp; Ujian Binaan Saya</h2>
                         <p class="font-sans text-xs text-gray-11 mt-0.5">Daftar evaluasi yang telah Anda rancang melalui CBT Engine.</p>
                     </div>
                     @if($tenant && $tenant->canCreateAssessments())
-                    <a href="{{ route('assessments.wizard') }}" class="px-4 py-2 rounded-xl bg-green-9 hover:bg-green-10 text-white text-xs font-bold transition-all duration-200 flex items-center gap-1.5 shadow-xs active:scale-95">
+                    <a href="{{ route('assessments.wizard') }}" class="px-4 py-2 rounded-xl bg-green-9 hover:bg-green-10 text-white text-xs font-bold transition-all duration-200 flex items-center gap-1.5 shadow-xs active:scale-95 shrink-0">
                         <x-radix-icon name="plus" class="w-4 h-4" />
                         <span>Buat Ujian</span>
                     </a>
@@ -725,10 +756,15 @@
                 </div>
 
                 @if($myAssessments && $myAssessments->count() > 0)
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
+                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                        <!-- Mobile Swipe Hint for Table -->
+                        <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-green-9 animate-pulse shrink-0" />
+                            <span>Geser tabel ke samping untuk melihat kolom lengkap</span>
+                        </div>
+                        <table class="w-full text-left border-collapse text-xs min-w-[620px] sm:min-w-full">
                             <thead>
-                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold">
+                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold whitespace-nowrap">
                                     <th class="py-3 px-4">Judul Ujian</th>
                                     <th class="py-3 px-4">Mata Pelajaran</th>
                                     <th class="py-3 px-4 text-center">Durasi</th>
@@ -740,20 +776,20 @@
                             <tbody class="divide-y divide-gray-5">
                                 @foreach($myAssessments as $exam)
                                     <tr class="hover:bg-gray-2/50 transition-colors">
-                                        <td class="py-3 px-4 font-semibold text-gray-12">
+                                        <td class="py-3 px-4 font-semibold text-gray-12 whitespace-nowrap">
                                             <a href="{{ route('assessments.show', $exam) }}" class="hover:text-green-11 transition-colors">
                                                 {{ $exam->title }}
                                             </a>
                                         </td>
-                                        <td class="py-3 px-4 text-gray-11">{{ $exam->subject?->name ?? 'Umum' }}</td>
-                                        <td class="py-3 px-4 text-center text-gray-11 font-mono">{{ $exam->duration_minutes }} mnt</td>
-                                        <td class="py-3 px-4 text-center text-gray-11 font-mono">{{ $exam->questions_count }} soal</td>
-                                        <td class="py-3 px-4">
+                                        <td class="py-3 px-4 text-gray-11 whitespace-nowrap">{{ $exam->subject?->name ?? 'Umum' }}</td>
+                                        <td class="py-3 px-4 text-center text-gray-11 font-mono whitespace-nowrap">{{ $exam->duration_minutes }} mnt</td>
+                                        <td class="py-3 px-4 text-center text-gray-11 font-mono whitespace-nowrap">{{ $exam->questions_count }} soal</td>
+                                        <td class="py-3 px-4 whitespace-nowrap">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase {{ $exam->status === 'published' ? 'bg-green-3 text-green-11 border border-green-6/60' : 'bg-gray-3 text-gray-11' }}">
                                                 {{ $exam->status === 'published' ? 'Published' : 'Draf' }}
                                             </span>
                                         </td>
-                                        <td class="py-3 px-4 text-right">
+                                        <td class="py-3 px-4 text-right whitespace-nowrap">
                                             <div class="flex items-center justify-end gap-2">
                                                 <a href="{{ route('assessments.result-preview', $exam) }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-3 text-green-11 hover:bg-green-4 border border-green-6/60 transition-all duration-200 active:scale-95">
                                                     Pratinjau Hasil
@@ -972,10 +1008,11 @@
                 </div>
             </section>
 
-            <!-- 2. STATS RINGKASAN EKOSISTEM SEKOLAH (4 KARTU METRIK) -->
-            <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+            <!-- 2. STATS RINGKASAN EKOSISTEM SEKOLAH (4 KARTU METRIK) - Swipeable Snap Carousel on Mobile -->
+            <section class="flex overflow-x-auto lg:grid grid-cols-2 lg:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x lg:overflow-visible">
                 <!-- Dewan Guru & Pengawas -->
-                <article @click="tab = 'teachers'" class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer group">
+                <article @click="tab = 'teachers'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer group">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider group-hover:text-blue-11 transition-colors">Dewan Guru</span>
                         <div class="w-10 h-10 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center shadow-xs">
@@ -987,7 +1024,7 @@
                 </article>
 
                 <!-- Siswa Terdaftar -->
-                <article @click="tab = 'students'" class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer group">
+                <article @click="tab = 'students'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer group">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider group-hover:text-amber-11 transition-colors">Siswa Terdaftar</span>
                         <div class="w-10 h-10 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center shadow-xs">
@@ -999,7 +1036,7 @@
                 </article>
 
                 <!-- Katalog Ujian Institusi -->
-                <article @click="tab = 'assessments'" class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer group">
+                <article @click="tab = 'assessments'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer group">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider group-hover:text-green-11 transition-colors">Katalog Ujian</span>
                         <div class="w-10 h-10 rounded-xl bg-green-3 text-green-11 flex items-center justify-center shadow-xs">
@@ -1011,7 +1048,7 @@
                 </article>
 
                 <!-- Paket Bank Soal -->
-                <a href="{{ route('assessments.index') }}" class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-indigo-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 group block">
+                <a href="{{ route('assessments.index') }}" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-indigo-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 group block">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider group-hover:text-indigo-11 transition-colors">Bank Soal</span>
                         <div class="w-10 h-10 rounded-xl bg-indigo-3 text-indigo-11 flex items-center justify-center shadow-xs">
@@ -1026,7 +1063,7 @@
             <!-- 3. WORKSPACE TABEL TERPADU (GURU, SISWA, ASESMEN, ADMIN) -->
             <section class="space-y-4">
                 <!-- Tab Selector Buttons -->
-                <nav class="flex items-center gap-2 border-b border-gray-6 pb-2 overflow-x-auto hide-scrollbar">
+                <nav class="flex items-center gap-2 border-b border-gray-6 pb-2 overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x">
                     <button type="button" 
                             @click="tab = 'teachers'"
                             :class="tab === 'teachers' ? 'bg-blue-3 text-blue-11 border-blue-7 font-bold shadow-xs' : 'text-gray-11 hover:bg-gray-2 hover:text-gray-12 font-medium border-transparent'"
@@ -1072,9 +1109,15 @@
                         </span>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                                              <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold">
+                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                        <!-- Mobile Swipe Hint for Table -->
+                        <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-blue-9 animate-pulse shrink-0" />
+                            <span>Geser tabel ke samping untuk melihat kolom lengkap</span>
+                        </div>
+                        <table class="w-full text-left border-collapse text-xs min-w-[680px] sm:min-w-full">
+                            <thead>
+                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold whitespace-nowrap">
                                     <th class="py-3.5 px-4 w-12 text-center">No</th>
                                     <th class="py-3.5 px-4">Guru / Tenaga Pendidik</th>
                                     <th class="py-3.5 px-4">Email</th>
@@ -1094,8 +1137,8 @@
                                         $isWaVerified = $teacher->isWhatsappVerified();
                                     @endphp
                                     <tr class="hover:bg-gray-2/50 transition-colors">
-                                        <td class="py-3.5 px-4 text-center font-mono text-gray-10">{{ $index + 1 }}</td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 text-center font-mono text-gray-10 whitespace-nowrap">{{ $index + 1 }}</td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <div class="flex items-center gap-3">
                                                 <img src="{{ $teacher->profile_photo_url }}" alt="{{ $teacher->name }}" class="w-8 h-8 rounded-full object-cover border border-gray-6 shrink-0 bg-white">
                                                 <div>
@@ -1106,8 +1149,8 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="py-3.5 px-4 font-mono text-gray-11">{{ $teacher->email }}</td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 font-mono text-gray-11 whitespace-nowrap">{{ $teacher->email }}</td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             @if($rawWa)
                                                 <div class="flex items-center gap-1.5 flex-wrap">
                                                     <a href="https://wa.me/{{ $rawWa }}" target="_blank" 
@@ -1125,15 +1168,15 @@
                                                 <span class="text-gray-9 italic text-xs">Belum diisi</span>
                                             @endif
                                         </td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold text-blue-11 bg-blue-3 border border-blue-6/60">
                                                 Guru &amp; Pengawas
                                             </span>
                                         </td>
-                                        <td class="py-3.5 px-4 text-gray-11">
+                                        <td class="py-3.5 px-4 text-gray-11 whitespace-nowrap">
                                             {{ $teacher->created_at ? $teacher->created_at->format('d M Y') : '-' }}
                                         </td>
-                                        <td class="py-3.5 px-4 text-right">
+                                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
                                             <div class="flex items-center justify-end gap-1.5">
                                                 <button type="button" @click="openDetailModal({{ $teacher->id }})" 
                                                         class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-3 hover:bg-gray-4 text-gray-12 transition-colors cursor-pointer">
@@ -1178,10 +1221,15 @@
                         </span>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
+                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                        <!-- Mobile Swipe Hint -->
+                        <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-amber-9 animate-pulse shrink-0" />
+                            <span>Geser tabel ke samping untuk melihat kolom lengkap</span>
+                        </div>
+                        <table class="w-full text-left border-collapse text-xs min-w-[680px] sm:min-w-full">
                             <thead>
-                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold">
+                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold whitespace-nowrap">
                                     <th class="py-3.5 px-4 w-12 text-center">No</th>
                                     <th class="py-3.5 px-4">Nama Siswa</th>
                                     <th class="py-3.5 px-4">Email</th>
@@ -1201,8 +1249,8 @@
                                         $isStudentWaVerified = $student->isWhatsappVerified();
                                     @endphp
                                     <tr class="hover:bg-gray-2/50 transition-colors">
-                                        <td class="py-3.5 px-4 text-center font-mono text-gray-10">{{ $index + 1 }}</td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 text-center font-mono text-gray-10 whitespace-nowrap">{{ $index + 1 }}</td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <div class="flex items-center gap-3">
                                                 <img src="{{ $student->profile_photo_url }}" alt="{{ $student->name }}" class="w-8 h-8 rounded-full object-cover border border-gray-6 shrink-0 bg-white">
                                                 <div>
@@ -1213,8 +1261,8 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="py-3.5 px-4 font-mono text-gray-11">{{ $student->email }}</td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 font-mono text-gray-11 whitespace-nowrap">{{ $student->email }}</td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             @if($rawWaStudent)
                                                 <div class="flex items-center gap-1.5 flex-wrap">
                                                     <a href="https://wa.me/{{ $rawWaStudent }}" target="_blank" 
@@ -1232,15 +1280,15 @@
                                                 <span class="text-gray-9 italic text-xs">Belum diisi</span>
                                             @endif
                                         </td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold text-amber-11 bg-amber-3 border border-amber-6/60">
                                                 Peserta Didik
                                             </span>
                                         </td>
-                                        <td class="py-3.5 px-4 text-gray-11">
+                                        <td class="py-3.5 px-4 text-gray-11 whitespace-nowrap">
                                             {{ $student->created_at ? $student->created_at->format('d M Y') : '-' }}
                                         </td>
-                                        <td class="py-3.5 px-4 text-right">
+                                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
                                             <div class="flex items-center justify-end gap-1.5">
                                                 <button type="button" @click="openDetailModal({{ $student->id }})" 
                                                         class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-3 hover:bg-gray-4 text-gray-12 transition-colors cursor-pointer">
@@ -1280,16 +1328,21 @@
                             <h3 class="font-display font-bold text-sm text-gray-12">Katalog Asesmen &amp; Ujian Institusi</h3>
                             <p class="font-sans text-xs text-gray-11 mt-0.5">Daftar evaluasi belajar aktif dengan akses tombol pengawasan langsung.</p>
                         </div>
-                        <a href="{{ route('assessments.index') }}" class="font-sans text-xs font-bold text-blue-11 hover:text-blue-12 self-start sm:self-auto flex items-center gap-1.5">
+                        <a href="{{ route('assessments.index') }}" class="font-sans text-xs font-bold text-blue-11 hover:text-blue-12 self-start sm:self-auto flex items-center gap-1.5 shrink-0">
                             <span>Buka Halaman Bank Soal Lengkap</span>
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5" />
                         </a>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
+                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                        <!-- Mobile Swipe Hint -->
+                        <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-green-9 animate-pulse shrink-0" />
+                            <span>Geser tabel ke samping untuk melihat kolom lengkap</span>
+                        </div>
+                        <table class="w-full text-left border-collapse text-xs min-w-[700px] sm:min-w-full">
                             <thead>
-                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold">
+                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold whitespace-nowrap">
                                     <th class="py-3.5 px-4 w-12 text-center">No</th>
                                     <th class="py-3.5 px-4">Judul Asesmen</th>
                                     <th class="py-3.5 px-4">Mata Pelajaran</th>
@@ -1303,22 +1356,22 @@
                             <tbody class="divide-y divide-gray-5">
                                 @forelse($recentAssessments as $idx => $exam)
                                     <tr class="hover:bg-gray-2/50 transition-colors">
-                                        <td class="py-3.5 px-4 text-center font-mono text-gray-10">{{ $idx + 1 }}</td>
-                                        <td class="py-3.5 px-4 font-bold text-gray-12">
+                                        <td class="py-3.5 px-4 text-center font-mono text-gray-10 whitespace-nowrap">{{ $idx + 1 }}</td>
+                                        <td class="py-3.5 px-4 font-bold text-gray-12 whitespace-nowrap">
                                             <a href="{{ route('assessments.show', $exam) }}" class="hover:text-blue-11 transition-colors">
                                                 {{ $exam->title }}
                                             </a>
                                         </td>
-                                        <td class="py-3.5 px-4 text-gray-11">{{ $exam->subject?->name ?? 'Umum' }}</td>
-                                        <td class="py-3.5 px-4 text-center">
+                                        <td class="py-3.5 px-4 text-gray-11 whitespace-nowrap">{{ $exam->subject?->name ?? 'Umum' }}</td>
+                                        <td class="py-3.5 px-4 text-center whitespace-nowrap">
                                             <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-3 text-gray-11">
                                                 {{ $exam->grade_level ?: 'Semua' }}
                                             </span>
                                         </td>
-                                        <td class="py-3.5 px-4 text-center text-gray-11 font-mono">
+                                        <td class="py-3.5 px-4 text-center text-gray-11 font-mono whitespace-nowrap">
                                             {{ $exam->duration_minutes }} mnt
                                         </td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             @if($exam->is_mandatory)
                                                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-3 text-amber-11 border border-amber-6/60">
                                                     🔒 WAJIB NASIONAL (OWNER)
@@ -1337,7 +1390,7 @@
                                                 <span>Pengawasan</span>
                                             </a>
                                         </td>
-                                        <td class="py-3.5 px-4 text-right">
+                                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
                                             <a href="{{ route('assessments.show', $exam) }}" 
                                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-2 hover:bg-gray-3 border border-gray-6 text-gray-12 transition-all duration-200 active:scale-95">
                                                 Detail
@@ -1368,10 +1421,15 @@
                         </span>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
+                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                        <!-- Mobile Swipe Hint -->
+                        <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-red-9 animate-pulse shrink-0" />
+                            <span>Geser tabel ke samping untuk melihat kolom lengkap</span>
+                        </div>
+                        <table class="w-full text-left border-collapse text-xs min-w-[680px] sm:min-w-full">
                             <thead>
-                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold">
+                                <tr class="border-b border-gray-6 bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold whitespace-nowrap">
                                     <th class="py-3.5 px-4 w-12 text-center">No</th>
                                     <th class="py-3.5 px-4">Nama Administrator</th>
                                     <th class="py-3.5 px-4">Email</th>
@@ -1390,8 +1448,8 @@
                                         }
                                     @endphp
                                     <tr class="hover:bg-gray-2/50 transition-colors">
-                                        <td class="py-3.5 px-4 text-center font-mono text-gray-10">{{ $idxAdmin + 1 }}</td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 text-center font-mono text-gray-10 whitespace-nowrap">{{ $idxAdmin + 1 }}</td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <div class="flex items-center gap-3">
                                                 <img src="{{ $admin->profile_photo_url }}" alt="{{ $admin->name }}" class="w-8 h-8 rounded-full object-cover border border-gray-6 shrink-0 bg-white">
                                                 <div>
@@ -1402,8 +1460,8 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="py-3.5 px-4 font-mono text-gray-11">{{ $admin->email }}</td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 font-mono text-gray-11 whitespace-nowrap">{{ $admin->email }}</td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             @if($rawWaAdmin)
                                                 <a href="https://wa.me/{{ $rawWaAdmin }}" target="_blank" 
                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-3 hover:bg-green-4 text-green-11 border border-green-6/60 font-mono text-xs font-semibold transition-all duration-200 active:scale-95">
@@ -1413,15 +1471,15 @@
                                                 <span class="text-gray-9 italic text-xs">Belum diisi</span>
                                             @endif
                                         </td>
-                                        <td class="py-3.5 px-4">
+                                        <td class="py-3.5 px-4 whitespace-nowrap">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold text-red-11 bg-red-3 border border-red-6/60">
                                                 Administrator
                                             </span>
                                         </td>
-                                        <td class="py-3.5 px-4 text-gray-11">
+                                        <td class="py-3.5 px-4 text-gray-11 whitespace-nowrap">
                                             {{ $admin->created_at ? $admin->created_at->format('d M Y') : '-' }}
                                         </td>
-                                        <td class="py-3.5 px-4 text-right">
+                                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
                                             <div class="flex items-center justify-end gap-1.5">
                                                 <button type="button" @click="openDetailModal({{ $admin->id }})" 
                                                         class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-3 hover:bg-gray-4 text-gray-12 transition-colors cursor-pointer">
@@ -1445,7 +1503,7 @@
                                 @empty
                                     <tr>
                                         <td colspan="7" class="py-12 text-center text-gray-11 italic">
-                                            Belum ada admin yang terdaftar.
+                                            Belum ada administrator yang terdaftar di institusi ini.
                                         </td>
                                     </tr>
                                 @endforelse

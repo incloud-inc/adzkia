@@ -20,7 +20,22 @@ class SubjectController extends Controller
             abort(403, 'Hanya Owner yang memiliki hak akses untuk mengelola mata pelajaran.');
         }
 
-        $query = Subject::withCount(['assessments', 'questionBanks']);
+        $query = Subject::query()
+            ->select('subjects.*')
+            ->selectRaw('(select count(*) from assessments where assessments.subject_id = subjects.id) as assessments_count')
+            ->selectRaw('(
+                coalesce((select count(*) from questions 
+                    inner join assessment_sections on questions.assessment_section_id = assessment_sections.id
+                    inner join assessments on assessment_sections.assessment_id = assessments.id
+                    where assessments.subject_id = subjects.id), 0)
+                +
+                coalesce((select count(*) from questions
+                    inner join question_banks on questions.question_bank_id = question_banks.id
+                    where question_banks.subject_id = subjects.id), 0)
+            ) as questions_count')
+            ->selectRaw('(select count(*) from exam_sessions 
+                inner join assessments on exam_sessions.assessment_id = assessments.id
+                where assessments.subject_id = subjects.id) as exam_sessions_count');
 
         if ($request->filled('search')) {
             $search = $request->search;

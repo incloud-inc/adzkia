@@ -426,6 +426,108 @@ class AssessmentWizardTest extends TestCase
         }
     }
 
+    public function test_user_can_import_questions_with_images_from_word_docx(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 1 Bandung', 'subdomain' => 'sman1bdg', 'plan' => 'whitelabel']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'test_img_feat_').'.docx';
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($tempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE));
+
+        $pngData = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+
+        $zip->addFromString('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+    <Default Extension="xml" ContentType="application/xml"/>
+    <Default Extension="png" ContentType="image/png"/>
+    <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>');
+
+        $zip->addFromString('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>');
+
+        $zip->addFromString('word/_rels/document.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rIdImg1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>
+</Relationships>');
+
+        $zip->addFromString('word/media/image1.png', $pngData);
+
+        $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+            xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+            xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+            xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+    <w:body>
+        <w:p>
+            <w:r><w:t>1. Perhatikan gambar anatomi berikut:</w:t></w:r>
+        </w:p>
+        <w:p>
+            <w:r>
+                <w:drawing>
+                    <wp:inline>
+                        <wp:docPr id="1" name="Anatomi Jantung" descr="Gambar Jantung"/>
+                        <a:graphic>
+                            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                                <pic:pic>
+                                    <pic:blipFill>
+                                        <a:blip r:embed="rIdImg1"/>
+                                    </pic:blipFill>
+                                </pic:pic>
+                            </a:graphicData>
+                        </a:graphic>
+                    </wp:inline>
+                </w:drawing>
+            </w:r>
+        </w:p>
+        <w:p>
+            <w:r><w:t>Organ tersebut berfungsi memompa darah ke seluruh tubuh.</w:t></w:r>
+        </w:p>
+        <w:p><w:r><w:t>A. Jantung</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Paru-paru</w:t></w:r></w:p>
+        <w:p><w:r><w:t>KUNCI: A</w:t></w:r></w:p>
+    </w:body>
+</w:document>';
+        $zip->addFromString('word/document.xml', $documentXml);
+        $zip->close();
+
+        $uploadedFile = new UploadedFile(
+            $tempPath,
+            'Soal_Bergambar.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            null,
+            true
+        );
+
+        $response = $this->actingAs($teacher)->post(route('assessments.import-word'), [
+            'word_file' => $uploadedFile,
+        ], ['Accept' => 'application/json']);
+
+        $response->assertStatus(200);
+        $response->assertJson(['status' => 'success']);
+
+        $data = $response->json();
+        $this->assertNotEmpty($data['items']);
+        $q1 = $data['items'][0];
+
+        $this->assertEquals('mcq_single', $q1['type']);
+        $this->assertStringContainsString('Perhatikan gambar anatomi berikut:', $q1['prompt']);
+        $this->assertStringContainsString('![Gambar Jantung](', $q1['prompt']);
+        $this->assertStringContainsString('Organ tersebut berfungsi memompa darah ke seluruh tubuh.', $q1['prompt']);
+        $this->assertCount(2, $q1['options']);
+        $this->assertTrue($q1['options'][0]['is_correct']);
+
+        if (file_exists($tempPath)) {
+            @unlink($tempPath);
+        }
+    }
+
     public function test_user_can_view_post_exam_result_simulation(): void
     {
         $tenant = Tenant::create([

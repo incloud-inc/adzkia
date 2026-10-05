@@ -273,98 +273,145 @@ PROMPT;
             $lines[] = '';
         }
 
-        foreach ($package['items'] as $item) {
-            $num = $item['number'] ?? 1;
-            $type = $item['type'] ?? 'mcq_single';
-            $prompt = trim($item['prompt'] ?? '');
-            $points = (float) ($item['points'] ?? 1.0);
-            $options = $item['options'] ?? [];
-            $explanation = trim($item['explanation'] ?? '');
+        $items = $package['items'] ?? [];
 
-            // Type tags
-            if ($type === 'mcq_weighted') {
-                $lines[] = '[TKP]';
-            } elseif ($type === 'mcq_multiple') {
-                $lines[] = '[KOMPLEKS]';
-            } elseif ($type === 'binary_matrix') {
-                $lines[] = '[BENAR SALAH]';
-                $lines[] = 'KOLOM: Benar | Salah';
-            } elseif ($type === 'matching') {
-                $lines[] = '[MENJODOHKAN]';
-            } elseif ($type === 'ordering') {
-                $lines[] = '[MENGURUTKAN]';
-            } elseif ($type === 'short_answer') {
-                $lines[] = '[ISIAN]';
-            } elseif ($type === 'essay') {
-                $lines[] = '[ESAI]';
+        // Group items by question type in pedagogical order
+        $preferredTypeOrder = [
+            'mcq_single',
+            'mcq_multiple',
+            'binary_matrix',
+            'matching',
+            'ordering',
+            'short_answer',
+            'essay',
+            'mcq_weighted',
+        ];
+
+        $groupedByType = [];
+        foreach ($items as $it) {
+            $t = $it['type'] ?? 'mcq_single';
+            if (! isset($groupedByType[$t])) {
+                $groupedByType[$t] = [];
             }
+            $groupedByType[$t][] = $it;
+        }
 
-            $lines[] = "{$num}. {$prompt}";
+        uksort($groupedByType, function ($a, $b) use ($preferredTypeOrder) {
+            $posA = array_search($a, $preferredTypeOrder, true);
+            $posB = array_search($b, $preferredTypeOrder, true);
+            $idxA = $posA === false ? 999 : $posA;
+            $idxB = $posB === false ? 999 : $posB;
 
-            // Options rendering
-            if ($type === 'mcq_weighted') {
-                foreach ($options as $opt) {
-                    $lbl = $opt['label'] ?? 'A';
-                    $score = (int) ($opt['score'] ?? 0);
-                    $text = trim($opt['option_text'] ?? '');
-                    $lines[] = "{$lbl}. [{$score}] {$text}";
-                }
-            } elseif ($type === 'mcq_single') {
-                $correctLetter = 'A';
-                foreach ($options as $opt) {
-                    $lbl = $opt['label'] ?? 'A';
-                    $text = trim($opt['option_text'] ?? '');
-                    $lines[] = "{$lbl}. {$text}";
-                    if (! empty($opt['is_correct'])) {
-                        $correctLetter = $lbl;
-                    }
-                }
-                $lines[] = "KUNCI: {$correctLetter}";
-            } elseif ($type === 'mcq_multiple') {
-                $correctLetters = [];
-                foreach ($options as $opt) {
-                    $lbl = $opt['label'] ?? 'A';
-                    $text = trim($opt['option_text'] ?? '');
-                    $lines[] = "{$lbl}. {$text}";
-                    if (! empty($opt['is_correct'])) {
-                        $correctLetters[] = $lbl;
-                    }
-                }
-                $lines[] = 'KUNCI: '.implode(', ', $correctLetters);
-            } elseif ($type === 'binary_matrix') {
-                foreach ($options as $idx => $opt) {
-                    $iNum = $idx + 1;
-                    $text = trim($opt['option_text'] ?? '');
-                    $key = strtoupper($opt['match_key'] ?? 'BENAR');
-                    $lines[] = "{$iNum}) {$text} [{$key}]";
-                }
-            } elseif ($type === 'matching') {
-                foreach ($options as $idx => $opt) {
-                    $iNum = $idx + 1;
-                    $left = trim($opt['option_text'] ?? '');
-                    $right = trim($opt['match_key'] ?? '');
-                    $lines[] = "{$iNum}) {$left} -> {$right}";
-                }
-            } elseif ($type === 'ordering') {
-                foreach ($options as $idx => $opt) {
-                    $iNum = $idx + 1;
-                    $text = trim($opt['option_text'] ?? '');
-                    $lines[] = "{$iNum}) {$text}";
-                }
-            } elseif ($type === 'short_answer') {
-                $key = trim($options[0]['option_text'] ?? 'Jawaban');
-                $lines[] = "KUNCI: {$key}";
-            }
+            return $idxA <=> $idxB;
+        });
 
-            if ($points > 0 && $type !== 'mcq_weighted') {
-                $lines[] = 'BOBOT: '.number_format($points, 1);
-            }
+        $partLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        $secIdx = 0;
 
-            if ($explanation !== '') {
-                $lines[] = "PEMBAHASAN: {$explanation}";
-            }
+        foreach ($groupedByType as $type => $typeItems) {
+            $letter = $partLetters[$secIdx] ?? chr(65 + $secIdx);
+            $typeMeta = $this->getQuestionTypeMeta($type);
+            $count = count($typeItems);
 
+            $lines[] = "=== BAGIAN {$letter}: ".strtoupper($typeMeta['name'])." ({$count} Butir Soal) ===";
+            $lines[] = $typeMeta['instructions'];
+            $lines[] = '-----------------------------------------------------------------';
             $lines[] = '';
+
+            foreach ($typeItems as $item) {
+                $num = $item['number'] ?? 1;
+                $prompt = trim($item['prompt'] ?? '');
+                $points = (float) ($item['points'] ?? 1.0);
+                $options = $item['options'] ?? [];
+                $explanation = trim($item['explanation'] ?? '');
+
+                // Type tags for parser
+                if ($type === 'mcq_weighted') {
+                    $lines[] = '[TKP]';
+                } elseif ($type === 'mcq_multiple') {
+                    $lines[] = '[KOMPLEKS]';
+                } elseif ($type === 'binary_matrix') {
+                    $lines[] = '[BENAR SALAH]';
+                    $lines[] = 'KOLOM: Benar | Salah';
+                } elseif ($type === 'matching') {
+                    $lines[] = '[MENJODOHKAN]';
+                } elseif ($type === 'ordering') {
+                    $lines[] = '[MENGURUTKAN]';
+                } elseif ($type === 'short_answer') {
+                    $lines[] = '[ISIAN]';
+                } elseif ($type === 'essay') {
+                    $lines[] = '[ESAI]';
+                }
+
+                $lines[] = "{$num}. {$prompt}";
+
+                // Options rendering
+                if ($type === 'mcq_weighted') {
+                    foreach ($options as $opt) {
+                        $lbl = $opt['label'] ?? 'A';
+                        $score = (int) ($opt['score'] ?? 0);
+                        $text = trim($opt['option_text'] ?? '');
+                        $lines[] = "{$lbl}. [{$score}] {$text}";
+                    }
+                } elseif ($type === 'mcq_single') {
+                    $correctLetter = 'A';
+                    foreach ($options as $opt) {
+                        $lbl = $opt['label'] ?? 'A';
+                        $text = trim($opt['option_text'] ?? '');
+                        $lines[] = "{$lbl}. {$text}";
+                        if (! empty($opt['is_correct'])) {
+                            $correctLetter = $lbl;
+                        }
+                    }
+                    $lines[] = "KUNCI: {$correctLetter}";
+                } elseif ($type === 'mcq_multiple') {
+                    $correctLetters = [];
+                    foreach ($options as $opt) {
+                        $lbl = $opt['label'] ?? 'A';
+                        $text = trim($opt['option_text'] ?? '');
+                        $lines[] = "{$lbl}. {$text}";
+                        if (! empty($opt['is_correct'])) {
+                            $correctLetters[] = $lbl;
+                        }
+                    }
+                    $lines[] = 'KUNCI: '.implode(', ', $correctLetters);
+                } elseif ($type === 'binary_matrix') {
+                    foreach ($options as $idx => $opt) {
+                        $iNum = $idx + 1;
+                        $text = trim($opt['option_text'] ?? '');
+                        $key = strtoupper($opt['match_key'] ?? 'BENAR');
+                        $lines[] = "{$iNum}) {$text} [{$key}]";
+                    }
+                } elseif ($type === 'matching') {
+                    foreach ($options as $idx => $opt) {
+                        $iNum = $idx + 1;
+                        $left = trim($opt['option_text'] ?? '');
+                        $right = trim($opt['match_key'] ?? '');
+                        $lines[] = "{$iNum}) {$left} -> {$right}";
+                    }
+                } elseif ($type === 'ordering') {
+                    foreach ($options as $idx => $opt) {
+                        $iNum = $idx + 1;
+                        $text = trim($opt['option_text'] ?? '');
+                        $lines[] = "{$iNum}) {$text}";
+                    }
+                } elseif ($type === 'short_answer') {
+                    $key = trim($options[0]['option_text'] ?? 'Jawaban');
+                    $lines[] = "KUNCI: {$key}";
+                }
+
+                if ($points > 0 && $type !== 'mcq_weighted') {
+                    $lines[] = 'BOBOT: '.number_format($points, 1);
+                }
+
+                if ($explanation !== '') {
+                    $lines[] = "PEMBAHASAN: {$explanation}";
+                }
+
+                $lines[] = '';
+            }
+
+            $secIdx++;
         }
 
         return implode("\n", $lines);
@@ -1750,5 +1797,50 @@ PROMPT;
             ],
             'explanation' => "Penguasaan mata pelajaran {$subjectTitle} bertumpu pada pemahaman konsep inti dan penerapannya secara kontekstual.",
         ];
+    }
+
+    /**
+     * Get human-readable title and clear instructions for each question type.
+     */
+    public function getQuestionTypeMeta(string $type): array
+    {
+        return match ($type) {
+            'mcq_single' => [
+                'name' => 'Pilihan Ganda (Tunggal)',
+                'instructions' => 'Petunjuk Pengerjaan: Pilihlah salah satu jawaban yang paling tepat (A, B, C, D, atau E) untuk setiap butir soal.',
+            ],
+            'mcq_multiple' => [
+                'name' => 'Pilihan Ganda Kompleks',
+                'instructions' => 'Petunjuk Pengerjaan: Pilihlah satu atau lebih pilihan jawaban yang benar sesuai dengan pertanyaan atau pernyataan yang disajikan.',
+            ],
+            'binary_matrix', 'boolean_matrix' => [
+                'name' => 'Benar / Salah (Matriks Pernyataan)',
+                'instructions' => 'Petunjuk Pengerjaan: Tentukan nilai kebenaran (Benar atau Salah) pada setiap baris pernyataan yang disediakan.',
+            ],
+            'matching' => [
+                'name' => 'Menjodohkan',
+                'instructions' => 'Petunjuk Pengerjaan: Pasangkan setiap premis atau pertanyaan di kolom kiri dengan jawaban yang sesuai di kolom kanan.',
+            ],
+            'ordering', 'reorder' => [
+                'name' => 'Mengurutkan',
+                'instructions' => 'Petunjuk Pengerjaan: Susun dan urutkan butir-butir pernyataan/tahapan berikut agar menjadi urutan yang tepat dan logis.',
+            ],
+            'short_answer', 'fill_blank' => [
+                'name' => 'Isian Singkat',
+                'instructions' => 'Petunjuk Pengerjaan: Isilah bagian yang rumpang dengan jawaban singkat, presisi, dan tepat.',
+            ],
+            'essay' => [
+                'name' => 'Uraian / Esai',
+                'instructions' => 'Petunjuk Pengerjaan: Jawablah pertanyaan-pertanyaan berikut dengan penjelasan lengkap, terstruktur, analitis, dan jelas.',
+            ],
+            'mcq_weighted' => [
+                'name' => 'Pilihan Berbobot (Karakteristik Pribadi)',
+                'instructions' => 'Petunjuk Pengerjaan: Pilihlah opsi tindakan yang menurut Anda paling berintegritas, solutif, dan profesional.',
+            ],
+            default => [
+                'name' => 'Soal Campuran',
+                'instructions' => 'Petunjuk Pengerjaan: Kerjakan butir-butir soal berikut sesuai instruksi yang tertera.',
+            ],
+        };
     }
 }

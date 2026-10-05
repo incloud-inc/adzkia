@@ -4,16 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Assessment;
 use App\Models\ExamSession;
+use App\Services\AssessmentExcelExportService;
 use App\Services\ItemAnalysisService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AssessmentAnalyticsController extends Controller
 {
     public function __construct(
-        protected ItemAnalysisService $itemAnalysisService
+        protected ItemAnalysisService $itemAnalysisService,
+        protected AssessmentExcelExportService $excelExportService
     ) {}
 
     /**
@@ -77,9 +80,9 @@ class AssessmentAnalyticsController extends Controller
     }
 
     /**
-     * Ekspor Rekap Nilai ke Format Excel / CSV.
+     * Pratinjau Interaktif Rekap Hasil Asesmen Matriks per Butir Soal.
      */
-    public function exportExcel(Request $request, Assessment $assessment): StreamedResponse
+    public function previewMatrix(Request $request, Assessment $assessment): View
     {
         $user = Auth::user();
         if (! $user->isTeacher() && ! $user->isAdmin() && ! $user->isSuperUser()) {
@@ -89,98 +92,21 @@ class AssessmentAnalyticsController extends Controller
         $currentTenant = $user->currentTenant;
         $tenantId = ($currentTenant && ! $user->isSuperUser()) ? $currentTenant->id : null;
 
-        $query = ExamSession::with(['user', 'tenant'])
-            ->where('assessment_id', $assessment->id);
+        $matrixData = $this->excelExportService->getMatrixData($assessment, $tenantId);
+        $isOwner = $user->isSuperUser();
 
-        if ($tenantId) {
-            $query->where('tenant_id', $tenantId);
-        }
-
-        $sessions = $query->orderByDesc('score')->get();
-
-        $kkm = (float) data_get($assessment->settings, 'passing_grade.min_score', 75);
-        $kkmEnabled = (bool) data_get($assessment->settings, 'passing_grade.enabled', true);
-
-        $safeTitle = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $assessment->title);
-        $filename = "Rekap_Nilai_{$safeTitle}_".now()->format('Ymd_His').'.csv';
-
-        return response()->streamDownload(function () use ($assessment, $sessions, $kkm, $kkmEnabled) {
-            $out = fopen('php://output', 'w');
-            // Tulis BOM UTF-8 agar Microsoft Excel mengenali karakter khusus dan format teks dengan benar
-            fwrite($out, "\xEF\xBB\xBF");
-
-            // Header Informasi Asesmen
-            fputcsv($out, ['REKAPITULASI HASIL UJIAN CBT']);
-            fputcsv($out, ['Judul Asesmen', $assessment->title]);
-            fputcsv($out, ['Mata Pelajaran', $assessment->subject?->name ?? 'Umum']);
-            fputcsv($out, ['Tingkat / Kelas', $assessment->grade_level ?? 'Semua']);
-            fputcsv($out, ['Standar KKM', $kkmEnabled ? $kkm : 'Tidak Diberlakukan']);
-            fputcsv($out, ['Tanggal Unduh', now()->translatedFormat('d F Y, H:i:s').' WIB']);
-            fputcsv($out, []); // Baris Kosong
-
-            // Baris Judul Kolom Tabel
-            fputcsv($out, [
-                'Peringkat',
-                'Nama Siswa / Peserta',
-                'Email Akun',
-                'Tenant / Lembaga',
-                'Status Pengerjaan',
-                'Waktu Mulai',
-                'Waktu Selesai',
-                'Durasi (Menit)',
-                'Skor Diperoleh',
-                'Skor Maksimal',
-                'Nilai Akhir (Skala 100)',
-                'Keterangan KKM',
-            ]);
-
-            $rank = 1;
-            foreach ($sessions as $s) {
-                $maxScore = (float) ($s->max_score > 0 ? $s->max_score : 100);
-                $finalScore = round(((float) $s->score / $maxScore) * 100, 1);
-
-                $durationMin = ($s->started_at && $s->completed_at)
-                    ? round($s->completed_at->diffInMinutes($s->started_at))
-                    : '-';
-
-                $kkmStatus = '-';
-                if ($s->status === 'completed') {
-                    if ($kkmEnabled) {
-                        $kkmStatus = $finalScore >= $kkm ? 'LULUS KKM' : 'REMIDIAL / BELUM TERCAPAI';
-                    } else {
-                        $kkmStatus = 'SELESAI';
-                    }
-                } elseif ($s->status === 'in_progress') {
-                    $kkmStatus = 'SEDANG MENGERJAKAN';
-                }
-
-                fputcsv($out, [
-                    $rank++,
-                    $s->user?->name ?? 'Anonim',
-                    $s->user?->email ?? '-',
-                    $s->tenant?->name ?? '-',
-                    strtoupper($s->status),
-                    $s->started_at ? $s->started_at->format('Y-m-d H:i:s') : '-',
-                    $s->completed_at ? $s->completed_at->format('Y-m-d H:i:s') : '-',
-                    $durationMin,
-                    $s->score,
-                    $maxScore,
-                    $finalScore,
-                    $kkmStatus,
-                ]);
-            }
-
-            fclose($out);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+        return view('assessments.analytics.preview', compact(
+            'assessment',
+            'matrixData',
+            'isOwner',
+            'currentTenant'
+        ));
     }
 
     /**
-     * Lembar Cetak Rekapitulasi Nilai & Analisis (Print / PDF View).
+     * Ekspor Rekap Nilai ke Format Excel (.xlsx).
      */
-    public function printPdf(Request $request, Assessment $assessment): View
+    public function exportExcel(Request $request, Assessment $assessment): BinaryFileResponse|StreamedResponse
     {
         $user = Auth::user();
         if (! $user->isTeacher() && ! $user->isAdmin() && ! $user->isSuperUser()) {
@@ -190,27 +116,17 @@ class AssessmentAnalyticsController extends Controller
         $currentTenant = $user->currentTenant;
         $tenantId = ($currentTenant && ! $user->isSuperUser()) ? $currentTenant->id : null;
 
-        $analysis = $this->itemAnalysisService->analyzeAssessment($assessment, $tenantId);
+        $safeTitle = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $assessment->title);
+        $filename = "Rekap_Hasil_{$safeTitle}_".now()->format('Ymd_His').'.xlsx';
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx_rekap_');
+        $tmpPath = $tmp.'.xlsx';
+        @unlink($tmp);
 
-        $query = ExamSession::with(['user', 'tenant'])
-            ->where('assessment_id', $assessment->id);
+        $this->excelExportService->exportToXlsx($assessment, $tenantId, $tmpPath);
 
-        if ($tenantId) {
-            $query->where('tenant_id', $tenantId);
-        }
-
-        $sessions = $query->orderByDesc('score')->get();
-
-        $kkm = (float) data_get($assessment->settings, 'passing_grade.min_score', 75);
-        $kkmEnabled = (bool) data_get($assessment->settings, 'passing_grade.enabled', true);
-
-        return view('assessments.analytics.print', compact(
-            'assessment',
-            'analysis',
-            'sessions',
-            'kkm',
-            'kkmEnabled'
-        ));
+        return response()->download($tmpPath, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
     /**

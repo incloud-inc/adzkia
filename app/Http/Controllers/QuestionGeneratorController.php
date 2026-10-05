@@ -350,8 +350,8 @@ class QuestionGeneratorController extends Controller
             }
         }
 
-        // 4. Transform package items into 1 Section
-        $sectionItems = [];
+        // 4. Transform package items into Sections grouped by Question Type
+        $sections = [];
         $totalItemCount = 0;
 
         if ($package && ! empty($package['items'])) {
@@ -359,76 +359,124 @@ class QuestionGeneratorController extends Controller
             $totalItemCount = count($items);
             $hasStimulus = ! empty($package['stimulus']['content']);
 
-            if ($hasStimulus) {
-                $childQuestions = [];
-                foreach ($items as $idx => $it) {
-                    $childQuestions[] = [
-                        'id' => 'cq_'.uniqid().'_'.$idx,
-                        'type' => $it['type'] ?? 'mcq_single',
-                        'prompt' => $it['prompt'] ?? '',
-                        'explanation' => $it['explanation'] ?? '',
-                        'points' => (float) ($it['points'] ?? 1.0),
-                        'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
-                        'options' => array_map(function ($opt, $oIdx) {
-                            return [
-                                'id' => 'copt_'.uniqid().'_'.$oIdx,
-                                'label' => $opt['label'] ?? (string) ($oIdx + 1),
-                                'option_text' => $opt['option_text'] ?? '',
-                                'is_correct' => ! empty($opt['is_correct']),
-                                'score' => (float) ($opt['score'] ?? 0.0),
-                                'match_key' => $opt['match_key'] ?? null,
-                            ];
-                        }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
+            // Group items by question type in logical pedagogical order
+            $preferredTypeOrder = [
+                'mcq_single',
+                'mcq_multiple',
+                'binary_matrix',
+                'matching',
+                'ordering',
+                'short_answer',
+                'essay',
+                'mcq_weighted',
+            ];
+
+            $groupedByType = [];
+            foreach ($items as $it) {
+                $t = $it['type'] ?? 'mcq_single';
+                if (! isset($groupedByType[$t])) {
+                    $groupedByType[$t] = [];
+                }
+                $groupedByType[$t][] = $it;
+            }
+
+            // Sort grouped keys based on preferred order
+            uksort($groupedByType, function ($a, $b) use ($preferredTypeOrder) {
+                $posA = array_search($a, $preferredTypeOrder, true);
+                $posB = array_search($b, $preferredTypeOrder, true);
+                $idxA = $posA === false ? 999 : $posA;
+                $idxB = $posB === false ? 999 : $posB;
+
+                return $idxA <=> $idxB;
+            });
+
+            $secIndex = 1;
+            foreach ($groupedByType as $type => $typeItems) {
+                $typeMeta = $this->getQuestionTypeMeta($type);
+                $typeCount = count($typeItems);
+                $sectionTitle = "Bagian {$secIndex}: {$typeMeta['name']} ({$typeCount} Soal)";
+                $sectionInstructions = $typeMeta['instructions'];
+
+                $sectionItems = [];
+                if ($hasStimulus && $secIndex === 1) {
+                    // Place stimulus group on the first section
+                    $childQuestions = [];
+                    foreach ($typeItems as $idx => $it) {
+                        $childQuestions[] = [
+                            'id' => 'cq_'.uniqid().'_'.$idx,
+                            'type' => $it['type'] ?? 'mcq_single',
+                            'prompt' => $it['prompt'] ?? '',
+                            'explanation' => $it['explanation'] ?? '',
+                            'points' => (float) ($it['points'] ?? 1.0),
+                            'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
+                            'options' => array_map(function ($opt, $oIdx) {
+                                return [
+                                    'id' => 'copt_'.uniqid().'_'.$oIdx,
+                                    'label' => $opt['label'] ?? (string) ($oIdx + 1),
+                                    'option_text' => $opt['option_text'] ?? '',
+                                    'is_correct' => ! empty($opt['is_correct']),
+                                    'score' => (float) ($opt['score'] ?? 0.0),
+                                    'match_key' => $opt['match_key'] ?? null,
+                                ];
+                            }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
+                        ];
+                    }
+
+                    $sectionItems[] = [
+                        'id' => 'grp_'.uniqid(),
+                        'is_group' => true,
+                        'title' => $package['stimulus']['title'] ?? 'Wacana Stimulus Terpadu',
+                        'stimulus_type' => 'text',
+                        'stimulus_content' => $package['stimulus']['content'],
+                        'questions' => $childQuestions,
                     ];
+                } else {
+                    foreach ($typeItems as $idx => $it) {
+                        $sectionItems[] = [
+                            'id' => 'q_'.uniqid().'_'.$idx,
+                            'is_group' => false,
+                            'type' => $it['type'] ?? 'mcq_single',
+                            'prompt' => $it['prompt'] ?? '',
+                            'explanation' => $it['explanation'] ?? '',
+                            'points' => (float) ($it['points'] ?? 1.0),
+                            'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
+                            'options' => array_map(function ($opt, $oIdx) {
+                                return [
+                                    'id' => 'opt_'.uniqid().'_'.$oIdx,
+                                    'label' => $opt['label'] ?? (string) ($oIdx + 1),
+                                    'option_text' => $opt['option_text'] ?? '',
+                                    'is_correct' => ! empty($opt['is_correct']),
+                                    'score' => (float) ($opt['score'] ?? 0.0),
+                                    'match_key' => $opt['match_key'] ?? null,
+                                ];
+                            }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
+                        ];
+                    }
                 }
 
-                $sectionItems[] = [
-                    'id' => 'grp_'.uniqid(),
-                    'is_group' => true,
-                    'title' => $package['stimulus']['title'] ?? 'Wacana Stimulus Terpadu',
-                    'stimulus_type' => 'text',
-                    'stimulus_content' => $package['stimulus']['content'],
-                    'questions' => $childQuestions,
+                $sections[] = [
+                    'id' => 'sec_ai_'.uniqid().'_'.$secIndex,
+                    'title' => $sectionTitle,
+                    'instructions' => $sectionInstructions,
+                    'duration_minutes' => null,
+                    'items' => $sectionItems,
                 ];
-            } else {
-                foreach ($items as $idx => $it) {
-                    $sectionItems[] = [
-                        'id' => 'q_'.uniqid().'_'.$idx,
-                        'is_group' => false,
-                        'type' => $it['type'] ?? 'mcq_single',
-                        'prompt' => $it['prompt'] ?? '',
-                        'explanation' => $it['explanation'] ?? '',
-                        'points' => (float) ($it['points'] ?? 1.0),
-                        'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
-                        'options' => array_map(function ($opt, $oIdx) {
-                            return [
-                                'id' => 'opt_'.uniqid().'_'.$oIdx,
-                                'label' => $opt['label'] ?? (string) ($oIdx + 1),
-                                'option_text' => $opt['option_text'] ?? '',
-                                'is_correct' => ! empty($opt['is_correct']),
-                                'score' => (float) ($opt['score'] ?? 0.0),
-                                'match_key' => $opt['match_key'] ?? null,
-                            ];
-                        }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
-                    ];
-                }
+
+                $secIndex++;
             }
         }
 
-        $sectionTitle = 'Bagian 1: Naskah Soal Terpadu';
-        if ($totalItemCount > 0) {
-            $sectionTitle = "Bagian 1: Naskah Soal ({$totalItemCount} Butir)";
+        if (empty($sections)) {
+            $sections = [
+                [
+                    'id' => 'sec_ai_'.uniqid(),
+                    'title' => 'Bagian 1: Naskah Soal Terpadu',
+                    'instructions' => 'Pilihlah salah satu jawaban yang paling tepat atau kerjakan sesuai petunjuk instruksi soal.',
+                    'duration_minutes' => null,
+                    'items' => [],
+                ],
+            ];
         }
-
-        $sections = [
-            [
-                'id' => 'sec_ai_'.uniqid(),
-                'title' => $sectionTitle,
-                'instructions' => 'Pilihlah salah satu jawaban yang paling tepat atau kerjakan sesuai petunjuk instruksi soal.',
-                'duration_minutes' => null,
-                'items' => $sectionItems,
-            ],
-        ];
 
         $prefillData = [
             'title' => $title,
@@ -448,5 +496,50 @@ class QuestionGeneratorController extends Controller
             'message' => 'Naskah soal dan data asesmen berhasil dialihkan ke Wizard Ujian.',
             'redirect_url' => route('assessments.wizard'),
         ]);
+    }
+
+    /**
+     * Get human-readable title and clear instructions for each question type.
+     */
+    protected function getQuestionTypeMeta(string $type): array
+    {
+        return match ($type) {
+            'mcq_single' => [
+                'name' => 'Pilihan Ganda (Tunggal)',
+                'instructions' => 'Petunjuk Pengerjaan: Pilihlah salah satu jawaban yang paling tepat (A, B, C, D, atau E) untuk setiap butir soal.',
+            ],
+            'mcq_multiple' => [
+                'name' => 'Pilihan Ganda Kompleks',
+                'instructions' => 'Petunjuk Pengerjaan: Pilihlah satu atau lebih pilihan jawaban yang benar sesuai dengan pertanyaan atau pernyataan yang disajikan.',
+            ],
+            'binary_matrix', 'boolean_matrix' => [
+                'name' => 'Benar / Salah (Matriks Pernyataan)',
+                'instructions' => 'Petunjuk Pengerjaan: Tentukan nilai kebenaran (Benar atau Salah) pada setiap baris pernyataan yang disediakan.',
+            ],
+            'matching' => [
+                'name' => 'Menjodohkan',
+                'instructions' => 'Petunjuk Pengerjaan: Pasangkan setiap premis atau pertanyaan di kolom kiri dengan jawaban yang sesuai di kolom kanan.',
+            ],
+            'ordering', 'reorder' => [
+                'name' => 'Mengurutkan',
+                'instructions' => 'Petunjuk Pengerjaan: Susun dan urutkan butir-butir pernyataan/tahapan berikut agar menjadi urutan yang tepat dan logis.',
+            ],
+            'short_answer', 'fill_blank' => [
+                'name' => 'Isian Singkat',
+                'instructions' => 'Petunjuk Pengerjaan: Isilah bagian yang rumpang dengan jawaban singkat, presisi, dan tepat.',
+            ],
+            'essay' => [
+                'name' => 'Uraian / Esai',
+                'instructions' => 'Petunjuk Pengerjaan: Jawablah pertanyaan-pertanyaan berikut dengan penjelasan lengkap, terstruktur, analitis, dan jelas.',
+            ],
+            'mcq_weighted' => [
+                'name' => 'Pilihan Berbobot (Karakteristik Pribadi)',
+                'instructions' => 'Petunjuk Pengerjaan: Pilihlah opsi tindakan yang menurut Anda paling berintegritas, solutif, dan profesional.',
+            ],
+            default => [
+                'name' => 'Soal Campuran',
+                'instructions' => 'Petunjuk Pengerjaan: Kerjakan butir-butir soal berikut sesuai instruksi yang tertera.',
+            ],
+        };
     }
 }

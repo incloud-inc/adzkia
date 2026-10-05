@@ -8,8 +8,8 @@
     <title>Hasil Ujian CBT — {{ $assessment->title }}</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('images/icon-adzkia.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/icon-adzkia.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('adzkia black app.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
 
     <!-- Font Open Sans & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,10 +64,22 @@
     <main class="w-full h-full lg:h-screen lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60">
 
         <!-- OVERLAY GRADING PENDING -->
-        <div x-show="gradingStatus === 'pending' || gradingStatus === 'processing'" class="absolute inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 text-center space-y-4">
-            <div class="w-16 h-16 border-4 border-[#339af0] border-t-transparent rounded-full animate-spin"></div>
-            <h2 class="text-2xl font-bold text-[#212529] font-display">Sedang Menilai Jawaban...</h2>
-            <p class="text-gray-600 max-w-sm">Mohon tunggu sebentar, sistem sedang merekap hasil ujian Anda. Halaman ini akan termuat otomatis setelah selesai.</p>
+        <div x-show="gradingStatus === 'pending' || gradingStatus === 'processing'" class="absolute inset-0 z-50 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center space-y-5">
+            <div class="w-16 h-16 border-4 border-[#2b8a3e] border-t-transparent rounded-full animate-spin"></div>
+            <div class="space-y-2 max-w-md">
+                <h2 class="text-2xl font-bold text-[#212529] font-display">Sedang Menilai Jawaban...</h2>
+                <p class="text-gray-600 text-sm">Mohon tunggu sebentar, sistem sedang merekap hasil ujian Anda. Halaman ini akan termuat otomatis setelah selesai.</p>
+            </div>
+            <div class="pt-3 flex flex-col sm:flex-row items-center gap-3">
+                <a href="{{ route('exam.history') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2b8a3e] hover:bg-[#237032] text-white text-sm font-semibold transition shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span>Tunggu di Dashboard (Riwayat Ujian)</span>
+                </a>
+                <button type="button" @click="window.location.reload()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Coba Muat Ulang</span>
+                </button>
+            </div>
         </div>
 
         @php
@@ -197,34 +209,42 @@
                             <div :id="'review-question-block-' + q.id" class="p-5 md:p-6 rounded-2xl border border-[#ced4da] bg-white space-y-4 shadow-xs transition-all">
 
                                 <!-- Header Butir Soal & Status Jawaban -->
-                                <div class="flex justify-between items-center pb-2 border-b border-[#ced4da]/50">
+                                <div class="flex flex-wrap justify-between items-center gap-2 pb-2.5 border-b border-[#ced4da]/60">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-display text-base md:text-lg font-bold text-[#212529]"
-                                              x-text="'Soal Nomor ' + q.number"></span>
-                                        <span class="px-2 py-0.5 rounded-md bg-[#ced4da]/30 text-[10px] font-bold uppercase tracking-wider text-[#212529]/70"
+                                        <span class="inline-flex items-center justify-center min-w-[28px] h-7 px-2.5 rounded-lg text-xs font-black font-mono text-white shadow-2xs"
+                                              :class="getQuestionStatusBadgeClass(q)">
+                                            <span x-text="'No. ' + q.number"></span>
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded-md bg-[#ced4da]/40 text-[10px] font-bold uppercase tracking-wider text-[#212529]/80"
                                               x-text="typeLabel(q.type)"></span>
-                                        <span class="text-xs text-[#212529]/60 font-semibold"
+                                        <span class="text-xs text-[#212529]/70 font-semibold"
                                               x-text="'(' + (q.points || 1) + ' Poin)'"></span>
                                     </div>
 
                                     <!-- Label Skor / Hasil Evaluasi -->
                                     <div>
                                         <template x-if="q.is_essay">
-                                            <span class="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase font-display shadow-2xs">
-                                                <span x-text="q.points_awarded !== null ? 'Dinilai: ' + q.points_awarded + ' Poin' : 'Essay: Diperiksa Guru'"></span>
+                                            <span class="text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase font-display shadow-2xs"
+                                                  :class="q.points_awarded === null ? 'bg-amber-500' : (parseFloat(q.points_awarded) >= (q.essay_max_points || q.points) ? 'bg-emerald-600' : (parseFloat(q.points_awarded) > 0 ? 'bg-orange-500' : 'bg-rose-600'))">
+                                                <span x-text="q.points_awarded !== null ? (parseFloat(q.points_awarded) > 0 && parseFloat(q.points_awarded) < (q.essay_max_points || q.points) ? 'Sebagian (' + q.points_awarded + ' Poin)' : (parseFloat(q.points_awarded) >= (q.essay_max_points || q.points) ? 'Benar (+' + q.points_awarded + ' Poin)' : 'Salah (0 Poin)')) : 'Essay: Diperiksa Guru'"></span>
                                             </span>
                                         </template>
                                         <template x-if="!q.is_essay && !q.is_answered">
                                             <span class="bg-slate-700 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase font-display shadow-2xs">
-                                                Tidak Dijawab
+                                                Tidak Dijawab (0 Poin)
                                             </span>
                                         </template>
-                                        <template x-if="!q.is_essay && q.is_answered && q.is_correct">
+                                        <template x-if="!q.is_essay && q.is_answered && isFullyCorrect(q)">
                                             <span class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase font-display shadow-2xs">
-                                                Benar (+<span x-text="q.points"></span> Poin)
+                                                Benar (+<span x-text="q.points_awarded !== undefined && q.points_awarded !== null ? q.points_awarded : q.points"></span> Poin)
                                             </span>
                                         </template>
-                                        <template x-if="!q.is_essay && q.is_answered && !q.is_correct">
+                                        <template x-if="!q.is_essay && q.is_answered && isPartialPoints(q)">
+                                            <span class="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase font-display shadow-2xs ring-1 ring-orange-300">
+                                                Sebagian Benar (+<span x-text="q.points_awarded"></span> / <span x-text="q.points || 1"></span> Poin)
+                                            </span>
+                                        </template>
+                                        <template x-if="!q.is_essay && q.is_answered && !isFullyCorrect(q) && !isPartialPoints(q)">
                                             <span class="bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase font-display shadow-2xs">
                                                 Salah (0 Poin)
                                             </span>
@@ -338,8 +358,8 @@
                                                 <div class="text-xs font-bold uppercase tracking-wider text-slate-700 font-display flex items-center justify-between">
                                                     <span>Hasil Evaluasi Pernyataan (Benar / Salah):</span>
                                                     <span class="text-xs font-semibold px-2 py-0.5 rounded"
-                                                          :class="q.is_correct ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'"
-                                                          x-text="q.is_correct ? 'Semua Pernyataan Tepat' : 'Ada yang Kurang Tepat'"></span>
+                                                          :class="isFullyCorrect(q) ? 'bg-emerald-100 text-emerald-800' : (isPartialPoints(q) ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-rose-100 text-rose-800')"
+                                                          x-text="isFullyCorrect(q) ? 'Semua Pernyataan Tepat' : (isPartialPoints(q) ? 'Sebagian Pernyataan Tepat (+' + q.points_awarded + ' Poin)' : 'Ada yang Kurang Tepat')"></span>
                                                 </div>
 
                                                 <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs bg-white">
@@ -383,8 +403,8 @@
                                                 <div class="text-xs font-bold uppercase tracking-wider text-slate-700 font-display flex items-center justify-between">
                                                     <span>Hasil Pasangan Menjodohkan:</span>
                                                     <span class="text-xs font-semibold px-2 py-0.5 rounded"
-                                                          :class="q.is_correct ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'"
-                                                          x-text="q.is_correct ? 'Semua Pasangan Cocok' : 'Ada Pasangan yang Salah'"></span>
+                                                          :class="isFullyCorrect(q) ? 'bg-emerald-100 text-emerald-800' : (isPartialPoints(q) ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-rose-100 text-rose-800')"
+                                                          x-text="isFullyCorrect(q) ? 'Semua Pasangan Cocok' : (isPartialPoints(q) ? 'Sebagian Pasangan Cocok (+' + q.points_awarded + ' Poin)' : 'Ada Pasangan yang Salah')"></span>
                                                 </div>
 
                                                 <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs bg-white">
@@ -594,6 +614,17 @@
 
         <!-- FOOTER / NAVIGASI NOMOR SOAL (PERSIS DENGAN WORKSPACE CBT) -->
         <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex flex-col z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]">
+            <!-- Mini Keterangan Warna / Legenda Soal -->
+            <div class="px-4 py-1.5 border-b border-blue-200/60 flex flex-wrap items-center justify-between text-[11px] font-bold text-slate-700 gap-x-4 gap-y-1 bg-blue-100/40">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span class="text-slate-500 text-[10px] uppercase tracking-wider font-extrabold font-display">Keterangan:</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-600 inline-block shadow-2xs"></span> Benar Penuh</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-orange-500 inline-block shadow-2xs"></span> Poin Sebagian / Parsial</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-600 inline-block shadow-2xs"></span> Salah (0 Poin)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-slate-700 inline-block shadow-2xs"></span> Kosong</span>
+                </div>
+            </div>
+
             <div class="w-full flex items-center overflow-x-auto hide-scrollbar gap-2 px-4 py-3 bg-[#d0ebff]">
 
                 <!-- Navigasi Prev Card -->
@@ -773,6 +804,38 @@
                 }
             },
 
+            isFullyCorrect(q) {
+                if (!q) return false;
+                if (q.is_essay) {
+                    return q.points_awarded !== null && q.points_awarded !== undefined && parseFloat(q.points_awarded) >= (parseFloat(q.essay_max_points || q.points) || 1);
+                }
+                if (q.is_correct === true) return true;
+                const maxPts = parseFloat(q.points) || 1;
+                return q.is_answered && q.points_awarded !== null && q.points_awarded !== undefined && parseFloat(q.points_awarded) >= maxPts;
+            },
+
+            isPartialPoints(q) {
+                if (!q) return false;
+                if (q.is_essay) {
+                    const maxPts = parseFloat(q.essay_max_points || q.points) || 1;
+                    return q.points_awarded !== null && q.points_awarded !== undefined && parseFloat(q.points_awarded) > 0 && parseFloat(q.points_awarded) < maxPts;
+                }
+                if (this.isFullyCorrect(q)) return false;
+                return q.is_answered && q.points_awarded !== null && q.points_awarded !== undefined && parseFloat(q.points_awarded) > 0;
+            },
+
+            getQuestionStatusBadgeClass(q) {
+                if (!q) return 'bg-slate-700';
+                if (q.is_essay) {
+                    if (q.points_awarded === null || q.points_awarded === undefined) return 'bg-amber-500';
+                    return this.isFullyCorrect(q) ? 'bg-emerald-600' : (this.isPartialPoints(q) ? 'bg-orange-500' : 'bg-rose-600');
+                }
+                if (!q.is_answered) return 'bg-slate-700';
+                if (this.isFullyCorrect(q)) return 'bg-emerald-600';
+                if (this.isPartialPoints(q)) return 'bg-orange-500';
+                return 'bg-rose-600';
+            },
+
             getQuestionBtnClass(q, cIdx) {
                 const isCurrentCard = this.currentCardIndex === cIdx;
                 const isExactActive = isCurrentCard && (this.activeQuestionId === q.id || (!this.activeQuestionId && this.currentCard?.questions[0]?.id === q.id));
@@ -783,13 +846,25 @@
                 }
 
                 if (q.is_essay) {
-                    return base + 'bg-amber-500 text-white';
+                    if (q.points_awarded === null || q.points_awarded === undefined) {
+                        return base + 'bg-amber-500 text-white';
+                    }
+                    if (this.isFullyCorrect(q)) {
+                        return base + 'bg-emerald-600 text-white';
+                    }
+                    if (this.isPartialPoints(q)) {
+                        return base + 'bg-orange-500 text-white shadow-xs';
+                    }
+                    return base + 'bg-rose-600 text-white';
                 }
                 if (!q.is_answered) {
                     return base + 'bg-slate-700 text-white';
                 }
-                if (q.is_correct) {
+                if (this.isFullyCorrect(q)) {
                     return base + 'bg-emerald-600 text-white';
+                }
+                if (this.isPartialPoints(q)) {
+                    return base + 'bg-orange-500 text-white shadow-xs';
                 }
                 return base + 'bg-rose-600 text-white';
             },

@@ -7,8 +7,8 @@
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Favicon -->
-        <link rel="icon" type="image/png" href="{{ asset('images/icon-adzkia.png') }}">
-        <link rel="apple-touch-icon" href="{{ asset('images/icon-adzkia.png') }}">
+        <link rel="icon" type="image/png" href="{{ asset('adzkia black app.png') }}">
+        <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
 
         @fonts
 

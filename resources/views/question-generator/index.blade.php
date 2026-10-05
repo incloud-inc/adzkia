@@ -612,21 +612,100 @@
                                             </div>
                                         </template>
 
-                                        <!-- DAFTAR BUTIR SOAL KERTAS (KUNCI DISEMBUNYIKAN DI NASKAH SISWA) -->
-                                        <div class="space-y-5 pt-2">
-                                            <template x-for="(item, idx) in resultPackage.items" :key="idx">
-                                                <div class="space-y-2 pb-3 border-b border-gray-4 last:border-b-0">
-                                                    <div class="flex items-start gap-2">
-                                                        <span class="font-bold text-xs" x-text="item.number + '.'"></span>
-                                                        <div class="flex-1 text-xs text-gray-12 font-medium whitespace-pre-wrap leading-relaxed" x-text="item.prompt"></div>
+                                        <!-- DAFTAR BUTIR SOAL KERTAS (DIKELOMPOKKAN BERDASARKAN TIPE / BAGIAN TANPA PAGE-BREAK SECTION) -->
+                                        <div class="space-y-6 pt-2">
+                                            <template x-for="(sec, sIdx) in getGroupedSections()" :key="sIdx">
+                                                <div class="space-y-4">
+                                                    <!-- Part Banner & Keterangan Bagian -->
+                                                    <div class="pb-2 border-b border-gray-12/40 bg-gray-1 px-3 py-2 rounded-lg">
+                                                        <div class="font-bold text-xs text-gray-12 tracking-wider uppercase" x-text="sec.title"></div>
+                                                        <div class="text-[11px] text-gray-11 italic mt-0.5" x-text="'Petunjuk: ' + sec.instructions"></div>
                                                     </div>
 
-                                                    <!-- Pilihan Opsi untuk Cetak Kertas -->
-                                                    <div class="pl-5 space-y-1.5">
-                                                        <template x-for="opt in item.options" :key="opt.label">
-                                                            <div class="flex items-start gap-2 text-xs text-gray-12">
-                                                                <span class="font-bold w-4" x-text="opt.label + '.'"></span>
-                                                                <span class="flex-1" x-text="opt.option_text"></span>
+                                                    <!-- Butir Soal dalam Bagian Ini -->
+                                                    <div class="space-y-4">
+                                                        <template x-for="(item, idx) in sec.items" :key="item.number">
+                                                            <div class="space-y-2 pb-3 border-b border-gray-4 last:border-b-0">
+                                                                <div class="flex items-start gap-2">
+                                                                    <span class="font-bold text-xs" x-text="item.number + '.'"></span>
+                                                                    <div class="flex-1 text-xs text-gray-12 font-medium whitespace-pre-wrap leading-relaxed" x-text="item.prompt"></div>
+                                                                </div>
+
+                                                                <!-- Pilihan Ganda & Berbobot -->
+                                                                <template x-if="['mcq_single', 'mcq_multiple', 'mcq_weighted'].includes(item.type)">
+                                                                    <div class="pl-5 space-y-1.5">
+                                                                        <template x-for="opt in item.options" :key="opt.label">
+                                                                            <div class="flex items-start gap-2 text-xs text-gray-12">
+                                                                                <span class="font-bold w-4" x-text="opt.label + '.'"></span>
+                                                                                <span class="flex-1" x-text="opt.option_text"></span>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </template>
+
+                                                                <!-- Benar / Salah (Matriks) -->
+                                                                <template x-if="item.type === 'binary_matrix'">
+                                                                    <div class="pl-5 pt-1">
+                                                                        <table class="w-full text-[11px] border border-gray-5">
+                                                                            <thead>
+                                                                                <tr class="bg-gray-2 text-gray-11 text-left">
+                                                                                    <th class="p-1.5 border-b border-gray-4">Pernyataan</th>
+                                                                                    <th class="p-1.5 border-b border-gray-4 text-center w-16">Benar</th>
+                                                                                    <th class="p-1.5 border-b border-gray-4 text-center w-16">Salah</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <template x-for="(opt, optIdx) in item.options" :key="optIdx">
+                                                                                    <tr class="border-b border-gray-3 last:border-b-0">
+                                                                                        <td class="p-1.5 text-gray-12" x-text="opt.option_text"></td>
+                                                                                        <td class="p-1.5 text-center font-mono">[ &nbsp; ]</td>
+                                                                                        <td class="p-1.5 text-center font-mono">[ &nbsp; ]</td>
+                                                                                    </tr>
+                                                                                </template>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </template>
+
+                                                                <!-- Menjodohkan -->
+                                                                <template x-if="item.type === 'matching'">
+                                                                    <div class="pl-5 pt-1 space-y-1 text-[11px]">
+                                                                        <template x-for="(opt, optIdx) in item.options" :key="optIdx">
+                                                                            <div class="flex items-center justify-between border-b border-gray-3 py-1">
+                                                                                <span class="text-gray-12" x-text="(optIdx + 1) + '. ' + opt.option_text"></span>
+                                                                                <span class="text-gray-9 italic">... dipasangkan ke ... ( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; )</span>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </template>
+
+                                                                <!-- Mengurutkan -->
+                                                                <template x-if="item.type === 'ordering'">
+                                                                    <div class="pl-5 pt-1 space-y-1 text-[11px]">
+                                                                        <template x-for="(opt, optIdx) in item.options" :key="optIdx">
+                                                                            <div class="flex items-center gap-2 py-0.5">
+                                                                                <span class="font-mono text-gray-10">[ Urutan ke-.... ]</span>
+                                                                                <span class="text-gray-12" x-text="opt.option_text"></span>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </template>
+
+                                                                <!-- Isian Singkat -->
+                                                                <template x-if="item.type === 'short_answer'">
+                                                                    <div class="pl-5 pt-1 text-[11px] text-gray-10">
+                                                                        Jawaban: ____________________________________________________________________
+                                                                    </div>
+                                                                </template>
+
+                                                                <!-- Uraian / Esai -->
+                                                                <template x-if="item.type === 'essay'">
+                                                                    <div class="pl-5 pt-1 space-y-2 text-[11px] text-gray-8">
+                                                                        <div class="border-b border-dashed border-gray-4 h-5"></div>
+                                                                        <div class="border-b border-dashed border-gray-4 h-5"></div>
+                                                                        <div class="border-b border-dashed border-gray-4 h-5"></div>
+                                                                    </div>
+                                                                </template>
                                                             </div>
                                                         </template>
                                                     </div>
@@ -1215,6 +1294,59 @@
                     } finally {
                         this.isSaving = false;
                     }
+                },
+
+                getGroupedSections() {
+                    if (!this.resultPackage || !this.resultPackage.items || !Array.isArray(this.resultPackage.items)) {
+                        return [];
+                    }
+
+                    const preferredOrder = [
+                        'mcq_single',
+                        'mcq_multiple',
+                        'binary_matrix',
+                        'matching',
+                        'ordering',
+                        'short_answer',
+                        'essay',
+                        'mcq_weighted'
+                    ];
+
+                    const typeMetaMap = {
+                        'mcq_single': { name: 'Pilihan Ganda (Tunggal)', instructions: 'Pilihlah salah satu jawaban yang paling tepat (A, B, C, D, atau E) untuk setiap butir soal.' },
+                        'mcq_multiple': { name: 'Pilihan Ganda Kompleks', instructions: 'Pilihlah satu atau lebih pilihan jawaban yang benar sesuai dengan pertanyaan atau pernyataan yang disajikan.' },
+                        'binary_matrix': { name: 'Benar / Salah (Matriks Pernyataan)', instructions: 'Tentukan nilai kebenaran (Benar atau Salah) pada setiap baris pernyataan yang disediakan.' },
+                        'matching': { name: 'Menjodohkan', instructions: 'Pasangkan setiap premis atau pertanyaan di kolom kiri dengan jawaban yang sesuai di kolom kanan.' },
+                        'ordering': { name: 'Mengurutkan', instructions: 'Susun dan urutkan butir-butir pernyataan/tahapan berikut agar menjadi urutan yang tepat dan logis.' },
+                        'short_answer': { name: 'Isian Singkat', instructions: 'Isilah bagian yang rumpang dengan jawaban singkat, presisi, dan tepat.' },
+                        'essay': { name: 'Uraian / Esai', instructions: 'Jawablah pertanyaan-pertanyaan berikut dengan penjelasan lengkap, terstruktur, analitis, dan jelas.' },
+                        'mcq_weighted': { name: 'Pilihan Berbobot (Karakteristik Pribadi)', instructions: 'Pilihlah opsi tindakan yang menurut Anda paling berintegritas, solutif, dan profesional.' },
+                    };
+
+                    const grouped = {};
+                    this.resultPackage.items.forEach(item => {
+                        const t = item.type || 'mcq_single';
+                        if (!grouped[t]) grouped[t] = [];
+                        grouped[t].push(item);
+                    });
+
+                    const sortedTypes = Object.keys(grouped).sort((a, b) => {
+                        const ia = preferredOrder.indexOf(a) === -1 ? 999 : preferredOrder.indexOf(a);
+                        const ib = preferredOrder.indexOf(b) === -1 ? 999 : preferredOrder.indexOf(b);
+                        return ia - ib;
+                    });
+
+                    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                    return sortedTypes.map((type, idx) => {
+                        const meta = typeMetaMap[type] || { name: 'Soal Campuran', instructions: 'Kerjakan butir-butir soal berikut sesuai petunjuk yang tertera.' };
+                        return {
+                            letter: letters[idx] || String.fromCharCode(65 + idx),
+                            type: type,
+                            title: 'BAGIAN ' + (letters[idx] || String.fromCharCode(65 + idx)) + ': ' + meta.name.toUpperCase() + ' (' + grouped[type].length + ' Butir Soal)',
+                            instructions: meta.instructions,
+                            items: grouped[type]
+                        };
+                    });
                 }
             }));
         });

@@ -47,10 +47,10 @@
             </div>
         @endif
 
-        <!-- 4 Wallet Balance Metric Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 4 Wallet Balance Metric Cards - Swipeable Snap Carousel on Mobile -->
+        <div class="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
             <!-- 1. Saldo Tersedia (Available Balance) -->
-            <div class="bg-white p-5 rounded-2xl border-2 border-green-7 bg-green-2/20 shadow-xs flex flex-col justify-between">
+            <div class="min-w-[260px] xs:min-w-[280px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-green-7 bg-green-2/20 shadow-xs flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-bold text-green-11 uppercase tracking-wider">Saldo Tersedia</span>
                     <div class="w-9 h-9 rounded-xl bg-green-3 text-green-11 flex items-center justify-center">
@@ -64,7 +64,7 @@
             </div>
 
             <!-- 2. Saldo Tertahan (Pending Payouts) -->
-            <div class="bg-white p-5 rounded-2xl border border-amber-6/60 bg-amber-2/20 shadow-xs flex flex-col justify-between">
+            <div class="min-w-[260px] xs:min-w-[280px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-amber-6/60 bg-amber-2/20 shadow-xs flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-bold text-amber-11 uppercase tracking-wider">Saldo Tertahan</span>
                     <div class="w-9 h-9 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center">
@@ -78,7 +78,7 @@
             </div>
 
             <!-- 3. Total Pendapatan Bersih (Lifetime Earned) -->
-            <div class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs flex flex-col justify-between">
+            <div class="min-w-[260px] xs:min-w-[280px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-bold text-gray-11 uppercase tracking-wider">Total Pendapatan</span>
                     <div class="w-9 h-9 rounded-xl bg-gray-3 text-gray-12 flex items-center justify-center">
@@ -92,7 +92,7 @@
             </div>
 
             <!-- 4. Total Dana Ditarik (Lifetime Withdrawn) -->
-            <div class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs flex flex-col justify-between">
+            <div class="min-w-[260px] xs:min-w-[280px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-bold text-gray-11 uppercase tracking-wider">Total Dicairkan</span>
                     <div class="w-9 h-9 rounded-xl bg-gray-3 text-gray-12 flex items-center justify-center">
@@ -114,8 +114,8 @@
                     <span class="text-xs text-gray-11">Total {{ $transactions->total() }} entri</span>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
+                <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <table class="w-full min-w-[580px] sm:min-w-full text-left text-xs border-collapse">
                         <thead class="bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold border-b border-gray-5">
                             <tr>
                                 <th class="py-3 px-4">Waktu</th>
@@ -128,13 +128,13 @@
                         <tbody class="divide-y divide-gray-5">
                             @forelse($transactions as $trx)
                                 <tr class="hover:bg-gray-2/40 transition-colors">
-                                    <td class="py-3 px-4 text-gray-9 text-[11px]">
+                                    <td class="py-3 px-4 text-gray-9 text-[11px] whitespace-nowrap">
                                         {{ $trx->created_at->format('d M Y H:i') }}
                                     </td>
-                                    <td class="py-3 px-4 text-gray-12 max-w-xs truncate">
+                                    <td class="py-3 px-4 text-gray-12 max-w-xs truncate whitespace-nowrap">
                                         {{ $trx->description }}
                                     </td>
-                                    <td class="py-3 px-4 text-center">
+                                    <td class="py-3 px-4 text-center whitespace-nowrap">
                                         @if($trx->type === 'credit')
                                             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-3 text-green-11 border border-green-6/50">
                                                 + KREDIT
@@ -145,10 +145,10 @@
                                             </span>
                                         @endif
                                     </td>
-                                    <td class="py-3 px-4 text-right font-mono font-bold {{ $trx->type === 'credit' ? 'text-green-9' : 'text-red-9' }}">
+                                    <td class="py-3 px-4 text-right font-mono font-bold whitespace-nowrap {{ $trx->type === 'credit' ? 'text-green-9' : 'text-red-9' }}">
                                         {{ $trx->type === 'credit' ? '+' : '-' }} Rp {{ number_format($trx->amount, 0, ',', '.') }}
                                     </td>
-                                    <td class="py-3 px-4 text-right font-mono font-semibold text-gray-12">
+                                    <td class="py-3 px-4 text-right font-mono font-semibold text-gray-12 whitespace-nowrap">
                                         Rp {{ number_format($trx->balance_after, 0, ',', '.') }}
                                     </td>
                                 </tr>

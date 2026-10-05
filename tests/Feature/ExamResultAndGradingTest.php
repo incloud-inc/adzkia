@@ -209,4 +209,28 @@ class ExamResultAndGradingTest extends TestCase
         $studentResultResponse->assertStatus(200);
         $studentResultResponse->assertSee('Penjelasan sangat baik dan runtut.');
     }
+
+    public function test_result_page_auto_grades_pending_session_immediately_and_contains_dashboard_link(): void
+    {
+        $session = ExamSession::create([
+            'assessment_id' => $this->assessment->id,
+            'user_id' => $this->student->id,
+            'tenant_id' => $this->tenant->id,
+            'status' => 'completed',
+            'grading_status' => 'pending',
+            'score' => 0,
+            'max_score' => 100,
+            'started_at' => now()->subMinutes(30),
+            'completed_at' => now()->subMinutes(1),
+        ]);
+
+        $response = $this->actingAs($this->student)->get(route('exam.result', $session));
+
+        $response->assertOk();
+        $response->assertSee('Tunggu di Dashboard');
+        $response->assertSee(route('exam.history'));
+
+        $session->refresh();
+        $this->assertEquals('completed', $session->grading_status);
+    }
 }

@@ -6,8 +6,8 @@
     <title>{{ config('app.name', 'ADZKIA') }}</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('images/icon-adzkia.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/icon-adzkia.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('adzkia black app.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

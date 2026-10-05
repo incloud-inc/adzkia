@@ -8,8 +8,8 @@
     <title>{{ $assessment->title }} — ADZKIA CBT</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('images/icon-adzkia.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/icon-adzkia.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('adzkia black app.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('adzkia black app.png') }}">
 
     <!-- Font Open Sans (Body) & Outfit (Heading/Aksen) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
