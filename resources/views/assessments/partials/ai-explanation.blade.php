@@ -13,7 +13,7 @@
     explanation: @js($question->explanation ?? ''),
     draft: @js($question->explanation ?? ''),
     editing: false,
-    previewMode: 'edit', // 'edit' or 'preview'
+    previewMode: 'preview', // 'edit' or 'preview'
     loading: false,
     saving: false,
     savedMessage: '',

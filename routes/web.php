@@ -16,6 +16,7 @@ use App\Http\Controllers\Exam\ExamGateController;
 use App\Http\Controllers\Exam\ExamResultController;
 use App\Http\Controllers\Exam\ExamWorkspaceController;
 use App\Http\Controllers\GradeLevelController;
+use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\PostalCodeController;
@@ -45,6 +46,7 @@ Route::domain('{subdomain}.'.$domain)->middleware('web')->group(function () {
 
 // 2. Global Publik (Redirect Hybrid / Global View)
 Route::middleware('web')->group(function () {
+    Route::get('/', [LandingPageController::class, 'index'])->name('home');
     Route::get('/@{username}', [ProfileController::class, 'redirectPublicGlobal'])->name('global.student.profile');
     Route::get('/portal/{subdomain}', [TenantController::class, 'showPublic'])->name('tenant.portal.direct');
 });
@@ -106,8 +108,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('select-tenant', [TenantController::class, 'select'])->name('tenant.select');
     Route::post('switch-tenant/{tenant}', [TenantController::class, 'switch'])->name('tenant.switch');
 
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('dashboard', [DashboardController::class, 'index']);
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Dashboard User CRUD (Admin manages guru/siswa/admin within tenant)
     Route::post('dashboard/users', [DashboardUserController::class, 'store'])->name('dashboard.users.store');

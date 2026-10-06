@@ -352,7 +352,7 @@ class Tenant extends Model
         return Attribute::make(
             get: fn () => User::getStorageUrl(
                 $this->favicon_path,
-                asset('favicon.ico')
+                asset('adzkia black app.png')
             )
         );
     }

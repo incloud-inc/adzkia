@@ -62,7 +62,8 @@ class PageTitleResolver
     public static function resolve(?string $customTitle = null, ?Tenant $tenant = null, ?User $user = null): string
     {
         $user = $user ?? auth()->user();
-        $tenant = $tenant ?? ($user?->currentTenant ?? $user?->tenants()->first());
+        $isOwner = $user?->isSuperUser();
+        $tenant = $tenant ?? ($user?->currentTenant ?? ($isOwner ? null : $user?->tenants()->first()));
 
         // 1. Tentukan judul halaman mentah (Raw Title)
         if (filled($customTitle)) {

@@ -5,9 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     @php
         $guestSubdomain = request()->route('subdomain');
-        $guestTenant = $guestSubdomain ? \App\Models\Tenant::where('subdomain', $guestSubdomain)->first() : (auth()->user()?->currentTenant ?? null);
-        $resolvedTitle = \App\Support\PageTitleResolver::resolve($title ?? null, $guestTenant, auth()->user());
-        $faviconUrl = ($guestTenant && $guestTenant->favicon_path) ? $guestTenant->favicon_url : asset('adzkia black app.png');
+        $guestTenant = app()->has('currentTenant') 
+            ? app('currentTenant') 
+            : ($guestSubdomain ? \App\Models\Tenant::where('subdomain', $guestSubdomain)->first() : null);
+
+        if (! $guestTenant && request()->filled('tenant')) {
+            $guestTenant = \App\Models\Tenant::where('subdomain', request('tenant'))->orWhere('id', request('tenant'))->first();
+        }
+
+        $authUser = auth()->user();
+        $isOwner = $authUser?->isSuperUser();
+        if (! $guestTenant && $authUser && ! $isOwner) {
+            $guestTenant = $authUser->currentTenant ?? $authUser->tenants()->first();
+        }
+
+        $resolvedTitle = \App\Support\PageTitleResolver::resolve($title ?? null, $guestTenant, $authUser);
+        $isPlatformMode = ($isOwner && ! $authUser?->current_tenant_id && ! app()->has('currentTenant'));
+        $faviconUrl = (! $isPlatformMode && $guestTenant && $guestTenant->favicon_path) 
+            ? $guestTenant->favicon_url 
+            : asset('adzkia black app.png');
     @endphp
     <title>{{ $resolvedTitle }}</title>
     

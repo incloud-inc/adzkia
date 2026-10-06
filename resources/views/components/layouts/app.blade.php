@@ -6,9 +6,20 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     @php
-        $currentTenant = app()->has('currentTenant') ? app('currentTenant') : (auth()->check() ? (auth()->user()->currentTenant ?? auth()->user()->tenants()->first()) : null);
-        $resolvedTitle = \App\Support\PageTitleResolver::resolve($title ?? null, $currentTenant, auth()->user());
-        $faviconUrl = ($currentTenant && $currentTenant->favicon_path) ? $currentTenant->favicon_url : asset('adzkia black app.png');
+        $authUser = auth()->user();
+        $isOwner = $authUser?->isSuperUser();
+        // Jika user adalah Owner dan berada di mode platform (tanpa memilih tenant), jangan pernah fallback ke tenant pertama
+        $currentTenant = app()->has('currentTenant') 
+            ? app('currentTenant') 
+            : ($authUser ? ($authUser->currentTenant ?? ($isOwner ? null : $authUser->tenants()->first())) : null);
+        
+        $resolvedTitle = \App\Support\PageTitleResolver::resolve($title ?? null, $currentTenant, $authUser);
+
+        // Owner di platform mode (dan halaman tanpa tenant spesifik) SELALU menggunakan favicon resmi ADZKIA
+        $isPlatformMode = ($isOwner && ! $authUser?->current_tenant_id && ! app()->has('currentTenant'));
+        $faviconUrl = (! $isPlatformMode && $currentTenant && $currentTenant->favicon_path) 
+            ? $currentTenant->favicon_url 
+            : asset('adzkia black app.png');
     @endphp
     <title>{{ $resolvedTitle }}</title>
     <link rel="icon" type="image/png" href="{{ $faviconUrl }}">

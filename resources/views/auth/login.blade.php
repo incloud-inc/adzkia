@@ -2,19 +2,33 @@
     <!-- HEADER -->
     @php
         $currentTenant = app()->has('currentTenant') ? app('currentTenant') : null;
-        $loginLogo = ($currentTenant && $currentTenant->logo_path) 
-            ? $currentTenant->logo_url 
-            : asset('images/logo-adzkia.png');
-        $loginTitle = ($currentTenant && $currentTenant->logo_path) 
-            ? $currentTenant->name 
-            : 'ADZKIA';
+        if (! $currentTenant && request()->route('subdomain')) {
+            $currentTenant = \App\Models\Tenant::where('subdomain', request()->route('subdomain'))->first();
+        }
+        if (! $currentTenant && request()->filled('tenant')) {
+            $currentTenant = \App\Models\Tenant::where('subdomain', request('tenant'))->orWhere('id', request('tenant'))->first();
+        }
     @endphp
     <header class="text-white px-6 py-4 flex items-center justify-between z-10 shrink-0 shadow-xs" style="background-color: #212529;">
+        <!-- Kiri: Logo ADZKIA -->
         <div class="flex items-center">
-            <a href="/" title="{{ $loginTitle }}" class="inline-flex items-center">
-                <img src="{{ $loginLogo }}" alt="{{ $loginTitle }}" class="h-10 sm:h-12 w-auto max-h-12 object-contain">
+            <a href="/" title="ADZKIA" class="inline-flex items-center gap-2.5">
+                <img src="{{ asset('images/logo-adzkia.png') }}" alt="ADZKIA" class="h-9 sm:h-10 w-auto max-h-12 object-contain" onerror="this.src='{{ asset('logo-adzkia.png') }}'">
             </a>
         </div>
+
+        <!-- Kanan: Foto Profil / Identitas Tenant -->
+        @if ($currentTenant)
+            <div class="flex items-center gap-3">
+                <div class="text-right hidden sm:block">
+                    <p class="text-xs font-semibold text-white leading-tight truncate max-w-[200px]">{{ $currentTenant->name }}</p>
+                    <p class="text-[10px] text-gray-400 leading-tight">Portal Institusi</p>
+                </div>
+                <div class="w-10 h-10 rounded-full ring-2 ring-white/20 p-0.5 overflow-hidden shrink-0 flex items-center justify-center bg-white shadow-xs" title="{{ $currentTenant->name }}">
+                    <img src="{{ $currentTenant->logo_url }}" alt="{{ $currentTenant->name }}" class="w-full h-full object-contain rounded-full">
+                </div>
+            </div>
+        @endif
     </header>
 
     <!-- KONTEN FORM -->
