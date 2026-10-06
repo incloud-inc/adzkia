@@ -1,29 +1,105 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth">
+<html lang="id" class="scroll-smooth">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Primary SEO Meta Tags -->
-    <title>Aplikasi Ujian ADZKIA</title>
-    <meta name="title" content="Aplikasi Ujian dengan Soal ASLI dan Pembahasan AI.">
-    <meta name="description" content="Dengan ADZKIA, Sekolah dan BIMBEL punya QUIZ, Ujian, Asesmen, dan TryOut untuk Murid-nya. Soal ASLI, Pembahasan AI.">
-    <meta name="keywords" content="Aplikasi Ujian ADZKIA, CBT Sekolah, CBT Bimbel, TryOut UTBK, Soal Asli, Pembahasan AI, Ujian Kedinasan, SKD CPNS, Asesmen SD SMP SMA">
+    <title>Aplikasi Ujian/Asesmen - ADZKIA CBT | Bank Soal ASLI & Pembahasan AI</title>
+    <meta name="title" content="Aplikasi Ujian/Asesmen - ADZKIA CBT | Bank Soal ASLI & Pembahasan AI">
+    <meta name="description" content="ADZKIA CBT adalah platform ujian dan asesmen untuk Sekolah dan BIMBEL dengan Bank Soal ASLI TKA, UTBK, dan SKD Kedinasan & CPNS. Soal Asli 2024, 2025, 2026 dan Prediksi 2027.">
+    <meta name="keywords" content="Aplikasi Ujian Asesmen, ADZKIA CBT, CBT Sekolah, CBT Bimbel, TryOut UTBK 2025, TKA 2026, Prediksi 2027, Soal Asli, Pembahasan AI, Ujian Kedinasan, SKD CPNS">
     <meta name="author" content="ADZKIA Assessment Engine">
+    <link rel="canonical" href="{{ url('/') }}">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url('/') }}">
-    <meta property="og:title" content="Aplikasi Ujian dengan Soal ASLI dan Pembahasan AI.">
-    <meta property="og:description" content="Dengan ADZKIA, Sekolah dan BIMBEL punya QUIZ, Ujian, Asesmen, dan TryOut untuk Murid-nya. Soal ASLI, Pembahasan AI.">
+    <meta property="og:title" content="Aplikasi Ujian/Asesmen - ADZKIA CBT | Bank Soal ASLI & Pembahasan AI">
+    <meta property="og:description" content="ADZKIA CBT adalah platform ujian dan asesmen untuk Sekolah dan BIMBEL dengan Bank Soal ASLI TKA, UTBK, dan SKD Kedinasan & CPNS. Soal Asli 2024, 2025, 2026 dan Prediksi 2027.">
     <meta property="og:image" content="{{ asset('images/logo-adzkia.png') }}">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ url('/') }}">
-    <meta property="twitter:title" content="Aplikasi Ujian dengan Soal ASLI dan Pembahasan AI.">
-    <meta property="twitter:description" content="Dengan ADZKIA, Sekolah dan BIMBEL punya QUIZ, Ujian, Asesmen, dan TryOut untuk Murid-nya. Soal ASLI, Pembahasan AI.">
+    <meta property="twitter:title" content="Aplikasi Ujian/Asesmen - ADZKIA CBT | Bank Soal ASLI & Pembahasan AI">
+    <meta property="twitter:description" content="ADZKIA CBT adalah platform ujian dan asesmen untuk Sekolah dan BIMBEL dengan Bank Soal ASLI TKA, UTBK, dan SKD Kedinasan & CPNS. Soal Asli 2024, 2025, 2026 dan Prediksi 2027.">
     <meta property="twitter:image" content="{{ asset('images/logo-adzkia.png') }}">
+
+    <!-- Structured Data: JSON-LD for GEO & Search Engines -->
+    <script type="application/ld+json">
+    {
+      "@@context": "https://schema.org",
+      "@@graph": [
+        {
+          "@@type": "SoftwareApplication",
+          "@@id": "{{ url('/') }}#software",
+          "name": "Aplikasi Ujian & Asesmen ADZKIA CBT",
+          "applicationCategory": "EducationalApplication",
+          "operatingSystem": "Web, Android, iOS, Windows",
+          "url": "{{ url('/') }}",
+          "description": "ADZKIA CBT adalah platform ujian dan asesmen untuk Sekolah dan BIMBEL dengan Bank Soal ASLI TKA, UTBK, dan SKD Kedinasan & CPNS. Soal Asli 2024, 2025, 2026 dan Prediksi 2027.",
+          "offers": {
+            "@@type": "Offer",
+            "price": "0",
+            "priceCurrency": "IDR",
+            "description": "Sesi demo dan konsultasi gratis untuk pimpinan Sekolah dan pemilik BIMBEL."
+          },
+          "featureList": [
+            "Bank Soal Asli dan Prediksi TKA, UTBK dan SKD Kedinasan CPNS (Soal Asli 2024, 2025, 2026 dan Prediksi 2027)",
+            "Generator Pembahasan AI Otomatis Langkah demi Langkah",
+            "Sistem Pengawasan CBT Anti-Curang (Proctoring & Single Device Lock)",
+            "Portal Ujian White-Label Mandiri (Custom Subdomain untuk Sekolah & Bimbel)",
+            "Analisis Butir Soal dan Rekap Nilai Otomatis"
+          ]
+        },
+        {
+          "@@type": "EducationalOrganization",
+          "@@id": "{{ url('/') }}#organization",
+          "name": "ADZKIA CBT",
+          "url": "{{ url('/') }}",
+          "logo": "{{ asset('images/logo-adzkia.png') }}",
+          "contactPoint": {
+            "@@type": "ContactPoint",
+            "telephone": "+62 813-2998-3555",
+            "contactType": "customer service",
+            "areaServed": "ID",
+            "availableLanguage": "Indonesian"
+          }
+        },
+        {
+          "@@type": "FAQPage",
+          "@@id": "{{ url('/') }}#faq",
+          "mainEntity": [
+            {
+              "@@type": "Question",
+              "name": "Apakah ADZKIA CBT membutuhkan server fisik lokal di sekolah?",
+              "acceptedAnswer": {
+                "@@type": "Answer",
+                "text": "Tidak perlu. ADZKIA CBT berbasis cloud server dengan auto-scaling sehingga sekolah tidak memerlukan server fisik di laboratorium dan bebas dari risiko server down saat ujian serentak."
+              }
+            },
+            {
+              "@@type": "Question",
+              "name": "Apakah lembaga BIMBEL bisa menggunakan branding dan logo sendiri?",
+              "acceptedAnswer": {
+                "@@type": "Answer",
+                "text": "Bisa. ADZKIA CBT mendukung multi-tenant dengan portal mandiri dan custom subdomain sehingga nama serta logo lembaga BIMBEL Anda tampil secara eksklusif."
+              }
+            },
+            {
+              "@@type": "Question",
+              "name": "Materi dan jenjang apa saja yang tercakup dalam Bank Soal ADZKIA CBT?",
+              "acceptedAnswer": {
+                "@@type": "Answer",
+                "text": "ADZKIA CBT menyediakan Bank Soal Asli dan Prediksi TKA, UTBK dan SKD Kedinasan CPNS (Soal Asli 2024, 2025, 2026 dan Prediksi 2027), serta asesmen lengkap untuk Kelas 1 SD hingga 12 SMA dan sertifikasi TOEIC, TOEFL, IELTS."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('adzkia black app.png') }}">
@@ -37,7 +113,6 @@
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
 
     <style>
         :root {
@@ -73,6 +148,8 @@
             background-image: 
                 linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
                 linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+            -webkit-mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent 100%);
         }
     </style>
 </head>
@@ -135,14 +212,14 @@
             <div class="text-center max-w-4xl mx-auto">
                 
                 <!-- Eyebrow Pill -->
-                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-slate-200 shadow-xs mb-6 text-xs font-semibold text-slate-700">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/95 border border-emerald-200/80 shadow-xs mb-6 text-xs font-semibold text-slate-800">
                     <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Untuk Lembaga yang Siap Pembelajaran Mendalam dengan AI</span>
+                    <span>Sekolah & BIMBEL Optimalkan Pembelajaran, ADZKIA CBT Sempurnakan Pencapaian</span>
                 </div>
 
-                <!-- Judul LP: Refined Assessment. -->
+                <!-- Judul LP: Aplikasi Ujian/Asesmen -->
                 <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-950 font-display leading-[1.08] mb-5">
-                    Refined Assessment<span class="text-emerald-700">.</span>
+                    Aplikasi Ujian/Asesmen<span class="text-emerald-700">.</span>
                 </h1>
 
                 <!-- Tagline: Soal ASLI, Pembahasan AI. -->
@@ -151,8 +228,8 @@
                 </div>
 
                 <!-- Description / Hook -->
-                <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto mb-10">
-                    Dengan <span class="font-bold text-slate-900">ADZKIA</span>, Sekolah dan BIMBEL punya <span class="font-semibold text-slate-800">QUIZ</span>, <span class="font-semibold text-slate-800">Ujian</span>, <span class="font-semibold text-slate-800">Asesmen</span>, dan <span class="font-semibold text-slate-800">TryOut</span> untuk Murid-nya.
+                <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed max-w-3xl mx-auto mb-10">
+                    <span class="font-bold text-slate-900">ADZKIA CBT</span> adalah platform ujian dan asesmen untuk Sekolah dan BIMBEL dengan <span class="font-semibold text-slate-800">Bank Soal ASLI TKA, UTBK, dan SKD Kedinasan & CPNS</span>.
                 </p>
 
                 <!-- Hero CTA Buttons -->
@@ -167,12 +244,14 @@
                         </div>
                     </a>
 
-                    <a href="#cakupan" 
-                       class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-sm font-semibold shadow-xs transition-all duration-200">
-                        <svg class="w-4 h-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    <a href="https://wa.me/6281329983555?text=Halo%20Tim%20ADZKIA%20CBT%2C%20saya%20tertarik%20untuk%20berkonsultasi%20mengenai%20platform%20ujian%20dan%20asesmen%20ADZKIA%20CBT%20untuk%20Sekolah%2FBIMBEL%20kami." 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-sm font-semibold shadow-xs transition-all duration-200 group">
+                        <svg class="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                         </svg>
-                        <span>Lihat Data & Jangkauan</span>
+                        <span>Konsultasi Demo Sekolah / Bimbel</span>
                     </a>
                 </div>
 
@@ -193,10 +272,18 @@
 
                         <!-- Sample Question Body -->
                         <div class="space-y-3">
-                            <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Contoh Soal Asli UTBK SNBT:</div>
                             <p class="text-sm sm:text-base font-semibold text-slate-800 leading-snug">
-                                (PM UTBK 2025) Untuk keperluan pengairan tanaman, sawah dilengkapi parit yang letaknya di antara tiap-tiap petak kecil. Jika terdapat dua baris petak sawah, masing-masing terdiri atas 18 petak dan lebar parit 0,5 m, luas sawah beserta parit yang ada di dalamnya adalah … m^2.
+                                <span class="text-emerald-800 font-bold">(PM UTBK 2025)</span> Untuk keperluan pengairan tanaman, sawah dilengkapi parit pemisah yang letaknya di antara tiap-tiap petak kecil. Sawah tersusun atas <strong>2 baris</strong> petak, masing-masing terdiri atas <strong>18 petak</strong> persegi panjang berukuran panjang <strong>4 m</strong> dan lebar <strong>3 m</strong>. Jika lebar setiap parit adalah <strong>0,5 m</strong>, luas total sawah beserta seluruh parit di dalamnya adalah … m².
                             </p>
+
+                            <!-- Pilihan Ganda -->
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 text-xs font-semibold text-slate-600">
+                                <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-center">A. 486,00 m²</div>
+                                <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-center">B. 504,50 m²</div>
+                                <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold text-center">C. 523,25 m²</div>
+                                <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-center">D. 542,00 m²</div>
+                                <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 text-center">E. 560,75 m²</div>
+                            </div>
 
                             <!-- Kotak Pembahasan AI: Simulasi Aman Tanpa API Key -->
                             <div id="ai-simulation-wrapper" class="mt-4 pt-4 border-t border-slate-100">
@@ -210,7 +297,7 @@
                                         <span>✨ Generate Pembahasan AI</span>
                                         <span class="text-emerald-200 text-xs transition-transform group-hover:translate-x-0.5">→</span>
                                     </button>
-                                    <span class="text-[11px] text-slate-400 font-medium italic">Simulasi cerdas pembahasan penalaran matematika</span>
+                                    <span class="text-[11px] text-slate-400 font-medium italic">Klik untuk melihat simulasi penjelasan cerdas step-by-step</span>
                                 </div>
 
                                 <!-- Status Loading Simulasi -->
@@ -222,71 +309,145 @@
                                     <span class="font-semibold">Menganalisis konsep geometri dan langkah kalkulasi penalaran matematika...</span>
                                 </div>
 
-                                <!-- Hasil Pembahasan AI (Tampilan Visual Mode View Bersih) -->
+                                <!-- Hasil Pembahasan AI (Mode Markdown View) -->
                                 <div id="ai-result-box" class="hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-50 to-emerald-50/40 border border-emerald-200/90 shadow-sm relative overflow-hidden transition-all duration-300">
-                                    <div class="flex items-center justify-between gap-2 pb-3 mb-3.5 border-b border-slate-200">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3.5 border-b border-slate-200">
                                         <div class="flex items-center gap-2">
                                             <div class="w-6 h-6 rounded-lg bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-xs text-xs font-bold">
                                                 ✦
                                             </div>
                                             <span class="text-xs font-bold text-slate-900">Pembahasan AI: Penalaran Matematika</span>
-                                            <span class="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200/60">Mode View</span>
+                                            <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                                                <svg class="w-3 h-3 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                <span>Mode Markdown View</span>
+                                            </span>
                                         </div>
-                                        <button type="button" onclick="resetAiExplanation()" class="text-[11px] text-slate-400 hover:text-slate-700 font-medium underline cursor-pointer">
-                                            Tutup
-                                        </button>
+
+                                        <!-- Tab Selector: Markdown Rendered vs Raw Markdown (.md) -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="inline-flex items-center bg-slate-100 rounded-lg p-0.5 text-[11px]">
+                                                <button type="button" 
+                                                        id="tab-btn-rendered"
+                                                        onclick="setMarkdownTab('rendered')"
+                                                        class="px-2.5 py-1 rounded-md bg-white text-emerald-800 font-bold shadow-2xs border border-emerald-200/60 cursor-pointer transition-all">
+                                                    📄 Markdown Rendered
+                                                </button>
+                                                <button type="button" 
+                                                        id="tab-btn-raw"
+                                                        onclick="setMarkdownTab('raw')"
+                                                        class="px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-800 font-semibold cursor-pointer transition-all">
+                                                    💻 Raw .md
+                                                </button>
+                                            </div>
+                                            <button type="button" onclick="resetAiExplanation()" class="text-[11px] text-slate-400 hover:text-slate-700 font-medium underline cursor-pointer ml-1">
+                                                Tutup
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    <div class="space-y-3 text-xs text-slate-700">
-                                        <!-- Langkah 1 -->
-                                        <div class="bg-white/90 rounded-xl p-3 border border-slate-200/80 shadow-2xs">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center">1</span>
-                                                <span class="font-bold text-slate-900">Identifikasi Jumlah Petak & Parit</span>
-                                            </div>
-                                            <p class="text-slate-600 leading-relaxed pl-6">
-                                                Sawah tersusun atas <strong>2 baris</strong> petak dan tiap baris berisi <strong>18 petak</strong> (total 36 petak). Misalkan panjang tiap petak adalah <span class="font-semibold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">p meter</span> dan lebarnya <span class="font-semibold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">l meter</span>.
+                                    <!-- 1. TAB: MARKDOWN RENDERED VIEW -->
+                                    <div id="md-rendered-view" class="space-y-3.5 text-xs text-slate-700 font-sans leading-relaxed">
+                                        
+                                        <!-- Heading 1 Markdown -->
+                                        <div class="bg-white/95 rounded-xl p-3.5 border border-slate-200/80 shadow-2xs">
+                                            <h4 class="text-xs font-extrabold text-slate-900 mb-1.5 flex items-center gap-1.5 font-display">
+                                                <span class="text-emerald-700 font-bold">###</span>
+                                                <span>1. Identifikasi Jumlah Petak & Sekat Parit</span>
+                                            </h4>
+                                            <p class="text-slate-600 pl-4 leading-relaxed">
+                                                Sawah memiliki <strong>2 baris</strong> petak dan masing-masing berisi <strong>18 petak</strong> (panjang tiap petak <code class="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-emerald-800 font-semibold">p = 4 m</code>, lebar <code class="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-emerald-800 font-semibold">l = 3 m</code>, lebar parit <code class="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-emerald-800 font-semibold">0,5 m</code>).
                                             </p>
+                                            <p class="text-slate-600 pl-4 mt-1">
+                                                Karena parit hanya terletak di antara petak (bukan keliling terluar), maka jumlah celah pemisah adalah <code class="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-slate-800 font-semibold">(n - 1)</code>:
+                                            </p>
+                                            <ul class="list-disc list-inside pl-6 mt-1 space-y-0.5 text-slate-700 font-medium">
+                                                <li><strong>Arah Memanjang (18 petak):</strong> <span class="text-slate-600">(18 - 1) =</span> <strong class="text-emerald-800">17 parit pemisah</strong></li>
+                                                <li><strong>Arah Melebar (2 baris):</strong> <span class="text-slate-600">(2 - 1) =</span> <strong class="text-emerald-800">1 parit pemisah</strong></li>
+                                            </ul>
                                         </div>
 
-                                        <!-- Langkah 2 -->
-                                        <div class="bg-white/90 rounded-xl p-3 border border-slate-200/80 shadow-2xs">
-                                            <div class="flex items-center gap-2 mb-1.5">
-                                                <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center">2</span>
-                                                <span class="font-bold text-slate-900">Perhitungan Dimensi Total (Lebar Parit = 0,5 m)</span>
-                                            </div>
-                                            <div class="space-y-2 text-slate-600 pl-6 leading-relaxed">
-                                                <div class="flex items-start gap-2">
-                                                    <span class="text-emerald-700 font-bold">•</span>
-                                                    <div>
-                                                        <strong>Arah Memanjang (18 petak):</strong> Terdapat 17 celah parit pemisah.<br>
-                                                        <span class="inline-block mt-1 px-2.5 py-1 bg-slate-100 rounded text-slate-800 font-medium">Panjang Total = (18 × p) + (17 × 0,5 m) = <strong class="text-emerald-800">18p + 8,5 meter</strong></span>
-                                                    </div>
-                                                </div>
-                                                <div class="flex items-start gap-2">
-                                                    <span class="text-emerald-700 font-bold">•</span>
-                                                    <div>
-                                                        <strong>Arah Melebar (2 baris):</strong> Terdapat 1 celah parit pemisah.<br>
-                                                        <span class="inline-block mt-1 px-2.5 py-1 bg-slate-100 rounded text-slate-800 font-medium">Lebar Total = (2 × l) + (1 × 0,5 m) = <strong class="text-emerald-800">2l + 0,5 meter</strong></span>
-                                                    </div>
+                                        <!-- Heading 2 Markdown -->
+                                        <div class="bg-white/95 rounded-xl p-3.5 border border-slate-200/80 shadow-2xs">
+                                            <h4 class="text-xs font-extrabold text-slate-900 mb-1.5 flex items-center gap-1.5 font-display">
+                                                <span class="text-emerald-700 font-bold">###</span>
+                                                <span>2. Dimensi Total Sawah Beserta Parit</span>
+                                            </h4>
+                                            <div class="pl-4 space-y-1.5">
+                                                <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/70 font-mono text-[11px] text-slate-800">
+                                                    <div>• <strong>Panjang Total</strong> = (18 × 4 m) + (17 × 0,5 m) = 72 m + 8,5 m = <strong class="text-emerald-700">80,5 meter</strong></div>
+                                                    <div>• <strong>Lebar Total</strong>   = (2 × 3 m) + (1 × 0,5 m) = 6 m + 0,5 m = <strong class="text-emerald-700">6,5 meter</strong></div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <!-- Langkah 3: Formula Box -->
-                                        <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center shadow-2xs">
-                                            <div class="text-[11px] uppercase tracking-wider font-bold text-emerald-800 mb-1">Rumus Luas Sawah Beserta Parit</div>
-                                            <div class="text-sm sm:text-base font-extrabold text-emerald-950 font-display">
-                                                Luas Total = (18p + 8,5) × (2l + 0,5) m²
+                                        <!-- Heading 3 Markdown: Formula & Kalkulasi -->
+                                        <div class="bg-white/95 rounded-xl p-3.5 border border-slate-200/80 shadow-2xs">
+                                            <h4 class="text-xs font-extrabold text-slate-900 mb-1.5 flex items-center gap-1.5 font-display">
+                                                <span class="text-emerald-700 font-bold">###</span>
+                                                <span>3. Kalkulasi Luas Total Sawah Beserta Parit</span>
+                                            </h4>
+                                            <div class="pl-4">
+                                                <div class="p-2.5 rounded-lg bg-slate-900 text-emerald-300 font-mono text-xs shadow-inner">
+                                                    Luas Total = Panjang Total × Lebar Total<br>
+                                                    Luas Total = 80,5 m × 6,5 m = <strong class="text-emerald-200 underline">523,25 m²</strong>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <!-- Highlight Kesimpulan -->
-                                        <div class="p-2.5 rounded-lg bg-white/80 border border-slate-200/70 flex items-start gap-2 text-[11px] text-slate-600">
-                                            <span class="text-emerald-700 font-bold shrink-0">💡 Kunci Cepat:</span>
-                                            <span>Parit hanya terletak di antara petak (bukan keliling terluar), sehingga jumlah sekat parit selalu (n − 1). Pembahasan AI memvisualisasikan struktur tanpa rumus rumit yang membingungkan.</span>
+                                        <!-- Final Result Callout Card -->
+                                        <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-center shadow-xs">
+                                            <div class="text-[11px] uppercase tracking-wider font-bold text-emerald-800 mb-0.5">### Kunci Jawaban Akhir</div>
+                                            <div class="text-base sm:text-lg font-extrabold text-emerald-950 font-display">
+                                                ✅ Kunci Jawaban: C (523,25 m²)
+                                            </div>
                                         </div>
+
+                                        <!-- Markdown Blockquote: Tips Cepat AI -->
+                                        <blockquote class="border-l-4 border-emerald-600 pl-3.5 py-2 bg-emerald-50/70 text-slate-700 rounded-r-xl shadow-2xs">
+                                            <div class="font-bold text-emerald-950 text-xs flex items-center gap-1.5 mb-1">
+                                                <span>💡 Tips Cepat AI:</span>
+                                            </div>
+                                            <p class="text-[11px] text-slate-600 leading-relaxed">
+                                                Formula cepat: <code class="px-1 py-0.5 rounded bg-white text-emerald-800 font-semibold border border-emerald-200 font-mono">Luas = (18p + 8,5) × (2l + 0,5)</code>. Substitusi langsung <code class="px-1 py-0.5 rounded bg-white text-emerald-800 font-semibold border border-emerald-200 font-mono">p = 4</code> dan <code class="px-1 py-0.5 rounded bg-white text-emerald-800 font-semibold border border-emerald-200 font-mono">l = 3</code> menghasilkan <strong class="text-emerald-900">80,5 × 6,5 = 523,25 m²</strong> tanpa risiko salah hitung aljabar. Pembahasan AI membimbing murid memahami alur logika secara visual dan terstruktur!
+                                            </p>
+                                        </blockquote>
+
                                     </div>
+
+                                    <!-- 2. TAB: RAW MARKDOWN SOURCE CODE VIEW (.md) -->
+                                    <div id="md-raw-view" class="hidden rounded-xl bg-slate-950 p-4 font-mono text-[11px] leading-relaxed text-slate-300 overflow-x-auto border border-slate-800 shadow-inner">
+                                        <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-800 text-[10px] text-slate-400">
+                                            <span class="flex items-center gap-1.5">
+                                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                                <span class="font-semibold text-slate-200">pembahasan-utbk-pm2025.md</span>
+                                            </span>
+                                            <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px]">GFM Markdown</span>
+                                        </div>
+<pre class="text-slate-300 whitespace-pre-wrap font-mono select-all">### 1. Identifikasi Jumlah Petak & Sekat Parit
+* Sawah memiliki **2 baris** petak, masing-masing berisi **18 petak**.
+* Dimensi tiap petak: panjang `p = 4 m`, lebar `l = 3 m`, serta lebar parit `0,5 m`.
+* Karena parit hanya berada *di antara* petak (bukan keliling terluar), jumlah celah sekat pemisah selalu `(n - 1)`:
+  - **Arah Memanjang (18 petak):** `(18 - 1) = 17 parit pemisah`
+  - **Arah Melebar (2 baris):** `(2 - 1) = 1 parit pemisah`
+
+### 2. Dimensi Total Sawah Beserta Parit
+* **Panjang Total** = `(18 × 4 m) + (17 × 0,5 m) = 72 m + 8,5 m = 80,5 meter`
+* **Lebar Total**   = `(2 × 3 m) + (1 × 0,5 m) = 6 m + 0,5 m = 6,5 meter`
+
+### 3. Kalkulasi Luas Total Sawah Beserta Parit
+$$\text{Luas Total} = \text{Panjang Total} \times \text{Lebar Total}$$
+$$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m}^2}$$
+
+### 🏆 Kunci Jawaban Akhir
+**✅ Kunci Jawaban: C (523,25 m²)**
+
+> **💡 Tips Cepat AI:**
+> Formula cepat: `Luas = (18p + 8,5) × (2l + 0,5)`.
+> Substitusi langsung `p = 4` dan `l = 3` menghasilkan `80,5 × 6,5 = 523,25 m²` tanpa risiko salah hitung aljabar.</pre>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -309,6 +470,7 @@
                             loading.classList.add('hidden');
                             loading.classList.remove('flex');
                             result.classList.remove('hidden');
+                            setMarkdownTab('rendered');
                         }, 400);
                     }
 
@@ -321,6 +483,27 @@
                         result.classList.add('hidden');
                         loading.classList.add('hidden');
                         btn.classList.remove('hidden');
+                    }
+
+                    function setMarkdownTab(mode) {
+                        const rendered = document.getElementById('md-rendered-view');
+                        const raw = document.getElementById('md-raw-view');
+                        const tabRendered = document.getElementById('tab-btn-rendered');
+                        const tabRaw = document.getElementById('tab-btn-raw');
+
+                        if (!rendered || !raw || !tabRendered || !tabRaw) return;
+
+                        if (mode === 'rendered') {
+                            rendered.classList.remove('hidden');
+                            raw.classList.add('hidden');
+                            tabRendered.className = "px-2.5 py-1 rounded-md bg-white text-emerald-800 font-bold shadow-2xs border border-emerald-200/60 cursor-pointer transition-all";
+                            tabRaw.className = "px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-800 font-semibold cursor-pointer transition-all";
+                        } else {
+                            rendered.classList.add('hidden');
+                            raw.classList.remove('hidden');
+                            tabRendered.className = "px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-800 font-semibold cursor-pointer transition-all";
+                            tabRaw.className = "px-2.5 py-1 rounded-md bg-slate-900 text-emerald-400 font-bold shadow-2xs border border-slate-700 cursor-pointer transition-all";
+                        }
                     }
                 </script>
 
@@ -372,7 +555,7 @@
                     </div>
                 </div>
 
-                <!-- CARD 2: x Siswa/Murid/Pelajar Asesmen di ADZKIA -->
+                <!-- CARD 2: x Murid (Siswa) Asesmen di ADZKIA -->
                 <div class="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-500 shadow-xs hover:shadow-md transition-all duration-200 flex flex-row items-center gap-4 group">
                     <div class="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center shrink-0 text-sky-700 group-hover:scale-105 group-hover:bg-sky-600 group-hover:text-white transition-all">
                         <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -387,7 +570,7 @@
                             {{ $stats['students']['count'] ?? '15.000+' }}
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
-                            Murid/Pelajar melaksanakan Asesmen di ADZKIA
+                            Murid (Siswa) melaksanakan Asesmen di ADZKIA
                         </h3>
                         <p class="text-[11px] text-slate-500 mt-0.5 truncate">
                             Mengerjakan kuis, tryout, dan latihan dengan nyaman di mobile & PC.
@@ -435,8 +618,8 @@
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Asesmen untuk TKA, UTBK, dan SKD Kedinasan CPNS
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                            Format tes CAT resmi: TWK, TIU, TKP, Penalaran Umum, & Kuantitatif.
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Soal Asli 2024, 2025, 2026 dan Prediksi 2027. Format tes CAT resmi: TWK, TIU, TKP, Penalaran Umum, & Kuantitatif.
                         </p>
                     </div>
                 </div>
@@ -563,7 +746,9 @@
 
 
     <!-- SECTION: SOLUSI UNGGULAN & AI DEEP DIVE -->
-    <section id="solusi" class="py-20 sm:py-28 subtle-grid">
+    <section id="solusi" class="py-20 sm:py-28 subtle-grid relative overflow-hidden isolate">
+        <!-- Target Anchor untuk Navigasi Kurikulum Lengkap & Solusi -->
+        <div id="keunggulan" class="absolute -top-24 left-0"></div>
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             
             <div class="text-center max-w-3xl mx-auto mb-16">
@@ -607,7 +792,7 @@
                         </div>
                         <h3 class="text-lg font-bold text-slate-900 mb-2">Pembahasan Berbasis AI</h3>
                         <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                            Setiap nomor soal dilengkapi pembahasan cerdas instan. Siswa memahami bukan hanya kunci jawaban, tetapi alur berpikir logis dan konsep dasarnya.
+                            Setiap nomor soal dilengkapi pembahasan cerdas instan. Murid memahami bukan hanya kunci jawaban, tetapi alur berpikir logis dan konsep dasarnya.
                         </p>
                     </div>
                     <div class="mt-6 pt-4 border-t border-slate-100 text-xs font-semibold text-emerald-800 flex items-center gap-1">
@@ -623,7 +808,7 @@
                         </div>
                         <h3 class="text-lg font-bold text-slate-900 mb-2">Sistem Anti-Curang Tegas</h3>
                         <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                            Enforcement single device, auto-lock saat ganti tab, pemangkasan durasi atau poin otomatis oleh pengawas, serta PIN darurat verifikasi siswa.
+                            Enforcement single device, auto-lock saat ganti tab, pemangkasan durasi atau poin otomatis oleh pengawas, serta PIN darurat verifikasi murid.
                         </p>
                     </div>
                     <div class="mt-6 pt-4 border-t border-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-1">
@@ -637,23 +822,30 @@
     </section>
 
 
-    <!-- FOOTER: CALL TO ACTION YANG LEMBUT & SOFT SELLING -->
-    <footer id="kontak" class="bg-slate-950 text-slate-300 pt-20 pb-12 border-t border-slate-800 relative overflow-hidden">
+    <!-- FOOTER & CALL TO ACTION (MODERN WEB GUIDANCE) -->
+    <footer id="kontak" role="contentinfo" class="bg-slate-950 text-slate-300 pt-20 pb-12 relative overflow-hidden -mt-px isolate">
         
-        <!-- Subtle Ambient Glow -->
-        <div class="absolute bottom-0 right-1/4 w-[500px] h-[300px] bg-emerald-600/10 blur-[120px] pointer-events-none rounded-full"></div>
+        <!-- Subtle Ambient Glow Terisolasi -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+            <div class="absolute bottom-0 right-1/4 w-[500px] h-[300px] bg-emerald-600/10 blur-[130px] rounded-full"></div>
+            <div class="absolute top-1/4 left-10 w-[400px] h-[250px] bg-slate-800/20 blur-[100px] rounded-full"></div>
+        </div>
 
         <div class="max-w-6xl mx-auto px-4 sm:px-6 relative">
             
             <!-- SOFT SELLING CTA CARD -->
-            <div class="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-emerald-950/60 border border-slate-800/90 p-8 sm:p-12 mb-16 shadow-2xl relative overflow-hidden">
+            <div class="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-emerald-950/70 border border-slate-800/90 p-8 sm:p-12 mb-16 shadow-2xl relative overflow-hidden group">
+
                 <div class="max-w-3xl">
-                    <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-3 py-1 rounded-full mb-4">
-                        Konsultasi & Diskusi Solusi
-                    </span>
-                    <h3 class="text-2xl sm:text-4xl font-extrabold text-white font-display tracking-tight leading-tight mb-4">
+                    <!-- Slogan Badge Penutup -->
+                    <div class="inline-flex items-center gap-2 text-xs font-semibold text-emerald-300 bg-emerald-950/80 border border-emerald-800/70 px-4 py-1.5 rounded-full mb-5 shadow-inner">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Pembelajaran Terbaik dari Guru &amp; Tutor Anda. Evaluasi Sempurna bersama ADZKIA CBT</span>
+                    </div>
+
+                    <h2 class="text-2xl sm:text-4xl font-extrabold text-white font-display tracking-tight leading-tight mb-4">
                         Siap Menghadirkan Standar Asesmen Terbaik untuk Murid Anda?
-                    </h3>
+                    </h2>
                     <p class="text-sm sm:text-base text-slate-400 leading-relaxed mb-8 max-w-2xl font-normal">
                         Kami percaya bahwa setiap sekolah dan lembaga bimbingan belajar memiliki ritme serta tantangan evaluasi yang unik. Anda tidak perlu langsung berlangganan—mari berdiskusi santai, mengeksplorasi contoh bank soal kami, atau mencoba fitur AI kami secara cuma-cuma.
                     </p>
@@ -662,87 +854,131 @@
                     <div class="flex flex-wrap items-center gap-4">
                         @if (Route::has('register'))
                             <a href="{{ route('register') }}" 
-                               class="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-700/20 transition-all active:scale-[0.98]">
+                                class="inline-flex min-h-[48px] items-center gap-2.5 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-700/25 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]">
                                 <span>Coba Gratis Tanpa Komitmen</span>
                                 <span class="text-emerald-200">↗</span>
                             </a>
                         @endif
 
-                        <a href="https://wa.me/6281234567890?text=Halo%20Tim%20ADZKIA,%20saya%20tertarik%20untuk%20mengetahui%20lebih%20lanjut%20tentang%20aplikasi%20ujian%20dan%20pembahasan%20AI%20untuk%20sekolah/bimbel%20kami." 
+                        <!-- Tombol WhatsApp tanpa menampilkan nomor telepon di teks -->
+                        <a href="https://wa.me/6281329983555?text=Halo%20Tim%20ADZKIA%20CBT%2C%20saya%20tertarik%20untuk%20berkonsultasi%20mengenai%20platform%20ujian%20dan%20asesmen%20ADZKIA%20CBT%20untuk%20Sekolah%2FBIMBEL%20kami." 
                            target="_blank" 
                            rel="noopener noreferrer"
-                           class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 text-xs sm:text-sm font-semibold transition-all">
-                            <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                           aria-label="Konsultasi Kemitraan via WhatsApp"
+                           class="inline-flex min-h-[48px] items-center gap-2.5 px-5 py-3 rounded-xl bg-emerald-700/90 hover:bg-emerald-600 text-white border border-emerald-500/50 text-xs sm:text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 shadow-md shadow-emerald-950/40">
+                            <svg class="w-4.5 h-4.5 text-white shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                             </svg>
-                            <span>Tanya Santai via WhatsApp</span>
+                            <span>Konsultasi via WhatsApp</span>
                         </a>
 
-                        <a href="{{ route('login') }}" 
-                           class="text-xs text-slate-400 hover:text-white transition-colors ml-auto">
-                            Sudah punya akun? Masuk di sini →
-                        </a>
+                        @if (Route::has('login'))
+                            <a href="{{ route('login') }}" 
+                               class="text-xs text-slate-400 hover:text-white transition-colors ml-auto sm:ml-auto">
+                                Sudah punya akun? Masuk di sini →
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
 
-            <!-- FOOTER LINKS & BRANDING -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 pb-12 border-b border-slate-800 text-xs">
+            <!-- FOOTER LINKS & BRANDING (3-COLUMN RESPONSIVE GRID) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-12 pb-14 border-b border-slate-800/80 text-xs">
                 
-                <!-- Col 1: Brand Info -->
-                <div class="md:col-span-2">
+                <!-- Col 1: Brand Info & Value Proposition -->
+                <div class="lg:col-span-5 md:col-span-2">
                     <div class="inline-flex items-center gap-3 mb-4">
                         <img src="{{ asset('images/logo-adzkia.png') }}" 
-                             alt="ADZKIA" 
+                             alt="ADZKIA CBT" 
                              class="h-8 w-auto brightness-0 invert opacity-90"
                              onerror="this.src='{{ asset('logo-adzkia.png') }}'">
                     </div>
-                    <p class="text-slate-400 leading-relaxed max-w-sm mb-4">
-                        Aplikasi Ujian dengan Soal ASLI dan Pembahasan AI. Solusi CBT terpadu untuk Sekolah, BIMBEL, Guru, dan Siswa di seluruh Indonesia.
+                    <p class="text-slate-400 leading-relaxed mb-4 max-w-md">
+                        Aplikasi Ujian &amp; Asesmen ADZKIA CBT dengan Soal ASLI dan Pembahasan AI. Solusi evaluasi terpadu untuk Sekolah, BIMBEL, Guru, dan Murid di seluruh Indonesia.
                     </p>
-                    <div class="flex items-center gap-2 text-[11px] text-slate-500">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span>Sistem CBT Aktif & Terlindungi</span>
+                    <p class="text-[11px] text-emerald-400 font-medium italic mb-4 leading-normal">
+                        "Pembelajaran Terbaik dari Guru &amp; Tutor Anda. Evaluasi Sempurna bersama ADZKIA CBT"
+                    </p>
+                    <div class="inline-flex items-center gap-2 text-[11px] text-slate-400 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-full">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                        </span>
+                        <span>Sistem CBT Aktif &amp; Terlindungi</span>
                     </div>
                 </div>
 
-                <!-- Col 2: Kategori Ujian -->
-                <div>
-                    <h4 class="font-bold text-white uppercase tracking-wider mb-3">Kategori Asesmen</h4>
-                    <ul class="space-y-2 text-slate-400">
-                        <li><span>Kelas 1 - 6 SD (Fase A-C)</span></li>
-                        <li><span>Kelas 7 - 9 SMP (Fase D)</span></li>
-                        <li><span>Kelas 10 - 12 SMA/SMK (Fase E-F)</span></li>
-                        <li><span>UTBK / SNBT & TKA</span></li>
-                        <li><span>SKD CPNS & Kedinasan</span></li>
-                        <li><span>TOEIC, TOEFL, & IELTS</span></li>
+                <!-- Col 2: Cakupan Asesmen -->
+                <nav aria-label="Cakupan Asesmen" class="lg:col-span-3 md:col-span-1">
+                    <h3 class="font-bold text-white uppercase tracking-wider mb-4 text-xs">Cakupan Asesmen</h3>
+                    <ul class="space-y-2.5 text-slate-400">
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>Kelas 1 - 6 SD (Fase A-C)</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>Kelas 7 - 9 SMP (Fase D)</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>Kelas 10 - 12 SMA/SMK (Fase E-F)</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0 mt-1"></span>
+                            <span>TKA &amp; UTBK SNBT (Asli 2024–2026 &amp; Prediksi 2027)</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>SKD CPNS &amp; Kedinasan</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>TOEIC, TOEFL, &amp; IELTS</span>
+                        </li>
                     </ul>
-                </div>
+                </nav>
 
-                <!-- Col 3: Akses Cepat -->
-                <div>
-                    <h4 class="font-bold text-white uppercase tracking-wider mb-3">Tautan Singkat</h4>
-                    <ul class="space-y-2 text-slate-400">
-                        <li><a href="{{ route('login') }}" class="hover:text-emerald-400 transition-colors">Portal Masuk CBT</a></li>
-                        @if (Route::has('register'))
-                            <li><a href="{{ route('register') }}" class="hover:text-emerald-400 transition-colors">Pendaftaran Akun</a></li>
-                        @endif
-                        <li><a href="#solusi" class="hover:text-emerald-400 transition-colors">Solusi Pembahasan AI</a></li>
-                        <li><a href="#cakupan" class="hover:text-emerald-400 transition-colors">Metrik & Bank Soal</a></li>
-                        <li><a href="{{ route('password.request') }}" class="hover:text-emerald-400 transition-colors">Reset Password</a></li>
+                <!-- Col 3: Solusi Platform -->
+                <nav aria-label="Solusi Platform" class="lg:col-span-4 md:col-span-1">
+                    <h3 class="font-bold text-white uppercase tracking-wider mb-4 text-xs">Solusi Platform</h3>
+                    <ul class="space-y-2.5 text-slate-400">
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>Bank Soal Asli Terstandarisasi</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>Pembahasan AI Langkah demi Langkah</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>Anti-Curang (Proctoring Mandiri)</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>Portal Multi-Tenant White-Label</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
+                            <span>Analisis Butir Soal &amp; Rekap Nilai</span>
+                        </li>
                     </ul>
-                </div>
+                </nav>
 
             </div>
 
-            <!-- COPYRIGHT & SIGNATURE -->
+            <!-- COPYRIGHT & COMPLIANCE BAR -->
             <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
                 <p>
-                    © {{ date('Y') }} ADZKIA. Seluruh hak cipta dilindungi undang-undang.
+                    &copy; {{ date('Y') }} ADZKIA CBT. Seluruh hak cipta dilindungi undang-undang.
                 </p>
-                <p class="text-slate-400">
-                    Refined Assessment • Soal ASLI, Pembahasan AI.
-                </p>
+                <div class="flex items-center gap-2 text-slate-400">
+                    <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    <span>Standar Enkripsi &amp; Kepatuhan UU Perlindungan Data Pribadi (UU PDP No. 27/2022)</span>
+                </div>
             </div>
 
         </div>
