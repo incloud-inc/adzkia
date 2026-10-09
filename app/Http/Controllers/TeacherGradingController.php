@@ -7,11 +7,11 @@ use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
 use App\Models\Tenant;
+use App\Support\MarkdownRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class TeacherGradingController extends Controller
@@ -210,13 +210,13 @@ class TeacherGradingController extends Controller
                 'question' => $q,
                 'section_title' => $q->assessmentSection?->title ?? 'Section',
                 'stimulus' => $q->questionGroup?->stimulus_content,
-                'stimulus_rendered' => filled($q->questionGroup?->stimulus_content) ? Str::markdown($q->questionGroup->stimulus_content, $markdownOptions) : null,
+                'stimulus_rendered' => filled($q->questionGroup?->stimulus_content) ? MarkdownRenderer::render($q->questionGroup->stimulus_content, $markdownOptions) : null,
                 'stimulus_title' => $q->questionGroup?->title,
                 'prompt' => $q->prompt,
-                'prompt_rendered' => filled($q->prompt) ? Str::markdown($q->prompt, $markdownOptions) : null,
+                'prompt_rendered' => filled($q->prompt) ? MarkdownRenderer::render($q->prompt, $markdownOptions) : null,
                 'max_points' => $essayMaxPoints,
                 'student_answer' => $rawStudentAnswer,
-                'student_rendered' => filled($rawStudentAnswer) ? Str::markdown($rawStudentAnswer, $markdownOptions) : null,
+                'student_rendered' => filled($rawStudentAnswer) ? MarkdownRenderer::render($rawStudentAnswer, $markdownOptions) : null,
                 'points_awarded' => $ans?->points_awarded,
                 'teacher_feedback' => $payload['teacher_feedback'] ?? null,
                 'rubric_guide' => $rubricGuide,

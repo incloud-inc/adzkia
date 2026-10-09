@@ -92,6 +92,7 @@ class QuestionGeneratorController extends Controller
             'type_distributions.*.standalone_count' => 'nullable|integer|min:0|max:50',
             'type_distributions.*.stimulus_count' => 'nullable|integer|min:0|max:10',
             'type_distributions.*.stimulus_questions' => 'nullable|integer|min:0|max:10',
+            'include_visuals' => 'nullable|boolean',
         ]);
 
         try {
@@ -132,6 +133,13 @@ class QuestionGeneratorController extends Controller
 
         try {
             $package = $request->input('package');
+            $aiService = app(DeepSeekQuestionGeneratorService::class);
+            $stimuli = $aiService->extractStimuliData($package);
+            $package['stimuli'] = $stimuli;
+            if (! empty($stimuli)) {
+                $package['stimulus'] = $stimuli[0];
+            }
+
             $tmp = tempnam(sys_get_temp_dir(), 'gen_docx_');
             $filePath = $tmp.'.docx';
             @unlink($tmp);
@@ -217,24 +225,41 @@ class QuestionGeneratorController extends Controller
                 'description' => 'Hasil generate DeepSeek AI (Model: '.($package['model_used'] ?? 'DeepSeek').').',
             ]);
 
-            $groupId = null;
-            if (! empty($package['stimulus']['content'])) {
-                $group = QuestionGroup::create([
-                    'question_bank_id' => $bank->id,
-                    'title' => $package['stimulus']['title'] ?? 'Wacana Stimulus',
-                    'stimulus_type' => 'text',
-                    'stimulus_content' => $package['stimulus']['content'],
-                ]);
-                $groupId = $group->id;
+            $aiService = app(DeepSeekQuestionGeneratorService::class);
+            $stimuli = $aiService->extractStimuliData($package);
+
+            $groupMap = [];
+            foreach ($stimuli as $st) {
+                if (! empty($st['content'])) {
+                    $grp = QuestionGroup::create([
+                        'question_bank_id' => $bank->id,
+                        'title' => $st['title'] ?? 'Wacana Stimulus Narasi',
+                        'stimulus_type' => 'text',
+                        'stimulus_content' => $st['content'],
+                    ]);
+                    $groupMap[(int) ($st['index'] ?? 1)] = $grp->id;
+                }
             }
 
             foreach ($package['items'] as $item) {
                 $type = $item['type'] ?? 'mcq_single';
                 $points = (float) ($item['points'] ?? 1.0);
 
+                // Determine question group ID
+                $stimIndex = isset($item['stimulus_index']) && is_numeric($item['stimulus_index']) && (int) $item['stimulus_index'] > 0
+                    ? (int) $item['stimulus_index']
+                    : null;
+
+                $itemGroupId = null;
+                if ($stimIndex && isset($groupMap[$stimIndex])) {
+                    $itemGroupId = $groupMap[$stimIndex];
+                } elseif ($stimIndex === null && count($groupMap) === 1 && ! empty($package['stimulus'])) {
+                    $itemGroupId = reset($groupMap);
+                }
+
                 $question = Question::create([
                     'question_bank_id' => $bank->id,
-                    'question_group_id' => $groupId,
+                    'question_group_id' => $itemGroupId,
                     'type' => $type,
                     'prompt' => $item['prompt'],
                     'explanation' => $item['explanation'] ?? null,
@@ -357,7 +382,13 @@ class QuestionGeneratorController extends Controller
         if ($package && ! empty($package['items'])) {
             $items = $package['items'];
             $totalItemCount = count($items);
-            $hasStimulus = ! empty($package['stimulus']['content']);
+            $aiService = app(DeepSeekQuestionGeneratorService::class);
+            $stimuli = $aiService->extractStimuliData($package);
+            $stimuliMap = [];
+            foreach ($stimuli as $stim) {
+                $idx = (int) ($stim['index'] ?? 1);
+                $stimuliMap[$idx] = $stim;
+            }
 
             // Group items by question type in logical pedagogical order
             $preferredTypeOrder = [
@@ -398,59 +429,73 @@ class QuestionGeneratorController extends Controller
                 $sectionInstructions = $typeMeta['instructions'];
 
                 $sectionItems = [];
-                if ($hasStimulus && $secIndex === 1) {
-                    // Place stimulus group on the first section
-                    $childQuestions = [];
-                    foreach ($typeItems as $idx => $it) {
-                        $childQuestions[] = [
-                            'id' => 'cq_'.uniqid().'_'.$idx,
-                            'type' => $it['type'] ?? 'mcq_single',
-                            'prompt' => $it['prompt'] ?? '',
-                            'explanation' => $it['explanation'] ?? '',
-                            'points' => (float) ($it['points'] ?? 1.0),
-                            'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
-                            'options' => array_map(function ($opt, $oIdx) {
-                                return [
-                                    'id' => 'copt_'.uniqid().'_'.$oIdx,
-                                    'label' => $opt['label'] ?? (string) ($oIdx + 1),
-                                    'option_text' => $opt['option_text'] ?? '',
-                                    'is_correct' => ! empty($opt['is_correct']),
-                                    'score' => (float) ($opt['score'] ?? 0.0),
-                                    'match_key' => $opt['match_key'] ?? null,
-                                ];
-                            }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
-                        ];
-                    }
 
-                    $sectionItems[] = [
-                        'id' => 'grp_'.uniqid(),
-                        'is_group' => true,
-                        'title' => $package['stimulus']['title'] ?? 'Wacana Stimulus Terpadu',
-                        'stimulus_type' => 'text',
-                        'stimulus_content' => $package['stimulus']['content'],
-                        'questions' => $childQuestions,
-                    ];
-                } else {
-                    foreach ($typeItems as $idx => $it) {
+                // Group items by stimulus_index within this section
+                $itemsByStimulus = [];
+                foreach ($typeItems as $it) {
+                    $sIdx = (int) ($it['stimulus_index'] ?? 0);
+                    if (! isset($itemsByStimulus[$sIdx])) {
+                        $itemsByStimulus[$sIdx] = [];
+                    }
+                    $itemsByStimulus[$sIdx][] = $it;
+                }
+
+                foreach ($itemsByStimulus as $sIdx => $groupItems) {
+                    if ($sIdx > 0 && isset($stimuliMap[$sIdx]) && ! empty($stimuliMap[$sIdx]['content'])) {
+                        // Create a QuestionGroup
+                        $childQuestions = [];
+                        foreach ($groupItems as $idx => $it) {
+                            $childQuestions[] = [
+                                'id' => 'cq_'.uniqid().'_'.$idx,
+                                'type' => $it['type'] ?? 'mcq_single',
+                                'prompt' => $it['prompt'] ?? '',
+                                'explanation' => $it['explanation'] ?? '',
+                                'points' => (float) ($it['points'] ?? 1.0),
+                                'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
+                                'options' => array_map(function ($opt, $oIdx) {
+                                    return [
+                                        'id' => 'copt_'.uniqid().'_'.$oIdx,
+                                        'label' => $opt['label'] ?? (string) ($oIdx + 1),
+                                        'option_text' => $opt['option_text'] ?? '',
+                                        'is_correct' => ! empty($opt['is_correct']),
+                                        'score' => (float) ($opt['score'] ?? 0.0),
+                                        'match_key' => $opt['match_key'] ?? null,
+                                    ];
+                                }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
+                            ];
+                        }
+
                         $sectionItems[] = [
-                            'id' => 'q_'.uniqid().'_'.$idx,
-                            'is_group' => false,
-                            'type' => $it['type'] ?? 'mcq_single',
-                            'prompt' => $it['prompt'] ?? '',
-                            'explanation' => $it['explanation'] ?? '',
-                            'points' => (float) ($it['points'] ?? 1.0),
-                            'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
-                            'options' => array_map(function ($opt, $oIdx) {
-                                return [
-                                    'id' => 'opt_'.uniqid().'_'.$oIdx,
-                                    'label' => $opt['label'] ?? (string) ($oIdx + 1),
-                                    'option_text' => $opt['option_text'] ?? '',
-                                    'is_correct' => ! empty($opt['is_correct']),
-                                    'score' => (float) ($opt['score'] ?? 0.0),
-                                    'match_key' => $opt['match_key'] ?? null,
-                                ];
-                            }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
+                            'id' => 'grp_'.uniqid().'_'.$sIdx,
+                            'is_group' => true,
+                            'title' => $stimuliMap[$sIdx]['title'] ?? "Wacana Stimulus {$sIdx}",
+                            'stimulus_type' => 'text',
+                            'stimulus_content' => $stimuliMap[$sIdx]['content'],
+                            'questions' => $childQuestions,
                         ];
+                    } else {
+                        // Standalone items (no stimulus, or stimulus not found/empty)
+                        foreach ($groupItems as $idx => $it) {
+                            $sectionItems[] = [
+                                'id' => 'q_'.uniqid().'_'.$idx,
+                                'is_group' => false,
+                                'type' => $it['type'] ?? 'mcq_single',
+                                'prompt' => $it['prompt'] ?? '',
+                                'explanation' => $it['explanation'] ?? '',
+                                'points' => (float) ($it['points'] ?? 1.0),
+                                'settings' => $it['settings'] ?? ($it['type'] === 'binary_matrix' ? ['labels' => ['Benar', 'Salah']] : null),
+                                'options' => array_map(function ($opt, $oIdx) {
+                                    return [
+                                        'id' => 'opt_'.uniqid().'_'.$oIdx,
+                                        'label' => $opt['label'] ?? (string) ($oIdx + 1),
+                                        'option_text' => $opt['option_text'] ?? '',
+                                        'is_correct' => ! empty($opt['is_correct']),
+                                        'score' => (float) ($opt['score'] ?? 0.0),
+                                        'match_key' => $opt['match_key'] ?? null,
+                                    ];
+                                }, $it['options'] ?? [], array_keys($it['options'] ?? [])),
+                            ];
+                        }
                     }
                 }
 

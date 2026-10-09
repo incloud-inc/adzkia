@@ -10,10 +10,10 @@ use App\Models\Question;
 use App\Services\Ai\AiExplanationService;
 use App\Services\AnswerReviewFormatter;
 use App\Services\ExamGradingService;
+use App\Support\MarkdownRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ExamResultController extends Controller
@@ -216,7 +216,7 @@ class ExamResultController extends Controller
                         'title' => $group->title ?? 'Wacana',
                         'type' => $group->stimulus_type ?? 'text',
                         'content' => $group->stimulus_content ?? '',
-                        'rendered' => filled($group->stimulus_content) ? Str::markdown($group->stimulus_content) : '',
+                        'rendered' => filled($group->stimulus_content) ? MarkdownRenderer::render($group->stimulus_content) : '',
                     ];
                 }
 
@@ -305,13 +305,13 @@ class ExamResultController extends Controller
                     'section_title' => $section->title,
                     'question_group_id' => $q->question_group_id,
                     'prompt' => $q->prompt,
-                    'rendered_prompt' => filled($q->prompt) ? Str::markdown($q->prompt) : '',
+                    'rendered_prompt' => filled($q->prompt) ? MarkdownRenderer::render($q->prompt) : '',
                     'stimulus' => $stimulusData,
                     'explanation' => $officialExplanation,
-                    'rendered_explanation' => $hasOfficial ? Str::markdown($officialExplanation) : '',
+                    'rendered_explanation' => $hasOfficial ? MarkdownRenderer::render($officialExplanation) : '',
                     'has_official_explanation' => $hasOfficial,
                     'ai_explanation' => $aiExplanationText,
-                    'rendered_ai_explanation' => $hasAiExplanation ? Str::markdown($aiExplanationText) : '',
+                    'rendered_ai_explanation' => $hasAiExplanation ? MarkdownRenderer::render($aiExplanationText) : '',
                     'has_ai_explanation' => $hasAiExplanation,
                     'ai_model' => data_get($ans?->answer_payload, 'ai_model') ?: 'DEEPSEEK V4 Pro Reasoner',
                     'type' => $q->type,
@@ -325,7 +325,7 @@ class ExamResultController extends Controller
                     'answer_payload' => $ans?->answer_payload,
                     'student_text' => $isEssay ? data_get($ans?->answer_payload, 'text') : null,
                     'student_rendered_text' => ($isEssay && filled(data_get($ans?->answer_payload, 'text')))
-                        ? Str::markdown(data_get($ans?->answer_payload, 'text'), ['renderer' => ['soft_break' => "<br />\n"]])
+                        ? MarkdownRenderer::render(data_get($ans?->answer_payload, 'text'), ['renderer' => ['soft_break' => "<br />\n"]])
                         : null,
                     'teacher_feedback' => data_get($ans?->answer_payload, 'teacher_feedback'),
                     'matrix_rows' => $matrixRows,
@@ -818,8 +818,8 @@ class ExamResultController extends Controller
                 'ai_explanation' => $existingAi,
                 'ai_model' => $savedModel,
                 'model' => $savedModel,
-                'rendered' => Str::markdown($existingAi),
-                'rendered_ai_explanation' => Str::markdown($existingAi),
+                'rendered' => MarkdownRenderer::render($existingAi),
+                'rendered_ai_explanation' => MarkdownRenderer::render($existingAi),
             ]);
         }
 
@@ -841,8 +841,8 @@ class ExamResultController extends Controller
             'ai_explanation' => $explanationText,
             'ai_model' => $modelName,
             'model' => $modelName,
-            'rendered' => Str::markdown($explanationText),
-            'rendered_ai_explanation' => Str::markdown($explanationText),
+            'rendered' => MarkdownRenderer::render($explanationText),
+            'rendered_ai_explanation' => MarkdownRenderer::render($explanationText),
         ]);
     }
 }

@@ -1,227 +1,80 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    @php
-        $isEnterprise = $tenant->isEnterprise();
-        $tenantTitle = $isEnterprise ? $tenant->name : "{$tenant->name} - ADZKIA";
-    @endphp
-    <title>{{ $tenantTitle }}</title>
-    
-    @if($tenant->favicon_path)
-        <link rel="icon" href="{{ $tenant->favicon_url }}">
-        <link rel="apple-touch-icon" href="{{ $tenant->favicon_url }}">
-    @else
-        <link rel="icon" type="image/png" href="{{ asset('images/icon-adzkia.png') }}">
-        <link rel="apple-touch-icon" href="{{ asset('images/icon-adzkia.png') }}">
-    @endif
-
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
-
-    <!-- Styles & Scripts via Vite -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    <!-- Tenant Portal Data & Alpine Functions Definition -->
-    <script>
-        window.tenantPortalData = {
-            teachers: @json($allTeachers),
-            students: @json($allStudents),
-            sd: @json($sdAssessments),
-            smp: @json($smpAssessments),
-            sma: @json($smaAssessments)
-        };
-
-        function tenantGuruList(items) {
-            return {
-                items: Array.isArray(items) ? items : [],
-                searchQuery: '',
-
-                get filteredGurus() {
-                    const q = this.searchQuery.trim().toLowerCase();
-                    if (q.length >= 5) {
-                        return this.items.filter(guru => {
-                            const name = (guru.name || '').toLowerCase();
-                            const bio = (guru.bio || '').toLowerCase();
-                            return name.includes(q) || bio.includes(q);
-                        });
-                    }
-                    return this.items.slice(0, 3);
-                }
-            };
-        }
-
-        function tenantSiswaList(items) {
-            return {
-                items: Array.isArray(items) ? items : [],
-                searchQuery: '',
-
-                get filteredMurids() {
-                    const q = this.searchQuery.trim().toLowerCase();
-                    if (q.length >= 5) {
-                        return this.items.filter(murid => {
-                            const name = (murid.name || '').toLowerCase();
-                            const bio = (murid.bio || '').toLowerCase();
-                            const username = (murid.username || '').toLowerCase();
-                            return name.includes(q) || bio.includes(q) || username.includes(q);
-                        });
-                    }
-                    return this.items.slice(0, 3);
-                }
-            };
-        }
-
-        function appStoreList(items) {
-            return {
-                items: Array.isArray(items) ? items : [],
-                searchQuery: '',
-
-                get filteredItems() {
-                    const q = this.searchQuery.trim().toLowerCase();
-                    if (q.length >= 5) {
-                        return this.items.filter(item => {
-                            const title = (item.title || '').toLowerCase();
-                            const subject = (item.subject || '').toLowerCase();
-                            return title.includes(q) || subject.includes(q);
-                        });
-                    }
-                    return this.items.slice(0, 5);
-                }
-            };
-        }
-    </script>
-</head>
-<body class="bg-gray-2 text-gray-12 font-sans antialiased min-h-screen py-8 px-4 sm:px-6 flex flex-col items-center">
-
+<x-layouts.student>
     @php
         $baseDomain = config('app.url_base_domain', 'localhost');
-        $port = request()->getPort();
-        $portSuffix = ($port && $port != 80 && $port != 443) ? ':'.$port : '';
-        $displayPortalUrl = $tenant->subdomain . '.' . $baseDomain . $portSuffix;
-        $httpPortalUrl = (request()->isSecure() ? 'https://' : 'http://') . $displayPortalUrl;
+        $portalUrl = $tenant ? 'http://' . $tenant->subdomain . '.' . $baseDomain . (request()->getPort() && request()->getPort() != 80 ? ':'.request()->getPort() : '') : '#';
     @endphp
 
-    <div x-data="{
-        copied: false,
-        copyUrl(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                this.copied = true;
-                setTimeout(() => { this.copied = false; }, 2500);
-            }).catch(() => {
-                alert('Gagal menyalin URL');
-            });
-        }
-    }" class="w-full max-w-xl flex flex-col gap-6">
-
-        <!-- Toast Salin URL -->
-        <div x-show="copied" 
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0 translate-y-2"
-             x-transition:enter-end="opacity-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100 translate-y-0"
-             x-transition:leave-end="opacity-0 translate-y-2"
-             style="display: none;" 
-             class="fixed bottom-6 right-6 z-50 bg-gray-12 text-gray-1 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold border border-gray-11">
-            <span class="w-5 h-5 rounded-full bg-green-9 text-white flex items-center justify-center font-bold">✓</span>
-            <span>Tautan portal publik sekolah berhasil disalin!</span>
-        </div>
-
+    <!-- ============================================== -->
+    <!-- TAB 1: HOME (GRATIS) -->
+    <!-- ============================================== -->
+    <div x-show="activeTab === 'home'" x-transition.opacity.duration.300ms class="space-y-6 p-4">
+        <!-- Hero Profil Public View injected here -->
+        <div x-data="{ searchQuery: '' }" class="w-full flex flex-col gap-6 pt-4 pb-8">
         <!-- ========================================================= -->
-        <!-- CARD 1: IDENTITAS LEMBAGA PENDIDIKAN (TENANT)            -->
+        <!-- CARD 1: IDENTITAS PROFIL SISWA & GURU                     -->
         <!-- ========================================================= -->
-        <article class="bg-white rounded-3xl border border-gray-6 shadow-sm overflow-hidden flex flex-col">
-            <!-- Cover Banner: Tinggi, Megah & Proporsional -->
-            <div class="relative h-56 sm:h-64 w-full overflow-hidden" style="min-height: 224px; background: linear-gradient(135deg, #0284c7, #0369a1);">
-                <img src="{{ $tenant->cover_photo_url }}" alt="Cover {{ $tenant->name }}" class="absolute inset-0 h-full w-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/10 pointer-events-none"></div>
-
-                <!-- Tombol LOGIN & DAFTAR di Pojok Kanan Atas Cover -->
-                @php
-                    $isEnterprise = $tenant->isEnterprise();
-                    $loginBtnColor = ($isEnterprise && !empty($tenant->theme_color)) ? $tenant->theme_color : '#16a34a';
-                @endphp
-                <div class="absolute top-4 right-4 z-20 flex items-center gap-2">
-                    @auth
-                        <a href="{{ route('dashboard') }}" 
-                           style="background-color: {{ $loginBtnColor }};"
-                           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs sm:text-sm font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200 backdrop-blur-xs">
-                            <x-radix-icon name="dashboard" class="w-4 h-4" />
-                            <span>Dashboard</span>
-                        </a>
-                    @else
-                        <a href="{{ route('login') }}" 
-                           style="background-color: {{ $loginBtnColor }};"
-                           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs sm:text-sm font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200 backdrop-blur-xs">
-                            <x-radix-icon name="enter" class="w-4 h-4" />
-                            <span>LOGIN</span>
-                        </a>
-                        <a href="{{ route('register') }}"
-                           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-white text-gray-900 text-xs sm:text-sm font-bold shadow-lg backdrop-blur-md hover:brightness-105 active:scale-95 transition-all duration-200">
-                            <span>Daftar</span>
-                        </a>
-                    @endauth
-                </div>
+        <article class="bg-white rounded-2xl border border-gray-6 shadow-xs overflow-hidden flex flex-col text-center">
+            <!-- Cover Natural -->
+            <div class="w-full bg-gray-4 overflow-hidden relative max-h-52">
+                <img src="{{ $user->cover_photo_url }}" alt="Cover {{ $user->name }}" class="w-full h-auto object-cover max-h-52 block">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
             </div>
 
-            <!-- Body: Grid Bulletproof untuk Overlap Logo 50/50 & Identitas Sekolah -->
-            <div class="relative z-10 px-5 pb-6 sm:px-6">
-                <div class="grid grid-cols-1 items-start gap-x-4 gap-y-3 sm:grid-cols-[auto_1fr]">
-                    <!-- Radix Avatar Profile: 50% Overlap di Cover, Pola Squircle Radix Themes yang Mewah & Bersih -->
-                    <div class="relative z-20 shrink-0 -mt-12 sm:-mt-14 w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl bg-white p-1 shadow-xl ring-4 ring-white border border-gray-4 flex items-center justify-center overflow-hidden transition-transform duration-200 hover:scale-[1.02]">
-                        <img src="{{ $tenant->logo_url }}" 
-                             alt="Logo {{ $tenant->name }}" 
-                             class="w-full h-full object-contain rounded-xl sm:rounded-2xl bg-white"
-                             onerror="this.style.display='none'; if(this.nextElementSibling) { this.nextElementSibling.classList.remove('hidden'); this.nextElementSibling.classList.add('flex'); }">
-                        
-                        <!-- Radix Fallback Avatar Token (jika gambar kosong/error) -->
-                        <div class="hidden w-full h-full items-center justify-center rounded-xl sm:rounded-2xl bg-gray-3 text-gray-11 font-display font-black text-xl sm:text-2xl select-none">
-                            <span>{{ strtoupper(substr($tenant->name, 0, 2)) }}</span>
-                        </div>
-                    </div>
+            <!-- Foto Profil Bulat: Separuh Atas Menutupi Cover -->
+            <div class="flex justify-center -mt-14 mb-3 relative z-10">
+                <img src="{{ $user->profile_photo_url }}" alt="Foto {{ $user->name }}" class="w-24 h-24 rounded-full bg-white object-cover border-4 border-white shadow-lg">
+            </div>
 
-                    <!-- Nama Sekolah & Tagline: Selalu Muncul & Nyaman Dibaca di Area Putih -->
-                    <div class="min-w-0 sm:pt-2">
-                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <h1 class="font-display font-black text-xl sm:text-2xl text-gray-12 tracking-tight">
-                                {{ $tenant->name }}
-                            </h1>
-                            <span class="inline-flex shrink-0 items-center text-blue-9 bg-blue-2 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-blue-4" title="Institusi Terverifikasi Resmi">
-                                <x-radix-icon name="check-circled" class="w-3.5 h-3.5 mr-1 text-blue-9" />
-                                Terverifikasi
-                            </span>
-                        </div>
-
-                        <!-- Tagline Tepat di Bawah Nama Sekolah -->
-                        <p class="font-sans text-xs sm:text-sm text-gray-11 font-medium mt-1 leading-relaxed">
-                            {{ $tenant->tagline ?: 'Lembaga pendidikan dan institusi mitra terverifikasi resmi pada ekosistem platform Adzkia.' }}
-                        </p>
-                    </div>
+            <div class="px-6 pb-6 pt-0 flex flex-col gap-3.5">
+                <div>
+                    <!-- Nama Lengkap & Icon Verified -->
+                    <h1 class="font-display font-extrabold text-2xl text-gray-12 tracking-tight flex items-center justify-center gap-2">
+                        <span>{{ $user->name }}</span>
+                        <span class="text-blue-9 inline-flex" title="Akun Terverifikasi">
+                            <x-radix-icon name="check-circled" class="w-5 h-5" />
+                        </span>
+                    </h1>
                 </div>
 
-                <!-- Panel 3-Kolom Statistik Valid: Asesmen, Guru, Siswa -->
-                <dl class="mt-5 grid grid-cols-3 divide-x divide-gray-5 rounded-2xl border border-gray-6 bg-gray-1/80 p-3 sm:p-4 text-center shadow-2xs sm:mt-6">
+                <!-- BIO -->
+                @if($user->bio)
+                    <p class="font-sans text-sm text-gray-11 max-w-md mx-auto leading-relaxed">{{ $user->bio }}</p>
+                @else
+                    <p class="font-sans text-xs text-gray-10 italic max-w-md mx-auto">
+                        {{ $isTeacher ? 'Tenaga pendidik terverifikasi di ekosistem platform Adzkia.' : 'Peserta didik aktif yang mengikuti pembelajaran dan evaluasi Adzkia.' }}
+                    </p>
+                @endif
+
+                <!-- Statistik Siswa & Guru: Asesmen Dikerjakan, Total Nilai, Ranking -->
+                <dl class="grid grid-cols-3 divide-x divide-gray-5 rounded-xl border border-gray-6 bg-gray-1 p-3 text-center mt-1">
                     <div class="px-2">
-                        <dd class="font-display font-black text-xl sm:text-2xl text-gray-12 tabular-nums">{{ $jenjangAssessmentsCount }}</dd>
-                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">Asesmen</dt>
+                        <dd class="font-display font-black text-2xl text-gray-12">{{ $completedCount }}</dd>
+                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">{{ $isTeacher ? 'Ujian Dibuat' : 'kali ASESMEN' }}</dt>
                     </div>
                     <div class="px-2">
-                        <dd class="font-display font-black text-xl sm:text-2xl text-gray-12 tabular-nums">{{ $totalTeachers }}</dd>
-                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">Tenaga Pendidik</dt>
+                        <dd class="font-display font-black text-2xl text-gray-12">{{ $totalScore }}</dd>
+                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">{{ $isTeacher ? 'Total Soal' : 'TOTAL NILAI' }}</dt>
                     </div>
                     <div class="px-2">
-                        <dd class="font-display font-black text-xl sm:text-2xl text-gray-12 tabular-nums">{{ $totalStudents }}</dd>
-                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">Siswa Terdaftar</dt>
+                        <dd class="font-display font-black text-2xl text-gray-12">{{ $rank ? '#'.$rank : '-' }}</dd>
+                        <dt class="font-sans text-[10.5px] font-bold text-gray-11 uppercase tracking-wider mt-0.5">{{ $isTeacher ? 'Peringkat Guru' : 'RANK' }}</dt>
                     </div>
                 </dl>
+
+                <!-- Tombol Aksi (WhatsApp jika nomor tersedia) -->
+                @if($user->whatsapp_number)
+                    <div class="flex justify-center mt-1">
+                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $user->whatsapp_number) }}" target="_blank" class="w-full max-w-xs py-2.5 px-4 rounded-full text-xs font-bold bg-green-9 hover:bg-green-10 text-white shadow-xs transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2">
+                            <span>💬</span>
+                            <span>{{ $isTeacher ? 'Konsultasi Guru' : 'Hubungi WhatsApp' }}</span>
+                        </a>
+                    </div>
+                @endif
             </div>
         </article>
 
         <!-- ========================================================= -->
-        <!-- URUTAN 1: ASESMEN UMUM & TRY OUT TERBUKA                  -->
+        <!-- CARD 2: SEMUA ASESMEN UMUM (WAJIB - SCROLL KE KANAN)     -->
         <!-- ========================================================= -->
         <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs">
             <div class="flex items-center justify-between mb-4">
@@ -274,10 +127,10 @@
         </article>
 
         <!-- ========================================================= -->
-        <!-- URUTAN 2: ASESMEN YANG DIPILIH TENANT (SD, SMP, SMA)      -->
+        <!-- CARD 3: ASESMEN JENJANG SD (ON/OFF ADMIN TENANT)          -->
         <!-- ========================================================= -->
         @if($showGradeSd)
-            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.tenantPortalData.sd)">
+            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.assessmentsData.sd)">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
                         <span class="w-8 h-8 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center shadow-xs">
@@ -312,7 +165,7 @@
                             <div class="flex items-center justify-between p-3.5 rounded-xl border border-gray-5 bg-white hover:bg-gray-1 hover:border-gray-6 transition-all duration-200 gap-3 group">
                                 <div class="flex items-center gap-3.5 min-w-0 flex-1">
                                     <div class="w-11 h-11 rounded-2xl bg-amber-3 text-amber-11 border border-amber-6/50 flex items-center justify-center shrink-0 shadow-xs">
-                                        <x-radix-icon name="pencil1" class="w-5 h-5" />
+                                        <x-radix-icon name="pencil-1" class="w-5 h-5" />
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <h3 class="font-display font-bold text-sm text-gray-12 truncate">{{ $item['title'] }}</h3>
@@ -341,7 +194,7 @@
                             <div class="flex items-center justify-between p-3.5 rounded-xl border border-gray-5 bg-white hover:bg-gray-1 hover:border-gray-6 transition-all duration-200 gap-3 group">
                                 <div class="flex items-center gap-3.5 min-w-0 flex-1">
                                     <div class="w-11 h-11 rounded-2xl bg-amber-3 text-amber-11 border border-amber-6/50 flex items-center justify-center shrink-0 shadow-xs">
-                                        <x-radix-icon name="pencil1" class="w-5 h-5" />
+                                        <x-radix-icon name="pencil-1" class="w-5 h-5" />
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <h3 class="font-display font-bold text-sm text-gray-12 truncate" x-text="item.title"></h3>
@@ -368,8 +221,11 @@
             </article>
         @endif
 
+        <!-- ========================================================= -->
+        <!-- CARD 4: ASESMEN JENJANG SMP (ON/OFF ADMIN TENANT)         -->
+        <!-- ========================================================= -->
         @if($showGradeSmp)
-            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.tenantPortalData.smp)">
+            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.assessmentsData.smp)">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
                         <span class="w-8 h-8 rounded-xl bg-indigo-3 text-indigo-11 flex items-center justify-center shadow-xs">
@@ -460,8 +316,11 @@
             </article>
         @endif
 
+        <!-- ========================================================= -->
+        <!-- CARD 5: ASESMEN JENJANG SMA (ON/OFF ADMIN TENANT)         -->
+        <!-- ========================================================= -->
         @if($showGradeSma)
-            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.tenantPortalData.sma)">
+            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.assessmentsData.sma)">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
                         <span class="w-8 h-8 rounded-xl bg-purple-3 text-purple-11 flex items-center justify-center shadow-xs">
@@ -552,8 +411,11 @@
             </article>
         @endif
 
+        <!-- ========================================================= -->
+        <!-- CARD 6: TKA SD         -->
+        <!-- ========================================================= -->
         @if($showGradeTkaSd)
-            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.tenantPortalData.tkaSd)">
+            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.assessmentsData.tkaSd)">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
                         <span class="w-8 h-8 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center shadow-xs">
@@ -644,8 +506,11 @@
             </article>
         @endif
 
+        <!-- ========================================================= -->
+        <!-- CARD 7: TKA SMP         -->
+        <!-- ========================================================= -->
         @if($showGradeTkaSmp)
-            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.tenantPortalData.tkaSmp)">
+            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.assessmentsData.tkaSmp)">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
                         <span class="w-8 h-8 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center shadow-xs">
@@ -736,8 +601,11 @@
             </article>
         @endif
 
+        <!-- ========================================================= -->
+        <!-- CARD 8: TKA SMA         -->
+        <!-- ========================================================= -->
         @if($showGradeTkaSma)
-            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.tenantPortalData.tkaSma)">
+            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.assessmentsData.tkaSma)">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
                         <span class="w-8 h-8 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center shadow-xs">
@@ -828,8 +696,11 @@
             </article>
         @endif
 
+        <!-- ========================================================= -->
+        <!-- CARD 9: UTBK         -->
+        <!-- ========================================================= -->
         @if($showGradeUtbk)
-            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.tenantPortalData.utbk)">
+            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.assessmentsData.utbk)">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
                         <span class="w-8 h-8 rounded-xl bg-purple-3 text-purple-11 flex items-center justify-center shadow-xs">
@@ -920,8 +791,11 @@
             </article>
         @endif
 
+        <!-- ========================================================= -->
+        <!-- CARD 10: SKD         -->
+        <!-- ========================================================= -->
         @if($showGradeSkd)
-            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.tenantPortalData.skd)">
+            <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="appStoreList(window.assessmentsData.skd)">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
                         <span class="w-8 h-8 rounded-xl bg-teal-3 text-teal-11 flex items-center justify-center shadow-xs">
@@ -1012,179 +886,162 @@
             </article>
         @endif
 
-        <!-- ========================================================= -->
-        <!-- URUTAN 3: TENAGA PENDIDIK DAN KEPENDIDIKAN (GURU)         -->
-        <!-- ========================================================= -->
-        <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="tenantGuruList(window.tenantPortalData.teachers)">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
-                    <span class="w-8 h-8 rounded-xl bg-green-3 text-green-11 flex items-center justify-center shadow-xs">
-                        <x-radix-icon name="person" class="w-4 h-4" />
-                    </span>
-                    <span>Tenaga Pendidik &amp; Guru</span>
-                </h2>
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-green-3 text-green-11 border border-green-6/60">
-                    {{ $totalTeachers }} Guru
-                </span>
-            </div>
 
-            <!-- Search Bar Guru (Ketik min. 5 huruf) -->
-            <div class="relative mb-3">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-10 pointer-events-none">
-                    <x-radix-icon name="magnifying-glass" class="w-4 h-4" />
-                </span>
-                <input type="text" x-model="searchQuery" placeholder="Cari guru (ketik min. 5 huruf)..." class="w-full bg-gray-1 border border-gray-6 rounded-full py-2 pl-9 pr-9 text-xs text-gray-12 placeholder:text-gray-9 focus:bg-white focus:border-blue-8 focus:ring-2 focus:ring-blue-8/20 outline-none transition-all duration-200">
-                <button type="button" x-show="searchQuery.length > 0" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-gray-4 text-gray-11 hover:bg-gray-5 flex items-center justify-center text-[10px] cursor-pointer" style="display: none;">
-                    <x-radix-icon name="cross-2" class="w-3 h-3" />
-                </button>
-            </div>
-            <div class="font-sans text-[11px] text-amber-11 italic mb-2.5 flex items-center gap-1.5" x-show="searchQuery.length > 0 && searchQuery.length < 5" style="display: none;">
-                <span>Ketik min. 5 huruf untuk mencari seluruh daftar guru</span>
-            </div>
+        </div>
 
-            <!-- List Guru -->
-            <div class="flex flex-col gap-2.5">
-                <!-- Default SSR List: 3 Guru Paling Update -->
-                <div x-show="searchQuery.trim().length < 5" class="flex flex-col gap-2.5">
-                    @forelse(collect($allTeachers)->take(3) as $teacher)
-                        <div class="flex items-center justify-between p-3 rounded-xl border border-gray-5 bg-white hover:bg-gray-1 hover:border-gray-6 transition-all duration-200 gap-3">
-                            <div class="flex items-center gap-3 min-w-0 flex-1">
-                                <img src="{{ $teacher['photo_url'] }}" alt="{{ $teacher['name'] }}" class="w-10 h-10 rounded-full object-cover border border-gray-5 shrink-0 bg-gray-2">
-                                <div class="min-w-0 flex-1">
-                                    <h3 class="font-display font-bold text-sm text-gray-12 truncate">{{ $teacher['name'] }}</h3>
-                                    <p class="font-sans text-xs text-gray-11 truncate">{{ $teacher['bio'] }}</p>
-                                </div>
+    <!-- ============================================== -->
+    <!-- TAB 2: ASESMEN (BERBAYAR) -->
+    <!-- ============================================== -->
+    <div x-show="activeTab === 'assessment'" x-transition.opacity.duration.300ms style="display: none;" class="space-y-6 p-4">
+        <header class="pt-6 pb-2 px-1">
+            <h1 class="font-display font-black text-2xl text-gray-12 tracking-tight">Asesmen Premium</h1>
+            <p class="font-sans text-[13px] text-gray-11 mt-1">Ujian Tryout, SKD, dan evaluasi berbayar</p>
+        </header>
+
+        @if($paidAssessments && $paidAssessments->count() > 0)
+            <div class="space-y-4">
+                @foreach($paidAssessments as $exam)
+                    @php
+                        $access = $exam->accesses?->first();
+                        $isPurchased = !is_null($access);
+                    @endphp
+                    <article class="bg-gradient-to-b from-[#FFFDF8] to-white p-4 rounded-[24px] shadow-sm border {{ $isPurchased ? 'border-amber-300 shadow-[0_4px_20px_rgba(251,191,36,0.15)]' : 'border-amber-200/60' }} relative overflow-hidden">
+                        <!-- Premium Badge Sparkle -->
+                        <div class="absolute -right-6 -top-6 w-24 h-24 bg-amber-400/20 rounded-full blur-xl"></div>
+                        
+                        <div class="relative z-10">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-gradient-to-r from-amber-200 to-amber-300 text-amber-900 shadow-sm border border-amber-400/50">
+                                    {{ $exam->subject?->name ?? 'Premium' }}
+                                </span>
+                                @if($isPurchased)
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-green-500 text-white shadow-sm flex items-center gap-1 border border-green-600">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        DIMILIKI
+                                    </span>
+                                @else
+                                    <span class="text-[11px] text-amber-700 font-bold bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200">
+                                        Rp {{ number_format((float)($exam->price ?? 0), 0, ',', '.') }}
+                                    </span>
+                                @endif
                             </div>
-                            @if($teacher['profile_url'])
-                                <a href="{{ $teacher['profile_url'] }}" target="_blank" class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-3 text-blue-11 border border-blue-6/60 hover:bg-blue-4 transition-all duration-200 shrink-0 active:scale-95 flex items-center gap-1">
-                                    <span>Profil</span>
-                                    <x-radix-icon name="arrow-right" class="w-3 h-3" />
-                                </a>
-                            @else
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold text-gray-10 bg-gray-2 shrink-0">Guru</span>
+                            
+                            <h3 class="font-display font-bold text-base text-gray-12 leading-snug mb-1.5">
+                                {{ $exam->title }}
+                            </h3>
+                            <p class="font-sans text-xs text-gray-11 line-clamp-2 leading-relaxed mb-4">
+                                {{ $exam->description ?: 'Ujian premium dengan standar CBT.' }}
+                            </p>
+                            
+                            <div class="flex items-center justify-between pt-4 border-t border-amber-200/50">
+                                <span class="text-xs text-gray-11 font-medium">{{ $exam->questions_count }} Soal</span>
+                                
+                                @if($isPurchased)
+                                    <a href="{{ route('exam.gate.show', $exam) }}" class="px-5 py-2 rounded-full bg-amber-500 text-white text-xs font-bold transition-transform active:scale-95 shadow-md shadow-amber-500/25 inline-flex items-center gap-2">
+                                        <span>Buka Ujian</span>
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                    </a>
+                                @else
+                                    <a href="{{ route('assessments.show', $exam) }}" class="px-5 py-2 rounded-full bg-gray-12 hover:bg-black text-white text-xs font-bold transition-transform active:scale-95 shadow-sm inline-flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                        <span>Beli</span>
+                                    </a>
+                                @endif
+                            </div>
+                            
+                            @if($isPurchased)
+                                <div class="mt-3 text-[10px] text-center text-amber-700/80 font-medium bg-amber-50 rounded-lg py-1 border border-amber-100">
+                                    Sisa: {{ $access->daysRemaining() }} Hari | {{ $access->availableAttempts() }}x Akses
+                                </div>
                             @endif
                         </div>
-                    @empty
-                        <div class="p-6 text-center text-gray-11 text-xs">Belum ada data tenaga pendidik terdaftar.</div>
-                    @endforelse
+                    </article>
+                @endforeach
+            </div>
+        @else
+            <div class="text-center py-16 bg-white rounded-[24px] border border-gray-5 shadow-sm mt-4">
+                <div class="w-14 h-14 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-100">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-
-                <!-- Dynamic Search List -->
-                <div x-show="searchQuery.trim().length >= 5" style="display: none;" class="flex flex-col gap-2.5">
-                    <template x-for="guru in filteredGurus" :key="guru.id">
-                        <div class="flex items-center justify-between p-3 rounded-xl border border-gray-5 bg-white hover:bg-gray-1 hover:border-gray-6 transition-all duration-200 gap-3">
-                            <div class="flex items-center gap-3 min-w-0 flex-1">
-                                <img :src="guru.photo_url" :alt="guru.name" class="w-10 h-10 rounded-full object-cover border border-gray-5 shrink-0 bg-gray-2">
-                                <div class="min-w-0 flex-1">
-                                    <h3 class="font-display font-bold text-sm text-gray-12 truncate" x-text="guru.name"></h3>
-                                    <p class="font-sans text-xs text-gray-11 truncate" x-text="guru.bio"></p>
-                                </div>
-                            </div>
-                            <template x-if="guru.profile_url">
-                                <a :href="guru.profile_url" target="_blank" class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-3 text-blue-11 border border-blue-6/60 hover:bg-blue-4 transition-all duration-200 shrink-0 active:scale-95 flex items-center gap-1">
-                                    <span>Profil</span>
-                                    <x-radix-icon name="arrow-right" class="w-3 h-3" />
-                                </a>
-                            </template>
-                            <template x-if="!guru.profile_url">
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold text-gray-10 bg-gray-2 shrink-0">Guru</span>
-                            </template>
-                        </div>
-                    </template>
-                    <div x-show="filteredGurus.length === 0" class="p-6 text-center text-gray-11 text-xs">
-                        Tidak ada guru yang cocok dengan pencarian.
-                    </div>
-                </div>
+                <h4 class="font-display font-bold text-sm text-gray-12">Tidak ada asesmen premium</h4>
+                <p class="font-sans text-xs text-gray-11 mt-1.5 max-w-[250px] mx-auto">Saat ini belum ada daftar asesmen berbayar yang ditawarkan.</p>
             </div>
-        </article>
-
-        <!-- ========================================================= -->
-        <!-- URUTAN 4: SISWA & PESERTA DIDIK (LINK KE PROFIL BIO)      -->
-        <!-- ========================================================= -->
-        <article class="bg-white rounded-2xl border border-gray-6 p-5 sm:p-6 shadow-xs" x-data="tenantSiswaList(window.tenantPortalData.students)">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-bold text-base text-gray-12 flex items-center gap-2">
-                    <span class="w-8 h-8 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center shadow-xs">
-                        <x-radix-icon name="avatar" class="w-4 h-4" />
-                    </span>
-                    <span>Siswa &amp; Peserta Didik</span>
-                </h2>
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-3 text-amber-11 border border-amber-6/60">
-                    {{ $totalStudents }} Siswa
-                </span>
-            </div>
-
-            <!-- Search Bar Siswa (Ketik min. 5 huruf) -->
-            <div class="relative mb-3">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-10 pointer-events-none">
-                    <x-radix-icon name="magnifying-glass" class="w-4 h-4" />
-                </span>
-                <input type="text" x-model="searchQuery" placeholder="Cari siswa (ketik min. 5 huruf)..." class="w-full bg-gray-1 border border-gray-6 rounded-full py-2 pl-9 pr-9 text-xs text-gray-12 placeholder:text-gray-9 focus:bg-white focus:border-blue-8 focus:ring-2 focus:ring-blue-8/20 outline-none transition-all duration-200">
-                <button type="button" x-show="searchQuery.length > 0" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-gray-4 text-gray-11 hover:bg-gray-5 flex items-center justify-center text-[10px] cursor-pointer" style="display: none;">
-                    <x-radix-icon name="cross-2" class="w-3 h-3" />
-                </button>
-            </div>
-            <div class="font-sans text-[11px] text-amber-11 italic mb-2.5 flex items-center gap-1.5" x-show="searchQuery.length > 0 && searchQuery.length < 5" style="display: none;">
-                <span>Ketik min. 5 huruf untuk mencari seluruh daftar siswa</span>
-            </div>
-
-            <!-- List Siswa -->
-            <div class="flex flex-col gap-2.5">
-                <!-- Default SSR List: 3 Siswa Paling Update -->
-                <div x-show="searchQuery.trim().length < 5" class="flex flex-col gap-2.5">
-                    @forelse(collect($allStudents)->take(3) as $student)
-                        <a href="{{ $student['profile_url'] }}" target="_blank" class="flex items-center justify-between p-3 rounded-xl border border-gray-5 bg-white hover:bg-gray-1 hover:border-gray-6 transition-all duration-200 gap-3 group active:scale-[0.99]">
-                            <div class="flex items-center gap-3 min-w-0 flex-1">
-                                <img src="{{ $student['photo_url'] }}" alt="{{ $student['name'] }}" class="w-10 h-10 rounded-full object-cover border border-gray-5 shrink-0 bg-gray-2">
-                                <div class="min-w-0 flex-1">
-                                    <h3 class="font-display font-bold text-sm text-gray-12 truncate group-hover:text-blue-11 transition-colors">{{ $student['name'] }}</h3>
-                                    <p class="font-sans text-xs text-gray-11 truncate">{{ $student['bio'] }}</p>
-                                </div>
-                            </div>
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-3 text-amber-11 border border-amber-6/60 group-hover:bg-amber-4 transition-all duration-200 shrink-0 flex items-center gap-1">
-                                <span>Profil</span>
-                                <x-radix-icon name="arrow-right" class="w-3 h-3" />
-                            </span>
-                        </a>
-                    @empty
-                        <div class="p-6 text-center text-gray-11 text-xs">Belum ada data siswa terdaftar.</div>
-                    @endforelse
-                </div>
-
-                <!-- Dynamic Search List -->
-                <div x-show="searchQuery.trim().length >= 5" style="display: none;" class="flex flex-col gap-2.5">
-                    <template x-for="murid in filteredMurids" :key="murid.id">
-                        <a :href="murid.profile_url" target="_blank" class="flex items-center justify-between p-3 rounded-xl border border-gray-5 bg-white hover:bg-gray-1 hover:border-gray-6 transition-all duration-200 gap-3 group active:scale-[0.99]">
-                            <div class="flex items-center gap-3 min-w-0 flex-1">
-                                <img :src="murid.photo_url" :alt="murid.name" class="w-10 h-10 rounded-full object-cover border border-gray-5 shrink-0 bg-gray-2">
-                                <div class="min-w-0 flex-1">
-                                    <h3 class="font-display font-bold text-sm text-gray-12 truncate group-hover:text-blue-11 transition-colors" x-text="murid.name"></h3>
-                                    <p class="font-sans text-xs text-gray-11 truncate" x-text="murid.bio"></p>
-                                </div>
-                            </div>
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-3 text-amber-11 border border-amber-6/60 group-hover:bg-amber-4 transition-all duration-200 shrink-0 flex items-center gap-1">
-                                <span>Profil</span>
-                                <x-radix-icon name="arrow-right" class="w-3 h-3" />
-                            </span>
-                        </a>
-                    </template>
-                    <div x-show="filteredMurids.length === 0" class="p-6 text-center text-gray-11 text-xs">
-                        Tidak ada siswa yang cocok dengan pencarian.
-                    </div>
-                </div>
-            </div>
-        </article>
-
-        <!-- Footer -->
-        <footer class="text-center font-sans text-xs text-gray-11 py-4">
-            @if($tenant->showsPoweredByAdzkia())
-                <p>&copy; {{ date('Y') }} {{ $tenant->app_name }} • Powered by Aplikasi Ujian <strong class="font-black tracking-wide"><span style="color: #1c7ed6;">A</span><span style="color: #37b24d;">D</span><span style="color: #f76707;">Z</span><span style="color: #1c7ed6;">K</span><span style="color: #37b24d;">I</span><span style="color: #f76707;">A</span></strong></p>
-            @else
-                <p>&copy; {{ date('Y') }} {{ $tenant->app_name }}. Seluruh Hak Cipta Dilindungi.</p>
-            @endif
-        </footer>
-
+        @endif
     </div>
 
-</body>
-</html>
+    <!-- ============================================== -->
+    <!-- TAB 3: RIWAYAT -->
+    <!-- ============================================== -->
+    <div x-show="activeTab === 'history'" x-transition.opacity.duration.300ms style="display: none;" class="space-y-6 p-4">
+        <header class="pt-6 pb-2 px-1">
+            <h1 class="font-display font-black text-2xl text-gray-12 tracking-tight">Riwayat Ujian</h1>
+            <p class="font-sans text-[13px] text-gray-11 mt-1">Hasil pengerjaan asesmen Anda</p>
+        </header>
+
+        <div class="text-center py-16 bg-white rounded-[24px] border border-gray-5 shadow-sm mt-4">
+            <div class="w-14 h-14 bg-gray-2 text-gray-11 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            </div>
+            <h4 class="font-display font-bold text-sm text-gray-12">Modul Riwayat Belum Tersedia</h4>
+            <p class="font-sans text-xs text-gray-11 mt-1.5 max-w-[250px] mx-auto">Tampilan pengelompokan per asesmen dan evaluasi sedang dalam pengembangan.</p>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 4: PROFIL -->
+    <!-- ============================================== -->
+    <div x-show="activeTab === 'profile'" x-transition.opacity.duration.300ms style="display: none;" class="space-y-4 p-4">
+        <header class="pt-6 pb-2 px-1 text-center">
+            <h1 class="font-display font-black text-2xl text-gray-12 tracking-tight">Profil Saya</h1>
+        </header>
+
+        <div class="bg-white rounded-[24px] p-6 text-center border border-gray-5 shadow-sm">
+            <img src="{{ $user->profile_photo_url }}" alt="{{ $user->name }}" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-gray-3 shadow-md mb-4">
+            <h2 class="font-display font-bold text-lg text-gray-12">{{ $user->name }}</h2>
+            <p class="text-sm text-gray-11 font-mono mb-4">{{ $user->email }}</p>
+            
+            <a href="{{ route('profile.edit') }}" class="w-full inline-flex justify-center items-center gap-2 py-3 bg-gray-12 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors active:scale-95 shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                <span>Edit Profil & Password</span>
+            </a>
+        </div>
+
+        <div class="bg-white rounded-[24px] overflow-hidden border border-gray-5 shadow-sm divide-y divide-gray-4">
+            @if($tenant)
+                <div class="p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-green-1 text-green-11 rounded-full flex items-center justify-center border border-green-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-[11px] text-gray-11 font-semibold uppercase tracking-wider">Mitra Sekolah/Bimbel</p>
+                            <p class="font-bold text-sm text-gray-12">{{ $tenant->name }}</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+            
+            <div class="p-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-1 text-blue-11 rounded-full flex items-center justify-center border border-blue-4">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-gray-11 font-semibold uppercase tracking-wider">Kontak WhatsApp</p>
+                        <p class="font-bold text-sm text-gray-12">{{ $user->whatsapp_number ?? 'Belum ditambahkan' }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4">
+                <form method="POST" action="{{ route('logout') }}" class="m-0 w-full">
+                    @csrf
+                    <button type="submit" class="w-full inline-flex justify-center items-center gap-2 py-3 bg-red-1 text-red-11 rounded-xl font-bold text-sm hover:bg-red-2 border border-red-4 transition-colors active:scale-95 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span>Keluar Akun</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</x-layouts.student>

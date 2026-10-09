@@ -7,6 +7,9 @@
             return {
                 currentStep: 1,
                 isSubmitting: false,
+                validationErrors: [],
+                activeItemId: null,
+                showErrorModal: false,
                 activeSectionIdx: 0,
                 activePresetInfo: null,
                 subjectsList: @json($subjects),
@@ -17,9 +20,34 @@
                 selectedWordFileName: '',
                 isImporting: false,
                 wizardPrefill: @json($wizardPrefill ?? null),
+                serverDraft: @json($draft ?? null),
+                draftTimer: null,
                 prefillNotice: null,
 
                 init() {
+                    if (this.serverDraft && !this.wizardPrefill && typeof this.serverDraft === 'object') {
+                        // Deep merge to prevent missing properties from old drafts causing Alpine to crash
+                        const mergeDeep = (target, source) => {
+                            for (const key in source) {
+                                if (source[key] instanceof Object && !Array.isArray(source[key]) && target[key]) {
+                                    Object.assign(source[key], mergeDeep(target[key], source[key]));
+                                }
+                            }
+                            return Object.assign(target || {}, source);
+                        };
+                        this.form = mergeDeep(JSON.parse(JSON.stringify(this.form)), this.serverDraft);
+                        this.prefillNotice = 'Draft ujian sebelumnya berhasil dimuat.';
+                    }
+
+                    this.$watch('form', () => {
+                        if (!this.isSubmitting && this.currentStep > 1) {
+                            clearTimeout(this.draftTimer);
+                            this.draftTimer = setTimeout(() => {
+                                this.saveDraft();
+                            }, 3000);
+                        }
+                    }, { deep: true });
+
                     if (this.wizardPrefill) {
                         if (this.wizardPrefill.type) {
                             this.selectAssessmentType(this.wizardPrefill.type);
@@ -386,38 +414,67 @@
                     if (!text) return '<span class="text-gray-9 italic">Belum ada teks yang ditulis...</span>';
                     
                     let processed = text;
+                    const placeholders = [];
+                    let counter = 0;
 
-                    // 1. Process LaTeX Display Math ($$...$$)
+                    function savePlaceholder(content, type) {
+                        const key = '___PLACEHOLDER_' + type + '_' + (counter++) + '___';
+                        placeholders.push({ key, content, type });
+                        return key;
+                    }
+
+                    // 1. Lindungi Code Blocks (```...```) dan Inline Code (`...`)
+                    processed = processed.replace(/```([\s\S]*?)```/g, function(match, code) {
+                        return savePlaceholder(code, 'CODE_BLOCK');
+                    });
+                    processed = processed.replace(/`([^`\n]+)`/g, function(match, code) {
+                        return savePlaceholder(code, 'CODE_INLINE');
+                    });
+
+                    // 2. Lindungi Display Math ($$...$$) yang SUDAH DITULIS OLEH USER
                     processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, function(match, math) {
-                        const cleanMath = math.trim();
-                        if (window.katex && typeof window.katex.renderToString === 'function') {
-                            try {
-                                return '<div class="my-1 flex justify-center text-gray-12 overflow-x-auto text-base">' + 
-                                    window.katex.renderToString(cleanMath, { displayMode: true, throwOnError: false }) + 
-                                    '</div>';
-                            } catch(e) {
-                                return '<div class="my-1 p-2 bg-red-2 text-red-11 rounded-lg border border-red-5 font-mono text-xs">Error LaTeX: ' + e.message + '</div>';
-                            }
-                        }
-                        return '<div class="my-1 font-mono text-sm font-semibold text-center">$$ ' + cleanMath + ' $$</div>';
+                        return savePlaceholder(math.trim(), 'MATH_DISPLAY');
                     });
 
-                    // 2. Process LaTeX Inline Math ($...$)
-                    processed = processed.replace(/(^|[^\$])\$([^\$\n]+?)\$(?!\$)/g, function(match, prefix, math) {
-                        const cleanMath = math.trim();
-                        if (window.katex && typeof window.katex.renderToString === 'function') {
-                            try {
-                                return prefix + '<span class="inline-block px-1 font-serif text-gray-12">' + 
-                                    window.katex.renderToString(cleanMath, { displayMode: false, throwOnError: false }) + 
-                                    '</span>';
-                            } catch(e) {
-                                return prefix + '<span class="px-1 bg-red-2 text-red-11 rounded font-mono text-xs">$' + cleanMath + '$</span>';
-                            }
-                        }
-                        return prefix + '<span class="px-1.5 py-0.5 rounded bg-purple-2 text-purple-11 border border-purple-5 font-mono text-xs">$' + cleanMath + '$</span>';
+                    // 3. Lindungi Inline Math ($...$) yang SUDAH DITULIS OLEH USER
+                    processed = processed.replace(/(^|[^\\])\$([^\$\n]+?)\$(?!\$)/g, function(match, prefix, math) {
+                        return prefix + savePlaceholder(math.trim(), 'MATH_INLINE');
                     });
 
-                    // 3. Process Headings & Typography
+                    // 4. Transformasi Teks Biasa (di luar blok matematika resmi):
+                    // A. Akar pangkat verbal: "akar pangkat 3 dari 8" -> $\sqrt[3]{8}$
+                    processed = processed.replace(/(^|[^\$\\])akar\s+pangkat\s+([0-9a-zA-Z]+)\s+dari\s+([^\s,\.\?!;:]+)/gi, '$1$\\sqrt[$2]{$3}$');
+
+                    // B. Akar derajat kurung siku: sqrt[3]{8}, akar[3]{8}, sqrt[3](8), akar[3](8)
+                    processed = processed.replace(/(^|[^\$\\])(?:sqrt|akar)\s*\[([^\]]+)\]\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/gi, function(m, p, deg, e1, e2, e3) {
+                        return p + '$\\sqrt[' + deg + ']{' + (e1 || e2 || e3) + '}$';
+                    });
+
+                    // C. Akar biasa: sqrt{x}, sqrt(x), akar{x}, akar(x), akar 25
+                    processed = processed.replace(/(^|[^\$\\])(?:sqrt|akar)\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/gi, function(m, p, e1, e2, e3) {
+                        const expr = (e1 || e2 || e3);
+                        if (/^(masalah|rumput|pohon|tunggang|serabut)$/i.test(expr)) return m;
+                        return p + '$\\sqrt{' + expr + '}$';
+                    });
+
+                    // D. Simbol akar Unicode: ∜x, ∛x, √x
+                    processed = processed.replace(/(^|[^\$\\])∜\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[4]{' + (e1 || e2 || e3) + '}$'; });
+                    processed = processed.replace(/(^|[^\$\\])∛\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[3]{' + (e1 || e2 || e3) + '}$'; });
+                    processed = processed.replace(/(^|[^\$\\])√\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt{' + (e1 || e2 || e3) + '}$'; });
+
+                    // E. Makro LaTeX terbuka tanpa $ di teks biasa: \sqrt[n]{x}, \sqrt{x}, \frac{a}{b}, dsb.
+                    processed = processed.replace(/(^|[^\$\\])(\\sqrt\[[^\]]+\]\{[^{}]+\})(?!\$)/g, '$1$$$2$$');
+                    processed = processed.replace(/(^|[^\$\\])(\\sqrt\{[^{}]+\})(?!\$)/g, '$1$$$2$$');
+                    processed = processed.replace(/(^|[^\$\\])(\\(?:frac|dfrac|binom)\{[^{}]+\}\{[^{}]+\})(?!\$)/g, '$1$$$2$$');
+                    processed = processed.replace(/(^|[^\$\\])(\\begin\{(?:matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases)\}[\s\S]*?\\end\{(?:matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases)\})(?!\$)/g, '$1$$$2$$');
+                    processed = processed.replace(/(^|[^\$\\])(\\(?:sum|int|iint|iiint|oint|prod|coprod|lim)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+)?(?:\^\{[^{}]+\}|\^[0-9a-zA-Z]+)?(?:\s*\{[^{}]+\}|\s+[a-zA-Z0-9]+)?)(?!\$)/g, '$1$$$2$$');
+
+                    // F. Amankan juga rumus inline matematika baru yang dihasilkan dari langkah 4
+                    processed = processed.replace(/(^|[^\\])\$([^\$\n]+?)\$(?!\$)/g, function(match, prefix, math) {
+                        return prefix + savePlaceholder(math.trim(), 'MATH_INLINE');
+                    });
+
+                    // 5. Process Markdown Elements (Headings, Typography, Tables, Links, Media)
                     processed = processed.replace(/^# (.*?)$/gm, '<h1 class="text-lg font-bold text-gray-12 mt-3 mb-1.5 pb-1 border-b border-gray-5">$1</h1>');
                     processed = processed.replace(/^## (.*?)$/gm, '<h2 class="text-base font-bold text-gray-12 mt-2.5 mb-1">$1</h2>');
                     processed = processed.replace(/^### (.*?)$/gm, '<h3 class="text-sm font-bold text-gray-12 mt-2 mb-1">$1</h3>');
@@ -425,11 +482,9 @@
                     processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-gray-12">$1</strong>');
                     processed = processed.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
 
-                    // 4. Process Direct Media Tags
+                    // Media audio/video/image
                     processed = processed.replace(/<audio\b([^>]*)>(.*?)<\/audio>/gi, '<div class="my-2 p-2.5 rounded-xl bg-gray-2 border border-gray-6"><span class="text-[11px] font-bold text-gray-10 block mb-1">🔊 Pratinjau Audio:</span><audio controls $1 class="w-full">$2</audio></div>');
                     processed = processed.replace(/<video\b([^>]*)>(.*?)<\/video>/gi, '<div class="my-2 p-2 rounded-xl bg-black/5 border border-gray-6"><video controls $1 class="w-full max-h-60 rounded-lg object-contain bg-black">$2</video></div>');
-
-                    // 5. Process Markdown Media / Images (![alt](url))
                     processed = processed.replace(/!\[(.*?)\]\((.*?)\)/g, function(match, alt, url) {
                         const cleanUrl = url.trim();
                         if (!cleanUrl) {
@@ -446,11 +501,9 @@
                             (alt ? '<p class="text-[11px] text-gray-10 mt-1 italic text-center">' + alt + '</p>' : '') +
                             '</div>';
                     });
-
-                    // 6. Process Markdown Links ([text](url))
                     processed = processed.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-11 hover:underline font-semibold">$1</a>');
 
-                    // 7. Process Markdown Tables
+                    // Markdown Tables
                     processed = processed.replace(/(?:^|\n)((?:\|[^\n]+\|\r?\n?)+)/g, function(match, tableBlock) {
                         const lines = tableBlock.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
                         if (lines.length < 2) return match;
@@ -480,6 +533,45 @@
                     });
 
                     processed = processed.replace(/\n/g, '<br>');
+
+                    // 6. Restore dan Render KaTeX / Code Placeholders
+                    placeholders.forEach(function(item) {
+                        if (item.type === 'MATH_DISPLAY') {
+                            let rendered = '';
+                            if (window.katex && typeof window.katex.renderToString === 'function') {
+                                try {
+                                    rendered = '<div class="my-1 flex justify-center text-gray-12 overflow-x-auto text-base">' + 
+                                        window.katex.renderToString(item.content, { displayMode: true, throwOnError: false }) + 
+                                        '</div>';
+                                } catch(e) {
+                                    rendered = '<div class="my-1 p-2 bg-red-2 text-red-11 rounded-lg border border-red-5 font-mono text-xs">Error LaTeX: ' + e.message + '</div>';
+                                }
+                            } else {
+                                rendered = '<div class="my-1 font-mono text-sm font-semibold text-center">$$ ' + item.content + ' $$</div>';
+                            }
+                            processed = processed.split(item.key).join(rendered);
+                        } else if (item.type === 'MATH_INLINE') {
+                            let rendered = '';
+                            if (window.katex && typeof window.katex.renderToString === 'function') {
+                                try {
+                                    rendered = '<span class="inline-block px-1 font-serif text-gray-12">' + 
+                                        window.katex.renderToString(item.content, { displayMode: false, throwOnError: false }) + 
+                                        '</span>';
+                                } catch(e) {
+                                    rendered = '<span class="px-1 bg-red-2 text-red-11 rounded font-mono text-xs">$' + item.content + '$</span>';
+                                }
+                            } else {
+                                rendered = '<span class="px-1.5 py-0.5 rounded bg-purple-2 text-purple-11 border border-purple-5 font-mono text-xs">$' + item.content + '$</span>';
+                            }
+                            processed = processed.split(item.key).join(rendered);
+                        } else if (item.type === 'CODE_BLOCK') {
+                            const escaped = item.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            processed = processed.split(item.key).join('<pre class="my-2 p-3 bg-gray-2 border border-gray-6 rounded-xl font-mono text-xs overflow-x-auto"><code>' + escaped + '</code></pre>');
+                        } else if (item.type === 'CODE_INLINE') {
+                            const escaped = item.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            processed = processed.split(item.key).join('<code class="px-1.5 py-0.5 rounded bg-gray-3 border border-gray-5 font-mono text-xs text-gray-12">' + escaped + '</code>');
+                        }
+                    });
 
                     return processed;
                 },
@@ -712,19 +804,95 @@
                 },
 
                 goToStep(step) {
+                    // Validasi step saat ini sebelum pindah ke step lebih maju
+                    if (step > this.currentStep) {
+                        for (let i = this.currentStep; i < step; i++) {
+                            if (!this.validateStep(i)) return;
+                        }
+                    }
                     this.currentStep = step;
                 },
 
                 nextStep() {
-                    if (this.currentStep === 2 && !this.form.title) {
-                        alert('Silakan isi judul / nama ujian terlebih dahulu.');
-                        return;
+                    if (this.validateStep(this.currentStep)) {
+                        this.currentStep++;
                     }
-                    if (this.currentStep === 2 && !this.form.subject_id) {
-                        alert('Silakan pilih mata pelajaran terlebih dahulu.');
-                        return;
+                },
+
+                validateStep(stepToValidate) {
+                    this.validationErrors = [];
+                    
+                    if (stepToValidate === 2) {
+                        if (!this.form.title) this.validationErrors.push('Langkah 2 (Informasi): Judul / Nama Ujian wajib diisi.');
+                        if (!this.form.subject_id) this.validationErrors.push('Langkah 2 (Informasi): Mata Pelajaran wajib dipilih.');
                     }
-                    this.currentStep++;
+                    else if (stepToValidate === 3) {
+                        if (!this.form.sections || this.form.sections.length === 0) {
+                            this.validationErrors.push('Langkah 3 (Section): Minimal harus ada 1 bagian (section).');
+                        } else {
+                            this.form.sections.forEach((sec, idx) => {
+                                if (!sec.title) this.validationErrors.push(`Langkah 3 (Section): Judul bagian ${idx+1} tidak boleh kosong.`);
+                            });
+                        }
+                    }
+                                                            else if (stepToValidate === 4) {
+                        let totalQuestions = 0;
+                        this.form.sections.forEach((sec, sIdx) => {
+                            sec.items.forEach((item, iIdx) => {
+                                totalQuestions++;
+                                const qLabel = `Bagian ${sIdx+1} No.${iIdx+1}`;
+
+                                if (!item.is_group) {
+                                    // Cek teks soal
+                                    if (!item.prompt) {
+                                        this.validationErrors.push(`${qLabel}: Teks pertanyaan tidak boleh kosong.`);
+                                    }
+
+                                    // Cek Pilihan Ganda (Single/Multiple)
+                                    if (item.type === 'mcq_single' || item.type === 'mcq_multiple') {
+                                        if (!item.options || item.options.length < 2) {
+                                            this.validationErrors.push(`${qLabel}: Minimal harus ada 2 opsi jawaban.`);
+                                        } else {
+                                            let hasCorrect = item.options.some(o => o.is_correct);
+                                            if (!hasCorrect) this.validationErrors.push(`${qLabel}: Harus memilih minimal 1 jawaban benar.`);
+                                        }
+                                    }
+
+                                    // Cek Menjodohkan
+                                    if (item.type === 'matching') {
+                                        if (!item.options || item.options.length === 0) {
+                                            this.validationErrors.push(`${qLabel}: Minimal harus ada 1 pasangan jawaban.`);
+                                        }
+                                    }
+                                } else {
+                                    // Cek Stimulus
+                                    if (!item.stimulus_content) {
+                                        this.validationErrors.push(`${qLabel} (Stimulus): Konten narasi/stimulus tidak boleh kosong.`);
+                                    }
+                                    if (!item.questions || item.questions.length === 0) {
+                                        this.validationErrors.push(`${qLabel} (Stimulus): Minimal harus memiliki 1 soal turunan.`);
+                                    } else {
+                                        item.questions.forEach((child, cIdx) => {
+                                            if (!child.prompt) this.validationErrors.push(`${qLabel} Anak Soal ${cIdx+1}: Teks pertanyaan tidak boleh kosong.`);
+                                            if (child.type === 'mcq_single' || child.type === 'mcq_multiple') {
+                                                let hasCorrect = child.options && child.options.some(o => o.is_correct);
+                                                if (!hasCorrect) this.validationErrors.push(`${qLabel} Anak Soal ${cIdx+1}: Harus memilih minimal 1 jawaban benar.`);
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        });
+                        if (totalQuestions === 0) {
+                            this.validationErrors.push('Langkah 4 (Soal): Ujian harus memiliki minimal 1 soal.');
+                        }
+                    }
+                    
+                    if (this.validationErrors.length > 0) {
+                        this.showErrorModal = true;
+                        return false;
+                    }
+                    return true;
                 },
 
                 generateToken() {
@@ -1035,7 +1203,27 @@
                     this.form.packages.splice(index, 1);
                 },
 
+                
+                saveDraft() {
+                    fetch('{{ route("assessments.draft.save") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify(this.form)
+                    }).catch(err => console.error('Failed to save draft', err));
+                },
+
                 submitWizard() {
+                    for (let i = 2; i <= 6; i++) {
+                        if (!this.validateStep(i)) {
+                            this.currentStep = i;
+                            this.showErrorModal = true;
+                            return;
+                        }
+                    }
                     this.isSubmitting = true;
 
                     // Sinkronisasi otomatis kebijakan pasca ujian & pengawasan
@@ -1311,28 +1499,11 @@
                     <div class="md:col-span-2 space-y-1.5 editor-container">
                         <div class="flex items-center justify-between">
                             <label class="block text-sm font-semibold text-gray-12">Deskripsi & Petunjuk Pengerjaan</label>
-                            <div class="flex items-center gap-1">
-                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), form, 'description', '# ', '\n', true)" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Judul Utama (H1)">H1</button>
-                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), form, 'description', '## ', '\n', true)" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Sub Judul (H2)">H2</button>
-                                <button type="button" @mousedown.prevent="" @click="insertTableFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), form, 'description')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer flex items-center gap-1" title="Sisipkan Tabel">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-10v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
-                                    <span>Tabel</span>
-                                </button>
-                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), form, 'description', '**', '**')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal (Bold)">B</button>
-                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), form, 'description', '*', '*')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring (Italic)">I</button>
-                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), form, 'description', '<u>', '</u>')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah (Underline)">U</button>
-                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), form, 'description', '$$', '$$')" class="px-2 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[11px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus Matematika / LaTeX ($$...$$)">$$f(x)$$</button>
-                                <button type="button" @mousedown.prevent="" @click="triggerMediaUpload($event.currentTarget.closest('.editor-container').querySelector('textarea'), form, 'description')" class="px-2 py-0.5 rounded bg-sky-2 hover:bg-sky-3 text-[11px] font-bold text-sky-11 border border-sky-5 cursor-pointer" title="Upload Media (Gambar, Audio, Video)">media</button>
-                            </div>
+                            
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <textarea x-model="form.description" 
-                                      @select="recordSelection($event.target)" 
-                                      @keyup="recordSelection($event.target)" 
-                                      @mouseup="recordSelection($event.target)"
-                                      rows="3" placeholder="Tuliskan petunjuk umum untuk siswa sebelum memulai ujian... (Mendukung # Judul, ## Sub Judul, **tebal**, *miring*, <u>garis bawah</u>, dan $$LATEX$$)"
-                                      class="w-full rounded-xl border border-gray-7 bg-white px-4 py-2.5 text-sm text-gray-12 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-8 font-sans leading-relaxed resize-y"></textarea>
-                            <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-6  px-4 py-2.5 text-sm text-gray-12 overflow-y-auto min-h-[80px] max-h-[250px] prose prose-sm max-w-none" x-html="renderRichPreview(form.description)"></div>
+                            <x-markdown-editor model="form.description" size="big" placeholder="Tuliskan petunjuk umum untuk siswa sebelum memulai ujian... (Mendukung # Judul, ## Sub Judul, **tebal**, *miring*, <u>garis bawah</u>, dan $$LATEX$$)" minHeight="75px" />
+                            <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-6 px-4 py-2.5 text-sm text-gray-12 min-h-[75px] prose prose-sm max-w-none" x-html="renderRichPreview(form.description)"></div>
                         </div>
                     </div>
                 </div>
@@ -1442,7 +1613,7 @@
                     <template x-for="(sec, secIdx) in form.sections" :key="sec.id">
                         <div class="border border-gray-6 rounded-2xl bg-white shadow-xs overflow-hidden">
                             <!-- Section Header Bar -->
-                            <div class="bg-gray-2/70 px-6 py-4 border-b border-gray-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="bg-gray-2/70 px-6 py-4 border-b border-gray-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                                 <div class="flex items-center gap-3">
                                     <span class="w-8 h-8 rounded-xl bg-green-9 text-white flex items-center justify-center font-bold text-xs" x-text="secIdx + 1"></span>
                                     <div>
@@ -1475,10 +1646,17 @@
                                         <x-radix-icon name="card-stack-plus" class="w-4 h-4" />
                                         <span>Import Soal</span>
                                     </button>
-                                    <button type="button" @click="openFormatModal()"
-                                            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-3 border border-gray-5 text-gray-12 font-semibold text-xs hover:bg-gray-4 transition-colors shadow-2xs cursor-pointer">
-                                        <x-radix-icon name="bookmark" class="w-4 h-4" />
+                                    <a href="{{ route('assessments.download-template') }}" target="_blank"
+                                       class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-3 border border-amber-6/60 text-amber-11 font-semibold text-xs hover:bg-amber-4 transition-colors shadow-2xs cursor-pointer"
+                                       title="Download file template soal format .docx">
+                                        <x-radix-icon name="download" class="w-4 h-4" />
                                         <span>Download Contoh/Format</span>
+                                    </a>
+                                    <button type="button" @click="openFormatModal()"
+                                            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-3 border border-gray-5 text-gray-12 font-semibold text-xs hover:bg-gray-4 transition-colors shadow-2xs cursor-pointer"
+                                            title="Lihat format naskah soal Word">
+                                        <x-radix-icon name="bookmark" class="w-4 h-4" />
+                                        <span>Panduan Format</span>
                                     </button>
                                 </div>
                             </div>
@@ -1493,7 +1671,48 @@
                                 </template>
 
                                 <template x-for="(item, itemIdx) in sec.items" :key="item.id">
-                                    <div>
+                                    <div class="relative">
+
+        <!-- SUMMARY CARD -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 transition-all hover:border-green-6/50 hover:shadow-md group">
+            <div class="flex items-start sm:items-center gap-3 w-full">
+                <span class="w-8 h-8 rounded-lg bg-green-2 text-green-11 flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-green-6/50" x-text="itemIdx + 1"></span>
+                <div class="min-w-0 flex-1 cursor-pointer" @click="activeItemId = item.id; $nextTick(() => document.body.style.overflow = 'hidden')">
+                    <div class="text-[10px] font-bold text-gray-11 uppercase tracking-wider mb-0.5 group-hover:text-green-9 transition-colors" x-text="item.is_group ? 'Stimulus Narasi' : item.type.replace('_', ' ')"></div>
+                    <div class="text-sm font-medium text-gray-12 truncate" x-text="item.title || (item.prompt ? item.prompt.replace(/(<([^>]+)>)/gi, '').substring(0, 80) + '...' : 'Soal belum diisi')"></div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" @click="activeItemId = item.id; $nextTick(() => document.body.style.overflow = 'hidden')" class="px-4 py-2 bg-green-9 text-white rounded-lg text-sm font-semibold hover:bg-green-10 shadow-sm transition-all flex items-center gap-2">
+                    <x-radix-icon name="pencil-2" class="w-4 h-4" />
+                    <span>Edit Soal</span>
+                </button>
+                <button type="button" @click="removeItem(secIdx, itemIdx)" class="text-red-9 hover:text-red-11 p-2 rounded-lg hover:bg-red-3 cursor-pointer transition-colors" title="Hapus Soal">
+                    <x-radix-icon name="trash" class="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+
+        <!-- FULL EDITOR MODAL -->
+        <div x-show="activeItemId === item.id" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-gray-12/60 backdrop-blur-sm" style="display: none;" x-cloak>
+            <div x-show="activeItemId === item.id" x-transition.opacity.duration.200ms
+                 class="bg-gray-1 rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col h-full max-h-[95vh]" 
+                 @click.outside="activeItemId = null; document.body.style.overflow = 'auto'">
+                
+                <!-- Modal Header -->
+                <div class="bg-white px-6 py-4 border-b border-gray-5 flex items-center justify-between shrink-0 shadow-sm relative z-10">
+                    <h3 class="text-lg font-bold text-gray-12 flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-lg bg-green-2 text-green-11 flex items-center justify-center font-bold text-sm ring-1 ring-green-6/50" x-text="itemIdx + 1"></span>
+                        Edit Soal
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-gray-2 text-gray-11 border border-gray-5" x-text="item.is_group ? 'Stimulus Narasi' : item.type.replace('_', ' ')"></span>
+                    </h3>
+                    <button type="button" @click="activeItemId = null; document.body.style.overflow = 'auto'" class="text-gray-11 hover:text-gray-12 bg-gray-2 hover:bg-gray-3 p-1.5 rounded-lg transition-colors cursor-pointer">
+                        <x-radix-icon name="cross-2" class="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <!-- Modal Body (THE EXISTING FORM) -->
+                <div class="p-6 overflow-y-auto flex-1 space-y-6 relative">
                             <!-- ========================================== -->
                             <!-- ITEM CASE 1: QUESTION GROUP (STIMULUS)     -->
                             <!-- ========================================== -->
@@ -1522,31 +1741,13 @@
                                     <div class="space-y-1.5 editor-container">
                                         <div class="flex items-center justify-between">
                                             <label class="block text-xs font-bold text-gray-12">Konten Stimulus / Narasi (Paragraf, Dialog, atau Konteks):</label>
-                                            <div class="flex items-center gap-1">
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'stimulus_content', '# ', '\n', true)" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Judul Utama (H1)">H1</button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'stimulus_content', '## ', '\n', true)" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Sub Judul (H2)">H2</button>
-                                                <button type="button" @mousedown.prevent="" @click="insertTableFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'stimulus_content')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer flex items-center gap-1" title="Sisipkan Tabel">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-10v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
-                                                    <span>Tabel</span>
-                                                </button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'stimulus_content', '**', '**')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal (Bold)">B</button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'stimulus_content', '*', '*')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring (Italic)">I</button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'stimulus_content', '<u>', '</u>')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah (Underline)">U</button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'stimulus_content', '$$', '$$')" class="px-2 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[11px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus Matematika / LaTeX ($$...$$)">$$f(x)$$</button>
-                                                <button type="button" @mousedown.prevent="" @click="triggerMediaUpload($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'stimulus_content')" class="px-2 py-0.5 rounded bg-sky-2 hover:bg-sky-3 text-[11px] font-bold text-sky-11 border border-sky-5 cursor-pointer" title="Upload Media (Gambar, Audio, Video)">media</button>
-                                            </div>
+                                            
                                         </div>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             <div>
-                                                <textarea x-model="item.stimulus_content" 
-                                                          @select="recordSelection($event.target)" 
-                                                          @keyup="recordSelection($event.target)" 
-                                                          @mouseup="recordSelection($event.target)" 
-                                                          rows="5" placeholder="Ketik atau tempelkan teks narasi wacana di sini... (Mendukung # Judul, ## Sub Judul, **tebal**, *miring*, <u>garis bawah</u>, $$LATEX$$, serta upload gambar, audio, dan video)"
-                                                          class="w-full rounded-xl border border-gray-6 bg-white p-3 text-sm text-gray-12 outline-none focus:border-green-8 leading-relaxed font-sans resize-y min-h-[120px]"></textarea>
-                                                <p class="text-[11px] text-gray-9 mt-1">Mendukung format Markdown, rumus LaTeX, serta sisipan media gambar, audio, dan video (autoplay otomatis saat ujian).</p>
+                                                <x-markdown-editor model="item.stimulus_content" size="big" placeholder="Ketik atau tempelkan teks narasi wacana di sini... (Mendukung # Judul, ## Sub Judul, **tebal**, *miring*, <u>garis bawah</u>, $$LATEX$$, serta upload gambar, audio, dan video)" minHeight="75px" />
                                             </div>
-                                            <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-5  p-3 text-sm text-gray-12 overflow-y-auto min-h-[120px] max-h-[350px] prose prose-sm max-w-none shadow-inner" x-html="renderRichPreview(item.stimulus_content)"></div>
+                                            <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-5 p-3 text-sm text-gray-12 min-h-[75px] prose prose-sm max-w-none shadow-inner" x-html="renderRichPreview(item.stimulus_content)"></div>
                                         </div>
                                     </div>
 
@@ -1585,29 +1786,10 @@
                                                 <div class="space-y-3">
                                                     <!-- Formatting Toolbar & Live Preview -->
                                                     <div class="editor-container space-y-1.5">
-                                                        <div class="flex items-center justify-between gap-2">
-                                                            <div class="flex items-center gap-1">
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), childQ, 'prompt', '# ', '\n', true)" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Judul (H1)">H1</button>
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), childQ, 'prompt', '## ', '\n', true)" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Sub Judul (H2)">H2</button>
-                                                                <button type="button" @mousedown.prevent="" @click="insertTableFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), childQ, 'prompt')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer flex items-center gap-1" title="Sisipkan Tabel">
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-10v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
-                                                                    <span>Tabel</span>
-                                                                </button>
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), childQ, 'prompt', '**', '**')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal (Bold)">B</button>
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), childQ, 'prompt', '*', '*')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring (Italic)">I</button>
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), childQ, 'prompt', '<u>', '</u>')" class="px-2 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[11px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah (Underline)">U</button>
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), childQ, 'prompt', '$$', '$$')" class="px-2 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[11px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus Matematika / LaTeX ($$...$$)">$$f(x)$$</button>
-                                                                <button type="button" @mousedown.prevent="" @click="triggerMediaUpload($event.currentTarget.closest('.editor-container').querySelector('textarea'), childQ, 'prompt')" class="px-2 py-0.5 rounded bg-sky-2 hover:bg-sky-3 text-[11px] font-bold text-sky-11 border border-sky-5 cursor-pointer" title="Upload Media (Gambar, Audio, Video)">media</button>
-                                                            </div>
-                                                        </div>
+
                                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                            <textarea x-model="childQ.prompt" 
-                                                                      @select="recordSelection($event.target)" 
-                                                                      @keyup="recordSelection($event.target)" 
-                                                                      @mouseup="recordSelection($event.target)"
-                                                                      rows="2" placeholder="Tuliskan pertanyaan / butir soal... (Gunakan $$...$$ untuk rumus matematika LaTeX)"
-                                                                      class="w-full rounded-xl border border-gray-6 px-3.5 py-2 text-sm text-gray-12 outline-none focus:border-green-8 font-sans resize-y"></textarea>
-                                                            <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-5  px-3.5 py-2 text-sm text-gray-12 overflow-y-auto min-h-[60px] max-h-[200px] prose prose-sm max-w-none" x-html="renderRichPreview(childQ.prompt)"></div>
+                                                            <x-markdown-editor model="childQ.prompt" size="big" placeholder="Tuliskan pertanyaan / butir soal... (Gunakan $$...$$ untuk rumus matematika LaTeX)" minHeight="60px" />
+                                                            <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-5 px-3.5 py-2 text-sm text-gray-12 min-h-[60px] prose prose-sm max-w-none" x-html="renderRichPreview(childQ.prompt)"></div>
                                                         </div>
                                                     </div>
 
@@ -1629,8 +1811,7 @@
                                                                     <span class="w-6 text-xs font-mono font-bold text-gray-11" x-text="opt.label"></span>
                                                                     <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                                         <div class="relative">
-                                                                            <textarea x-model="opt.option_text" rows="3" placeholder="Teks pilihan jawaban (mendukung 1 paragraf, bait puisi, LaTeX, dan media)..."
-                                                                                   class="w-full rounded-lg border border-gray-6 pl-3 pr-14 py-2 text-xs text-gray-12 outline-none focus:border-green-8 resize-y min-h-[84px] leading-relaxed"></textarea>
+                                                                            <x-markdown-editor model="opt.option_text" size="small" placeholder="Teks pilihan jawaban (mendukung 1 paragraf, bait puisi, LaTeX, dan media)..." minHeight="60px" />
                                                                             <button type="button" @click="triggerMediaUpload($el.parentElement.querySelector('textarea'), opt, 'option_text')" class="absolute right-1.5 top-1.5 px-1.5 py-0.5 rounded bg-sky-2 hover:bg-sky-3 text-[10px] font-bold text-sky-11 border border-sky-5 cursor-pointer" title="Upload Media (Gambar, Audio, Video)">media</button>
                                                                         </div>
                                                                         <div style="background-color: #b2f2bb;" class="rounded-lg border border-gray-5 px-3 py-2 text-xs text-gray-12 overflow-y-auto min-h-[84px] max-h-[260px] prose prose-sm max-w-none" x-html="renderRichPreview(opt.option_text)"></div>
@@ -1684,16 +1865,12 @@
                                                                                 </button>
                                                                             </div>
                                                                         </div>
-                                                                        <!-- Editor Markdown (Tanpa Preview, Tanpa Petunjuk) -->
-                                                                        <div class="editor-container">
-                                                                            <div class="flex items-center gap-1 mb-1">
-                                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), stmt, 'option_text', '**', '**')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal">B</button>
-                                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), stmt, 'option_text', '*', '*')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring">I</button>
-                                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), stmt, 'option_text', '<u>', '</u>')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah">U</button>
-                                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), stmt, 'option_text', '$$', '$$')" class="px-1.5 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[10px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus LaTeX">$$</button>
+                                                                        <!-- Editor Markdown & Preview -->
+                                                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                                                                            <div class="editor-container">
+                                                                                <x-markdown-editor model="stmt.option_text" size="small" placeholder="Tuliskan baris pernyataan (mendukung markdown & LaTeX)..." minHeight="60px" />
                                                                             </div>
-                                                                            <textarea x-model="stmt.option_text" rows="2" placeholder="Tuliskan baris pernyataan (mendukung markdown & LaTeX)..."
-                                                                                      class="w-full rounded-lg border border-gray-6 bg-white px-2.5 py-1.5 text-xs text-gray-12 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-7"></textarea>
+                                                                            <div style="background-color: #b2f2bb;" class="rounded-lg border border-gray-5 px-3 py-2 text-xs text-gray-12 min-h-[60px] prose prose-sm max-w-none" x-html="renderRichPreview(stmt.option_text)"></div>
                                                                         </div>
                                                                     </div>
                                                                 </template>
@@ -1721,27 +1898,17 @@
                                                                         <div class="editor-container">
                                                                             <div class="flex items-center justify-between mb-1">
                                                                                 <span class="text-[11px] font-semibold text-gray-11">Premis (Kiri):</span>
-                                                                                <div class="flex items-center gap-1">
-                                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'option_text', '**', '**')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal">B</button>
-                                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'option_text', '*', '*')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring">I</button>
-                                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'option_text', '<u>', '</u>')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah">U</button>
-                                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'option_text', '$$', '$$')" class="px-1.5 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[10px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus LaTeX">$$</button>
-                                                                                </div>
+                                                                                
                                                                             </div>
-                                                                            <textarea x-model="pair.option_text" rows="2" placeholder="Item premis..." class="w-full rounded-lg border border-gray-6 bg-white px-2.5 py-1.5 text-xs text-gray-12 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-7"></textarea>
+                                                                            <x-markdown-editor model="pair.option_text" size="small" placeholder="Item premis..." minHeight="60px" />
                                                                         </div>
                                                                         <!-- Jawaban (Kanan) -->
                                                                         <div class="editor-container">
                                                                             <div class="flex items-center justify-between mb-1">
                                                                                 <span class="text-[11px] font-semibold text-gray-11">Pasangan (Kanan):</span>
-                                                                                <div class="flex items-center gap-1">
-                                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'match_key', '**', '**')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal">B</button>
-                                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'match_key', '*', '*')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring">I</button>
-                                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'match_key', '<u>', '</u>')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah">U</button>
-                                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'match_key', '$$', '$$')" class="px-1.5 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[10px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus LaTeX">$$</button>
-                                                                                </div>
+                                                                                
                                                                             </div>
-                                                                            <textarea x-model="pair.match_key" rows="2" placeholder="Item pasangan..." class="w-full rounded-lg border border-gray-6 bg-white px-2.5 py-1.5 text-xs text-gray-12 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-7"></textarea>
+                                                                            <x-markdown-editor model="pair.match_key" size="small" placeholder="Item pasangan..." minHeight="60px" />
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -1767,16 +1934,12 @@
                                                                             <x-radix-icon name="trash" class="w-4 h-4" />
                                                                         </button>
                                                                     </div>
-                                                                    <!-- Editor Markdown (Tanpa Preview, Tanpa Petunjuk) -->
-                                                                    <div class="editor-container">
-                                                                        <div class="flex items-center gap-1 mb-1">
-                                                                            <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), opt, 'option_text', '**', '**')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal">B</button>
-                                                                            <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), opt, 'option_text', '*', '*')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring">I</button>
-                                                                            <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), opt, 'option_text', '<u>', '</u>')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah">U</button>
-                                                                            <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), opt, 'option_text', '$$', '$$')" class="px-1.5 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[10px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus LaTeX">$$</button>
+                                                                    <!-- Editor Markdown & Preview -->
+                                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                                                                        <div class="editor-container">
+                                                                            <x-markdown-editor model="opt.option_text" size="small" placeholder="Teks item yang diurutkan (mendukung markdown & LaTeX)..." minHeight="60px" />
                                                                         </div>
-                                                                        <textarea x-model="opt.option_text" rows="2" placeholder="Teks item yang diurutkan (mendukung markdown & LaTeX)..."
-                                                                                  class="w-full rounded-lg border border-gray-6 bg-white px-2.5 py-1.5 text-xs text-gray-12 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-7"></textarea>
+                                                                        <div style="background-color: #b2f2bb;" class="rounded-lg border border-gray-5 px-3 py-2 text-xs text-gray-12 min-h-[60px] prose prose-sm max-w-none" x-html="renderRichPreview(opt.option_text)"></div>
                                                                     </div>
                                                                 </div>
                                                             </template>
@@ -1798,6 +1961,19 @@
                                                             Jawaban uraian bebas akan dikoreksi guru/penilai secara manual.
                                                         </div>
                                                     </template>
+
+                                                    <!-- PEMBAHASAN UNTUK CHILD QUESTION -->
+                                                    <div class="space-y-1.5 editor-container mt-4 pt-4 border-t border-gray-5">
+                                                        <div class="flex items-center justify-between">
+                                                            <label class="block text-xs font-bold text-gray-12">Pembahasan (Opsional):</label>
+                                                        </div>
+                                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <!-- Editor -->
+                                                            <x-markdown-editor model="childQ.explanation" size="big" placeholder="Tuliskan pembahasan untuk anak soal ini... (Opsional)" minHeight="60px" />
+                                                            <!-- Preview -->
+                                                            <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-5 px-3.5 py-2 text-sm text-gray-12 min-h-[60px] prose prose-sm max-w-none" x-html="renderRichPreview(childQ.explanation)"></div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </template>
@@ -1843,29 +2019,12 @@
                                     <!-- Question Prompt & Formatting Toolbar -->
                                     <div class="space-y-2 editor-container">
                                         <div class="flex items-center justify-between gap-2">
-                                            <div class="flex items-center gap-1">
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'prompt', '# ', '\n', true)" class="px-2.5 py-1 rounded bg-gray-2 hover:bg-gray-3 text-xs font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Judul Utama (H1)">H1</button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'prompt', '## ', '\n', true)" class="px-2.5 py-1 rounded bg-gray-2 hover:bg-gray-3 text-xs font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Sub Judul (H2)">H2</button>
-                                                <button type="button" @mousedown.prevent="" @click="insertTableFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'prompt')" class="px-2.5 py-1 rounded bg-gray-2 hover:bg-gray-3 text-xs font-bold text-gray-12 border border-gray-5 cursor-pointer flex items-center gap-1" title="Sisipkan Tabel">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-10v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
-                                                    <span>Tabel</span>
-                                                </button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'prompt', '**', '**')" class="px-2.5 py-1 rounded bg-gray-2 hover:bg-gray-3 text-xs font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal (Bold)">B</button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'prompt', '*', '*')" class="px-2.5 py-1 rounded bg-gray-2 hover:bg-gray-3 text-xs italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring (Italic)">I</button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'prompt', '<u>', '</u>')" class="px-2.5 py-1 rounded bg-gray-2 hover:bg-gray-3 text-xs underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah (Underline)">U</button>
-                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'prompt', '$$', '$$')" class="px-2.5 py-1 rounded bg-purple-2 hover:bg-purple-3 text-xs font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus Matematika / LaTeX ($$...$$)">$$f(x)$$</button>
-                                                <button type="button" @mousedown.prevent="" @click="triggerMediaUpload($event.currentTarget.closest('.editor-container').querySelector('textarea'), item, 'prompt')" class="px-2.5 py-1 rounded bg-sky-2 hover:bg-sky-3 text-xs font-bold text-sky-11 border border-sky-5 cursor-pointer" title="Upload Media (Gambar, Audio, Video)">media</button>
-                                            </div>
+                                            
                                         </div>
 
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            <textarea x-model="item.prompt" 
-                                                      @select="recordSelection($event.target)" 
-                                                      @keyup="recordSelection($event.target)" 
-                                                      @mouseup="recordSelection($event.target)"
-                                                      rows="2" placeholder="Tuliskan pertanyaan / instruksi soal... (Gunakan $$...$$ untuk rumus matematika LaTeX)"
-                                                      class="w-full rounded-xl border border-gray-6 px-3.5 py-2 text-sm text-gray-12 outline-none focus:border-green-8 font-sans resize-y"></textarea>
-                                            <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-5  px-3.5 py-2 text-sm text-gray-12 overflow-y-auto min-h-[60px] max-h-[200px] prose prose-sm max-w-none" x-html="renderRichPreview(item.prompt)"></div>
+                                            <x-markdown-editor model="item.prompt" size="big" placeholder="Tuliskan pertanyaan / instruksi soal... (Gunakan $$...$$ untuk rumus matematika LaTeX)" minHeight="60px" />
+                                            <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-5 px-3.5 py-2 text-sm text-gray-12 min-h-[60px] prose prose-sm max-w-none" x-html="renderRichPreview(item.prompt)"></div>
                                         </div>
                                     </div>
 
@@ -1887,9 +2046,8 @@
                                                         </template>
                                                         <span class="w-6 text-xs font-mono font-bold text-gray-11" x-text="opt.label"></span>
                                                         <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                            <div class="relative">
-                                                                <textarea x-model="opt.option_text" rows="3" placeholder="Teks pilihan jawaban (mendukung 1 paragraf, bait puisi, LaTeX, dan media)..."
-                                                                       class="w-full rounded-lg border border-gray-6 pl-3 pr-14 py-2 text-xs text-gray-12 outline-none focus:border-green-8 resize-y min-h-[84px] leading-relaxed"></textarea>
+                                                            <div class="relative editor-container">
+                                                                <x-markdown-editor model="opt.option_text" size="small" placeholder="Teks pilihan jawaban (mendukung 1 paragraf, bait puisi, LaTeX, dan media)..." minHeight="60px" />
                                                                 <button type="button" @click="triggerMediaUpload($el.parentElement.querySelector('textarea'), opt, 'option_text')" class="absolute right-1.5 top-1.5 px-1.5 py-0.5 rounded bg-sky-2 hover:bg-sky-3 text-[10px] font-bold text-sky-11 border border-sky-5 cursor-pointer" title="Upload Media (Gambar, Audio, Video)">media</button>
                                                             </div>
                                                             <div style="background-color: #b2f2bb;" class="rounded-lg border border-gray-5 px-3 py-2 text-xs text-gray-12 overflow-y-auto min-h-[84px] max-h-[260px] prose prose-sm max-w-none" x-html="renderRichPreview(opt.option_text)"></div>
@@ -1964,16 +2122,12 @@
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            <!-- Editor Markdown (Tanpa Preview, Tanpa Petunjuk) -->
-                                                            <div class="editor-container">
-                                                                <div class="flex items-center gap-1 mb-1">
-                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), stmt, 'option_text', '**', '**')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal (Bold)">B</button>
-                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), stmt, 'option_text', '*', '*')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring (Italic)">I</button>
-                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), stmt, 'option_text', '<u>', '</u>')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah (Underline)">U</button>
-                                                                    <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), stmt, 'option_text', '$$', '$$')" class="px-1.5 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[10px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus Matematika / LaTeX ($$...$$)">$$</button>
+                                                            <!-- Editor Markdown & Preview -->
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                                                                <div class="editor-container">
+                                                                    <x-markdown-editor model="stmt.option_text" size="small" placeholder="Tuliskan teks baris pernyataan (mendukung markdown & LaTeX)..." minHeight="60px" />
                                                                 </div>
-                                                                <textarea x-model="stmt.option_text" rows="2" placeholder="Tuliskan teks baris pernyataan (mendukung markdown & LaTeX)..."
-                                                                          class="w-full rounded-lg border border-gray-6 bg-white px-3 py-1.5 text-xs text-gray-12 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-7"></textarea>
+                                                                <div style="background-color: #b2f2bb;" class="rounded-lg border border-gray-5 px-3 py-2 text-xs text-gray-12 min-h-[60px] prose prose-sm max-w-none" x-html="renderRichPreview(stmt.option_text)"></div>
                                                             </div>
                                                         </div>
                                                     </template>
@@ -2001,28 +2155,18 @@
                                                             <div class="editor-container">
                                                                 <div class="flex items-center justify-between mb-1">
                                                                     <span class="text-[11px] font-semibold text-gray-11">Premis (Kiri):</span>
-                                                                    <div class="flex items-center gap-1">
-                                                                        <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'option_text', '**', '**')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal">B</button>
-                                                                        <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'option_text', '*', '*')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring">I</button>
-                                                                        <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'option_text', '<u>', '</u>')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah">U</button>
-                                                                        <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'option_text', '$$', '$$')" class="px-1.5 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[10px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus LaTeX">$$</button>
-                                                                    </div>
+                                                                    
                                                                 </div>
-                                                                <textarea x-model="pair.option_text" rows="2" placeholder="Item premis..." class="w-full rounded-lg border border-gray-6 bg-white px-3 py-1.5 text-xs text-gray-12 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-7"></textarea>
+                                                                <x-markdown-editor model="pair.option_text" size="small" placeholder="Item premis..." minHeight="60px" />
                                                             </div>
 
                                                             <!-- Jawaban / Pasangan (Kanan) -->
                                                             <div class="editor-container">
                                                                 <div class="flex items-center justify-between mb-1">
                                                                     <span class="text-[11px] font-semibold text-gray-11">Pasangan (Kanan):</span>
-                                                                    <div class="flex items-center gap-1">
-                                                                        <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'match_key', '**', '**')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal">B</button>
-                                                                        <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'match_key', '*', '*')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring">I</button>
-                                                                        <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'match_key', '<u>', '</u>')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah">U</button>
-                                                                        <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), pair, 'match_key', '$$', '$$')" class="px-1.5 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[10px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus LaTeX">$$</button>
-                                                                    </div>
+                                                                    
                                                                 </div>
-                                                                <textarea x-model="pair.match_key" rows="2" placeholder="Item pasangan..." class="w-full rounded-lg border border-gray-6 bg-white px-3 py-1.5 text-xs text-gray-12 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-7"></textarea>
+                                                                <x-markdown-editor model="pair.match_key" size="small" placeholder="Item pasangan..." minHeight="60px" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -2048,16 +2192,12 @@
                                                                 <x-radix-icon name="trash" class="w-4 h-4" />
                                                             </button>
                                                         </div>
-                                                        <!-- Editor Markdown (Tanpa Preview, Tanpa Petunjuk) -->
-                                                        <div class="editor-container">
-                                                            <div class="flex items-center gap-1 mb-1">
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), opt, 'option_text', '**', '**')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] font-bold text-gray-12 border border-gray-5 cursor-pointer" title="Tebal">B</button>
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), opt, 'option_text', '*', '*')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] italic font-serif text-gray-12 border border-gray-5 cursor-pointer" title="Miring">I</button>
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), opt, 'option_text', '<u>', '</u>')" class="px-1.5 py-0.5 rounded bg-gray-2 hover:bg-gray-3 text-[10px] underline text-gray-12 border border-gray-5 cursor-pointer" title="Garis Bawah">U</button>
-                                                                <button type="button" @mousedown.prevent="" @click="applyTextFormat($event.currentTarget.closest('.editor-container').querySelector('textarea'), opt, 'option_text', '$$', '$$')" class="px-1.5 py-0.5 rounded bg-purple-2 hover:bg-purple-3 text-[10px] font-mono font-bold text-purple-11 border border-purple-5 cursor-pointer" title="Rumus LaTeX">$$</button>
+                                                        <!-- Editor Markdown & Preview -->
+                                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                                                            <div class="editor-container">
+                                                                <x-markdown-editor model="opt.option_text" size="small" placeholder="Teks item yang diurutkan (mendukung markdown & LaTeX)..." minHeight="60px" />
                                                             </div>
-                                                            <textarea x-model="opt.option_text" rows="2" placeholder="Teks item yang diurutkan (mendukung markdown & LaTeX)..."
-                                                                      class="w-full rounded-lg border border-gray-6 bg-white px-3 py-1.5 text-xs text-gray-12 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-7"></textarea>
+                                                            <div style="background-color: #b2f2bb;" class="rounded-lg border border-gray-5 px-3 py-2 text-xs text-gray-12 min-h-[60px] prose prose-sm max-w-none" x-html="renderRichPreview(opt.option_text)"></div>
                                                         </div>
                                                     </div>
                                                 </template>
@@ -2079,17 +2219,43 @@
                                                 Soal essay akan menampilkan area teks luas bagi siswa. Penilaian dilakukan melalui koreksi manual atau rubrik penilaian.
                                             </div>
                                         </template>
+
+                                        <!-- PEMBAHASAN -->
+                                        <div class="space-y-1.5 editor-container mt-4 pt-4 border-t border-gray-5">
+                                            <div class="flex items-center justify-between">
+                                                <label class="block text-xs font-bold text-gray-12">Pembahasan (Opsional):</label>
+                                            </div>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <!-- Editor -->
+                                                <x-markdown-editor model="item.explanation" size="big" placeholder="Tuliskan pembahasan untuk soal ini... (Opsional)" minHeight="60px" />
+                                                <!-- Preview -->
+                                                <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-5 px-3.5 py-2 text-sm text-gray-12 min-h-[60px] prose prose-sm max-w-none" x-html="renderRichPreview(item.explanation)"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </template>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-            </template>
-        </div>
+                            </div> <!-- End Modal Body -->
 
-        <!-- Navigation Step 4 (Outside Section Loop) -->
-        <div class="flex items-center justify-between pt-6 border-t border-gray-5 mt-8">
+                            <!-- Modal Footer -->
+                            <div class="p-4 border-t border-gray-5 bg-white flex justify-between items-center shrink-0 relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                                <button type="button" @click="removeItem(secIdx, itemIdx); activeItemId = null; document.body.style.overflow = 'auto'" class="px-4 py-2 text-red-9 hover:bg-red-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 cursor-pointer">
+                                    <x-radix-icon name="trash" class="w-4 h-4" /> Hapus Soal
+                                </button>
+                                <button type="button" @click="activeItemId = null; document.body.style.overflow = 'auto'" class="px-6 py-2.5 bg-green-9 text-white text-sm font-semibold rounded-xl hover:bg-green-10 transition-colors shadow-sm flex items-center gap-2 cursor-pointer">
+                                    <x-radix-icon name="check" class="w-4 h-4" /> Selesai Edit & Simpan
+                                </button>
+                            </div>
+                        </div> <!-- End Modal Content (line 1628) -->
+                    </div> <!-- End Modal Wrapper (line 1626) -->
+                </div> <!-- End Relative Wrapper (line 1603) -->
+            </template> <!-- End sec.items Loop (line 1633) -->
+        </div> <!-- End p-6 space-y-6 (line 1625) -->
+    </div> <!-- End Section Box (line 1574) -->
+</template> <!-- End form.sections Loop (line 1573) -->
+</div> <!-- End space-y-8 (line 1572) -->
+
+                <!-- Navigation Step 4 (Outside Kotak Pembuatan Soal, Inside Langkah 4) -->
+                <div class="flex items-center justify-between pt-6 pb-12 mb-8 border-t border-gray-5 mt-10">
                     <button type="button" @click="currentStep--" 
                             class="px-5 py-2.5 rounded-xl border border-gray-6 bg-white hover:bg-gray-3 text-sm font-semibold text-gray-12 transition-colors cursor-pointer flex items-center gap-2">
                         <x-radix-icon name="arrow-left" class="w-4 h-4" />
@@ -2101,7 +2267,7 @@
                         <x-radix-icon name="arrow-right" class="w-4 h-4" />
                     </button>
                 </div>
-            </div>
+            </div> <!-- End Langkah 4: Butir Soal & Stimulus Narasi (line 1565) -->
 
             <!-- ============================================== -->
             <!-- STEP 5: METODE PENILAIAN & SCORING ENGINE      -->
@@ -3206,10 +3372,10 @@
 
 
         <!-- Modal: Download Contoh / Format Import Soal -->
-        <div x-show="showFormatModal" style="display: none;" 
+        <div x-show="showFormatModal" 
              x-transition.opacity
-             class="fixed inset-0 z-50 bg-gray-12/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div @click.away="showFormatModal = false" 
+             class="fixed inset-0 z-50 bg-gray-12/40 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
+            <div @click.outside="showFormatModal = false" 
                  class="bg-white border border-gray-6 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
                 <div class="flex items-center justify-between border-b border-gray-5 pb-3">
                     <div class="flex items-center gap-2.5">
@@ -3229,7 +3395,7 @@
                 <div x-data="{ formatTab: 'pg' }" class="space-y-4 text-xs text-gray-12">
                     <div class="p-3.5 rounded-xl bg-blue-2/30 border border-blue-6/50 text-blue-11 leading-relaxed">
                         <strong class="block font-bold mb-1">Mendukung Seluruh Tipe Soal &amp; Formula Matematika (LaTeX):</strong>
-                        Dokumen Word (.docx) mendukung teks tebal (bold), miring (italic), garis bawah (underline), formula matematika <code class="px-1.5 py-0.5 rounded bg-blue-3 font-mono font-bold">$$formula$$</code>, serta penetapan bobot soal fleksibel <code class="px-1.5 py-0.5 rounded bg-blue-3 font-mono font-bold">BOBOT: 2.5</code>.
+                        Dokumen Word (.docx) mendukung teks tebal (bold), miring (italic), garis bawah (underline), formula matematika <code class="px-1.5 py-0.5 rounded bg-blue-3 font-mono font-bold">$formula$</code> atau <code class="px-1.5 py-0.5 rounded bg-blue-3 font-mono font-bold">$$formula$$</code>, serta penetapan bobot soal fleksibel <code class="px-1.5 py-0.5 rounded bg-blue-3 font-mono font-bold">BOBOT: 2.5</code>.
                     </div>
 
                     <!-- Tab Buttons -->
@@ -3263,14 +3429,14 @@
                                 <span class="font-bold text-gray-12">1. Pilihan Ganda Tunggal (dengan Bobot &gt;= 2.0 &amp; LaTeX):</span>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-3 text-blue-11 font-mono">BOBOT: 2.5</span>
                             </div>
-                            <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">1. Himpunan penyelesaian persamaan $$2x^2 - 7x + 3 = 0$$ adalah ...
-A. $$x_1 = 3$$ atau $$x_2 = \frac{1}{2}$$
-B. $$x_1 = -3$$ atau $$x_2 = -\frac{1}{2}$$
-C. $$x_1 = 1$$ atau $$x_2 = 6$$
-D. $$x_1 = 2$$ atau $$x_2 = 5$$
+                            <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">1. Diberikan persamaan kuadrat $2x^2 - 7x + 3 = 0$. Menggunakan rumus ABC $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$, himpunan penyelesaian dari persamaan tersebut adalah ...
+A. $x_1 = 3$ atau $x_2 = \frac{1}{2}$
+B. $x_1 = -3$ atau $x_2 = -\frac{1}{2}$
+C. $x_1 = 1$ atau $x_2 = 6$
+D. $x_1 = 2$ atau $x_2 = 5$
 KUNCI: A
 BOBOT: 2.5
-PEMBAHASAN: Nilai D = 25. Maka x = (7 +/- 5)/4, sehingga x1 = 3 dan x2 = 1/2.</pre>
+PEMBAHASAN: Nilai D = 25. Maka $x = \frac{7 \pm 5}{4}$, sehingga $x_1 = 3$ dan $x_2 = \frac{1}{2}$.</pre>
                         </div>
 
                         <div class="space-y-1.5">
@@ -3402,10 +3568,10 @@ BOBOT: 2.0</pre>
         </div>
 
         <!-- Modal: Import Soal dari Word -->
-        <div x-show="showImportModal" style="display: none;" 
+        <div x-show="showImportModal" 
              x-transition.opacity
-             class="fixed inset-0 z-50 bg-gray-12/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div @click.away="showImportModal = false" 
+             class="fixed inset-0 z-50 bg-gray-12/40 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
+            <div @click.outside="showImportModal = false" 
                  class="bg-white border border-gray-6 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl">
                 <div class="flex items-center justify-between border-b border-gray-5 pb-3">
                     <div class="flex items-center gap-2.5">
@@ -3463,4 +3629,36 @@ BOBOT: 2.0</pre>
             </div>
         </div>
     </div>
+
+    <!-- Error Validation Modal -->
+    <div x-show="showErrorModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-12/50 backdrop-blur-sm" x-cloak>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]" @click.outside="showErrorModal = false">
+            <div class="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-red-700 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    Validasi Form Gagal
+                </h3>
+                <button @click="showErrorModal = false" class="text-red-400 hover:text-red-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                <p class="text-sm text-gray-11">Ada beberapa kolom yang belum diisi dengan benar. Mohon perbaiki error berikut untuk melanjutkan:</p>
+                <ul class="space-y-2">
+                    <template x-for="(err, idx) in validationErrors" :key="idx">
+                        <li class="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
+                            <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span x-text="err"></span>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+            <div class="p-4 border-t border-gray-5 bg-gray-2 flex justify-end">
+                <button @click="showErrorModal = false" class="px-5 py-2.5 bg-gray-12 text-white text-sm font-semibold rounded-xl hover:bg-gray-11 transition-colors">
+                    Mengerti, Perbaiki Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+
 </x-layouts.app>

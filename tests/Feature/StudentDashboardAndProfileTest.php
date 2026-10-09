@@ -10,8 +10,10 @@ use App\Models\Subject;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -676,5 +678,140 @@ class StudentDashboardAndProfileTest extends TestCase
         $response->assertOk();
         $response->assertSee($tenant->favicon_url);
         $response->assertSee('APLIKASI UJIAN.png');
+    }
+
+    public function test_exam_workspace_auto_finalizes_session_older_than_one_day(): void
+    {
+        $student = User::factory()->create();
+        $assessment = Assessment::factory()->create([
+            'status' => 'published',
+            'duration_minutes' => 60,
+        ]);
+
+        $session = ExamSession::create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $student->id,
+            'assessment_id' => $assessment->id,
+            'status' => 'in_progress',
+            'started_at' => now()->subDays(2),
+            'created_at' => now()->subDays(2),
+            'expires_at' => now()->subDays(2)->addHours(1),
+        ]);
+
+        $response = $this->actingAs($student)->get(route('exam.workspace', $session->uuid));
+
+        $response->assertRedirect(route('exam.analysis', ['session' => $session->uuid]));
+        $session->refresh();
+        $this->assertEquals('completed', $session->status);
+    }
+
+    public function test_profile_groups_multiple_attempts_under_same_assessment(): void
+    {
+        $student = User::factory()->create([
+            'username' => 'test_group_student',
+        ]);
+        $assessment = Assessment::factory()->create([
+            'status' => 'published',
+            'title' => 'Try Out Fisika Kuantum',
+        ]);
+
+        // Create 2 completed attempts and 1 in-progress attempt for this same assessment
+        ExamSession::create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $student->id,
+            'assessment_id' => $assessment->id,
+            'status' => 'completed',
+            'score' => 70.0,
+            'created_at' => now()->subDays(3),
+            'completed_at' => now()->subDays(3)->addMinutes(45),
+        ]);
+
+        ExamSession::create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $student->id,
+            'assessment_id' => $assessment->id,
+            'status' => 'completed',
+            'score' => 95.0,
+            'created_at' => now()->subDay(),
+            'completed_at' => now()->subDay()->addMinutes(40),
+        ]);
+
+        $response = $this->actingAs($student)->get('/@'.$student->username);
+
+        $response->assertOk();
+        $response->assertSee('Try Out Fisika Kuantum');
+        $response->assertSee('2x Percobaan');
+        $response->assertSee('⭐ Skor Terbaik: 95.0');
+    }
+
+    public function test_guest_does_not_see_student_bottom_nav_and_history_is_private(): void
+    {
+        $student = User::factory()->create([
+            'username' => 'tatag_private',
+        ]);
+
+        $response = $this->get('/@'.$student->username);
+
+        $response->assertOk();
+        // Bottom navigation tidak muncul untuk tamu
+        $response->assertDontSee("activeTab = 'history'");
+        // Riwayat ujian berstatus rahasia pribadi
+        $response->assertSee('Riwayat Ujian Rahasia Pribadi');
+    }
+
+    public function test_student_can_upload_and_edit_cover_photo(): void
+    {
+        $disk = config('filesystems.upload_disk', 'public');
+        if ($disk === 'r2' && (! config('filesystems.disks.r2.key') || ! config('filesystems.disks.r2.secret'))) {
+            $disk = 'public';
+        }
+        Storage::fake($disk);
+
+        $student = User::factory()->create();
+        $cover = UploadedFile::fake()->createWithContent(
+            'my_cover.jpg',
+            base64_decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=')
+        );
+
+        $response = $this->actingAs($student)->put(route('profile.update'), [
+            'name' => 'Tatag Siswa',
+            'cover_photo' => $cover,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Profil berhasil diperbarui.');
+
+        $student->refresh();
+        $this->assertNotNull($student->cover_photo_path);
+        Storage::disk($disk)->assertExists($student->cover_photo_path);
+    }
+
+    public function test_history_tab_shows_load_more_button_when_more_than_5_assessments(): void
+    {
+        $student = User::factory()->create([
+            'username' => 'tatag_multi_history',
+        ]);
+
+        // Buat 6 sesi asesmen berbeda
+        for ($i = 1; $i <= 6; $i++) {
+            $asm = Assessment::factory()->create([
+                'title' => "Ujian Variasi Ke-{$i}",
+                'status' => 'published',
+            ]);
+            ExamSession::create([
+                'uuid' => (string) Str::uuid(),
+                'user_id' => $student->id,
+                'assessment_id' => $asm->id,
+                'status' => 'completed',
+                'score' => 80 + $i,
+                'created_at' => now()->subDays($i),
+                'completed_at' => now()->subDays($i)->addMinutes(30),
+            ]);
+        }
+
+        $response = $this->actingAs($student)->get('/@'.$student->username);
+
+        $response->assertOk();
+        $response->assertSee('Muat Lebih Banyak Riwayat Asesmen');
     }
 }

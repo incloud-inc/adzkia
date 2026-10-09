@@ -59,6 +59,14 @@ class ExamGateController extends Controller
     {
         $user = $request->user();
 
+        // ── Canonical Token URL Enforcement ─────────────────────────
+        // Murid TIDAK diizinkan mengakses gerbang ujian menggunakan numeric ID asesmen.
+        // Langsung alihkan URL secara kanonikal ke TOKEN asesmen.
+        $rawParam = (string) ($request->segment(3) ?: ($request->route()->originalParameter('assessment') ?? ''));
+        if (is_numeric($rawParam) && ! empty($assessment->token)) {
+            return redirect()->route('exam.gate.show', ['assessment' => $assessment->token]);
+        }
+
         // ── Validasi publikasi ───────────────────────────────────────
         if ($assessment->status !== 'published') {
             return $this->bail('Ujian belum dipublikasikan atau sudah diarsipkan.');
@@ -165,6 +173,13 @@ class ExamGateController extends Controller
     public function start(Request $request, Assessment $assessment): RedirectResponse
     {
         $user = $request->user();
+
+        // ── Canonical Token URL Enforcement ─────────────────────────
+        $rawParam = (string) ($request->segment(3) ?: ($request->route()->originalParameter('assessment') ?? ''));
+        if (is_numeric($rawParam) && ! empty($assessment->token)) {
+            return redirect()->route('exam.gate.show', ['assessment' => $assessment->token])
+                ->with('error', 'Akses gerbang ujian wajib menggunakan token resmi asesmen.');
+        }
 
         // Re-validasi (tidak percaya state view)
         if ($assessment->status !== 'published') {

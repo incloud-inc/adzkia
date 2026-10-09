@@ -264,7 +264,7 @@
                 </template>
                 @if($question->explanation)
                     <template x-if="!renderedMarkdown">
-                        <div>{!! Str::markdown($question->explanation) !!}</div>
+                        <div>{!! \App\Support\MarkdownRenderer::render($question->explanation) !!}</div>
                     </template>
                 @endif
             </div>

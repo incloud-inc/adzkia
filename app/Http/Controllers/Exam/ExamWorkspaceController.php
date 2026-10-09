@@ -10,13 +10,13 @@ use App\Models\ExamSession;
 use App\Models\Question;
 use App\Models\UserAssessmentAccess;
 use App\Services\ExamGradingService;
+use App\Support\MarkdownRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ExamWorkspaceController extends Controller
@@ -38,11 +38,14 @@ class ExamWorkspaceController extends Controller
                 ->with('error', 'Sesi ujian Anda telah dihentikan oleh pengawas ujian.');
         }
 
-        if ($session->isExpired()) {
-            $this->finalizeSession($session, 'auto_expired');
+        $isMoreThanOneDay = ($session->started_at && $session->started_at->lessThan(now()->subDay()))
+            || ($session->created_at && $session->created_at->lessThan(now()->subDay()));
+
+        if ($session->isExpired() || $isMoreThanOneDay) {
+            $this->fastFinalizeSession($session, 'auto_expired', $request->ip());
 
             return redirect()->route('exam.analysis', ['session' => $session->uuid])
-                ->with('info', 'Waktu ujian telah berakhir. Jawaban Anda otomatis terkumpul.');
+                ->with('info', 'Waktu ujian telah berakhir (lebih dari 1 hari). Jawaban Anda otomatis terkumpul.');
         }
 
         // Touch last_activity (best-effort)
@@ -462,7 +465,7 @@ class ExamWorkspaceController extends Controller
                 'number' => $idx + 1,
                 'type' => $q->type,
                 'stem' => $q->prompt ?? '',
-                'rendered_stem' => filled($q->prompt) ? Str::markdown($q->prompt) : '',
+                'rendered_stem' => filled($q->prompt) ? MarkdownRenderer::render($q->prompt) : '',
                 'points' => (float) ($q->points ?? 1),
                 'section_id' => $sectionId,
                 'section_number' => $sectionNumber,
@@ -475,13 +478,13 @@ class ExamWorkspaceController extends Controller
                     'title' => $q->questionGroup->title,
                     'type' => $q->questionGroup->stimulus_type ?? 'text',
                     'content' => $q->questionGroup->stimulus_content ?? '',
-                    'rendered' => filled($q->questionGroup->stimulus_content) ? Str::markdown($q->questionGroup->stimulus_content) : '',
+                    'rendered' => filled($q->questionGroup->stimulus_content) ? MarkdownRenderer::render($q->questionGroup->stimulus_content) : '',
                 ] : null,
                 'options' => $options->map(fn ($o) => [
                     'id' => $o->id,
                     'label' => $o->label ?? '',
                     'content' => $o->option_text ?? '',
-                    'rendered_content' => filled($o->option_text) ? Str::markdown($o->option_text) : '',
+                    'rendered_content' => filled($o->option_text) ? MarkdownRenderer::render($o->option_text) : '',
                     'meta' => ['match_key' => $o->match_key ?? null, 'score' => $o->score ?? null],
                 ])->values()->all(),
                 'meta' => $q->settings ?? null,

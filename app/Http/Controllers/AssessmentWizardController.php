@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -147,9 +148,18 @@ class AssessmentWizardController extends Controller
     /**
      * Show the 8-Step Wizard form for creating an assessment.
      */
+    public function saveDraft(Request $request): JsonResponse
+    {
+        $key = 'assessment_draft_'.(Auth::user()->current_tenant_id ?? Auth::id());
+        Cache::put($key, $request->all(), now()->addDays(7));
+
+        return response()->json(['success' => true, 'message' => 'Draft saved to cloud.']);
+    }
+
     public function create(): View|RedirectResponse
     {
         $user = Auth::user();
+        $draft = Cache::get('assessment_draft_'.($user->current_tenant_id ?? $user->id));
         $currentTenant = $user?->currentTenant ?? $user?->tenants()->first();
         if ($user && ! $user->isSuperUser() && (! $currentTenant || ! $currentTenant->canCreateAssessments())) {
             $tierName = $currentTenant?->level_label ?? 'STARTER';
@@ -251,7 +261,7 @@ class AssessmentWizardController extends Controller
 
         $wizardPrefill = session()->pull('wizard_prefill');
 
-        return view('assessments.wizard', compact('subjects', 'assessmentTypes', 'questionTypes', 'binaryMatrixPresets', 'gradeLevels', 'wizardPrefill'));
+        return view('assessments.wizard', compact('subjects', 'assessmentTypes', 'questionTypes', 'binaryMatrixPresets', 'gradeLevels', 'wizardPrefill', 'draft'));
     }
 
     /**
@@ -384,6 +394,8 @@ class AssessmentWizardController extends Controller
 
             return $assessment;
         });
+
+        Cache::forget('assessment_draft_'.(Auth::user()->current_tenant_id ?? Auth::id()));
 
         // Trigger AI Explanation generation automatically when assessment is created
         if (config('services.deepseek.auto_on_create', true)) {

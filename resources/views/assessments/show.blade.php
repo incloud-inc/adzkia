@@ -206,7 +206,7 @@
             <div class="p-5 rounded-2xl border border-gray-6 bg-white text-xs text-gray-11 leading-relaxed shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
                 <span class="font-bold text-gray-12 block mb-1 text-sm">Petunjuk Umum & Arahan Pengerjaan:</span>
                 <div class="prose prose-sm text-gray-11">
-                    {!! Str::markdown($assessment->description) !!}
+                    {!! \App\Support\MarkdownRenderer::render($assessment->description) !!}
                 </div>
             </div>
         @endif
@@ -463,7 +463,7 @@
                                         </span>
                                     </div>
                                     <div class="p-4 rounded-xl border border-emerald-200 bg-white text-xs text-gray-900 leading-relaxed whitespace-pre-line font-serif text-justify shadow-2xs">
-                                        {!! Str::markdown($group->stimulus_content) !!}
+                                        {!! \App\Support\MarkdownRenderer::render($group->stimulus_content) !!}
                                     </div>
 
                                     <!-- Child Questions -->
@@ -482,7 +482,7 @@
                                                 </div>
 
                                                 <div class="prose prose-sm max-w-none text-gray-900 font-semibold p-3.5 rounded-lg bg-gray-50 border border-gray-200">
-                                                    {!! Str::markdown($childQ->prompt) !!}
+                                                    {!! \App\Support\MarkdownRenderer::render($childQ->prompt) !!}
                                                 </div>
 
                                                 <!-- Render Options by Type -->
@@ -507,7 +507,7 @@
                                     </div>
 
                                     <div class="prose prose-sm max-w-none text-gray-900 font-semibold p-3.5 rounded-lg bg-gray-50 border border-gray-200">
-                                        {!! Str::markdown($question->prompt) !!}
+                                        {!! \App\Support\MarkdownRenderer::render($question->prompt) !!}
                                     </div>
 
                                     <!-- Render Options by Type -->

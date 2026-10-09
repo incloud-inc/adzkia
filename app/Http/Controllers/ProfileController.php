@@ -34,6 +34,11 @@ class ProfileController extends Controller
             'showGradeSd' => $tenant ? $tenant->showGrade('sd') : true,
             'showGradeSmp' => $tenant ? $tenant->showGrade('smp') : true,
             'showGradeSma' => $tenant ? $tenant->showGrade('sma') : true,
+            'showGradeTkaSd' => $tenant ? $tenant->showGrade('tka_sd') : true,
+            'showGradeTkaSmp' => $tenant ? $tenant->showGrade('tka_smp') : true,
+            'showGradeTkaSma' => $tenant ? $tenant->showGrade('tka_sma') : true,
+            'showGradeUtbk' => $tenant ? $tenant->showGrade('utbk') : true,
+            'showGradeSkd' => $tenant ? $tenant->showGrade('skd') : true,
         ]);
     }
 
@@ -116,7 +121,9 @@ class ProfileController extends Controller
 
         $user->update($validated);
 
-        return redirect()->route('profile.edit')->with('success', 'Profil berhasil diperbarui.');
+        return redirect()->back(fallback: route('profile.edit'))
+            ->with('success', 'Profil berhasil diperbarui.')
+            ->with('active_tab', 'profile');
     }
 
     /**
@@ -145,7 +152,9 @@ class ProfileController extends Controller
             'timestamp' => now()->toIso8601String(),
         ]);
 
-        return redirect()->route('profile.edit')->with('success_password', 'Kata sandi akun Anda berhasil diperbarui dengan aman.');
+        return redirect()->back(fallback: route('profile.edit'))
+            ->with('success_password', 'Kata sandi akun Anda berhasil diperbarui dengan aman.')
+            ->with('active_tab', 'profile');
     }
 
     /**
@@ -160,16 +169,18 @@ class ProfileController extends Controller
         }
 
         if (! $user->whatsapp_number) {
-            return redirect()->route('profile.edit')
-                ->with('error_contact', 'Silakan masukkan nomor WhatsApp Anda terlebih dahulu sebelum memverifikasi.');
+            return redirect()->back(fallback: route('profile.edit'))
+                ->with('error_contact', 'Silakan masukkan nomor WhatsApp Anda terlebih dahulu sebelum memverifikasi.')
+                ->with('active_tab', 'profile');
         }
 
         $user->update([
             'whatsapp_verified_at' => now(),
         ]);
 
-        return redirect()->route('profile.edit')
-            ->with('success_contact', 'Nomor WhatsApp berhasil diverifikasi.');
+        return redirect()->back(fallback: route('profile.edit'))
+            ->with('success_contact', 'Nomor WhatsApp berhasil diverifikasi.')
+            ->with('active_tab', 'profile');
     }
 
     /**
@@ -183,8 +194,9 @@ class ProfileController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        return redirect()->route('profile.edit')
-            ->with('success_contact', 'Alamat email akun Anda berhasil diverifikasi.');
+        return redirect()->back(fallback: route('profile.edit'))
+            ->with('success_contact', 'Alamat email akun Anda berhasil diverifikasi.')
+            ->with('active_tab', 'profile');
     }
 
     /**
@@ -209,7 +221,9 @@ class ProfileController extends Controller
             $msg = 'Status verifikasi kontak berhasil di-reset.';
         }
 
-        return redirect()->route('profile.edit')->with('info_contact', $msg);
+        return redirect()->back(fallback: route('profile.edit'))
+            ->with('info_contact', $msg)
+            ->with('active_tab', 'profile');
     }
 
     /**
@@ -317,10 +331,61 @@ class ProfileController extends Controller
         $totalScore = $stats['totalScore'];
         $rank = $stats['rank'];
 
+        // Fetch paid assessments for the logged-in user if any
+        $paidAssessments = collect();
+        if (auth()->check()) {
+            $authUserId = auth()->id();
+            $paidAssessments = Assessment::where('status', 'published')
+                ->where('price_type', 'paid')
+                ->with(['subject', 'creator', 'accesses' => fn ($q) => $q->where('user_id', $authUserId)])
+                ->withCount(['sections', 'questions'])
+                ->leftJoin('user_assessment_accesses', function ($join) use ($authUserId) {
+                    $join->on('user_assessment_accesses.assessment_id', '=', 'assessments.id')
+                        ->where('user_assessment_accesses.user_id', '=', $authUserId);
+                })
+                ->select('assessments.*')
+                ->orderByRaw('CASE WHEN user_assessment_accesses.id IS NOT NULL THEN 0 ELSE 1 END ASC')
+                ->orderByRaw('CASE WHEN user_assessment_accesses.expires_at IS NULL THEN 1 ELSE 0 END ASC')
+                ->orderBy('user_assessment_accesses.expires_at', 'desc')
+                ->orderByRaw('(COALESCE(user_assessment_accesses.quota_attempts, 0) - COALESCE(user_assessment_accesses.attempts_used, 0)) DESC')
+                ->orderBy('assessments.id', 'desc')
+                ->take(30)
+                ->get();
+
+            $historyUserId = (auth()->check() && auth()->id() === $user->id) ? auth()->id() : $user->id;
+            $historySessions = ExamSession::with(['assessment', 'assessment.subject'])
+                ->where('user_id', $historyUserId)
+                ->whereIn('status', ['completed', 'in_progress'])
+                ->orderByRaw("CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END ASC")
+                ->orderBy('created_at', 'desc')
+                ->take(50)
+                ->get();
+        } else {
+            $paidAssessments = Assessment::where('status', 'published')
+                ->where('price_type', 'paid')
+                ->with(['subject', 'creator'])
+                ->withCount(['sections', 'questions'])
+                ->orderBy('id', 'desc')
+                ->take(30)
+                ->get();
+
+            $historySessions = ExamSession::with(['assessment', 'assessment.subject'])
+                ->where('user_id', $user->id)
+                ->where('status', 'completed')
+                ->orderBy('completed_at', 'desc')
+                ->take(30)
+                ->get();
+        }
+
         // Card 3, 4, 5 ON/OFF dari Tenant Admin
         $showGradeSd = $tenant ? $tenant->showGrade('sd') : true;
         $showGradeSmp = $tenant ? $tenant->showGrade('smp') : true;
         $showGradeSma = $tenant ? $tenant->showGrade('sma') : true;
+        $showGradeTkaSd = $tenant ? $tenant->showGrade('tka_sd') : true;
+        $showGradeTkaSmp = $tenant ? $tenant->showGrade('tka_smp') : true;
+        $showGradeTkaSma = $tenant ? $tenant->showGrade('tka_sma') : true;
+        $showGradeUtbk = $tenant ? $tenant->showGrade('utbk') : true;
+        $showGradeSkd = $tenant ? $tenant->showGrade('skd') : true;
 
         return view('profile.public', [
             'user' => $user,
@@ -328,6 +393,9 @@ class ProfileController extends Controller
             'completedCount' => $completedCount,
             'totalScore' => $totalScore,
             'rank' => $rank,
+            'isTeacher' => $isTeacher,
+            'paidAssessments' => $paidAssessments,
+            'historySessions' => $historySessions,
             'umumAssessments' => $assessmentGroups['umum'],
             'sdAssessments' => $assessmentGroups['sd'],
             'smpAssessments' => $assessmentGroups['smp'],
@@ -335,6 +403,16 @@ class ProfileController extends Controller
             'showGradeSd' => $showGradeSd,
             'showGradeSmp' => $showGradeSmp,
             'showGradeSma' => $showGradeSma,
+            'showGradeTkaSd' => $showGradeTkaSd,
+            'showGradeTkaSmp' => $showGradeTkaSmp,
+            'showGradeTkaSma' => $showGradeTkaSma,
+            'showGradeUtbk' => $showGradeUtbk,
+            'showGradeSkd' => $showGradeSkd,
+            'tkaSdAssessments' => $assessmentGroups['tka_sd'],
+            'tkaSmpAssessments' => $assessmentGroups['tka_smp'],
+            'tkaSmaAssessments' => $assessmentGroups['tka_sma'],
+            'utbkAssessments' => $assessmentGroups['utbk'],
+            'skdAssessments' => $assessmentGroups['skd'],
         ]);
     }
 

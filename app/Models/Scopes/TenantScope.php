@@ -60,9 +60,14 @@ class TenantScope implements Scope
                     $showSd = $tenant->showGrade('sd');
                     $showSmp = $tenant->showGrade('smp');
                     $showSma = $tenant->showGrade('sma');
+                    $showTkaSd = $tenant->showGrade('tka_sd');
+                    $showTkaSmp = $tenant->showGrade('tka_smp');
+                    $showTkaSma = $tenant->showGrade('tka_sma');
+                    $showUtbk = $tenant->showGrade('utbk');
+                    $showSkd = $tenant->showGrade('skd');
 
-                    if (! $showSd || ! $showSmp || ! $showSma) {
-                        $builder->where(function ($q) use ($model, $showSd, $showSmp, $showSma) {
+                    if (! $showSd || ! $showSmp || ! $showSma || ! $showTkaSd || ! $showTkaSmp || ! $showTkaSma || ! $showUtbk || ! $showSkd) {
+                        $builder->where(function ($q) use ($model, $showSd, $showSmp, $showSma, $showTkaSd, $showTkaSmp, $showTkaSma, $showUtbk, $showSkd) {
                             $gradeCol = $model->getTable().'.grade_level';
 
                             // Tampilkan jika grade kosong (UMUM) atau Umum / Custom
@@ -81,10 +86,40 @@ class TenantScope implements Scope
                                     ->orWhereIn($gradeCol, ['7', '8', '9']);
                             }
                             if ($showSma) {
-                                $q->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%sma%'])
-                                    ->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%smk%'])
-                                    ->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%ma%'])
-                                    ->orWhereIn($gradeCol, ['10', '11', '12']);
+                                $q->orWhere(function ($sq) use ($gradeCol) {
+                                    $sq->whereNotIn('type', ['tka', 'utbk', 'skd'])
+                                        ->where(function ($q2) use ($gradeCol) {
+                                            $q2->whereRaw("LOWER({$gradeCol}) LIKE ?", ['%sma%'])
+                                                ->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%smk%'])
+                                                ->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%ma%'])
+                                                ->orWhereIn($gradeCol, ['10', '11', '12']);
+                                        });
+                                });
+                            }
+                            if ($showTkaSd) {
+                                $q->orWhere(function ($sq) use ($gradeCol) {
+                                    $sq->where('type', 'tka')->whereRaw("LOWER({$gradeCol}) LIKE ?", ['%sd%']);
+                                });
+                            }
+                            if ($showTkaSmp) {
+                                $q->orWhere(function ($sq) use ($gradeCol) {
+                                    $sq->where('type', 'tka')->whereRaw("LOWER({$gradeCol}) LIKE ?", ['%smp%']);
+                                });
+                            }
+                            if ($showTkaSma) {
+                                $q->orWhere(function ($sq) use ($gradeCol) {
+                                    $sq->where('type', 'tka')->where(function ($q2) use ($gradeCol) {
+                                        $q2->whereRaw("LOWER({$gradeCol}) LIKE ?", ['%sma%'])
+                                            ->orWhereNull($gradeCol)
+                                            ->orWhere($gradeCol, '');
+                                    });
+                                });
+                            }
+                            if ($showUtbk) {
+                                $q->orWhere('type', 'utbk');
+                            }
+                            if ($showSkd) {
+                                $q->orWhere('type', 'skd');
                             }
                         });
                     }

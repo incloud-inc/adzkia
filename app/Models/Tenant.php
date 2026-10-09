@@ -198,7 +198,7 @@ class Tenant extends Model
         if (! $isUmum) {
             $isSd = str_contains($grade, 'SD') || str_contains($grade, 'MI') || in_array($grade, ['1', '2', '3', '4', '5', '6']);
             $isSmp = str_contains($grade, 'SMP') || str_contains($grade, 'MTS') || in_array($grade, ['7', '8', '9']);
-            $isSma = str_contains($grade, 'SMA') || str_contains($grade, 'SMK') || str_contains($grade, 'MA') || in_array($grade, ['10', '11', '12']) || $assessment->type === 'utbk' || $assessment->type === 'tka';
+            $isSma = str_contains($grade, 'SMA') || str_contains($grade, 'SMK') || str_contains($grade, 'MA') || in_array($grade, ['10', '11', '12']);
 
             if ($isSd && ! $this->showGrade('sd')) {
                 return false;
@@ -207,6 +207,26 @@ class Tenant extends Model
                 return false;
             }
             if ($isSma && ! $this->showGrade('sma')) {
+                return false;
+            }
+
+            if ($assessment->type === 'tka') {
+                if ($isSd && ! $this->showGrade('tka_sd')) {
+                    return false;
+                }
+                if ($isSmp && ! $this->showGrade('tka_smp')) {
+                    return false;
+                }
+                if (($isSma || empty($grade)) && ! $this->showGrade('tka_sma')) {
+                    return false;
+                }
+            }
+
+            if ($assessment->type === 'utbk' && ! $this->showGrade('utbk')) {
+                return false;
+            }
+
+            if ($assessment->type === 'skd' && ! $this->showGrade('skd')) {
                 return false;
             }
         }

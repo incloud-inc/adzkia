@@ -6,7 +6,7 @@
                     {{ $opt->label }}
                 </span>
                 <div class="flex-1 text-slate-800 font-medium prose prose-sm max-w-none leading-relaxed">
-                    {!! Str::markdown($opt->option_text) !!}
+                    {!! \App\Support\MarkdownRenderer::render($opt->option_text) !!}
                 </div>
                 @if($opt->is_correct)
                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-600 text-white font-bold text-[11px] shrink-0 shadow-2xs">
@@ -42,7 +42,7 @@
                         <td class="py-3 px-4 text-slate-800 font-medium">
                             <span class="font-bold text-gray-500 mr-1.5">{{ $loop->iteration }}.</span>
                             <div class="inline-block prose prose-sm max-w-none align-top text-slate-800 leading-relaxed">
-                                {!! Str::markdown($stmt->option_text) !!}
+                                {!! \App\Support\MarkdownRenderer::render($stmt->option_text) !!}
                             </div>
                         </td>
                         <td class="py-3 px-4 text-center">
@@ -71,11 +71,11 @@
         @foreach($question->options as $pair)
             <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs">
                 <div class="font-medium text-slate-800 flex-1 prose prose-sm max-w-none bg-white p-2.5 rounded-lg border border-gray-200">
-                    {!! Str::markdown($pair->option_text) !!}
+                    {!! \App\Support\MarkdownRenderer::render($pair->option_text) !!}
                 </div>
                 <x-radix-icon name="arrow-right" class="w-4 h-4 text-blue-600 shrink-0" />
                 <div class="font-semibold text-blue-900 bg-blue-50 border border-blue-200 px-3 py-2.5 rounded-lg flex-1 prose prose-sm max-w-none">
-                    {!! Str::markdown($pair->match_key) !!}
+                    {!! \App\Support\MarkdownRenderer::render($pair->match_key) !!}
                 </div>
             </div>
         @endforeach
@@ -97,7 +97,7 @@
                         {{ $step->order }}
                     </span>
                     <div class="font-medium text-slate-800 flex-1 prose prose-sm max-w-none leading-relaxed">
-                        {!! Str::markdown($step->option_text) !!}
+                        {!! \App\Support\MarkdownRenderer::render($step->option_text) !!}
                     </div>
                 </div>
             @endforeach

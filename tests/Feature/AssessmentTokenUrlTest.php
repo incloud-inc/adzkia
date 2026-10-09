@@ -104,13 +104,24 @@ class AssessmentTokenUrlTest extends TestCase
         $response->assertRedirect('/exam/start/ADZ777');
     }
 
-    public function test_legacy_numeric_id_url_still_resolves_cleanly(): void
+    public function test_student_cannot_access_exam_gate_with_numeric_id_and_is_redirected_to_token(): void
     {
         $response = $this->actingAs($this->student)
             ->get('/exam/start/'.$this->assessment->id);
 
-        $response->assertStatus(200);
-        $response->assertSee('Tryout Akbar SNBT Token URL');
+        $response->assertStatus(302);
+        $response->assertRedirect('/exam/start/'.$this->assessment->token);
+    }
+
+    public function test_student_cannot_post_start_exam_with_numeric_id(): void
+    {
+        $response = $this->actingAs($this->student)
+            ->post('/exam/start/'.$this->assessment->id, [
+                'agree' => '1',
+            ]);
+
+        $response->assertStatus(302);
+        $response->assertRedirect('/exam/start/'.$this->assessment->token);
     }
 
     public function test_automatic_token_generation_when_created_without_token(): void

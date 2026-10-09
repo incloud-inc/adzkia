@@ -32,6 +32,13 @@ class AssessmentWizardTest extends TestCase
         $response->assertSee('8 Langkah Pembuatan Ujian (Assessment)');
         $response->assertSee('Penilaian Harian (PH)');
         $response->assertSee('Matematika Wajib');
+        $response->assertSee('Import Soal');
+        $response->assertSee('openImportModal(secIdx)', false);
+        $response->assertSee('Panduan Format');
+        $response->assertSee('openFormatModal()', false);
+        $response->assertSee('showImportModal', false);
+        $response->assertSee('showFormatModal', false);
+        $response->assertSee('Lanjutkan ke Langkah 5: Penilaian');
     }
 
     public function test_teacher_can_store_assessment_with_all_8_question_types_and_stimulus_narasi(): void
@@ -356,7 +363,7 @@ class AssessmentWizardTest extends TestCase
         $this->assertEquals('A', $q1['options'][0]['label']);
         $this->assertTrue($q1['options'][0]['is_correct']);
         $this->assertEquals(2.5, $q1['options'][0]['score']);
-        $this->assertStringContainsString('$$x_1 = 3$$', $q1['options'][0]['option_text']);
+        $this->assertStringContainsString('$x_1 = 3$', $q1['options'][0]['option_text']);
 
         // 2. TKP / Weighted MCQ (Format 2: A. [5] Opsi...)
         $qTkp = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'mcq_weighted');

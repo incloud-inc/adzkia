@@ -165,6 +165,7 @@ Route::middleware(['auth'])->group(function () {
     Route::match(['put', 'patch', 'post'], 'questions/{question}/explanation', [AssessmentExplanationController::class, 'updateExplanation'])->name('questions.explanation.update');
     Route::get('questions/{question}/explanation-status', [AssessmentExplanationController::class, 'status'])->name('questions.explanation-status');
 
+    Route::post('assessments/draft', [AssessmentWizardController::class, 'saveDraft'])->name('assessments.draft.save');
     Route::resource('assessments', AssessmentWizardController::class);
 
     // Proctoring & Pengawasan Ujian Guru

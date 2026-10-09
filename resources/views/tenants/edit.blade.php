@@ -230,6 +230,116 @@
                             </span>
                         </div>
                     </label>
+
+                    <!-- Item: TKA SD -->
+                    <label class="p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-4 group hover:border-indigo-400 {{ $tenant->showGrade('tka_sd') ? 'bg-indigo-50/40 border-indigo-300' : 'bg-white border-gray-6' }}">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center text-lg shrink-0">
+                                🏫
+                            </div>
+                            <div>
+                                <div class="font-bold text-xs sm:text-sm text-gray-12 flex items-center gap-2">
+                                    <span>TKA SD / MI</span>
+                                </div>
+                                <div class="text-[11px] text-gray-10 mt-0.5">Tampilkan tes kompetensi akademik tingkat SD.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <input type="checkbox" name="show_grade_tka_sd" value="1" {{ $tenant->showGrade('tka_sd') ? 'checked' : '' }}
+                                   class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            <span class="text-xs font-bold {{ $tenant->showGrade('tka_sd') ? 'text-indigo-700' : 'text-gray-10' }}">
+                                {{ $tenant->showGrade('tka_sd') ? 'Aktif' : 'Nonaktif' }}
+                            </span>
+                        </div>
+                    </label>
+
+                    <!-- Item: TKA SMP -->
+                    <label class="p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-4 group hover:border-indigo-400 {{ $tenant->showGrade('tka_smp') ? 'bg-indigo-50/40 border-indigo-300' : 'bg-white border-gray-6' }}">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center text-lg shrink-0">
+                                🏫
+                            </div>
+                            <div>
+                                <div class="font-bold text-xs sm:text-sm text-gray-12 flex items-center gap-2">
+                                    <span>TKA SMP / MTs</span>
+                                </div>
+                                <div class="text-[11px] text-gray-10 mt-0.5">Tampilkan tes kompetensi akademik tingkat SMP.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <input type="checkbox" name="show_grade_tka_smp" value="1" {{ $tenant->showGrade('tka_smp') ? 'checked' : '' }}
+                                   class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            <span class="text-xs font-bold {{ $tenant->showGrade('tka_smp') ? 'text-indigo-700' : 'text-gray-10' }}">
+                                {{ $tenant->showGrade('tka_smp') ? 'Aktif' : 'Nonaktif' }}
+                            </span>
+                        </div>
+                    </label>
+
+                    <!-- Item: TKA SMA -->
+                    <label class="p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-4 group hover:border-indigo-400 {{ $tenant->showGrade('tka_sma') ? 'bg-indigo-50/40 border-indigo-300' : 'bg-white border-gray-6' }}">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center text-lg shrink-0">
+                                🏫
+                            </div>
+                            <div>
+                                <div class="font-bold text-xs sm:text-sm text-gray-12 flex items-center gap-2">
+                                    <span>TKA SMA / MA</span>
+                                </div>
+                                <div class="text-[11px] text-gray-10 mt-0.5">Tampilkan tes kompetensi akademik tingkat SMA.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <input type="checkbox" name="show_grade_tka_sma" value="1" {{ $tenant->showGrade('tka_sma') ? 'checked' : '' }}
+                                   class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            <span class="text-xs font-bold {{ $tenant->showGrade('tka_sma') ? 'text-indigo-700' : 'text-gray-10' }}">
+                                {{ $tenant->showGrade('tka_sma') ? 'Aktif' : 'Nonaktif' }}
+                            </span>
+                        </div>
+                    </label>
+
+                    <!-- Item: UTBK -->
+                    <label class="p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-4 group hover:border-indigo-400 {{ $tenant->showGrade('utbk') ? 'bg-indigo-50/40 border-indigo-300' : 'bg-white border-gray-6' }}">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center text-lg shrink-0">
+                                🎓
+                            </div>
+                            <div>
+                                <div class="font-bold text-xs sm:text-sm text-gray-12 flex items-center gap-2">
+                                    <span>UTBK SNBT</span>
+                                </div>
+                                <div class="text-[11px] text-gray-10 mt-0.5">Tampilkan persiapan ujian masuk perguruan tinggi.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <input type="checkbox" name="show_grade_utbk" value="1" {{ $tenant->showGrade('utbk') ? 'checked' : '' }}
+                                   class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            <span class="text-xs font-bold {{ $tenant->showGrade('utbk') ? 'text-indigo-700' : 'text-gray-10' }}">
+                                {{ $tenant->showGrade('utbk') ? 'Aktif' : 'Nonaktif' }}
+                            </span>
+                        </div>
+                    </label>
+
+                    <!-- Item: SKD -->
+                    <label class="p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-4 group hover:border-indigo-400 {{ $tenant->showGrade('skd') ? 'bg-indigo-50/40 border-indigo-300' : 'bg-white border-gray-6' }}">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 border border-teal-200 flex items-center justify-center text-lg shrink-0">
+                                🏛️
+                            </div>
+                            <div>
+                                <div class="font-bold text-xs sm:text-sm text-gray-12 flex items-center gap-2">
+                                    <span>SKD Kedinasan & CPNS</span>
+                                </div>
+                                <div class="text-[11px] text-gray-10 mt-0.5">Tampilkan persiapan ujian kedinasan dan CASN.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <input type="checkbox" name="show_grade_skd" value="1" {{ $tenant->showGrade('skd') ? 'checked' : '' }}
+                                   class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            <span class="text-xs font-bold {{ $tenant->showGrade('skd') ? 'text-indigo-700' : 'text-gray-10' }}">
+                                {{ $tenant->showGrade('skd') ? 'Aktif' : 'Nonaktif' }}
+                            </span>
+                        </div>
+                    </label>
                 </div>
             </div>
 

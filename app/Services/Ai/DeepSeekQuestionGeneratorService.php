@@ -60,11 +60,14 @@ class DeepSeekQuestionGeneratorService
                     $cleanJson = $this->extractJson($rawContent);
                     $decoded = json_decode($cleanJson, true);
 
-                    if (is_array($decoded) && ! empty($decoded['items'])) {
-                        $decoded['model_used'] = $model;
-                        $decoded['reasoning_notes'] = $reasoningContent ?: ($decoded['reasoning_notes'] ?? '');
+                    if (is_array($decoded)) {
+                        $normalized = $this->normalizePackage($decoded, $params);
+                        if (! empty($normalized['items'])) {
+                            $normalized['model_used'] = $model;
+                            $normalized['reasoning_notes'] = $reasoningContent ?: ($normalized['reasoning_notes'] ?? '');
 
-                        return $decoded;
+                            return $normalized;
+                        }
                     }
                 }
 
@@ -108,6 +111,18 @@ ATURAN STRUKTURAL KETAT:
 8. KHUSUS MENGURUTKAN (ordering):
    - Opsi berisi tahapan berurutan secara logis dari order 1 sampai n.
 9. PEMBAHASAN: Tuliskan langkah ilmiah, konsep kunci, atau trik cepat cara kerja yang mendidik.
+10. KHUSUS SOAL BERSTIMULUS NARASI / WACANA LITERASI:
+   - Jika terdapat instruksi stimulus, Anda WAJIB menyertakan teks wacana bacaan yang lengkap dan mendalam.
+   - JIKA MEMBUAT MULTIPLE STIMULUS (lebih dari 1 wacana):
+     Anda WAJIB menempatkan seluruh wacana pada array `stimuli` di root JSON:
+     "stimuli": [
+       { "index": 1, "title": "Judul Wacana 1", "content": "Teks lengkap wacana 1 (minimal 2-3 paragraf informatif)..." },
+       { "index": 2, "title": "Judul Wacana 2", "content": "Teks lengkap wacana 2 (minimal 2-3 paragraf informatif)..." }
+     ]
+     Dan setiap butir soal di `items` WAJIB menyertakan `stimulus_index: 1|2|...` sesuai nomor wacana yang menaunginya.
+   - Salin wacana pertama (index 1) ke field `stimulus` berupa objek: { "title": "...", "content": "..." }.
+   - Butir-butir soal yang menaungi stimulus harus menguji pemahaman atau penalaran terhadap wacana masing-masing (misal: 'Berdasarkan wacana di atas, ...').
+   - Jika tanpa stimulus sama sekali, isi field `stimulus` dengan null dan `stimuli` dengan array kosong [].
 
 FORMAT JSON OUTPUT HARUS MENGIKUTI STRUKTUR INI:
 {
@@ -115,10 +130,21 @@ FORMAT JSON OUTPUT HARUS MENGIKUTI STRUKTUR INI:
   "category": "school|tka|utbk|skd|custom",
   "difficulty": "mudah|sedang|sukar",
   "cognitive_level": "LOTS|MOTS|HOTS",
-  "stimulus": null,
+  "stimuli": [
+    {
+      "index": 1,
+      "title": "Judul Wacana 1",
+      "content": "Teks lengkap wacana bacaan 1..."
+    }
+  ],
+  "stimulus": {
+    "title": "Judul Wacana 1 (atau null jika tanpa stimulus)",
+    "content": "Teks lengkap wacana bacaan 1 (atau null jika tanpa stimulus)"
+  },
   "items": [
     {
       "number": 1,
+      "stimulus_index": 1,
       "type": "mcq_single|mcq_weighted|mcq_multiple|binary_matrix|matching|ordering|short_answer|essay",
       "prompt": "Teks pertanyaan soal...",
       "points": 2.5,
@@ -217,12 +243,60 @@ PROMPT;
             }
         }
 
-        // Stimulus settings
+        // Stimulus settings & breakdown calculation
         $stimulusMode = $params['stimulus_mode'] ?? 'standalone';
-        if ($stimulusMode === 'stimulus_group' || ! empty($params['type_distributions'])) {
+        $totalStimulusCount = 0;
+        $stimulusBreakdown = [];
+        $currentQNumber = 1;
+
+        if (! empty($params['type_distributions'])) {
+            foreach ($params['type_distributions'] as $dist) {
+                $sc = (int) ($dist['stimulus_count'] ?? 0);
+                $sq = (int) ($dist['stimulus_questions'] ?? 0);
+                $sa = (int) ($dist['standalone_count'] ?? 0);
+                $t = $dist['type'] ?? 'mcq_single';
+
+                if ($sc > 0 && $sq > 0) {
+                    for ($s = 1; $s <= $sc; $s++) {
+                        $totalStimulusCount++;
+                        $startQ = $currentQNumber;
+                        $endQ = $currentQNumber + $sq - 1;
+                        $currentQNumber += $sq;
+                        $stimulusBreakdown[] = "- Stimulus {$totalStimulusCount}: Wacana berbeda yang menaungi {$sq} butir soal anak (Soal nomor {$startQ} sampai {$endQ}) [Tipe {$t}]";
+                    }
+                }
+                $currentQNumber += $sa;
+            }
+        }
+
+        $hasStimulusDist = ($totalStimulusCount > 0);
+
+        if ($stimulusMode === 'stimulus_group' || $hasStimulusDist || ! empty($params['custom_stimulus_text'])) {
             $source = $params['stimulus_source'] ?? 'ai_generate';
             if ($source === 'custom_text' && ! empty($params['custom_stimulus_text'])) {
-                $details[] = "TEKS BACAAN DARI GURU:\n\"\"\"\n".trim($params['custom_stimulus_text'])."\n\"\"\"";
+                $details[] = "INSTRUKSI STIMULUS (TEKS BACAAN WAJIB DARI GURU):\n".
+                    "Anda WAJIB menggunakan teks bacaan berikut sebagai wacana stimulus dan letakkan pada field 'stimulus' serta array 'stimuli' index 1 dengan format objek: { 'index': 1, 'title': '...', 'content': '...' }:\n\"\"\"\n".
+                    trim($params['custom_stimulus_text'])."\n\"\"\"\n".
+                    'Butir-butir soal yang diminta WAJIB menguji pemahaman dari isi wacana bacaan ini dan mencantumkan field "stimulus_index": 1!';
+            } elseif ($totalStimulusCount > 1) {
+                $details[] = "INSTRUKSI MULTI-STIMULUS (WAJIB MENGHASILKAN TEPAT {$totalStimulusCount} TEKS WACANA BERBEDA):\n".
+                    "Guru meminta TEPAT {$totalStimulusCount} naskah wacana stimulus yang berbeda (bukan hanya 1). Setiap wacana menaungi butir soal anak secara terpisah sesuai alokasi berikut:\n".
+                    implode("\n", $stimulusBreakdown)."\n\n".
+                    "ATURAN STRUKTUR JSON WAJIB:\n".
+                    "1. Cantumkan seluruh {$totalStimulusCount} wacana di array root 'stimuli':\n".
+                    "   \"stimuli\": [\n".
+                    "     { \"index\": 1, \"title\": \"Judul Stimulus 1\", \"content\": \"Isi teks wacana 1 (2-3 paragraf informatif)...\" },\n".
+                    "     { \"index\": 2, \"title\": \"Judul Stimulus 2\", \"content\": \"Isi teks wacana 2 (2-3 paragraf informatif)...\" },\n".
+                    "     ...\n".
+                    "   ]\n".
+                    "2. Pada setiap butir soal di array 'items', Anda WAJIB menyematkan field 'stimulus_index' (angka 1, 2, ..., {$totalStimulusCount}) yang sesuai dengan nomor wacana yang menaunginya.\n".
+                    "3. Setiap butir soal anak WAJIB berpijak dan menguji penalaran terhadap wacana stimulusnya masing-masing.\n".
+                    "4. Tetap salin wacana pertama (index 1) ke field 'stimulus' untuk kompatibilitas sistem.";
+            } else {
+                $details[] = "INSTRUKSI STIMULUS (WACANA NARASI / STUDI KASUS OTOMATIS DARI AI):\n".
+                    "Anda WAJIB menciptakan 1 naskah wacana bacaan narasi, studi kasus kontekstual, atau teks literasi ilmiah yang mendalam (panjang 2-4 paragraf informatif, berbobot, dan edukatif) yang sangat relevan dengan materi di atas.\n".
+                    "Cantumkan wacana ini di field 'stimulus' dan array 'stimuli': [{ 'index': 1, 'title': 'Judul Wacana Menarik', 'content': 'Isi teks wacana...' }].\n".
+                    "Seluruh butir soal anak yang dinaungi stimulus WAJIB memiliki 'stimulus_index': 1 dan berpijak pada wacana ini (misal diawali: 'Berdasarkan wacana di atas, ...')!";
             }
         }
 
@@ -230,7 +304,361 @@ PROMPT;
             $details[] = "KISI-KISI & PESAN KHUSUS GURU:\n\"\"\"\n{$customPrompt}\n\"\"\"";
         }
 
+        if (! empty($params['include_visuals']) || ! empty($params['prioritize_diagrams'])) {
+            $details[] = "INSTRUKSI KHUSUS VISUAL & DIAGRAM ILMIAH (WAJIB DITERAPKAN):\n".
+                "Guru mengaktifkan mode 'Soal Bergambar / Visual'. Anda WAJIB menyertakan representasi diagram atau visual langsung ke dalam teks wacana stimulus atau teks pertanyaan.\n".
+                "Aturan penyematan diagram:\n".
+                "1. JANGAN gunakan tag `<svg>` mentah karena sistem tidak mendukung render SVG langsung dan URL SVG akan kosong/rusak.\n".
+                "2. Sebaiknya gunakan gambar berformat PNG ringan. Jika Anda bisa merumuskan URL API publik untuk diagram (seperti QuickChart.io untuk grafik data), sertakan menggunakan format markdown gambar: `![Nama Grafik](URL_PNG)`.\n".
+                "3. Sebagai alternatif utama untuk bagan, siklus biologi, atau algoritma, gunakan sintaks Markdown ````mermaid ... ````.\n".
+                "4. Tempatkan representasi visual ini secara proporsional di dalam field `content` (pada wacana stimulus) atau `prompt` (pada butir soal).\n".
+                '5. Pastikan kode diagram (jika memakai mermaid) tervalidasi dengan baik (tanpa sintaks error).';
+        }
+
         return "Buatkan naskah butir soal ujian sesuai dengan spesifikasi parameter berikut:\n\n".implode("\n", $details);
+    }
+
+    /**
+     * Safely extract and normalize stimulus data from package array in any structure.
+     *
+     * @param  array<string, mixed>  $package
+     * @return array{title: string, content: string}|null
+     */
+    public function extractStimulusData(array $package): ?array
+    {
+        $raw = $package['stimulus'] ?? ($package['passage'] ?? ($package['wacana'] ?? ($package['reading_text'] ?? null)));
+        if (empty($raw)) {
+            return null;
+        }
+
+        // 1. Direct string stimulus
+        if (is_string($raw) && trim($raw) !== '') {
+            $title = ! empty($package['stimulus_title']) ? trim((string) $package['stimulus_title']) : 'Wacana Stimulus Narasi';
+
+            return [
+                'title' => $title,
+                'content' => trim($raw),
+            ];
+        }
+
+        // 2. Associative array stimulus
+        if (is_array($raw)) {
+            $content = $raw['content'] ?? ($raw['text'] ?? ($raw['wacana'] ?? ($raw['narasi'] ?? ($raw['passage'] ?? ($raw['body'] ?? null)))));
+            if (! empty($content) && is_string($content) && trim($content) !== '') {
+                $title = ! empty($raw['title']) ? trim((string) $raw['title']) : (! empty($raw['judul']) ? trim((string) $raw['judul']) : 'Wacana Stimulus Narasi');
+
+                return [
+                    'title' => $title,
+                    'content' => trim($content),
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Safely extract all stimuli texts from package array, ensuring multiple stimuli are preserved.
+     *
+     * @param  array<string, mixed>  $package
+     * @param  array<string, mixed>  $params
+     * @return array<int, array{index: int, title: string, content: string}>
+     */
+    public function extractStimuliData(array $package, array $params = []): array
+    {
+        $stimuli = [];
+
+        // 1. Direct array in 'stimuli'
+        if (! empty($package['stimuli']) && is_array($package['stimuli'])) {
+            foreach ($package['stimuli'] as $idx => $st) {
+                if (is_string($st) && trim($st) !== '') {
+                    $stimuli[] = [
+                        'index' => $idx + 1,
+                        'title' => 'Wacana Stimulus '.($idx + 1),
+                        'content' => trim($st),
+                    ];
+                } elseif (is_array($st)) {
+                    $content = $st['content'] ?? ($st['text'] ?? ($st['wacana'] ?? ($st['narasi'] ?? null)));
+                    if (! empty($content) && is_string($content) && trim($content) !== '') {
+                        $title = ! empty($st['title']) ? trim((string) $st['title']) : (! empty($st['judul']) ? trim((string) $st['judul']) : 'Wacana Stimulus '.($idx + 1));
+                        $stimuli[] = [
+                            'index' => (int) ($st['index'] ?? ($idx + 1)),
+                            'title' => $title,
+                            'content' => trim($content),
+                        ];
+                    }
+                }
+            }
+        }
+
+        // 2. Groups container
+        if (empty($stimuli) && ! empty($package['groups']) && is_array($package['groups'])) {
+            foreach ($package['groups'] as $idx => $grp) {
+                if (is_array($grp)) {
+                    $content = $grp['stimulus_content'] ?? ($grp['stimulus'] ?? ($grp['content'] ?? null));
+                    if (! empty($content) && is_string($content) && trim($content) !== '') {
+                        $title = ! empty($grp['title']) ? trim((string) $grp['title']) : 'Wacana Stimulus '.($idx + 1);
+                        $stimuli[] = [
+                            'index' => $idx + 1,
+                            'title' => $title,
+                            'content' => trim($content),
+                        ];
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback to single stimulus if 'stimuli' was not provided
+        if (empty($stimuli)) {
+            $single = $this->extractStimulusData($package);
+            if ($single) {
+                $stimuli[] = [
+                    'index' => 1,
+                    'title' => $single['title'],
+                    'content' => $single['content'],
+                ];
+            }
+        }
+
+        // 4. Check if teacher requested multiple stimuli (e.g. 4 stimuli)
+        $expectedCount = 0;
+        if (! empty($params['type_distributions'])) {
+            foreach ($params['type_distributions'] as $dist) {
+                $sc = (int) ($dist['stimulus_count'] ?? 0);
+                $sq = (int) ($dist['stimulus_questions'] ?? 0);
+                if ($sc > 0 && $sq > 0) {
+                    $expectedCount += $sc;
+                }
+            }
+        } elseif (($params['stimulus_mode'] ?? '') === 'stimulus_group') {
+            $expectedCount = 1;
+        }
+
+        // If expected count > current count, complement with contextual stimuli
+        if ($expectedCount > count($stimuli)) {
+            $missingStart = count($stimuli) + 1;
+            for ($i = $missingStart; $i <= $expectedCount; $i++) {
+                $derived = $this->deriveStimulusDataForIndex($params, $i);
+                $stimuli[] = [
+                    'index' => $i,
+                    'title' => $derived['title'],
+                    'content' => $derived['content'],
+                ];
+            }
+        }
+
+        return $stimuli;
+    }
+
+    /**
+     * Derive contextual stimulus title and reading text tailored to subject/category and index.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array{title: string, content: string}
+     */
+    public function deriveStimulusDataForIndex(array $params, int $index = 1): array
+    {
+        if ($index <= 1) {
+            return $this->deriveStimulusData($params);
+        }
+
+        $base = $this->deriveStimulusData($params);
+
+        $perspectives = [
+            2 => [
+                'prefix' => 'Studi Kasus Kontekstual & Implementasi Lapangan',
+                'angle' => 'Penerapan konsep dalam konteks nyata dan dinamika empiris di masyarakat atau industri modern menuntut analisis kritis dan pengambilan keputusan berbasis bukti.',
+            ],
+            3 => [
+                'prefix' => 'Eksperimen Ilmiah, Riset Metodologis & Pengujian Data',
+                'angle' => 'Berdasarkan pengujian variabel eksperimental dan data terukur dalam simulasi terkontrol, pola-pola anomali serta korelasi kausalitas antarvariabel dapat diidentifikasi secara kuantitatif.',
+            ],
+            4 => [
+                'prefix' => 'Kajian Evaluatif, Komparasi Solusi & Proyeksi Masa Depan',
+                'angle' => 'Menghadapi kompleksitas disrupsi global, evaluasi komparatif atas berbagai pendekatan alternatif menjadi kunci dalam merumuskan strategi penanggulangan masalah yang berkelanjutan.',
+            ],
+            5 => [
+                'prefix' => 'Analisis Kebijakan, Etika Profesional & Resolusi Masalah Terpadu',
+                'angle' => 'Pertimbangan etika, regulasi hukum, dan dampak jangka panjang terhadap kesejahteraan publik menjadi tolak ukur utama dalam penyusunan rekomendasi solusi yang berintegritas.',
+            ],
+        ];
+
+        $p = $perspectives[$index] ?? [
+            'prefix' => "Kajian Lanjutan Bagian {$index}",
+            'angle' => "Analisis komprehensif pada aspek {$index} memperdalam pemahaman teoritis dan keterampilan problem-solving peserta didik.",
+        ];
+
+        $title = $p['prefix'].': '.($base['title'] ?? 'Wacana Stimulus');
+        $content = "Wacana Stimulus {$index} ({$p['prefix']}):\n".
+            $base['content']."\n\n".
+            $p['angle'];
+
+        return [
+            'title' => $title,
+            'content' => $content,
+        ];
+    }
+
+    /**
+     * Derive multiple contextual stimuli for fallback or complementation.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<int, array{index: int, title: string, content: string}>
+     */
+    public function deriveMultipleStimuliData(array $params, int $count): array
+    {
+        $list = [];
+        for ($i = 1; $i <= $count; $i++) {
+            $data = $this->deriveStimulusDataForIndex($params, $i);
+            $list[] = [
+                'index' => $i,
+                'title' => $data['title'],
+                'content' => $data['content'],
+            ];
+        }
+
+        return $list;
+    }
+
+    /**
+     * Build map of item numbers to their expected stimulus_index based on type_distributions.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<int, int|null>
+     */
+    protected function buildQuestionStimulusIndexMap(array $params): array
+    {
+        $map = [];
+        $typeDistributions = (array) ($params['type_distributions'] ?? []);
+        if (empty($typeDistributions)) {
+            return $map;
+        }
+
+        $currentQNumber = 1;
+        $totalStimulusCount = 0;
+
+        foreach ($typeDistributions as $dist) {
+            $sc = (int) ($dist['stimulus_count'] ?? 0);
+            $sq = (int) ($dist['stimulus_questions'] ?? 0);
+            $sa = (int) ($dist['standalone_count'] ?? 0);
+
+            if ($sc > 0 && $sq > 0) {
+                for ($s = 1; $s <= $sc; $s++) {
+                    $totalStimulusCount++;
+                    for ($q = 1; $q <= $sq; $q++) {
+                        $map[$currentQNumber++] = $totalStimulusCount;
+                    }
+                }
+            }
+
+            for ($i = 1; $i <= $sa; $i++) {
+                $map[$currentQNumber++] = null;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Normalize generated package from AI ensuring solid schema, valid stimulus, and question structures.
+     *
+     * @param  array<string, mixed>  $decoded
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    public function normalizePackage(array $decoded, array $params): array
+    {
+        // 1. Resolve Items / Questions alias
+        $rawItems = $decoded['items'] ?? ($decoded['questions'] ?? ($decoded['soal'] ?? []));
+        if (! is_array($rawItems)) {
+            $rawItems = [];
+        }
+
+        // If items were empty or packaged inside a group container
+        if (empty($rawItems) && ! empty($decoded['groups']) && is_array($decoded['groups'])) {
+            foreach ($decoded['groups'] as $grp) {
+                if (! empty($grp['questions']) && is_array($grp['questions'])) {
+                    $rawItems = array_merge($rawItems, $grp['questions']);
+                }
+            }
+        }
+
+        // 2. Resolve Stimulus & Stimuli
+        $stimuli = $this->extractStimuliData($decoded, $params);
+        $stimulus = ! empty($stimuli) ? $stimuli[0] : null;
+
+        // 3. Calculate stimulus index mapping if items don't have explicit stimulus_index
+        $stimulusIndexMap = $this->buildQuestionStimulusIndexMap($params);
+
+        // 4. Normalize Items
+        $normalizedItems = [];
+        $itemNumber = 1;
+        foreach ($rawItems as $it) {
+            if (! is_array($it)) {
+                continue;
+            }
+
+            $currentNum = $itemNumber++;
+            $type = $it['type'] ?? ($params['question_type'] ?? 'mcq_single');
+            $prompt = trim((string) ($it['prompt'] ?? ($it['question'] ?? ($it['pertanyaan'] ?? ''))));
+            $points = (float) ($it['points'] ?? ($it['score'] ?? 1.0));
+            $explanation = trim((string) ($it['explanation'] ?? ($it['pembahasan'] ?? '')));
+
+            // Resolve stimulus_index
+            $stimulusIndex = null;
+            if (isset($it['stimulus_index']) && is_numeric($it['stimulus_index']) && (int) $it['stimulus_index'] > 0) {
+                $stimulusIndex = (int) $it['stimulus_index'];
+            } elseif (isset($stimulusIndexMap[$currentNum])) {
+                $stimulusIndex = $stimulusIndexMap[$currentNum];
+            } elseif (! empty($stimuli) && count($stimuli) === 1 && ! empty($params['stimulus_mode']) && $params['stimulus_mode'] === 'stimulus_group') {
+                $stimulusIndex = 1;
+            }
+
+            $options = [];
+            $rawOptions = $it['options'] ?? ($it['pilihan'] ?? ($it['choices'] ?? []));
+            if (is_array($rawOptions)) {
+                $labels = ['A', 'B', 'C', 'D', 'E', 'F'];
+                foreach ($rawOptions as $oIdx => $opt) {
+                    if (is_string($opt)) {
+                        $options[] = [
+                            'label' => $labels[$oIdx] ?? (string) ($oIdx + 1),
+                            'option_text' => trim($opt),
+                            'is_correct' => ($oIdx === 0),
+                            'score' => ($oIdx === 0 ? $points : 0.0),
+                            'match_key' => null,
+                        ];
+                    } elseif (is_array($opt)) {
+                        $options[] = [
+                            'label' => (string) ($opt['label'] ?? ($labels[$oIdx] ?? (string) ($oIdx + 1))),
+                            'option_text' => trim((string) ($opt['option_text'] ?? ($opt['text'] ?? ($opt['jawaban'] ?? '')))),
+                            'is_correct' => ! empty($opt['is_correct']) || (! empty($opt['correct']) && $opt['correct'] === true),
+                            'score' => (float) ($opt['score'] ?? 0.0),
+                            'match_key' => $opt['match_key'] ?? null,
+                        ];
+                    }
+                }
+            }
+
+            $normalizedItems[] = [
+                'number' => $currentNum,
+                'stimulus_index' => $stimulusIndex,
+                'type' => $type,
+                'prompt' => $prompt,
+                'points' => $points > 0 ? $points : 1.0,
+                'options' => $options,
+                'explanation' => $explanation,
+            ];
+        }
+
+        return [
+            'assessment_title' => $decoded['assessment_title'] ?? $this->deriveAssessmentTitle($params),
+            'category' => $decoded['category'] ?? ($params['category'] ?? 'school'),
+            'difficulty' => $decoded['difficulty'] ?? ($params['difficulty'] ?? 'sedang'),
+            'cognitive_level' => $decoded['cognitive_level'] ?? ($params['cognitive_level'] ?? 'C3-C4 (MOTS)'),
+            'stimuli' => $stimuli,
+            'stimulus' => $stimulus,
+            'items' => $normalizedItems,
+        ];
     }
 
     /**
@@ -265,17 +693,47 @@ PROMPT;
         $lines[] = "=== {$title} ===";
         $lines[] = '';
 
-        if (! empty($package['stimulus']['content'])) {
+        $stimuli = $this->extractStimuliData($package);
+        $items = $package['items'] ?? [];
+
+        // Check if there are multiple stimuli
+        if (count($stimuli) > 1) {
+            foreach ($stimuli as $stim) {
+                $stimIndex = (int) ($stim['index'] ?? 1);
+                $lines[] = '[STIMULUS]';
+                $lines[] = 'Judul: '.($stim['title'] ?? "Wacana Stimulus {$stimIndex}");
+                $lines[] = 'Teks: '.trim($stim['content']);
+                $lines[] = '[AKHIR NARASI]';
+                $lines[] = '';
+
+                $childItems = array_filter($items, fn ($it) => (int) ($it['stimulus_index'] ?? 0) === $stimIndex);
+                foreach ($childItems as $item) {
+                    $lines = array_merge($lines, $this->formatQuestionItemAsWordText($item));
+                }
+            }
+
+            $standaloneItems = array_filter($items, fn ($it) => empty($it['stimulus_index']));
+            if (! empty($standaloneItems)) {
+                $lines[] = '[SOAL MANDIRI]';
+                $lines[] = '';
+                foreach ($standaloneItems as $item) {
+                    $lines = array_merge($lines, $this->formatQuestionItemAsWordText($item));
+                }
+            }
+
+            return implode("\n", $lines);
+        }
+
+        // Single stimulus or no stimulus (classic grouped by question type)
+        $stimulus = ! empty($stimuli) ? $stimuli[0] : null;
+        if (! empty($stimulus['content'])) {
             $lines[] = '[STIMULUS]';
-            $lines[] = 'Judul: '.($package['stimulus']['title'] ?? 'Wacana Stimulus');
-            $lines[] = 'Teks: '.trim($package['stimulus']['content']);
+            $lines[] = 'Judul: '.($stimulus['title'] ?? 'Wacana Stimulus');
+            $lines[] = 'Teks: '.trim($stimulus['content']);
             $lines[] = '[AKHIR NARASI]';
             $lines[] = '';
         }
 
-        $items = $package['items'] ?? [];
-
-        // Group items by question type in pedagogical order
         $preferredTypeOrder = [
             'mcq_single',
             'mcq_multiple',
@@ -319,102 +777,117 @@ PROMPT;
             $lines[] = '';
 
             foreach ($typeItems as $item) {
-                $num = $item['number'] ?? 1;
-                $prompt = trim($item['prompt'] ?? '');
-                $points = (float) ($item['points'] ?? 1.0);
-                $options = $item['options'] ?? [];
-                $explanation = trim($item['explanation'] ?? '');
-
-                // Type tags for parser
-                if ($type === 'mcq_weighted') {
-                    $lines[] = '[TKP]';
-                } elseif ($type === 'mcq_multiple') {
-                    $lines[] = '[KOMPLEKS]';
-                } elseif ($type === 'binary_matrix') {
-                    $lines[] = '[BENAR SALAH]';
-                    $lines[] = 'KOLOM: Benar | Salah';
-                } elseif ($type === 'matching') {
-                    $lines[] = '[MENJODOHKAN]';
-                } elseif ($type === 'ordering') {
-                    $lines[] = '[MENGURUTKAN]';
-                } elseif ($type === 'short_answer') {
-                    $lines[] = '[ISIAN]';
-                } elseif ($type === 'essay') {
-                    $lines[] = '[ESAI]';
-                }
-
-                $lines[] = "{$num}. {$prompt}";
-
-                // Options rendering
-                if ($type === 'mcq_weighted') {
-                    foreach ($options as $opt) {
-                        $lbl = $opt['label'] ?? 'A';
-                        $score = (int) ($opt['score'] ?? 0);
-                        $text = trim($opt['option_text'] ?? '');
-                        $lines[] = "{$lbl}. [{$score}] {$text}";
-                    }
-                } elseif ($type === 'mcq_single') {
-                    $correctLetter = 'A';
-                    foreach ($options as $opt) {
-                        $lbl = $opt['label'] ?? 'A';
-                        $text = trim($opt['option_text'] ?? '');
-                        $lines[] = "{$lbl}. {$text}";
-                        if (! empty($opt['is_correct'])) {
-                            $correctLetter = $lbl;
-                        }
-                    }
-                    $lines[] = "KUNCI: {$correctLetter}";
-                } elseif ($type === 'mcq_multiple') {
-                    $correctLetters = [];
-                    foreach ($options as $opt) {
-                        $lbl = $opt['label'] ?? 'A';
-                        $text = trim($opt['option_text'] ?? '');
-                        $lines[] = "{$lbl}. {$text}";
-                        if (! empty($opt['is_correct'])) {
-                            $correctLetters[] = $lbl;
-                        }
-                    }
-                    $lines[] = 'KUNCI: '.implode(', ', $correctLetters);
-                } elseif ($type === 'binary_matrix') {
-                    foreach ($options as $idx => $opt) {
-                        $iNum = $idx + 1;
-                        $text = trim($opt['option_text'] ?? '');
-                        $key = strtoupper($opt['match_key'] ?? 'BENAR');
-                        $lines[] = "{$iNum}) {$text} [{$key}]";
-                    }
-                } elseif ($type === 'matching') {
-                    foreach ($options as $idx => $opt) {
-                        $iNum = $idx + 1;
-                        $left = trim($opt['option_text'] ?? '');
-                        $right = trim($opt['match_key'] ?? '');
-                        $lines[] = "{$iNum}) {$left} -> {$right}";
-                    }
-                } elseif ($type === 'ordering') {
-                    foreach ($options as $idx => $opt) {
-                        $iNum = $idx + 1;
-                        $text = trim($opt['option_text'] ?? '');
-                        $lines[] = "{$iNum}) {$text}";
-                    }
-                } elseif ($type === 'short_answer') {
-                    $key = trim($options[0]['option_text'] ?? 'Jawaban');
-                    $lines[] = "KUNCI: {$key}";
-                }
-
-                if ($points > 0 && $type !== 'mcq_weighted') {
-                    $lines[] = 'BOBOT: '.number_format($points, 1);
-                }
-
-                if ($explanation !== '') {
-                    $lines[] = "PEMBAHASAN: {$explanation}";
-                }
-
-                $lines[] = '';
+                $lines = array_merge($lines, $this->formatQuestionItemAsWordText($item));
             }
 
             $secIdx++;
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Format a single question item into array of Word CBT text lines.
+     *
+     * @param  array<string, mixed>  $item
+     * @return array<int, string>
+     */
+    protected function formatQuestionItemAsWordText(array $item): array
+    {
+        $lines = [];
+        $type = $item['type'] ?? 'mcq_single';
+        $num = $item['number'] ?? 1;
+        $prompt = trim($item['prompt'] ?? '');
+        $points = (float) ($item['points'] ?? 1.0);
+        $options = $item['options'] ?? [];
+        $explanation = trim($item['explanation'] ?? '');
+
+        // Type tags for parser
+        if ($type === 'mcq_weighted') {
+            $lines[] = '[TKP]';
+        } elseif ($type === 'mcq_multiple') {
+            $lines[] = '[KOMPLEKS]';
+        } elseif ($type === 'binary_matrix') {
+            $lines[] = '[BENAR SALAH]';
+            $lines[] = 'KOLOM: Benar | Salah';
+        } elseif ($type === 'matching') {
+            $lines[] = '[MENJODOHKAN]';
+        } elseif ($type === 'ordering') {
+            $lines[] = '[MENGURUTKAN]';
+        } elseif ($type === 'short_answer') {
+            $lines[] = '[ISIAN]';
+        } elseif ($type === 'essay') {
+            $lines[] = '[ESAI]';
+        }
+
+        $lines[] = "{$num}. {$prompt}";
+
+        // Options rendering
+        if ($type === 'mcq_weighted') {
+            foreach ($options as $opt) {
+                $lbl = $opt['label'] ?? 'A';
+                $score = (int) ($opt['score'] ?? 0);
+                $text = trim($opt['option_text'] ?? '');
+                $lines[] = "{$lbl}. [{$score}] {$text}";
+            }
+        } elseif ($type === 'mcq_single') {
+            $correctLetter = 'A';
+            foreach ($options as $opt) {
+                $lbl = $opt['label'] ?? 'A';
+                $text = trim($opt['option_text'] ?? '');
+                $lines[] = "{$lbl}. {$text}";
+                if (! empty($opt['is_correct'])) {
+                    $correctLetter = $lbl;
+                }
+            }
+            $lines[] = "KUNCI: {$correctLetter}";
+        } elseif ($type === 'mcq_multiple') {
+            $correctLetters = [];
+            foreach ($options as $opt) {
+                $lbl = $opt['label'] ?? 'A';
+                $text = trim($opt['option_text'] ?? '');
+                $lines[] = "{$lbl}. {$text}";
+                if (! empty($opt['is_correct'])) {
+                    $correctLetters[] = $lbl;
+                }
+            }
+            $lines[] = 'KUNCI: '.implode(', ', $correctLetters);
+        } elseif ($type === 'binary_matrix') {
+            foreach ($options as $idx => $opt) {
+                $iNum = $idx + 1;
+                $text = trim($opt['option_text'] ?? '');
+                $key = strtoupper($opt['match_key'] ?? 'BENAR');
+                $lines[] = "{$iNum}) {$text} [{$key}]";
+            }
+        } elseif ($type === 'matching') {
+            foreach ($options as $idx => $opt) {
+                $iNum = $idx + 1;
+                $left = trim($opt['option_text'] ?? '');
+                $right = trim($opt['match_key'] ?? '');
+                $lines[] = "{$iNum}) {$left} -> {$right}";
+            }
+        } elseif ($type === 'ordering') {
+            foreach ($options as $idx => $opt) {
+                $iNum = $idx + 1;
+                $text = trim($opt['option_text'] ?? '');
+                $lines[] = "{$iNum}) {$text}";
+            }
+        } elseif ($type === 'short_answer') {
+            $key = trim($options[0]['option_text'] ?? 'Jawaban');
+            $lines[] = "KUNCI: {$key}";
+        }
+
+        if ($points > 0 && $type !== 'mcq_weighted') {
+            $lines[] = 'BOBOT: '.number_format($points, 1);
+        }
+
+        if ($explanation !== '') {
+            $lines[] = "PEMBAHASAN: {$explanation}";
+        }
+
+        $lines[] = '';
+
+        return $lines;
     }
 
     /**
@@ -485,8 +958,16 @@ PROMPT;
         if (! empty($typeDistributions)) {
             $items = [];
             $itemNumber = 1;
-            $hasStimulus = false;
+            $totalStimulusCount = 0;
+            foreach ($typeDistributions as $dist) {
+                $sc = (int) ($dist['stimulus_count'] ?? 0);
+                $sq = (int) ($dist['stimulus_questions'] ?? 0);
+                if ($sc > 0 && $sq > 0) {
+                    $totalStimulusCount += $sc;
+                }
+            }
 
+            $stimGlobalIdx = 0;
             foreach ($typeDistributions as $dist) {
                 $t = $dist['type'] ?? 'mcq_single';
                 $sa = (int) ($dist['standalone_count'] ?? 0);
@@ -494,10 +975,10 @@ PROMPT;
                 $sq = (int) ($dist['stimulus_questions'] ?? 0);
 
                 if ($sc > 0 && $sq > 0) {
-                    $hasStimulus = true;
                     for ($s = 1; $s <= $sc; $s++) {
+                        $stimGlobalIdx++;
                         for ($q = 1; $q <= $sq; $q++) {
-                            $items[] = $this->createMockQuestionItem($t, $itemNumber++, true, $s, $q, $params);
+                            $items[] = $this->createMockQuestionItem($t, $itemNumber++, true, $stimGlobalIdx, $q, $params);
                         }
                     }
                 }
@@ -508,7 +989,8 @@ PROMPT;
             }
 
             if (! empty($items)) {
-                $stimulusData = $hasStimulus ? $this->deriveStimulusData($params) : null;
+                $stimuli = $totalStimulusCount > 0 ? $this->deriveMultipleStimuliData($params, $totalStimulusCount) : [];
+                $stimulusData = ! empty($stimuli) ? $stimuli[0] : null;
 
                 return [
                     'assessment_title' => $this->deriveAssessmentTitle($params),
@@ -516,6 +998,7 @@ PROMPT;
                     'difficulty' => $difficulty,
                     'cognitive_level' => $cognitive,
                     'model_used' => $model,
+                    'stimuli' => $stimuli,
                     'stimulus' => $stimulusData,
                     'items' => $items,
                 ];
@@ -525,6 +1008,7 @@ PROMPT;
         // Standard dynamic fallback package for 5 questions
         $hasStimulus = ($params['stimulus_mode'] ?? 'standalone') === 'stimulus_group';
         $stimulusData = $hasStimulus ? $this->deriveStimulusData($params) : null;
+        $stimuli = $hasStimulus ? [$stimulusData] : [];
 
         $fallbackItems = [
             $this->createMockQuestionItem('mcq_single', 1, $hasStimulus, 1, 1, $params),
@@ -540,6 +1024,7 @@ PROMPT;
             'difficulty' => $difficulty,
             'cognitive_level' => $cognitive,
             'model_used' => $model,
+            'stimuli' => $stimuli,
             'stimulus' => $stimulusData,
             'items' => $fallbackItems,
         ];
@@ -692,16 +1177,22 @@ PROMPT;
 
         // SKD Special Track
         if ($category === 'skd') {
-            return $this->generateSkdQuestion($type, $number, $stimulusNote, $subIdx, $params);
+            $item = $this->generateSkdQuestion($type, $number, $stimulusNote, $subIdx, $params);
+            $item['stimulus_index'] = $isStimulusChild ? $stimulusIdx : null;
+
+            return $item;
         }
 
         // UTBK Special Track
         if ($category === 'utbk') {
-            return $this->generateUtbkQuestion($type, $number, $stimulusNote, $subIdx, $params);
+            $item = $this->generateUtbkQuestion($type, $number, $stimulusNote, $subIdx, $params);
+            $item['stimulus_index'] = $isStimulusChild ? $stimulusIdx : null;
+
+            return $item;
         }
 
         // Route by Subject
-        return match ($subject) {
+        $item = match ($subject) {
             'ekonomi' => $this->generateEkonomiQuestion($type, $number, $stimulusNote, $subIdx, $params),
             'sosiologi' => $this->generateSosiologiQuestion($type, $number, $stimulusNote, $subIdx, $params),
             'geografi' => $this->generateGeografiQuestion($type, $number, $stimulusNote, $subIdx, $params),
@@ -713,6 +1204,10 @@ PROMPT;
             'pendidikan_pancasila' => $this->generatePancasilaQuestion($type, $number, $stimulusNote, $subIdx, $params),
             default => $this->generateDefaultSchoolQuestion($type, $number, $stimulusNote, $subIdx, $params),
         };
+
+        $item['stimulus_index'] = $isStimulusChild ? $stimulusIdx : null;
+
+        return $item;
     }
 
     /**

@@ -430,6 +430,17 @@
                             </select>
                         </div>
                     </div>
+
+                    <div class="pt-2 border-t border-gray-5 mt-3">
+                        <label class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-gray-5 hover:bg-gray-1 transition-colors"
+                               :class="include_visuals ? 'bg-blue-1/50 border-blue-5' : 'bg-white'">
+                            <input type="checkbox" x-model="include_visuals" class="mt-0.5 rounded text-blue-9 focus:ring-blue-9/20 w-4 h-4">
+                            <div>
+                                <span class="block text-xs font-bold text-gray-12">Sertakan Diagram / Grafik Visual (Otomatis)</span>
+                                <span class="block text-[11px] text-gray-10 mt-0.5">DeepSeek akan mencoba menghasilkan diagram SVG/Mermaid inline secara otomatis. Sangat disarankan untuk Sains, Geometri, dan Ekonomi.</span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- BAGIAN 3: Kisi-Kisi Khusus & Pilihan Model DeepSeek -->
@@ -601,18 +612,7 @@
                                             Petunjuk: Pilihlah satu jawaban yang paling tepat atau kerjakan sesuai petunjuk instruksi masing-masing soal.
                                         </div>
 
-                                        <!-- WACANA STIMULUS (JIKA ADA) -->
-                                        <template x-if="resultPackage.stimulus">
-                                            <div class="p-4 rounded-xl bg-blue-1/40 border border-blue-5/60 space-y-2">
-                                                <h4 class="font-bold text-xs text-blue-12 uppercase tracking-wide flex items-center gap-1.5">
-                                                    <span>📖</span>
-                                                    <span x-text="resultPackage.stimulus.title || 'Wacana Stimulus'"></span>
-                                                </h4>
-                                                <p class="text-xs text-gray-12 whitespace-pre-wrap leading-relaxed" x-text="resultPackage.stimulus.content"></p>
-                                            </div>
-                                        </template>
-
-                                        <!-- DAFTAR BUTIR SOAL KERTAS (DIKELOMPOKKAN BERDASARKAN TIPE / BAGIAN TANPA PAGE-BREAK SECTION) -->
+                                        <!-- DAFTAR BUTIR SOAL KERTAS (DIKELOMPOKKAN BERDASARKAN STIMULUS ATAU TIPE SOAL) -->
                                         <div class="space-y-6 pt-2">
                                             <template x-for="(sec, sIdx) in getGroupedSections()" :key="sIdx">
                                                 <div class="space-y-4">
@@ -625,10 +625,47 @@
                                                     <!-- Butir Soal dalam Bagian Ini -->
                                                     <div class="space-y-4">
                                                         <template x-for="(item, idx) in sec.items" :key="item.number">
-                                                            <div class="space-y-2 pb-3 border-b border-gray-4 last:border-b-0">
+                                                            <div>
+                                                                <!-- WACANA STIMULUS UNTUK GROUP INI (JIKA ADA & PERTAMA KALI MUNCUL) -->
+                                                                <template x-if="item.group_stimulus">
+                                                                    <div class="p-4 mb-4 rounded-xl bg-blue-1/50 border border-blue-6/70 space-y-2 shadow-2xs">
+                                                                        <div class="flex items-center justify-between">
+                                                                            <h4 class="font-bold text-xs text-blue-12 uppercase tracking-wide flex items-center gap-1.5">
+                                                                                <span>📖</span>
+                                                                                <span x-text="item.group_stimulus.title || 'Wacana Stimulus Narasi'"></span>
+                                                                            </h4>
+                                                                            <span class="text-[10px] font-bold text-blue-11 bg-blue-2 px-2 py-0.5 rounded-full border border-blue-5"
+                                                                                  x-text="item.group_stimulus.badge || 'Wacana Narasi / Stimulus'">
+                                                                            </span>
+                                                                        </div>
+                                                                        <div class="mt-2 text-xs text-gray-12 whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none" x-html="renderPreviewMarkdown(item.group_stimulus.content)"></div>
+                                                                        <div class="mt-3 border-t border-blue-6/70 pt-2 flex justify-between items-center">
+                                                                            <div class="text-[10px] text-blue-11 flex items-center gap-1">
+                                                                                <span x-show="isUploading && uploadTarget?.type === 'stimulus' && uploadTarget?.index === item.group_stimulus.index" class="animate-pulse">⏳ Mengunggah...</span>
+                                                                            </div>
+                                                                            <button @click="$refs.globalFileInput.click(); uploadTarget = { type: 'stimulus', index: item.group_stimulus.index }" class="text-[10px] bg-blue-9 hover:bg-blue-10 text-white font-bold px-2 py-1 rounded shadow-xs transition-colors flex items-center gap-1 cursor-pointer">
+                                                                                <x-radix-icon name="image" class="w-3 h-3" />
+                                                                                Unggah / Sisipkan Gambar
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </template>
+
+                                                                <div class="space-y-2 pb-3 border-b border-gray-4 last:border-b-0">
                                                                 <div class="flex items-start gap-2">
                                                                     <span class="font-bold text-xs" x-text="item.number + '.'"></span>
-                                                                    <div class="flex-1 text-xs text-gray-12 font-medium whitespace-pre-wrap leading-relaxed" x-text="item.prompt"></div>
+                                                                    <div class="flex-1 space-y-2">
+                                                                        <div class="text-xs text-gray-12 font-medium whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none" x-html="renderPreviewMarkdown(item.prompt)"></div>
+                                                                        <div class="flex justify-end pt-1">
+                                                                            <div class="text-[10px] text-gray-10 flex items-center gap-1 mr-2">
+                                                                                <span x-show="isUploading && uploadTarget?.type === 'item' && uploadTarget?.itemNumber === item.number" class="animate-pulse">⏳ Mengunggah...</span>
+                                                                            </div>
+                                                                            <button @click="$refs.globalFileInput.click(); uploadTarget = { type: 'item', itemNumber: item.number }" class="text-[9px] bg-gray-3 border border-gray-6 hover:bg-gray-4 text-gray-11 font-bold px-2 py-1 rounded shadow-xs transition-colors flex items-center gap-1 cursor-pointer">
+                                                                                <x-radix-icon name="image" class="w-2.5 h-2.5" />
+                                                                                Sisipkan Gambar
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
 
                                                                 <!-- Pilihan Ganda & Berbobot -->
@@ -706,7 +743,8 @@
                                                                         <div class="border-b border-dashed border-gray-4 h-5"></div>
                                                                     </div>
                                                                 </template>
-                                                            </div>
+                                                                </div> <!-- End item.type loop -->
+                                                            </div> <!-- End new wrapper div -->
                                                         </template>
                                                     </div>
                                                 </div>
@@ -823,7 +861,8 @@
                 </div>
             </div>
         </div>
-
+        <!-- GLOBAL HIDDEN FILE INPUT -->
+        <input type="file" x-ref="globalFileInput" @change="handleImageUpload" accept="image/*" class="hidden">
     </div>
 
     <!-- STYLING KHUSUS CETAK KERTAS (@media print) -->
@@ -960,6 +999,8 @@
                 stimulus_source: 'ai_generate',
                 custom_stimulus_text: '',
 
+                include_visuals: false,
+
                 custom_prompt: '',
                 ai_model: 'deepseek-reasoner',
 
@@ -976,6 +1017,9 @@
                 showSavedModal: false,
                 savedMessage: '',
                 savedBankId: null,
+
+                uploadTarget: null,
+                isUploading: false,
 
                 init() {
                     this.onFilterChange();
@@ -1017,6 +1061,46 @@
                 getTotalQuestions() {
                     const total = this.getTotalStandalone() + this.getTotalStimulusQuestions();
                     return total > 0 ? total : 0;
+                },
+
+                getStimuli() {
+                    if (!this.resultPackage) return [];
+                    if (this.resultPackage.stimuli && Array.isArray(this.resultPackage.stimuli) && this.resultPackage.stimuli.length > 0) {
+                        return this.resultPackage.stimuli.map((st, idx) => ({
+                            index: Number(st.index) || (idx + 1),
+                            title: st.title || ('Wacana Stimulus #' + (idx + 1)),
+                            content: st.content || st.text || st.wacana || ''
+                        })).filter(st => !!st.content);
+                    }
+                    const single = this.getStimulusContent();
+                    if (single) {
+                        return [{
+                            index: 1,
+                            title: this.getStimulusTitle(),
+                            content: single
+                        }];
+                    }
+                    return [];
+                },
+
+                hasMultipleStimuli() {
+                    return this.getStimuli().length > 1;
+                },
+
+                getStimulusTitle() {
+                    if (!this.resultPackage || !this.resultPackage.stimulus) return 'Wacana Stimulus Narasi';
+                    if (typeof this.resultPackage.stimulus === 'string') return 'Wacana Stimulus Narasi';
+                    return this.resultPackage.stimulus.title || 'Wacana Stimulus Narasi';
+                },
+
+                getStimulusContent() {
+                    if (!this.resultPackage || !this.resultPackage.stimulus) return '';
+                    if (typeof this.resultPackage.stimulus === 'string') return this.resultPackage.stimulus;
+                    return this.resultPackage.stimulus.content || this.resultPackage.stimulus.text || this.resultPackage.stimulus.wacana || '';
+                },
+
+                hasStimulus() {
+                    return !!this.getStimulusContent() || this.getStimuli().length > 0;
                 },
 
                 applyPreset(preset) {
@@ -1085,6 +1169,14 @@
 
                         this.availableChapters = chapters;
                         this.selectedChapters = this.availableChapters.slice(0, 2).map(c => c.title);
+
+                        // Auto-aktifkan diagram visual untuk mapel eksakta
+                        const exactSubjects = ['matematika', 'matematika_tingkat_lanjut', 'fisika', 'kimia', 'biologi', 'ekonomi', 'geografi'];
+                        if (exactSubjects.includes(this.subject)) {
+                            this.include_visuals = true;
+                        } else {
+                            this.include_visuals = false;
+                        }
                     }
                 },
 
@@ -1155,6 +1247,7 @@
                             stimulus_questions: Number(t.stimulus_questions) || 0
                         })),
                         custom_prompt: this.custom_prompt,
+                        include_visuals: this.include_visuals,
                         ai_model: this.ai_model,
                         _token: '{{ csrf_token() }}'
                     };
@@ -1262,6 +1355,76 @@
                     }
                 },
 
+                async handleImageUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    if (!this.uploadTarget || !this.resultPackage) {
+                        alert('Target upload tidak ditemukan.');
+                        return;
+                    }
+
+                    this.isUploading = true;
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('_token', '{{ csrf_token() }}');
+
+                    try {
+                        const res = await fetch('{{ route('assessments.upload-image') }}', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            const markdownImage = `\n\n![Gambar/Visual](${data.url})\n\n`;
+                            
+                            // Append to target
+                            if (this.uploadTarget.type === 'stimulus') {
+                                const targetIdx = this.uploadTarget.index;
+                                if (this.resultPackage.stimuli && this.resultPackage.stimuli[targetIdx]) {
+                                    this.resultPackage.stimuli[targetIdx].content += markdownImage;
+                                } else if (this.resultPackage.stimulus) {
+                                    this.resultPackage.stimulus.content += markdownImage;
+                                }
+                            } else if (this.uploadTarget.type === 'item') {
+                                const qNumber = this.uploadTarget.itemNumber;
+                                const item = this.resultPackage.items.find(it => it.number === qNumber);
+                                if (item) {
+                                    item.prompt += markdownImage;
+                                }
+                            }
+
+                            // Trigger re-render by deeply cloning resultPackage
+                            this.resultPackage = JSON.parse(JSON.stringify(this.resultPackage));
+                        } else {
+                            alert('Gagal mengunggah: ' + (data.message || 'Error'));
+                        }
+                    } catch (e) {
+                        alert('Koneksi bermasalah: ' + e.message);
+                    } finally {
+                        this.isUploading = false;
+                        event.target.value = null; // reset
+                    }
+                },
+
+                renderPreviewMarkdown(text) {
+                    if (!text) return '';
+                    let html = text;
+                    // Escape HTML first to prevent XSS except our own tags
+                    html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    // Replace markdown images ![alt](url) with <img> tag
+                    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full md:max-w-md h-auto my-3 rounded-lg border border-gray-3 shadow-xs block" />');
+                    // Mermaid codeblocks ````mermaid ... ````
+                    html = html.replace(/```mermaid([\s\S]*?)```/g, '<div class="p-3 my-2 bg-gray-1 border border-gray-4 rounded font-mono text-[10px] text-gray-9 overflow-auto">Mermaid Diagram Code:<pre class="mt-1 text-gray-11">$1</pre></div>');
+                    // Preserve line breaks
+                    html = html.replace(/\n/g, '<br/>');
+                    return html;
+                },
+
                 async saveToQuestionBank() {
                     if (!this.resultPackage) return;
                     this.isSaving = true;
@@ -1323,6 +1486,9 @@
                         'mcq_weighted': { name: 'Pilihan Berbobot (Karakteristik Pribadi)', instructions: 'Pilihlah opsi tindakan yang menurut Anda paling berintegritas, solutif, dan profesional.' },
                     };
 
+                    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
+
+                    // Group by type
                     const grouped = {};
                     this.resultPackage.items.forEach(item => {
                         const t = item.type || 'mcq_single';
@@ -1336,15 +1502,54 @@
                         return ia - ib;
                     });
 
-                    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                    const stimuliMap = {};
+                    if (this.resultPackage.stimuli) {
+                        this.resultPackage.stimuli.forEach(st => {
+                            stimuliMap[Number(st.index || 1)] = st;
+                        });
+                    } else if (this.resultPackage.stimulus) {
+                        stimuliMap[1] = {
+                            index: 1,
+                            title: this.resultPackage.stimulus.title || 'Wacana Stimulus',
+                            content: this.resultPackage.stimulus.content
+                        };
+                    }
+
                     return sortedTypes.map((type, idx) => {
                         const meta = typeMetaMap[type] || { name: 'Soal Campuran', instructions: 'Kerjakan butir-butir soal berikut sesuai petunjuk yang tertera.' };
+                        const letter = letters[idx] || String.fromCharCode(65 + idx);
+                        const typeItems = grouped[type];
+                        
+                        let currentStimulusIndex = null;
+                        
+                        // Sort items by stimulus_index so they group together
+                        typeItems.sort((a, b) => {
+                            const sa = Number(a.stimulus_index || 0);
+                            const sb = Number(b.stimulus_index || 0);
+                            return sa - sb;
+                        });
+                        
+                        typeItems.forEach(item => {
+                            const sIdx = Number(item.stimulus_index || 0);
+                            if (sIdx > 0 && stimuliMap[sIdx] && sIdx !== currentStimulusIndex) {
+                                item.group_stimulus = {
+                                    index: sIdx,
+                                    title: stimuliMap[sIdx].title || ('Wacana Stimulus #' + sIdx),
+                                    content: stimuliMap[sIdx].content,
+                                    badge: 'Wacana Stimulus #' + sIdx
+                                };
+                                currentStimulusIndex = sIdx;
+                            } else {
+                                item.group_stimulus = null; // reset if it was set previously but not first anymore
+                            }
+                        });
+
                         return {
-                            letter: letters[idx] || String.fromCharCode(65 + idx),
+                            letter: letter,
                             type: type,
-                            title: 'BAGIAN ' + (letters[idx] || String.fromCharCode(65 + idx)) + ': ' + meta.name.toUpperCase() + ' (' + grouped[type].length + ' Butir Soal)',
+                            title: 'BAGIAN ' + letter + ': ' + meta.name.toUpperCase() + ' (' + typeItems.length + ' Butir Soal)',
                             instructions: meta.instructions,
-                            items: grouped[type]
+                            items: typeItems
                         };
                     });
                 }

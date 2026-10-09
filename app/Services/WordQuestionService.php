@@ -256,6 +256,7 @@ class WordQuestionService
 
         $xpath = new \DOMXPath($dom);
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+        $xpath->registerNamespace('m', 'http://schemas.openxmlformats.org/officeDocument/2006/math');
         $xpath->registerNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
         $xpath->registerNamespace('a', 'http://schemas.openxmlformats.org/drawingml/2006/main');
         $xpath->registerNamespace('pic', 'http://schemas.openxmlformats.org/drawingml/2006/picture');
@@ -267,6 +268,7 @@ class WordQuestionService
         $pNodes = $xpath->query('//w:p');
         foreach ($pNodes as $pNode) {
             $pText = $this->extractParagraphContent($pNode, $xpath, $zip, $relationships, $imageCache);
+            $pText = $this->formatMathInPlainText($pText);
 
             $lines = preg_split('/\r?\n/', $pText);
             foreach ($lines as $line) {
@@ -292,13 +294,23 @@ class WordQuestionService
     ): string {
         $pText = '';
 
-        // Select all runs and non-run drawings in document order, excluding mc:Fallback to prevent duplicates
+        // Select all runs, equations, and non-run drawings in document order, excluding mc:Fallback to prevent duplicates
         $contentNodes = $xpath->query(
-            '(.//w:r | .//w:drawing[not(ancestor::w:r)] | .//w:pict[not(ancestor::w:r)])[not(ancestor::mc:Fallback)]',
+            '(.//w:r | .//m:oMathPara | .//m:oMath[not(ancestor::m:oMathPara)] | .//w:drawing[not(ancestor::w:r)] | .//w:pict[not(ancestor::w:r)])[not(ancestor::mc:Fallback)]',
             $pNode
         );
 
         foreach ($contentNodes as $node) {
+            if ($node->localName === 'oMath' || $node->localName === 'oMathPara') {
+                $isBlock = ($node->localName === 'oMathPara');
+                $mathLatex = $this->convertOmmlToLatex($node, $isBlock);
+                if ($mathLatex !== '') {
+                    $pText .= $mathLatex;
+                }
+
+                continue;
+            }
+
             if ($node->nodeName === 'w:drawing' || $node->nodeName === 'w:pict') {
                 $imgMd = $this->extractImagesFromElement($node, $xpath, $zip, $relationships, $imageCache);
                 if ($imgMd) {
@@ -315,6 +327,18 @@ class WordQuestionService
             $isBold = $xpath->query('.//w:rPr/w:b | .//w:rPr/w:bCs', $node)->length > 0;
             $isItalic = $xpath->query('.//w:rPr/w:i | .//w:rPr/w:iCs', $node)->length > 0;
             $isUnderline = $xpath->query('.//w:rPr/w:u', $node)->length > 0;
+
+            $isSuperscript = false;
+            $isSubscript = false;
+            $vertAlignNodes = $xpath->query('.//w:rPr/w:vertAlign', $node);
+            if ($vertAlignNodes->length > 0) {
+                $va = strtolower((string) ($vertAlignNodes->item(0)->getAttribute('w:val') ?: $vertAlignNodes->item(0)->getAttribute('val')));
+                if ($va === 'superscript') {
+                    $isSuperscript = true;
+                } elseif ($va === 'subscript') {
+                    $isSubscript = true;
+                }
+            }
 
             // Iterate child nodes of the run in document order
             $hasChildDrawing = false;
@@ -334,6 +358,12 @@ class WordQuestionService
                         }
                         if ($isUnderline) {
                             $runText = "<u>{$runText}</u>";
+                        }
+                        if ($isSuperscript) {
+                            $runText = "<sup>{$runText}</sup>";
+                        }
+                        if ($isSubscript) {
+                            $runText = "<sub>{$runText}</sub>";
                         }
                     }
 
@@ -378,8 +408,614 @@ class WordQuestionService
     }
 
     /**
-     * Extract DrawingML or VML images from an element and return markdown format (![alt](url)).
+     * Konversi elemen OMML (<m:oMath> atau <m:oMathPara>) menjadi format LaTeX / Markdown ($...$ atau $$...$$).
      */
+    public function convertOmmlToLatex(\DOMNode $node, bool $isBlock = false): string
+    {
+        $latex = trim($this->parseOmmlNode($node));
+        if ($latex === '') {
+            return '';
+        }
+
+        if ($isBlock) {
+            return "\n$$".$latex."$$\n";
+        }
+
+        return '$'.$latex.'$';
+    }
+
+    /**
+     * Rekursif parsing elemen OMML ke representasi sintaks LaTeX matematika.
+     */
+    protected function parseOmmlNode(\DOMNode $node): string
+    {
+        $localName = $node->localName;
+
+        switch ($localName) {
+            case 'oMathPara':
+                $parts = [];
+                foreach ($node->childNodes as $child) {
+                    $cText = trim($this->parseOmmlNode($child));
+                    if ($cText !== '') {
+                        $parts[] = $cText;
+                    }
+                }
+
+                return implode(' ', $parts);
+
+            case 'oMath':
+                $out = '';
+                foreach ($node->childNodes as $child) {
+                    $out .= $this->parseOmmlNode($child);
+                }
+
+                return $out;
+
+            case 'f': // Fraction (pecahan \frac{num}{den})
+                $num = '';
+                $den = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'num') {
+                        $num = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'den') {
+                        $den = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return '\\frac{'.($num !== '' ? $num : '1').'}{'.($den !== '' ? $den : '1').'}';
+
+            case 'sSup': // Superscript / Pangkat ({base}^{sup})
+                $base = '';
+                $sup = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'e') {
+                        $base = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'sup') {
+                        $sup = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return '{'.$base.'}^{'.$sup.'}';
+
+            case 'sSub': // Subscript / Indeks bawah ({base}_{sub})
+                $base = '';
+                $sub = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'e') {
+                        $base = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'sub') {
+                        $sub = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return '{'.$base.'}_{'.$sub.'}';
+
+            case 'sSubSup': // Subscript & Superscript ({base}_{sub}^{sup})
+                $base = '';
+                $sub = '';
+                $sup = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'e') {
+                        $base = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'sub') {
+                        $sub = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'sup') {
+                        $sup = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return '{'.$base.'}_{'.$sub.'}^{'.$sup.'}';
+
+            case 'rad': // Bentuk Akar (\sqrt{e} atau \sqrt[deg]{e})
+                $deg = '';
+                $expr = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'deg') {
+                        $deg = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'e') {
+                        $expr = trim($this->parseOmmlChildren($child));
+                    }
+                }
+                if ($deg !== '' && $deg !== '2') {
+                    return '\\sqrt['.$deg.']{'.$expr.'}';
+                }
+
+                return '\\sqrt{'.$expr.'}';
+
+            case 'd': // Delimiters / Tanda kurung (\left( ... \right))
+                $begChr = '(';
+                $endChr = ')';
+                $sepChr = ',';
+                $exprParts = [];
+
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'dPr') {
+                        foreach ($child->childNodes as $pr) {
+                            if ($pr->localName === 'begChr') {
+                                $begChr = (string) ($pr->getAttribute('m:val') ?: $pr->getAttribute('val') ?: $begChr);
+                            } elseif ($pr->localName === 'endChr') {
+                                $endChr = (string) ($pr->getAttribute('m:val') ?: $pr->getAttribute('val') ?: $endChr);
+                            } elseif ($pr->localName === 'sepChr') {
+                                $sepChr = (string) ($pr->getAttribute('m:val') ?: $pr->getAttribute('val') ?: $sepChr);
+                            }
+                        }
+                    } elseif ($child->localName === 'e') {
+                        $exprParts[] = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                $inner = implode($sepChr.' ', array_filter($exprParts, fn ($p) => $p !== ''));
+                $open = match ($begChr) {
+                    '(' => '(',
+                    '[' => '[',
+                    '{' => '\\{',
+                    '|' => '|',
+                    '‖' => '\\|',
+                    '⟨' => '\\langle',
+                    '⌊' => '\\lfloor',
+                    '⌈' => '\\lceil',
+                    '' => '.',
+                    default => $begChr,
+                };
+                $close = match ($endChr) {
+                    ')' => ')',
+                    ']' => ']',
+                    '}' => '\\}',
+                    '|' => '|',
+                    '‖' => '\\|',
+                    '⟩' => '\\rangle',
+                    '⌋' => '\\rfloor',
+                    '⌉' => '\\rceil',
+                    '' => '.',
+                    default => $endChr,
+                };
+
+                return '\\left'.$open.' '.$inner.' \\right'.$close;
+
+            case 'nary': // N-ary operator (\sum, \int, \prod)
+                $chr = '∑';
+                $sub = '';
+                $sup = '';
+                $expr = '';
+
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'naryPr') {
+                        foreach ($child->childNodes as $pr) {
+                            if ($pr->localName === 'chr') {
+                                $chr = (string) ($pr->getAttribute('m:val') ?: $pr->getAttribute('val') ?: $chr);
+                            }
+                        }
+                    } elseif ($child->localName === 'sub') {
+                        $sub = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'sup') {
+                        $sup = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'e') {
+                        $expr = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                $op = match ($chr) {
+                    '∫' => '\\int',
+                    '∬' => '\\iint',
+                    '∭' => '\\iiint',
+                    '∮' => '\\oint',
+                    '∏' => '\\prod',
+                    '∐' => '\\coprod',
+                    '⋃' => '\\bigcup',
+                    '⋂' => '\\bigcap',
+                    '⋁' => '\\bigvee',
+                    '⋀' => '\\bigwedge',
+                    default => '\\sum',
+                };
+
+                $subStr = ($sub !== '') ? '_{'.$sub.'}' : '';
+                $supStr = ($sup !== '') ? '^{'.$sup.'}' : '';
+
+                return $op.$subStr.$supStr.' '.$expr;
+
+            case 'm': // Matrix (\begin{matrix} ... \end{matrix})
+                $rows = [];
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'mr') { // Matrix row
+                        $cells = [];
+                        foreach ($child->childNodes as $cell) {
+                            if ($cell->localName === 'e') {
+                                $cells[] = trim($this->parseOmmlChildren($cell));
+                            }
+                        }
+                        $rows[] = implode(' & ', $cells);
+                    }
+                }
+
+                return '\\begin{matrix} '.implode(' \\\\ ', $rows).' \\end{matrix}';
+
+            case 'bar': // Overline / Underline
+                $expr = '';
+                $pos = 'top';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'barPr') {
+                        foreach ($child->childNodes as $pr) {
+                            if ($pr->localName === 'pos') {
+                                $pos = (string) ($pr->getAttribute('m:val') ?: $pr->getAttribute('val') ?: $pos);
+                            }
+                        }
+                    } elseif ($child->localName === 'e') {
+                        $expr = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return ($pos === 'bot') ? '\\underline{'.$expr.'}' : '\\overline{'.$expr.'}';
+
+            case 'limLow': // Lower Limit (\lim_{x \to 0} expr)
+                $base = '';
+                $lim = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'e') {
+                        $base = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'lim') {
+                        $lim = trim($this->parseOmmlChildren($child));
+                    }
+                }
+                if (strtolower($base) === 'lim') {
+                    return '\\lim_{'.$lim.'}';
+                }
+
+                return '{'.$base.'}_{'.$lim.'}';
+
+            case 'limUpp': // Upper Limit
+                $base = '';
+                $lim = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'e') {
+                        $base = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'lim') {
+                        $lim = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return '{'.$base.'}^{'.$lim.'}';
+
+            case 'sPre': // Pre-sub-superscripts (isotop / tensor: {}_{sub}^{sup}{base})
+                $base = '';
+                $sub = '';
+                $sup = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'e') {
+                        $base = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'sub') {
+                        $sub = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'sup') {
+                        $sup = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                $subStr = ($sub !== '') ? '_{'.$sub.'}' : '';
+                $supStr = ($sup !== '') ? '^{'.$sup.'}' : '';
+
+                return '{'.$subStr.$supStr.'{'.$base.'}}';
+
+            case 'groupChr': // Group character (\overbrace / \underbrace)
+                $pos = 'top';
+                $chr = '⏞';
+                $expr = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'groupChrPr') {
+                        foreach ($child->childNodes as $pr) {
+                            if ($pr->localName === 'pos') {
+                                $pos = (string) ($pr->getAttribute('m:val') ?: $pr->getAttribute('val') ?: $pos);
+                            } elseif ($pr->localName === 'chr') {
+                                $chr = (string) ($pr->getAttribute('m:val') ?: $pr->getAttribute('val') ?: $chr);
+                            }
+                        }
+                    } elseif ($child->localName === 'e') {
+                        $expr = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return ($pos === 'bot' || $chr === '⏟') ? '\\underbrace{'.$expr.'}' : '\\overbrace{'.$expr.'}';
+
+            case 'borderBox': // Border Box (\boxed{expr})
+                $expr = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'e') {
+                        $expr = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return '\\boxed{'.$expr.'}';
+
+            case 'box': // Box element
+                $expr = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'e') {
+                        $expr = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return '{'.$expr.'}';
+
+            case 'func': // Math Function (sin, cos, tan, log, lim, etc.)
+                $fName = '';
+                $expr = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'fName') {
+                        $fName = trim($this->parseOmmlChildren($child));
+                    } elseif ($child->localName === 'e') {
+                        $expr = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                $cleanName = strtolower(ltrim($fName, '\\'));
+                $standardFuncs = [
+                    'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
+                    'arcsin', 'arccos', 'arctan',
+                    'sinh', 'cosh', 'tanh', 'coth',
+                    'log', 'ln', 'lg', 'exp',
+                    'min', 'max', 'lim', 'det', 'gcd', 'deg',
+                ];
+
+                if (in_array($cleanName, $standardFuncs, true)) {
+                    return '\\'.$cleanName.($expr !== '' ? ' '.$expr : '');
+                }
+
+                if ($fName !== '') {
+                    return '\\operatorname{'.$fName.'}'.($expr !== '' ? ' '.$expr : '');
+                }
+
+                return $expr;
+
+            case 'acc': // Accent (hat, vec, dot, bar)
+                $chr = '^';
+                $expr = '';
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'accPr') {
+                        foreach ($child->childNodes as $pr) {
+                            if ($pr->localName === 'chr') {
+                                $chr = (string) ($pr->getAttribute('m:val') ?: $pr->getAttribute('val') ?: $chr);
+                            }
+                        }
+                    } elseif ($child->localName === 'e') {
+                        $expr = trim($this->parseOmmlChildren($child));
+                    }
+                }
+                $accCmd = match ($chr) {
+                    '→' => '\\vec',
+                    '.' => '\\dot',
+                    '..' => '\\ddot',
+                    '~' => '\\tilde',
+                    '¯' => '\\bar',
+                    default => '\\hat',
+                };
+
+                return $accCmd.'{'.$expr.'}';
+
+            case 'eqArr': // Equation Array
+                $lines = [];
+                foreach ($node->childNodes as $child) {
+                    if ($child->localName === 'e') {
+                        $lines[] = trim($this->parseOmmlChildren($child));
+                    }
+                }
+
+                return implode(' \\\\ ', array_filter($lines, fn ($l) => $l !== ''));
+
+            case 'r': // Math Run
+                return $this->parseOmmlChildren($node);
+
+            case 't': // Math Text
+                return $this->convertMathSymbolsToLatex($node->nodeValue);
+
+            default:
+                return $this->parseOmmlChildren($node);
+        }
+    }
+
+    /**
+     * Parse child nodes of an OMML element.
+     */
+    protected function parseOmmlChildren(\DOMNode $node): string
+    {
+        $result = '';
+        foreach ($node->childNodes as $child) {
+            $result .= $this->parseOmmlNode($child);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Map Unicode mathematical symbols and characters to LaTeX commands.
+     */
+    protected function convertMathSymbolsToLatex(string $text): string
+    {
+        $symbolMap = [
+            '±' => ' \\pm ',
+            '∓' => ' \\mp ',
+            '×' => ' \\times ',
+            '÷' => ' \\div ',
+            '·' => ' \\cdot ',
+            '•' => ' \\cdot ',
+            '≤' => ' \\le ',
+            '≥' => ' \\ge ',
+            '≠' => ' \\neq ',
+            '≈' => ' \\approx ',
+            '≡' => ' \\equiv ',
+            '≢' => ' \\not\\equiv ',
+            '∞' => ' \\infty ',
+            '°' => '^{\\circ} ',
+            '∠' => ' \\angle ',
+            '⊥' => ' \\perp ',
+            '∥' => ' \\parallel ',
+            '∂' => ' \\partial ',
+            '∇' => ' \\nabla ',
+            '…' => ' \\dots ',
+            '⋯' => ' \\cdots ',
+            '⋮' => ' \\vdots ',
+            '⋱' => ' \\ddots ',
+            'α' => ' \\alpha ',
+            'β' => ' \\beta ',
+            'γ' => ' \\gamma ',
+            'Γ' => ' \\Gamma ',
+            'δ' => ' \\delta ',
+            'Δ' => ' \\Delta ',
+            'ε' => ' \\epsilon ',
+            'ζ' => ' \\zeta ',
+            'η' => ' \\eta ',
+            'θ' => ' \\theta ',
+            'Θ' => ' \\Theta ',
+            'ι' => ' \\iota ',
+            'κ' => ' \\kappa ',
+            'λ' => ' \\lambda ',
+            'Λ' => ' \\Lambda ',
+            'μ' => ' \\mu ',
+            'ν' => ' \\nu ',
+            'ξ' => ' \\xi ',
+            'Ξ' => ' \\Xi ',
+            'π' => ' \\pi ',
+            'Π' => ' \\Pi ',
+            'ρ' => ' \\rho ',
+            'σ' => ' \\sigma ',
+            'Σ' => ' \\Sigma ',
+            'τ' => ' \\tau ',
+            'υ' => ' \\upsilon ',
+            'Υ' => ' \\Upsilon ',
+            'φ' => ' \\phi ',
+            'Φ' => ' \\Phi ',
+            'χ' => ' \\chi ',
+            'ψ' => ' \\psi ',
+            'Ψ' => ' \\Psi ',
+            'ω' => ' \\omega ',
+            'Ω' => ' \\Omega ',
+            '→' => ' \\to ',
+            '←' => ' \\leftarrow ',
+            '⇒' => ' \\Rightarrow ',
+            '⇐' => ' \\Leftarrow ',
+            '⇔' => ' \\Leftrightarrow ',
+            '↔' => ' \\leftrightarrow ',
+            '↦' => ' \\mapsto ',
+            '∈' => ' \\in ',
+            '∉' => ' \\notin ',
+            '⊂' => ' \\subset ',
+            '⊆' => ' \\subseteq ',
+            '∪' => ' \\cup ',
+            '∩' => ' \\cap ',
+            '∅' => ' \\emptyset ',
+            '∀' => ' \\forall ',
+            '∃' => ' \\exists ',
+            '¬' => ' \\neg ',
+            '∧' => ' \\land ',
+            '∨' => ' \\lor ',
+        ];
+
+        return strtr($text, $symbolMap);
+    }
+
+    /**
+     * Format ekspresi matematika plain-text (seperti sqrt, akar, simbol akar, atau makro LaTeX terbuka) menjadi Markdown LaTeX ($...$).
+     */
+    public function formatMathInPlainText(string $text): string
+    {
+        if (trim($text) === '') {
+            return $text;
+        }
+
+        $placeholders = [];
+        $tokenIndex = 0;
+
+        $protect = function (string $val) use (&$placeholders, &$tokenIndex): string {
+            $token = '___MATH_SAVED_TOKEN_'.$tokenIndex.'___';
+            $placeholders[$token] = $val;
+            $tokenIndex++;
+
+            return $token;
+        };
+
+        // 1. Lindungi display math $$ ... $$ yang sudah ada
+        $text = preg_replace_callback('/\$\$([\s\S]*?)\$\$/u', function ($m) use ($protect) {
+            return $protect($m[0]);
+        }, $text);
+
+        // 2. Lindungi inline math $ ... $ yang sudah ada
+        $text = preg_replace_callback('/\$([^\$\r\n]+?)\$/u', function ($m) use ($protect) {
+            return $protect($m[0]);
+        }, $text);
+
+        // 3. Lindungi markdown images ![alt](url)
+        $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)]+)\)/u', function ($m) use ($protect) {
+            return $protect($m[0]);
+        }, $text);
+
+        // 4. Transformasi akar pangkat verbal bahasa Indonesia:
+        // Contoh: "akar pangkat 3 dari 27", "akar pangkat n dari x"
+        $text = preg_replace_callback('/akar\s+pangkat\s+([0-9a-zA-Z]+)\s+dari\s+([^\s,\.\?!;:]+)/iu', function ($m) use ($protect) {
+            return $protect('$\\sqrt['.trim($m[1]).']{'.trim($m[2]).'}$');
+        }, $text);
+
+        // 5. Transformasi notasi sqrt & akar dengan derajat kurung siku:
+        // Contoh: sqrt[n]{x}, sqrt[n](x), akar[n]{x}, akar[n](x), akar[n] x
+        $text = preg_replace_callback('/(?:sqrt|akar)\s*\[([^\]]+)\]\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/iu', function ($m) use ($protect) {
+            $expr = trim($m[2] !== '' ? $m[2] : ($m[3] !== '' ? $m[3] : ($m[4] ?? '')));
+
+            return $protect('$\\sqrt['.trim($m[1]).']{'.$expr.'}$');
+        }, $text);
+
+        // 6. Transformasi notasi sqrt & akar biasa:
+        // Contoh: sqrt{x}, sqrt(x), akar{x}, akar(x), akar 25, akar x
+        $text = preg_replace_callback('/(?:sqrt|akar)\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/iu', function ($m) use ($protect) {
+            $expr = trim($m[1] !== '' ? $m[1] : ($m[2] !== '' ? $m[2] : ($m[3] ?? '')));
+            if (in_array(strtolower($expr), ['masalah', 'rumput', 'pohon', 'tunggang', 'serabut'], true)) {
+                return $m[0];
+            }
+
+            return $protect('$\\sqrt{'.$expr.'}$');
+        }, $text);
+
+        // 7. Simbol akar Unicode:
+        // ∜ (akar pangkat 4): ∜(expr), ∜{expr}, ∜16, ∜x
+        $text = preg_replace_callback('/∜\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/u', function ($m) use ($protect) {
+            $expr = trim($m[1] !== '' ? $m[1] : ($m[2] !== '' ? $m[2] : ($m[3] ?? '')));
+
+            return $protect('$\\sqrt[4]{'.$expr.'}$');
+        }, $text);
+
+        // ∛ (akar pangkat 3): ∛(expr), ∛{expr}, ∛27, ∛x
+        $text = preg_replace_callback('/∛\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/u', function ($m) use ($protect) {
+            $expr = trim($m[1] !== '' ? $m[1] : ($m[2] !== '' ? $m[2] : ($m[3] ?? '')));
+
+            return $protect('$\\sqrt[3]{'.$expr.'}$');
+        }, $text);
+
+        // √ (akar kuadrat): √(expr), √{expr}, √144, √x
+        $text = preg_replace_callback('/√\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/u', function ($m) use ($protect) {
+            $expr = trim($m[1] !== '' ? $m[1] : ($m[2] !== '' ? $m[2] : ($m[3] ?? '')));
+
+            return $protect('$\\sqrt{'.$expr.'}$');
+        }, $text);
+
+        // 8. Tangani makro LaTeX matematika terbuka yang belum terbungkus $...$
+        // Termasuk akar pangkat (\sqrt[n]{x}), pecahan (\frac, \dfrac), binomial, integral, limit, dan matriks
+        $latexPatterns = [
+            '/(\\\\sqrt\[[^\]]+\]\{[^{}]+\})/u',
+            '/(\\\\sqrt\{[^{}]+\})/u',
+            '/(\\\\(?:frac|dfrac|binom)\{[^{}]+\}\{[^{}]+\})/u',
+            '/(\\\\begin\{(?:matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases)\}[\s\S]*?\\\\end\{(?:matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases)\})/u',
+            '/(\\\\(?:sum|int|iint|iiint|oint|prod|coprod|lim)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+)?(?:\^\{[^{}]+\}|\^[0-9a-zA-Z]+)?(?:\s*\{[^{}]+\}|\s+[a-zA-Z0-9]+)?)/u',
+        ];
+
+        foreach ($latexPatterns as $pattern) {
+            $text = preg_replace_callback($pattern, function ($m) use ($protect) {
+                return $protect('$'.trim($m[1]).'$');
+            }, $text);
+        }
+
+        // 9. Kembalikan semua token yang dilindungi
+        if (! empty($placeholders)) {
+            $text = strtr($text, $placeholders);
+        }
+
+        return $text;
+    }
+
     protected function extractImagesFromElement(
         \DOMNode $element,
         \DOMXPath $xpath,
@@ -1055,14 +1691,14 @@ class WordQuestionService
             <w:r><w:t>$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$</w:t></w:r>
             <w:r><w:t>, himpunan penyelesaian dari persamaan tersebut adalah ...</w:t></w:r>
         </w:p>
-        <w:p><w:r><w:t>A. $$x_1 = 3$$ atau $$x_2 = \frac{1}{2}$$</w:t></w:r></w:p>
-        <w:p><w:r><w:t>B. $$x_1 = -3$$ atau $$x_2 = -\frac{1}{2}$$</w:t></w:r></w:p>
-        <w:p><w:r><w:t>C. $$x_1 = 1$$ atau $$x_2 = 6$$</w:t></w:r></w:p>
-        <w:p><w:r><w:t>D. $$x_1 = 2$$ atau $$x_2 = 5$$</w:t></w:r></w:p>
+        <w:p><w:r><w:t>A. $x_1 = 3$ atau $x_2 = \frac{1}{2}$</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. $x_1 = -3$ atau $x_2 = -\frac{1}{2}$</w:t></w:r></w:p>
+        <w:p><w:r><w:t>C. $x_1 = 1$ atau $x_2 = 6$</w:t></w:r></w:p>
+        <w:p><w:r><w:t>D. $x_1 = 2$ atau $x_2 = 5$</w:t></w:r></w:p>
         <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: A</w:t></w:r></w:p>
         <w:p><w:r><w:rPr><w:b/><w:color w:val="d9480f"/></w:rPr><w:t>BOBOT: 2.5</w:t></w:r></w:p>
         <w:p>
-            <w:r><w:rPr><w:i/></w:rPr><w:t>PEMBAHASAN: Nilai diskriminan D = (-7)^2 - 4(2)(3) = 49 - 24 = 25. Maka x = (7 +/- 5)/4, sehingga didapatkan x1 = 12/4 = 3 dan x2 = 2/4 = 1/2.</w:t></w:r>
+            <w:r><w:t>PEMBAHASAN: Nilai D = 25. Maka $x = \frac{7 \pm 5}{4}$, sehingga $x_1 = 3$ dan $x_2 = \frac{1}{2}$.</w:t></w:r>
         </w:p>
         <w:p><w:r><w:t></w:t></w:r></w:p>
 
@@ -1263,153 +1899,104 @@ class WordQuestionService
         $bodyXml .= '<w:p><w:r><w:t></w:t></w:r></w:p>';
 
         // Stimulus (if any)
-        if (! empty($package['stimulus']['content'])) {
-            $stimTitle = htmlspecialchars($package['stimulus']['title'] ?? 'Wacana Stimulus', ENT_QUOTES | ENT_XML1, 'UTF-8');
-            $stimContent = htmlspecialchars($package['stimulus']['content'], ENT_QUOTES | ENT_XML1, 'UTF-8');
-
-            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="1098ad"/></w:rPr><w:t>[STIMULUS]</w:t></w:r></w:p>';
-            $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Judul: '.$stimTitle.'</w:t></w:r></w:p>';
-            $bodyXml .= '<w:p><w:r><w:t>Teks: '.$stimContent.'</w:t></w:r></w:p>';
-            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="1098ad"/></w:rPr><w:t>[AKHIR NARASI]</w:t></w:r></w:p>';
-            $bodyXml .= '<w:p><w:r><w:t></w:t></w:r></w:p>';
-        }
-
-        // Items grouped by question type in pedagogical order
+        $stimuli = ! empty($package['stimuli']) && is_array($package['stimuli']) ? $package['stimuli'] : [];
         $items = $package['items'] ?? [];
-        $preferredTypeOrder = [
-            'mcq_single',
-            'mcq_multiple',
-            'binary_matrix',
-            'matching',
-            'ordering',
-            'short_answer',
-            'essay',
-            'mcq_weighted',
-        ];
 
-        $groupedByType = [];
-        foreach ($items as $it) {
-            $t = $it['type'] ?? 'mcq_single';
-            if (! isset($groupedByType[$t])) {
-                $groupedByType[$t] = [];
+        if (count($stimuli) > 1) {
+            foreach ($stimuli as $st) {
+                $stimIndex = (int) ($st['index'] ?? 1);
+                $stimTitleXml = htmlspecialchars($st['title'] ?? "Wacana Stimulus {$stimIndex}", ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $stimContentXml = htmlspecialchars($st['content'] ?? '', ENT_QUOTES | ENT_XML1, 'UTF-8');
+
+                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="1098ad"/></w:rPr><w:t>[STIMULUS]</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Judul: '.$stimTitleXml.'</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:t>Teks: '.$stimContentXml.'</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="1098ad"/></w:rPr><w:t>[AKHIR NARASI]</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:t></w:t></w:r></w:p>';
+
+                $childItems = array_filter($items, fn ($it) => (int) ($it['stimulus_index'] ?? 0) === $stimIndex);
+                foreach ($childItems as $item) {
+                    $bodyXml .= $this->renderQuestionItemDocxXml($item);
+                }
             }
-            $groupedByType[$t][] = $it;
-        }
 
-        uksort($groupedByType, function ($a, $b) use ($preferredTypeOrder) {
-            $posA = array_search($a, $preferredTypeOrder, true);
-            $posB = array_search($b, $preferredTypeOrder, true);
-            $idxA = $posA === false ? 999 : $posA;
-            $idxB = $posB === false ? 999 : $posB;
-
-            return $idxA <=> $idxB;
-        });
-
-        $partLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-        $secIdx = 0;
-
-        foreach ($groupedByType as $type => $typeItems) {
-            $letter = $partLetters[$secIdx] ?? chr(65 + $secIdx);
-            $typeMeta = $this->getQuestionTypeMeta($type);
-            $count = count($typeItems);
-
-            // Part Header Banner (Without document section break)
-            $partTitle = '=== BAGIAN '.$letter.': '.strtoupper($typeMeta['name']).' ('.$count.' Butir Soal) ===';
-            $bodyXml .= '<w:p><w:pPr><w:spacing w:before="360" w:after="80"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:color w:val="1c7ed6"/></w:rPr><w:t>'.htmlspecialchars($partTitle, ENT_QUOTES | ENT_XML1, 'UTF-8').'</w:t></w:r></w:p>';
-            $bodyXml .= '<w:p><w:pPr><w:spacing w:before="0" w:after="160"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="19"/><w:color w:val="495057"/></w:rPr><w:t>'.htmlspecialchars($typeMeta['instructions'], ENT_QUOTES | ENT_XML1, 'UTF-8').'</w:t></w:r></w:p>';
-
-            foreach ($typeItems as $item) {
-                $num = (int) ($item['number'] ?? 1);
-                $prompt = htmlspecialchars(trim($item['prompt'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                $points = (float) ($item['points'] ?? 1.0);
-                $options = $item['options'] ?? [];
-                $explanation = htmlspecialchars(trim($item['explanation'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-
-                if ($type === 'mcq_weighted') {
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="2f9e44"/></w:rPr><w:t>[TKP]</w:t></w:r></w:p>';
-                } elseif ($type === 'mcq_multiple') {
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="7950f2"/></w:rPr><w:t>[KOMPLEKS]</w:t></w:r></w:p>';
-                } elseif ($type === 'binary_matrix') {
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="e67700"/></w:rPr><w:t>[BENAR SALAH]</w:t></w:r></w:p>';
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KOLOM: Benar | Salah</w:t></w:r></w:p>';
-                } elseif ($type === 'matching') {
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="0ca678"/></w:rPr><w:t>[MENJODOHKAN]</w:t></w:r></w:p>';
-                } elseif ($type === 'ordering') {
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="22b8cf"/></w:rPr><w:t>[MENGURUTKAN]</w:t></w:r></w:p>';
-                } elseif ($type === 'short_answer') {
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="ae3ec9"/></w:rPr><w:t>[ISIAN]</w:t></w:r></w:p>';
-                } elseif ($type === 'essay') {
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="d6336c"/></w:rPr><w:t>[ESAI]</w:t></w:r></w:p>';
+            $standaloneItems = array_filter($items, fn ($it) => empty($it['stimulus_index']));
+            if (! empty($standaloneItems)) {
+                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="e67700"/></w:rPr><w:t>[SOAL MANDIRI]</w:t></w:r></w:p>';
+                foreach ($standaloneItems as $item) {
+                    $bodyXml .= $this->renderQuestionItemDocxXml($item);
                 }
+            }
+        } else {
+            $stimRaw = ! empty($stimuli[0]) ? $stimuli[0] : ($package['stimulus'] ?? null);
+            $stimTitle = 'Wacana Stimulus';
+            $stimContent = '';
+            if (is_array($stimRaw)) {
+                $stimTitle = $stimRaw['title'] ?? 'Wacana Stimulus';
+                $stimContent = $stimRaw['content'] ?? ($stimRaw['text'] ?? ($stimRaw['wacana'] ?? ''));
+            } elseif (is_string($stimRaw) && trim($stimRaw) !== '') {
+                $stimContent = trim($stimRaw);
+            }
 
-                $bodyXml .= '<w:p><w:r><w:t>'.$num.'. '.$prompt.'</w:t></w:r></w:p>';
+            if ($stimContent !== '') {
+                $stimTitleXml = htmlspecialchars($stimTitle, ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $stimContentXml = htmlspecialchars($stimContent, ENT_QUOTES | ENT_XML1, 'UTF-8');
 
-                if ($type === 'mcq_weighted') {
-                    foreach ($options as $opt) {
-                        $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $score = (int) ($opt['score'] ?? 0);
-                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. ['.$score.'] '.$text.'</w:t></w:r></w:p>';
-                    }
-                } elseif ($type === 'mcq_single') {
-                    $correctLetter = 'A';
-                    foreach ($options as $opt) {
-                        $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. '.$text.'</w:t></w:r></w:p>';
-                        if (! empty($opt['is_correct'])) {
-                            $correctLetter = $lbl;
-                        }
-                    }
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.$correctLetter.'</w:t></w:r></w:p>';
-                } elseif ($type === 'mcq_multiple') {
-                    $correctLetters = [];
-                    foreach ($options as $opt) {
-                        $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. '.$text.'</w:t></w:r></w:p>';
-                        if (! empty($opt['is_correct'])) {
-                            $correctLetters[] = $lbl;
-                        }
-                    }
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.implode(', ', $correctLetters).'</w:t></w:r></w:p>';
-                } elseif ($type === 'binary_matrix') {
-                    foreach ($options as $idx => $opt) {
-                        $iNum = $idx + 1;
-                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $key = htmlspecialchars(strtoupper($opt['match_key'] ?? 'BENAR'), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.' ['.$key.']</w:t></w:r></w:p>';
-                    }
-                } elseif ($type === 'matching') {
-                    foreach ($options as $idx => $opt) {
-                        $iNum = $idx + 1;
-                        $left = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $right = htmlspecialchars(trim($opt['match_key'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$left.' -&gt; '.$right.'</w:t></w:r></w:p>';
-                    }
-                } elseif ($type === 'ordering') {
-                    foreach ($options as $idx => $opt) {
-                        $iNum = $idx + 1;
-                        $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                        $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.'</w:t></w:r></w:p>';
-                    }
-                } elseif ($type === 'short_answer') {
-                    $key = htmlspecialchars(trim($options[0]['option_text'] ?? 'Jawaban'), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.$key.'</w:t></w:r></w:p>';
-                }
-
-                if ($points > 0 && $type !== 'mcq_weighted') {
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="d9480f"/></w:rPr><w:t>BOBOT: '.number_format($points, 1).'</w:t></w:r></w:p>';
-                }
-
-                if ($explanation !== '') {
-                    $bodyXml .= '<w:p><w:r><w:rPr><w:i/></w:rPr><w:t>PEMBAHASAN: '.$explanation.'</w:t></w:r></w:p>';
-                }
-
+                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="1098ad"/></w:rPr><w:t>[STIMULUS]</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Judul: '.$stimTitleXml.'</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:t>Teks: '.$stimContentXml.'</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="1098ad"/></w:rPr><w:t>[AKHIR NARASI]</w:t></w:r></w:p>';
                 $bodyXml .= '<w:p><w:r><w:t></w:t></w:r></w:p>';
             }
 
-            $secIdx++;
+            // Items grouped by question type in pedagogical order
+            $preferredTypeOrder = [
+                'mcq_single',
+                'mcq_multiple',
+                'binary_matrix',
+                'matching',
+                'ordering',
+                'short_answer',
+                'essay',
+                'mcq_weighted',
+            ];
+
+            $groupedByType = [];
+            foreach ($items as $it) {
+                $t = $it['type'] ?? 'mcq_single';
+                if (! isset($groupedByType[$t])) {
+                    $groupedByType[$t] = [];
+                }
+                $groupedByType[$t][] = $it;
+            }
+
+            uksort($groupedByType, function ($a, $b) use ($preferredTypeOrder) {
+                $posA = array_search($a, $preferredTypeOrder, true);
+                $posB = array_search($b, $preferredTypeOrder, true);
+                $idxA = $posA === false ? 999 : $posA;
+                $idxB = $posB === false ? 999 : $posB;
+
+                return $idxA <=> $idxB;
+            });
+
+            $partLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+            $secIdx = 0;
+
+            foreach ($groupedByType as $type => $typeItems) {
+                $letter = $partLetters[$secIdx] ?? chr(65 + $secIdx);
+                $typeMeta = $this->getQuestionTypeMeta($type);
+                $count = count($typeItems);
+
+                $partTitle = '=== BAGIAN '.$letter.': '.strtoupper($typeMeta['name']).' ('.$count.' Butir Soal) ===';
+                $bodyXml .= '<w:p><w:pPr><w:spacing w:before="360" w:after="80"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:color w:val="1c7ed6"/></w:rPr><w:t>'.htmlspecialchars($partTitle, ENT_QUOTES | ENT_XML1, 'UTF-8').'</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:pPr><w:spacing w:before="0" w:after="160"/><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="19"/><w:color w:val="495057"/></w:rPr><w:t>'.htmlspecialchars($typeMeta['instructions'], ENT_QUOTES | ENT_XML1, 'UTF-8').'</w:t></w:r></w:p>';
+
+                foreach ($typeItems as $item) {
+                    $bodyXml .= $this->renderQuestionItemDocxXml($item);
+                }
+
+                $secIdx++;
+            }
         }
 
         $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1466,5 +2053,106 @@ class WordQuestionService
                 'instructions' => 'Petunjuk Pengerjaan: Kerjakan butir-butir soal berikut sesuai instruksi yang tertera.',
             ],
         };
+    }
+
+    /**
+     * Render a single question item into OOXML Word paragraph string.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    protected function renderQuestionItemDocxXml(array $item): string
+    {
+        $bodyXml = '';
+        $type = $item['type'] ?? 'mcq_single';
+        $num = (int) ($item['number'] ?? 1);
+        $prompt = htmlspecialchars(trim($item['prompt'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $points = (float) ($item['points'] ?? 1.0);
+        $options = $item['options'] ?? [];
+        $explanation = htmlspecialchars(trim($item['explanation'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+
+        if ($type === 'mcq_weighted') {
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="2f9e44"/></w:rPr><w:t>[TKP]</w:t></w:r></w:p>';
+        } elseif ($type === 'mcq_multiple') {
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="7950f2"/></w:rPr><w:t>[KOMPLEKS]</w:t></w:r></w:p>';
+        } elseif ($type === 'binary_matrix') {
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="e67700"/></w:rPr><w:t>[BENAR SALAH]</w:t></w:r></w:p>';
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KOLOM: Benar | Salah</w:t></w:r></w:p>';
+        } elseif ($type === 'matching') {
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="0ca678"/></w:rPr><w:t>[MENJODOHKAN]</w:t></w:r></w:p>';
+        } elseif ($type === 'ordering') {
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="22b8cf"/></w:rPr><w:t>[MENGURUTKAN]</w:t></w:r></w:p>';
+        } elseif ($type === 'short_answer') {
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="ae3ec9"/></w:rPr><w:t>[ISIAN]</w:t></w:r></w:p>';
+        } elseif ($type === 'essay') {
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="d6336c"/></w:rPr><w:t>[ESAI]</w:t></w:r></w:p>';
+        }
+
+        $bodyXml .= '<w:p><w:r><w:t>'.$num.'. '.$prompt.'</w:t></w:r></w:p>';
+
+        if ($type === 'mcq_weighted') {
+            foreach ($options as $opt) {
+                $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $score = (int) ($opt['score'] ?? 0);
+                $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. ['.$score.'] '.$text.'</w:t></w:r></w:p>';
+            }
+        } elseif ($type === 'mcq_single') {
+            $correctLetter = 'A';
+            foreach ($options as $opt) {
+                $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. '.$text.'</w:t></w:r></w:p>';
+                if (! empty($opt['is_correct'])) {
+                    $correctLetter = $lbl;
+                }
+            }
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.$correctLetter.'</w:t></w:r></w:p>';
+        } elseif ($type === 'mcq_multiple') {
+            $correctLetters = [];
+            foreach ($options as $opt) {
+                $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. '.$text.'</w:t></w:r></w:p>';
+                if (! empty($opt['is_correct'])) {
+                    $correctLetters[] = $lbl;
+                }
+            }
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.implode(', ', $correctLetters).'</w:t></w:r></w:p>';
+        } elseif ($type === 'binary_matrix') {
+            foreach ($options as $idx => $opt) {
+                $iNum = $idx + 1;
+                $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $key = htmlspecialchars(strtoupper($opt['match_key'] ?? 'BENAR'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.' ['.$key.']</w:t></w:r></w:p>';
+            }
+        } elseif ($type === 'matching') {
+            foreach ($options as $idx => $opt) {
+                $iNum = $idx + 1;
+                $left = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $right = htmlspecialchars(trim($opt['match_key'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$left.' -&gt; '.$right.'</w:t></w:r></w:p>';
+            }
+        } elseif ($type === 'ordering') {
+            foreach ($options as $idx => $opt) {
+                $iNum = $idx + 1;
+                $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
+                $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.'</w:t></w:r></w:p>';
+            }
+        } elseif ($type === 'short_answer') {
+            $key = htmlspecialchars(trim($options[0]['option_text'] ?? 'Jawaban'), ENT_QUOTES | ENT_XML1, 'UTF-8');
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.$key.'</w:t></w:r></w:p>';
+        }
+
+        if ($points > 0 && $type !== 'mcq_weighted') {
+            $bodyXml .= '<w:p><w:r><w:rPr><w:b/><w:color w:val="d9480f"/></w:rPr><w:t>BOBOT: '.number_format($points, 1).'</w:t></w:r></w:p>';
+        }
+
+        if ($explanation !== '') {
+            $bodyXml .= '<w:p><w:r><w:rPr><w:i/></w:rPr><w:t>PEMBAHASAN: '.$explanation.'</w:t></w:r></w:p>';
+        }
+
+        $bodyXml .= '<w:p><w:r><w:t></w:t></w:r></w:p>';
+
+        return $bodyXml;
     }
 }

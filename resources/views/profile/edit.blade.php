@@ -629,7 +629,7 @@
                     <div class="rt-scroll-area">
                         <div class="rt-Grid">
                             @forelse($publicAssessments ?? [] as $assessment)
-                                <a href="{{ route('assessments.show', $assessment->id ?? 1) }}" target="_blank" class="rt-reset rt-BaseCard rt-Card">
+                                <a href="{{ route('exam.gate.show', $assessment->id ?? 1) }}" target="_blank" class="rt-reset rt-BaseCard rt-Card">
                                     <div class="rt-Box rt-r-mb-3" style="display: flex; justify-content: space-between; align-items: center;">
                                         <div style="width: 36px; height: 36px; border-radius: 10px; background: #dcfce7; display: flex; align-items: center; justify-content: center; color: #059669;">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
@@ -669,7 +669,7 @@
                     <div class="rt-scroll-area">
                         <div class="rt-Grid">
                             @forelse($publicAssessments ?? [] as $assessment)
-                                <a href="{{ route('assessments.show', $assessment->id ?? 1) }}" target="_blank" class="rt-reset rt-BaseCard rt-Card">
+                                <a href="{{ route('exam.gate.show', $assessment->id ?? 1) }}" target="_blank" class="rt-reset rt-BaseCard rt-Card">
                                     <div class="rt-Box rt-r-mb-3" style="display: flex; justify-content: space-between; align-items: center;">
                                         <div style="width: 36px; height: 36px; border-radius: 10px; background: #e0f2fe; display: flex; align-items: center; justify-content: center; color: #0284c7;">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>

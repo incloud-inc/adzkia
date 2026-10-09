@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\WordQuestionService;
+use App\Support\MarkdownRenderer;
 use PHPUnit\Framework\TestCase;
 
 class WordQuestionServiceTest extends TestCase
@@ -234,5 +235,194 @@ class WordQuestionServiceTest extends TestCase
         $this->assertTrue($q2['options'][0]['is_correct']);
         $this->assertTrue($q2['options'][1]['is_correct']);
         $this->assertFalse($q2['options'][2]['is_correct']);
+    }
+
+    public function test_it_converts_word_omml_equations_to_markdown_latex(): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'test_omml_').'.docx';
+        $zip = new \ZipArchive;
+        $zip->open($tmp, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+
+        $contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+    <Default Extension="xml" ContentType="application/xml"/>
+    <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>';
+        $zip->addFromString('[Content_Types].xml', $contentTypes);
+
+        $rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>';
+        $zip->addFromString('_rels/.rels', $rels);
+
+        $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+    <w:body>
+        <w:p>
+            <w:r><w:t>1. Hitunglah nilai dari </w:t></w:r>
+            <m:oMath>
+                <m:f>
+                    <m:num><m:r><m:t>1</m:t></m:r></m:num>
+                    <m:den><m:r><m:t>2</m:t></m:r></m:den>
+                </m:f>
+                <m:r><m:t> + </m:t></m:r>
+                <m:rad>
+                    <m:deg/>
+                    <m:e><m:r><m:t>16</m:t></m:r></m:e>
+                </m:rad>
+                <m:r><m:t> + </m:t></m:r>
+                <m:sSup>
+                    <m:e><m:r><m:t>x</m:t></m:r></m:e>
+                    <m:sup><m:r><m:t>2</m:t></m:r></m:sup>
+                </m:sSup>
+            </m:oMath>
+            <w:r><w:t> jika x = 3.</w:t></w:r>
+        </w:p>
+        <w:p><w:r><w:t>A. 13,5</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. 14</w:t></w:r></w:p>
+        <w:p><w:r><w:t>KUNCI: A</w:t></w:r></w:p>
+        <w:p>
+            <w:r><w:t>PEMBAHASAN: Persamaan kuadrat dengan rumus integral: </w:t></w:r>
+            <m:oMathPara>
+                <m:oMath>
+                    <m:nary>
+                        <m:naryPr><m:chr m:val="∫"/></m:naryPr>
+                        <m:sub><m:r><m:t>0</m:t></m:r></m:sub>
+                        <m:sup><m:r><m:t>1</m:t></m:r></m:sup>
+                        <m:e>
+                            <m:sSup>
+                                <m:e><m:r><m:t>x</m:t></m:r></m:e>
+                                <m:sup><m:r><m:t>2</m:t></m:r></m:sup>
+                            </m:sSup>
+                            <m:r><m:t> dx</m:t></m:r>
+                        </m:e>
+                    </m:nary>
+                </m:oMath>
+            </m:oMathPara>
+        </w:p>
+    </w:body>
+</w:document>';
+        $zip->addFromString('word/document.xml', $documentXml);
+        $zip->close();
+
+        $items = $this->service->parseDocx($tmp);
+        @unlink($tmp);
+
+        $this->assertCount(1, $items);
+        $q = $items[0];
+
+        // Memastikan pecahan (\frac{1}{2}), akar (\sqrt{16}), dan pangkat ({x}^{2}) menjadi LaTeX inline $...$
+        $this->assertStringContainsString('$\\frac{1}{2} + \\sqrt{16} + {x}^{2}$', $q['prompt']);
+
+        // Memastikan integral blok (\int_{0}^{1}) menjadi LaTeX display $$...$$
+        $this->assertStringContainsString('$$\\int_{0}^{1} {x}^{2} dx$$', preg_replace('/\s+/', ' ', $q['explanation']));
+    }
+
+    public function test_format_math_in_plain_text_converts_sqrt_akar_and_symbols_to_markdown_latex(): void
+    {
+        $input = 'Berapakah nilai dari sqrt(16) + akar(25) - sqrt[3]{8} dan √144?';
+        $formatted = $this->service->formatMathInPlainText($input);
+
+        $this->assertStringContainsString('$\\sqrt{16}$', $formatted);
+        $this->assertStringContainsString('$\\sqrt{25}$', $formatted);
+        $this->assertStringContainsString('$\\sqrt[3]{8}$', $formatted);
+        $this->assertStringContainsString('$\\sqrt{144}$', $formatted);
+
+        // Uji rumus LaTeX terbuka yang otomatis dibungkus $...$
+        $inputLatex = 'Hitung nilai \frac{10}{2} + \sqrt{100}';
+        $formattedLatex = $this->service->formatMathInPlainText($inputLatex);
+        $this->assertStringContainsString('$\\frac{10}{2}$', $formattedLatex);
+        $this->assertStringContainsString('$\\sqrt{100}$', $formattedLatex);
+
+        // Lindungi rumus yang sudah berada di dalam $...$ atau $$...$$ agar tidak double wrapped
+        $inputProtected = 'Rumus $x = \sqrt{a+b}$ dan $$E = mc^2$$ tidak boleh rusak.';
+        $formattedProtected = $this->service->formatMathInPlainText($inputProtected);
+        $this->assertEquals($inputProtected, $formattedProtected);
+    }
+
+    public function test_it_handles_word_vertalign_superscript_and_subscript(): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'test_vertalign_').'.docx';
+        $zip = new \ZipArchive;
+        $zip->open($tmp, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+
+        $contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+    <Default Extension="xml" ContentType="application/xml"/>
+    <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>';
+        $zip->addFromString('[Content_Types].xml', $contentTypes);
+
+        $rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>';
+        $zip->addFromString('_rels/.rels', $rels);
+
+        $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+    <w:body>
+        <w:p>
+            <w:r><w:t>1. Rumus senyawa kimia air adalah H</w:t></w:r>
+            <w:r>
+                <w:rPr><w:vertAlign w:val="subscript"/></w:rPr>
+                <w:t>2</w:t>
+            </w:r>
+            <w:r><w:t>O dan persamaan matematika x</w:t></w:r>
+            <w:r>
+                <w:rPr><w:vertAlign w:val="superscript"/></w:rPr>
+                <w:t>2</w:t>
+            </w:r>
+            <w:r><w:t> + y = 0.</w:t></w:r>
+        </w:p>
+        <w:p><w:r><w:t>A. Benar</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Salah</w:t></w:r></w:p>
+        <w:p><w:r><w:t>KUNCI: A</w:t></w:r></w:p>
+    </w:body>
+</w:document>';
+        $zip->addFromString('word/document.xml', $documentXml);
+        $zip->close();
+
+        $items = $this->service->parseDocx($tmp);
+        @unlink($tmp);
+
+        $this->assertCount(1, $items);
+        $q = $items[0];
+
+        $this->assertStringContainsString('H<sub>2</sub>O', $q['prompt']);
+        $this->assertStringContainsString('x<sup>2</sup>', $q['prompt']);
+    }
+
+    public function test_it_converts_nth_roots_and_preserves_latex_in_markdown(): void
+    {
+        // 1. Uji akar pangkat verbal bahasa Indonesia
+        $res1 = $this->service->formatMathInPlainText('Berapa nilai dari akar pangkat 3 dari 8?');
+        $this->assertStringContainsString('$\\sqrt[3]{8}$', $res1);
+
+        // 2. Uji akar kurung siku
+        $res2 = $this->service->formatMathInPlainText('Hitung sqrt[4]{16} dan akar[5]{32}');
+        $this->assertStringContainsString('$\\sqrt[4]{16}$', $res2);
+        $this->assertStringContainsString('$\\sqrt[5]{32}$', $res2);
+
+        // 3. Uji simbol Unicode akar (∜, ∛, √)
+        $res3 = $this->service->formatMathInPlainText('Tentukan ∜81 dan ∛27 serta √144');
+        $this->assertStringContainsString('$\\sqrt[4]{81}$', $res3);
+        $this->assertStringContainsString('$\\sqrt[3]{27}$', $res3);
+        $this->assertStringContainsString('$\\sqrt{144}$', $res3);
+
+        // 4. Uji makro LaTeX terbuka yang belum dibungkus $
+        $res4 = $this->service->formatMathInPlainText('Rumus adalah \sqrt[3]{x+1} dan \frac{a}{b}');
+        $this->assertStringContainsString('$\\sqrt[3]{x+1}$', $res4);
+        $this->assertStringContainsString('$\\frac{a}{b}$', $res4);
+
+        // 5. Uji MarkdownRenderer menjaga formula dari perusakan CommonMark
+        $html = MarkdownRenderer::render('Hitung $\\sqrt[3]{x}$ dan $\\sum_{i=1}^n x_i$');
+        $this->assertStringContainsString('$\\sqrt[3]{x}$', $html);
+        $this->assertStringContainsString('$\\sum_{i=1}^n x_i$', $html);
+        $this->assertStringNotContainsString('<em>', $html);
     }
 }

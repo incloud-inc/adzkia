@@ -63,6 +63,11 @@ class TenantController extends Controller
         $showGradeSd = $tenant->showGrade('sd');
         $showGradeSmp = $tenant->showGrade('smp');
         $showGradeSma = $tenant->showGrade('sma');
+        $showGradeTkaSd = $tenant->showGrade('tka_sd');
+        $showGradeTkaSmp = $tenant->showGrade('tka_smp');
+        $showGradeTkaSma = $tenant->showGrade('tka_sma');
+        $showGradeUtbk = $tenant->showGrade('utbk');
+        $showGradeSkd = $tenant->showGrade('skd');
 
         // Hitung total asesmen unik yang aktif dan tampil pada portal publik tenant ini
         $portalAssessmentIds = collect($assessmentGroups['umum'])->pluck('id');
@@ -74,6 +79,21 @@ class TenantController extends Controller
         }
         if ($showGradeSma) {
             $portalAssessmentIds = $portalAssessmentIds->merge(collect($assessmentGroups['sma'])->pluck('id'));
+        }
+        if ($showGradeTkaSd) {
+            $portalAssessmentIds = $portalAssessmentIds->merge(collect($assessmentGroups['tka_sd'])->pluck('id'));
+        }
+        if ($showGradeTkaSmp) {
+            $portalAssessmentIds = $portalAssessmentIds->merge(collect($assessmentGroups['tka_smp'])->pluck('id'));
+        }
+        if ($showGradeTkaSma) {
+            $portalAssessmentIds = $portalAssessmentIds->merge(collect($assessmentGroups['tka_sma'])->pluck('id'));
+        }
+        if ($showGradeUtbk) {
+            $portalAssessmentIds = $portalAssessmentIds->merge(collect($assessmentGroups['utbk'])->pluck('id'));
+        }
+        if ($showGradeSkd) {
+            $portalAssessmentIds = $portalAssessmentIds->merge(collect($assessmentGroups['skd'])->pluck('id'));
         }
 
         $totalAssessmentsCount = $portalAssessmentIds->filter()->unique()->count();
@@ -94,6 +114,16 @@ class TenantController extends Controller
             'showGradeSd' => $showGradeSd,
             'showGradeSmp' => $showGradeSmp,
             'showGradeSma' => $showGradeSma,
+            'showGradeTkaSd' => $showGradeTkaSd,
+            'showGradeTkaSmp' => $showGradeTkaSmp,
+            'showGradeTkaSma' => $showGradeTkaSma,
+            'showGradeUtbk' => $showGradeUtbk,
+            'showGradeSkd' => $showGradeSkd,
+            'tkaSdAssessments' => $assessmentGroups['tka_sd'],
+            'tkaSmpAssessments' => $assessmentGroups['tka_smp'],
+            'tkaSmaAssessments' => $assessmentGroups['tka_sma'],
+            'utbkAssessments' => $assessmentGroups['utbk'],
+            'skdAssessments' => $assessmentGroups['skd'],
         ]);
     }
 

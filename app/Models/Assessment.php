@@ -17,6 +17,10 @@ class Assessment extends Model
 {
     use HasFactory;
 
+    protected $appends = [
+        'token',
+    ];
+
     protected static function booted(): void
     {
         static::creating(function (Assessment $assessment) {
@@ -243,6 +247,7 @@ class Assessment extends Model
         $formatItem = function ($item) {
             return [
                 'id' => $item->id,
+                'token' => $item->token,
                 'title' => $item->title,
                 'subject' => $item->subject?->name ?? 'Umum',
                 'grade_level' => $item->grade_level ?: 'Umum',
@@ -252,6 +257,7 @@ class Assessment extends Model
                 'is_mandatory' => (bool) $item->is_mandatory,
                 'is_global' => (bool) $item->is_global,
                 'url' => route('assessments.show', $item->id),
+                'gate_url' => route('exam.gate.show', ['assessment' => $item->token]),
             ];
         };
 
@@ -280,7 +286,32 @@ class Assessment extends Model
         $sma = $all->filter(function ($item) {
             $grade = strtoupper((string) $item->grade_level);
 
-            return str_contains($grade, 'SMA') || str_contains($grade, 'SMK') || str_contains($grade, 'MA') || in_array($grade, ['10', '11', '12']) || $item->type === 'utbk' || $item->type === 'tka';
+            return str_contains($grade, 'SMA') || str_contains($grade, 'SMK') || str_contains($grade, 'MA') || in_array($grade, ['10', '11', '12']);
+        });
+
+        // 5. Asesmen TKA SD
+        $tka_sd = $all->filter(function ($item) {
+            return $item->type === 'tka' && str_contains(strtoupper((string) $item->grade_level), 'SD');
+        });
+
+        // 6. Asesmen TKA SMP
+        $tka_smp = $all->filter(function ($item) {
+            return $item->type === 'tka' && str_contains(strtoupper((string) $item->grade_level), 'SMP');
+        });
+
+        // 7. Asesmen TKA SMA
+        $tka_sma = $all->filter(function ($item) {
+            return $item->type === 'tka' && (str_contains(strtoupper((string) $item->grade_level), 'SMA') || empty($item->grade_level));
+        });
+
+        // 8. Asesmen UTBK
+        $utbk = $all->filter(function ($item) {
+            return $item->type === 'utbk';
+        });
+
+        // 9. Asesmen SKD
+        $skd = $all->filter(function ($item) {
+            return $item->type === 'skd';
         });
 
         return [
@@ -288,6 +319,11 @@ class Assessment extends Model
             'sd' => $sd->map($formatItem)->values(),
             'smp' => $smp->map($formatItem)->values(),
             'sma' => $sma->map($formatItem)->values(),
+            'tka_sd' => $tka_sd->map($formatItem)->values(),
+            'tka_smp' => $tka_smp->map($formatItem)->values(),
+            'tka_sma' => $tka_sma->map($formatItem)->values(),
+            'utbk' => $utbk->map($formatItem)->values(),
+            'skd' => $skd->map($formatItem)->values(),
         ];
     }
 }

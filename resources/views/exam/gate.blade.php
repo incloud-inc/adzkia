@@ -249,7 +249,7 @@
 
             {{-- Form Mulai --}}
             <div class="rounded-2xl border border-blue-200/80 bg-white p-6 shadow-sm fade-up-2">
-                <form method="POST" action="{{ route('exam.start', ['assessment' => $assessment->id]) }}"
+                <form method="POST" action="{{ route('exam.start', ['assessment' => $assessment]) }}"
                       id="start-form" class="space-y-4">
                     @csrf
 

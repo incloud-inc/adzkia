@@ -770,6 +770,66 @@
                             <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
                         </label>
                     </div>
+
+                    <!-- TKA SD -->
+                    <div class="list-item-dashed">
+                        <div>
+                            <span class="detail-label">Card TKA SD / MI</span>
+                            <div class="detail-value">Tes kompetensi akademik tingkat SD</div>
+                        </div>
+                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="show_grade_tka_sd" value="1" {{ $tenant->showGrade('tka_sd') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
+                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
+                        </label>
+                    </div>
+
+                    <!-- TKA SMP -->
+                    <div class="list-item-dashed">
+                        <div>
+                            <span class="detail-label">Card TKA SMP / MTs</span>
+                            <div class="detail-value">Tes kompetensi akademik tingkat SMP</div>
+                        </div>
+                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="show_grade_tka_smp" value="1" {{ $tenant->showGrade('tka_smp') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
+                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
+                        </label>
+                    </div>
+
+                    <!-- TKA SMA -->
+                    <div class="list-item-dashed">
+                        <div>
+                            <span class="detail-label">Card TKA SMA / MA</span>
+                            <div class="detail-value">Tes kompetensi akademik tingkat SMA</div>
+                        </div>
+                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="show_grade_tka_sma" value="1" {{ $tenant->showGrade('tka_sma') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
+                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
+                        </label>
+                    </div>
+
+                    <!-- UTBK -->
+                    <div class="list-item-dashed">
+                        <div>
+                            <span class="detail-label">Card UTBK SNBT</span>
+                            <div class="detail-value">Ujian masuk perguruan tinggi</div>
+                        </div>
+                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="show_grade_utbk" value="1" {{ $tenant->showGrade('utbk') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
+                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
+                        </label>
+                    </div>
+
+                    <!-- SKD -->
+                    <div class="list-item-dashed">
+                        <div>
+                            <span class="detail-label">Card SKD Kedinasan & CPNS</span>
+                            <div class="detail-value">Persiapan ujian kedinasan dan CASN</div>
+                        </div>
+                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="show_grade_skd" value="1" {{ $tenant->showGrade('skd') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
+                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 

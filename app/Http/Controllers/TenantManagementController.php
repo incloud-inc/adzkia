@@ -150,12 +150,17 @@ class TenantManagementController extends Controller
             $updateData['subdomain'] = Str::lower($validated['subdomain']);
         }
 
-        // Simpan Checklist Jenjang Pendidikan (SD, SMP, SMA) ke settings
+        // Simpan Checklist Jenjang Pendidikan (SD, SMP, SMA, TKA, dll) ke settings
         $settings = $tenant->settings ?? [];
         if ($request->has('grade_settings_submitted') || $request->has('show_grade_sd') || $request->has('show_grade_smp') || $request->has('show_grade_sma')) {
             $settings['show_grade_sd'] = (bool) $request->input('show_grade_sd', false);
             $settings['show_grade_smp'] = (bool) $request->input('show_grade_smp', false);
             $settings['show_grade_sma'] = (bool) $request->input('show_grade_sma', false);
+            $settings['show_grade_tka_sd'] = (bool) $request->input('show_grade_tka_sd', false);
+            $settings['show_grade_tka_smp'] = (bool) $request->input('show_grade_tka_smp', false);
+            $settings['show_grade_tka_sma'] = (bool) $request->input('show_grade_tka_sma', false);
+            $settings['show_grade_utbk'] = (bool) $request->input('show_grade_utbk', false);
+            $settings['show_grade_skd'] = (bool) $request->input('show_grade_skd', false);
             $updateData['settings'] = $settings;
         }
 
