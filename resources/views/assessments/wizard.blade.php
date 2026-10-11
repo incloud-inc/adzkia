@@ -955,12 +955,29 @@
                     this.form.settings.section_weights[secId] = parseInt(val) || 0;
                 },
 
-                initSectionWeights() {
+                initSectionWeights(forcePreset = null) {
                     if (!this.form.settings.section_weights) {
                         this.form.settings.section_weights = {};
                     }
                     const count = this.form.sections.length;
                     if (count === 0) return;
+
+                    if (forcePreset === 'kurikulum_merdeka' || (!forcePreset && count === 3 && Object.keys(this.form.settings.section_weights).length === 0)) {
+                        this.form.sections.forEach((sec, idx) => {
+                            this.form.settings.section_weights[sec.id] = (idx === 0) ? 40 : 30;
+                        });
+                        return;
+                    }
+
+                    if (forcePreset === 'equal') {
+                        const defaultWeight = Math.floor(100 / count);
+                        let remainder = 100 - (defaultWeight * count);
+                        this.form.sections.forEach((sec, idx) => {
+                            this.form.settings.section_weights[sec.id] = defaultWeight + (idx === 0 ? remainder : 0);
+                        });
+                        return;
+                    }
+
                     const defaultWeight = Math.floor(100 / count);
                     let remainder = 100 - (defaultWeight * count);
                     this.form.sections.forEach((sec, idx) => {
@@ -2815,10 +2832,18 @@
 
                         <!-- Section Weights Inputs (If weighted_percentage chosen) -->
                         <div x-show="form.settings.formula_type === 'weighted_percentage'" x-transition.opacity class="p-4 rounded-xl bg-white border border-gray-6 space-y-3">
-                            <div class="flex items-center justify-between">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
                                 <span class="text-xs font-bold text-gray-12">Atur Bobot Persentase (%) Tiap Bagian:</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-xs text-gray-11">Total Bobot:</span>
+                                    <button type="button" @click="initSectionWeights('kurikulum_merdeka')" x-show="form.sections.length === 3"
+                                            class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-green-2 text-green-11 border border-green-6/60 hover:bg-green-3 transition-colors">
+                                        Preset Kurikulum Merdeka (40% - 30% - 30%)
+                                    </button>
+                                    <button type="button" @click="initSectionWeights('equal')"
+                                            class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-2 text-gray-11 border border-gray-6/60 hover:bg-gray-3 transition-colors">
+                                        Bagi Rata
+                                    </button>
+                                    <span class="text-xs text-gray-11">Total:</span>
                                     <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-md"
                                           :class="getTotalSectionWeight() === 100 ? 'bg-green-3 text-green-11 border border-green-6/60' : 'bg-red-3 text-red-11 border border-red-6/60'"
                                           x-text="getTotalSectionWeight() + '% / 100%'"></span>
@@ -3599,7 +3624,7 @@ BOBOT: 2.0</pre>
                             </div>
                             <p class="text-xs font-bold text-gray-12" x-text="selectedWordFileName || 'Pilih File Word (.docx) atau Tarik ke Sini'"></p>
                             <p class="text-[11px] text-gray-11" x-text="selectedWordFileName ? 'File siap diimpor. Klik tombol Mulai Import di bawah.' : 'Maksimal ukuran file 10 MB. Format mengikuti pedoman contoh.'"></p>
-                            <input type="file" accept=".docx" class="hidden" x-ref="wordFileInput" @change="handleFileSelected($event)">
+                            <input type="file" accept=".docx,.md,.markdown,text/markdown,text/plain" class="hidden" x-ref="wordFileInput" @change="handleFileSelected($event)">
                         </div>
                     </div>
 

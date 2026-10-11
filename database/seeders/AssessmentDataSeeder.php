@@ -124,8 +124,8 @@ class AssessmentDataSeeder extends Seeder
                         'settings' => [
                             'token' => 'ADZ'.rand(100, 999),
                             'validity_type' => 'forever',
-                            'randomize_questions' => false,
-                            'randomize_options' => false,
+                            'randomize_questions' => true,
+                            'randomize_options' => true,
                             'passing_grade' => [
                                 'enabled' => true,
                                 'min_score' => 75,
@@ -326,13 +326,15 @@ class AssessmentDataSeeder extends Seeder
         switch ($type) {
             case 'mcq_single':
                 $labels = ($grade <= 6) ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+                $correctIdx = array_rand($labels);
                 foreach ($labels as $idx => $lbl) {
+                    $isCorrect = ($idx === $correctIdx);
                     QuestionOption::create([
                         'question_id' => $question->id,
                         'label' => $lbl,
                         'option_text' => "Pilihan jawaban {$lbl} yang mewakili analisis materi butir soal ke-{$qNum}.",
-                        'is_correct' => ($idx === 0), // Opsi A selalu benar sebagai kunci seeder
-                        'score' => ($idx === 0) ? 1.00 : 0.00,
+                        'is_correct' => $isCorrect,
+                        'score' => $isCorrect ? 1.00 : 0.00,
                         'order' => $idx + 1,
                     ]);
                 }
@@ -340,8 +342,9 @@ class AssessmentDataSeeder extends Seeder
 
             case 'mcq_multiple':
                 $labels = ['A', 'B', 'C', 'D'];
+                $correctIndices = (array) array_rand($labels, 2);
                 foreach ($labels as $idx => $lbl) {
-                    $isCorrect = ($idx === 0 || $idx === 2); // A dan C benar
+                    $isCorrect = in_array($idx, $correctIndices, true);
                     QuestionOption::create([
                         'question_id' => $question->id,
                         'label' => $lbl,

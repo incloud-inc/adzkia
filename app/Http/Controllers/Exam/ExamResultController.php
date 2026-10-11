@@ -130,6 +130,7 @@ class ExamResultController extends Controller
         $earnedPointsOverall = 0.0;
 
         $globalQuestionNumber = 1;
+        $settings = (array) ($assessment->settings ?? []);
 
         foreach ($assessment->sections as $secIndex => $section) {
             // Ambil semua soal pada section (baik soal stimulus narasi/group maupun soal mandiri)
@@ -348,10 +349,17 @@ class ExamResultController extends Controller
             $totalPointsOverall += $secTotalPoints;
             $earnedPointsOverall += $secEarnedPoints;
 
+            $secWeight = data_get($settings, "section_weights.{$section->id}");
+            $secWeightedPoints = ($secWeight !== null && $secTotalPoints > 0)
+                ? round(($secEarnedPoints / $secTotalPoints) * (float) $secWeight, 1)
+                : null;
+
             $sectionsData[] = [
                 'id' => $section->id,
                 'title' => $section->title,
                 'instructions' => $section->instructions,
+                'weight' => $secWeight !== null ? (float) $secWeight : null,
+                'weighted_points' => $secWeightedPoints,
                 'total_questions' => $count,
                 'essay_count' => $secEssayCount,
                 'essay_pending_count' => $secEssayPendingCount,
@@ -368,7 +376,6 @@ class ExamResultController extends Controller
         $allQuestionsReview = collect($sectionsData)->flatMap(fn ($s) => $s['questions'])->values()->all();
 
         // 3. Konfigurasi KKM (Passing Grade) & Post Exam Policy
-        $settings = (array) ($assessment->settings ?? []);
         $passingGrade = $settings['passing_grade'] ?? [
             'enabled' => true,
             'min_score' => 75,

@@ -324,8 +324,15 @@ class ExamWorkspaceController extends Controller
     private function buildPayload(ExamSession $session): array
     {
         $assessment = $session->assessment;
-        $randomizeQ = (bool) data_get($session->schedule_snapshot, 'randomize_questions', false);
-        $randomizeO = (bool) data_get($session->schedule_snapshot, 'randomize_options', false);
+        $randomizeQ = (bool) data_get($session->schedule_snapshot, 'randomize_questions', data_get($assessment->settings, 'randomize_questions', true));
+        $randomizeO = (bool) data_get($session->schedule_snapshot, 'randomize_options', data_get($assessment->settings, 'randomize_options', true));
+
+        if (! $randomizeO && data_get($assessment->settings, 'randomize_options', true)) {
+            $randomizeO = true;
+        }
+        if (! $randomizeQ && data_get($assessment->settings, 'randomize_questions', true)) {
+            $randomizeQ = true;
+        }
 
         // 1. Ambil sections terurut rapi (urutan section TIDAK BOLEH diacak!)
         $sections = $assessment->sections()->orderBy('order')->orderBy('id')->get();

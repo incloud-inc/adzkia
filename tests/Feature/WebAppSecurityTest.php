@@ -91,7 +91,7 @@ class WebAppSecurityTest extends TestCase
     {
         Storage::fake('r2');
 
-        $tenant = Tenant::factory()->create();
+        $tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
         $admin = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $admin->tenants()->attach($tenant->id, ['role' => 'A']);
 

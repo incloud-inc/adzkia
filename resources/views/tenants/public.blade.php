@@ -285,9 +285,10 @@
                         </span>
                         <span>Asesmen Jenjang SD / MI</span>
                     </h2>
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-3 text-amber-11 border border-amber-6/60">
-                        {{ count($sdAssessments) }} Ujian
-                    </span>
+                    <a href="{{ route('assessments.index', ['grade_level' => 'sd']) }}" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-3 text-amber-11 border border-amber-6/60 hover:bg-amber-4 hover:border-amber-7 transition-all duration-200 inline-flex items-center gap-1 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95" title="Buka tabel asesmen jenjang SD">
+                        <span>{{ count($sdAssessments) }} Ujian</span>
+                        <x-radix-icon name="chevron-right" class="w-3 h-3 text-amber-11" />
+                    </a>
                 </div>
 
                 <!-- Search Bar -->
@@ -377,9 +378,10 @@
                         </span>
                         <span>Asesmen Jenjang SMP / MTs</span>
                     </h2>
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-3 text-indigo-11 border border-indigo-6/60">
-                        {{ count($smpAssessments) }} Ujian
-                    </span>
+                    <a href="{{ route('assessments.index', ['grade_level' => 'smp']) }}" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-3 text-indigo-11 border border-indigo-6/60 hover:bg-indigo-4 hover:border-indigo-7 transition-all duration-200 inline-flex items-center gap-1 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95" title="Buka tabel asesmen jenjang SMP">
+                        <span>{{ count($smpAssessments) }} Ujian</span>
+                        <x-radix-icon name="chevron-right" class="w-3 h-3 text-indigo-11" />
+                    </a>
                 </div>
 
                 <!-- Search Bar -->
@@ -469,9 +471,10 @@
                         </span>
                         <span>Asesmen Jenjang SMA / MA / SMK</span>
                     </h2>
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-3 text-purple-11 border border-purple-6/60">
-                        {{ count($smaAssessments) }} Ujian
-                    </span>
+                    <a href="{{ route('assessments.index', ['grade_level' => 'sma']) }}" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-3 text-purple-11 border border-purple-6/60 hover:bg-purple-4 hover:border-purple-7 transition-all duration-200 inline-flex items-center gap-1 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95" title="Buka tabel asesmen jenjang SMA">
+                        <span>{{ count($smaAssessments) }} Ujian</span>
+                        <x-radix-icon name="chevron-right" class="w-3 h-3 text-purple-11" />
+                    </a>
                 </div>
 
                 <!-- Search Bar -->
@@ -561,9 +564,10 @@
                         </span>
                         <span>TKA SD / MI</span>
                     </h2>
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-3 text-blue-11 border border-blue-6/60">
-                        {{ count($tkaSdAssessments) }} Ujian
-                    </span>
+                    <a href="{{ route('assessments.index', ['grade_level' => 'tka_sd']) }}" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-3 text-blue-11 border border-blue-6/60 hover:bg-blue-4 hover:border-blue-7 transition-all duration-200 inline-flex items-center gap-1 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95" title="Buka tabel asesmen TKA SD">
+                        <span>{{ count($tkaSdAssessments) }} Ujian</span>
+                        <x-radix-icon name="chevron-right" class="w-3 h-3 text-blue-11" />
+                    </a>
                 </div>
 
                 <!-- Search Bar -->
@@ -653,9 +657,10 @@
                         </span>
                         <span>TKA SMP / MTs</span>
                     </h2>
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-3 text-blue-11 border border-blue-6/60">
-                        {{ count($tkaSmpAssessments) }} Ujian
-                    </span>
+                    <a href="{{ route('assessments.index', ['grade_level' => 'tka_smp']) }}" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-3 text-blue-11 border border-blue-6/60 hover:bg-blue-4 hover:border-blue-7 transition-all duration-200 inline-flex items-center gap-1 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95" title="Buka tabel asesmen TKA SMP">
+                        <span>{{ count($tkaSmpAssessments) }} Ujian</span>
+                        <x-radix-icon name="chevron-right" class="w-3 h-3 text-blue-11" />
+                    </a>
                 </div>
 
                 <!-- Search Bar -->
@@ -745,9 +750,10 @@
                         </span>
                         <span>TKA SMA / MA</span>
                     </h2>
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-3 text-blue-11 border border-blue-6/60">
-                        {{ count($tkaSmaAssessments) }} Ujian
-                    </span>
+                    <a href="{{ route('assessments.index', ['grade_level' => 'tka_sma']) }}" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-3 text-blue-11 border border-blue-6/60 hover:bg-blue-4 hover:border-blue-7 transition-all duration-200 inline-flex items-center gap-1 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95" title="Buka tabel asesmen TKA SMA">
+                        <span>{{ count($tkaSmaAssessments) }} Ujian</span>
+                        <x-radix-icon name="chevron-right" class="w-3 h-3 text-blue-11" />
+                    </a>
                 </div>
 
                 <!-- Search Bar -->
@@ -837,9 +843,10 @@
                         </span>
                         <span>UTBK SNBT</span>
                     </h2>
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-3 text-purple-11 border border-purple-6/60">
-                        {{ count($utbkAssessments) }} Ujian
-                    </span>
+                    <a href="{{ route('assessments.index', ['grade_level' => 'utbk']) }}" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-3 text-purple-11 border border-purple-6/60 hover:bg-purple-4 hover:border-purple-7 transition-all duration-200 inline-flex items-center gap-1 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95" title="Buka tabel asesmen UTBK">
+                        <span>{{ count($utbkAssessments) }} Ujian</span>
+                        <x-radix-icon name="chevron-right" class="w-3 h-3 text-purple-11" />
+                    </a>
                 </div>
 
                 <!-- Search Bar -->
@@ -929,9 +936,10 @@
                         </span>
                         <span>SKD Kedinasan & CPNS</span>
                     </h2>
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-3 text-teal-11 border border-teal-6/60">
-                        {{ count($skdAssessments) }} Ujian
-                    </span>
+                    <a href="{{ route('assessments.index', ['grade_level' => 'skd']) }}" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-3 text-teal-11 border border-teal-6/60 hover:bg-teal-4 hover:border-teal-7 transition-all duration-200 inline-flex items-center gap-1 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95" title="Buka tabel asesmen SKD CPNS">
+                        <span>{{ count($skdAssessments) }} Ujian</span>
+                        <x-radix-icon name="chevron-right" class="w-3 h-3 text-teal-11" />
+                    </a>
                 </div>
 
                 <!-- Search Bar -->

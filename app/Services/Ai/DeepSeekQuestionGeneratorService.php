@@ -639,6 +639,15 @@ PROMPT;
                 }
             }
 
+            if ($type === 'mcq_single' && count($options) > 1) {
+                shuffle($options);
+                $labels = ['A', 'B', 'C', 'D', 'E', 'F'];
+                foreach ($options as $oIdx => &$optItem) {
+                    $optItem['label'] = $labels[$oIdx] ?? (string) ($oIdx + 1);
+                }
+                unset($optItem);
+            }
+
             $normalizedItems[] = [
                 'number' => $currentNum,
                 'stimulus_index' => $stimulusIndex,

@@ -425,4 +425,46 @@ class WordQuestionServiceTest extends TestCase
         $this->assertStringContainsString('$\\sum_{i=1}^n x_i$', $html);
         $this->assertStringNotContainsString('<em>', $html);
     }
+
+    public function test_it_parses_all_question_types_from_markdown(): void
+    {
+        $templateMd = $this->service->generateMarkdownTemplate();
+        $this->assertNotEmpty($templateMd);
+
+        // Test parsing via parseMarkdown with a temp file
+        $tmp = tempnam(sys_get_temp_dir(), 'test_parse_md_').'.md';
+        file_put_contents($tmp, "\xEF\xBB\xBF".$templateMd); // prepend BOM to ensure resilience
+
+        $items = $this->service->parseFile($tmp);
+        @unlink($tmp);
+
+        $this->assertCount(9, $items);
+
+        // 1. Pilihan Ganda Tunggal
+        $q1 = $items[0];
+        $this->assertFalse($q1['is_group']);
+        $this->assertEquals('mcq_single', $q1['type']);
+        $this->assertEquals(2.5, $q1['points']);
+        $this->assertStringContainsString('$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$', $q1['prompt']);
+        $this->assertCount(4, $q1['options']);
+        $this->assertEquals(2.5, $q1['options'][0]['score']);
+        $this->assertTrue($q1['options'][0]['is_correct']);
+
+        // 2. TKP
+        $q2 = $items[1];
+        $this->assertEquals('mcq_weighted', $q2['type']);
+        $this->assertEquals(5.0, $q2['points']);
+        $this->assertEquals(5.0, $q2['options'][0]['score']);
+
+        // 3. Kompleks
+        $q3 = $items[2];
+        $this->assertEquals('mcq_multiple', $q3['type']);
+        $this->assertTrue($q3['options'][0]['is_correct']);
+        $this->assertTrue($q3['options'][2]['is_correct']);
+
+        // 4. Stimulus Narasi (item ke-9)
+        $qNarrative = $items[8];
+        $this->assertTrue($qNarrative['is_group']);
+        $this->assertCount(2, $qNarrative['questions']);
+    }
 }

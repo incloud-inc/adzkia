@@ -55,6 +55,21 @@
 
             <div class="flex items-center gap-2 flex-wrap">
                 @if($canManage)
+                    <form method="POST" action="{{ route('assessments.toggle-status', $assessment) }}" class="inline">
+                        @csrf
+                        @method('PATCH')
+                        @if($assessment->status === 'published')
+                            <button type="submit" onclick="return confirm('Apakah Anda yakin ingin menonaktifkan asesmen ini? Siswa tidak akan dapat melihat atau mengakses ujian ini.')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Klik untuk menonaktifkan asesmen (menjadi Draf)">
+                                <x-radix-icon name="eye-closed" class="w-4 h-4 text-amber-700" />
+                                <span>Nonaktifkan Asesmen</span>
+                            </button>
+                        @else
+                            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Klik untuk mengaktifkan asesmen agar tayang untuk siswa">
+                                <x-radix-icon name="check-circled" class="w-4 h-4 text-white" />
+                                <span>Aktifkan Asesmen</span>
+                            </button>
+                        @endif
+                    </form>
                     <a href="{{ route('assessments.grading', $assessment) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Koreksi Lembar Jawaban & Nilai Final Siswa">
                         <x-radix-icon name="pencil-2" class="w-4 h-4 text-white" />
                         <span>Koreksi & Nilai</span>
@@ -478,7 +493,26 @@
                                                             {{ $childQ->type }}
                                                         </span>
                                                     </div>
-                                                    <span class="text-xs font-bold text-gray-700">Bobot: {{ $childQ->points }} poin</span>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-xs font-bold text-gray-700">Bobot: {{ $childQ->points }} poin</span>
+                                                        @if($canManage)
+                                                            <button type="button"
+                                                                    @click="$dispatch('open-edit-question-modal', {
+                                                                        id: {{ $childQ->id }},
+                                                                        prompt: @js($childQ->prompt),
+                                                                        points: {{ (float) $childQ->points }},
+                                                                        type: @js($childQ->type),
+                                                                        explanation: @js($childQ->explanation ?? ''),
+                                                                        options: @js($childQ->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct])->values()),
+                                                                        short_answer: @js($childQ->type === 'short_answer' ? ($childQ->options->first()?->option_text ?? '') : '')
+                                                                    })"
+                                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 text-[11px] font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+                                                                    title="Edit Butir Soal Ini">
+                                                                <x-radix-icon name="pencil-1" class="w-3.5 h-3.5 text-sky-700" />
+                                                                <span>Edit Soal</span>
+                                                            </button>
+                                                        @endif
+                                                    </div>
                                                 </div>
 
                                                 <div class="prose prose-sm max-w-none text-gray-900 font-semibold p-3.5 rounded-lg bg-gray-50 border border-gray-200">
@@ -503,7 +537,26 @@
                                                 {{ $question->type }}
                                             </span>
                                         </div>
-                                        <span class="text-xs font-bold text-gray-700">Bobot: {{ $question->points }} poin</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-bold text-gray-700">Bobot: {{ $question->points }} poin</span>
+                                            @if($canManage)
+                                                <button type="button"
+                                                        @click="$dispatch('open-edit-question-modal', {
+                                                            id: {{ $question->id }},
+                                                            prompt: @js($question->prompt),
+                                                            points: {{ (float) $question->points }},
+                                                            type: @js($question->type),
+                                                            explanation: @js($question->explanation ?? ''),
+                                                            options: @js($question->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct])->values()),
+                                                            short_answer: @js($question->type === 'short_answer' ? ($question->options->first()?->option_text ?? '') : '')
+                                                        })"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 text-[11px] font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+                                                        title="Edit Butir Soal Ini">
+                                                    <x-radix-icon name="pencil-1" class="w-3.5 h-3.5 text-sky-700" />
+                                                    <span>Edit Soal</span>
+                                                </button>
+                                            @endif
+                                        </div>
                                     </div>
 
                                     <div class="prose prose-sm max-w-none text-gray-900 font-semibold p-3.5 rounded-lg bg-gray-50 border border-gray-200">
@@ -561,6 +614,10 @@
                     </a>
                 </div>
             </div>
+        @endif
+
+        @if($canManage)
+            @include('assessments.partials.edit-question-modal')
         @endif
     </div>
 </x-layouts.app>

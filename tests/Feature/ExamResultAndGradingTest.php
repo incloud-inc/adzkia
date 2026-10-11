@@ -90,7 +90,7 @@ class ExamResultAndGradingTest extends TestCase
         $response = $this->actingAs($this->student)->get(route('exam.result', $session));
 
         $response->assertStatus(200);
-        $response->assertSee('Hasil Ujian CBT');
+        $response->assertSee('Hasil Ujian');
         $response->assertSee('Ujian Akhir Semester IPA');
         $response->assertSee('Pembahasan Resmi');
     }

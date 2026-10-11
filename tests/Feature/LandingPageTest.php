@@ -16,14 +16,14 @@ class LandingPageTest extends TestCase
         $response->assertStatus(200);
 
         // 1. Title & Meta
-        $response->assertSee('<title>Aplikasi Ujian ADZKIA</title>', false);
-        $response->assertSee('Aplikasi Ujian dengan Soal ASLI dan Pembahasan AI.');
+        $response->assertSee('<title>Aplikasi Ujian/Asesmen - ADZKIA CBT | Bank Soal ASLI & Pembahasan AI</title>', false);
+        $response->assertSee('Aplikasi Ujian &amp; Asesmen ADZKIA CBT dengan Soal ASLI dan Pembahasan AI.', false);
 
         // 2. Headlines & Eyebrow
-        $response->assertSee('Untuk Lembaga yang Siap Pembelajaran Mendalam dengan AI');
-        $response->assertSee('Refined Assessment.');
-        $response->assertSee('Soal ASLI, Pembahasan AI.');
-        $response->assertSee('Dengan ADZKIA, Sekolah dan BIMBEL punya QUIZ, Ujian, Asesmen, dan TryOut untuk Murid-nya.');
+        $response->assertSee('Sekolah & BIMBEL Optimalkan Pembelajaran, ADZKIA CBT Sempurnakan Pencapaian', false);
+        $response->assertSee('Aplikasi Ujian/Asesmen.', false);
+        $response->assertSee('Soal ASLI, Pembahasan AI.', false);
+        $response->assertSee('ADZKIA CBT adalah platform ujian dan asesmen untuk Sekolah dan BIMBEL dengan Bank Soal ASLI TKA, UTBK, dan SKD Kedinasan & CPNS.', false);
 
         // 3. Card info mendatar (9 items)
         $response->assertSee('Sekolah dan BIMBEL Menggunakan ADZKIA');

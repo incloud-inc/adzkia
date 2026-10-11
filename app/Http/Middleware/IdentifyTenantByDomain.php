@@ -45,7 +45,7 @@ class IdentifyTenantByDomain
             if ($tenant) {
                 // If a user is logged in, switch to this tenant if they have access
                 if (Auth::check()) {
-                    $hasAccess = Auth::user()->tenants()->where('tenant_id', $tenant->id)->exists();
+                    $hasAccess = Auth::user()->isSuperUser() || Auth::user()->tenants()->where('tenant_id', $tenant->id)->exists();
                     if ($hasAccess && Auth::user()->current_tenant_id !== $tenant->id) {
                         Auth::user()->switchTenant($tenant->id);
                     }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -25,7 +26,9 @@ class AssessmentImageUploadTest extends TestCase
     {
         Storage::fake('r2');
 
-        $user = User::factory()->create();
+        $tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
+        $user = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $user->tenants()->attach($tenant->id, ['role' => 'A']);
 
         $response = $this->actingAs($user)->postJson(route('assessments.upload-image'), [
             'image' => UploadedFile::fake()->create('diagram_lingkaran.png', 50, 'image/png'),

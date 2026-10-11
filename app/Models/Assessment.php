@@ -261,11 +261,18 @@ class Assessment extends Model
             ];
         };
 
-        // 1. Asesmen UMUM
+        // 1. Asesmen UMUM & Try Out Terbuka (semua kelompok PRO + umum + tryout)
         $umum = $all->filter(function ($item) {
             $grade = trim((string) $item->grade_level);
 
-            return empty($grade) || stripos($grade, 'umum') !== false || in_array($item->type, ['custom', 'umum', 'tryout', 'to']);
+            return empty($grade)
+                || stripos($grade, 'umum') !== false
+                || in_array($item->type, ['custom', 'umum', 'tryout', 'to', 'tka', 'utbk', 'skd'])
+                || stripos($grade, 'TKA SD') !== false
+                || stripos($grade, 'TKA SMP') !== false
+                || stripos($grade, 'TKA SMA') !== false
+                || stripos($grade, 'UTBK SNBT') !== false
+                || stripos($grade, 'SKD Kedinasan & CPNS') !== false;
         });
 
         // 2. Asesmen SD
@@ -291,27 +298,42 @@ class Assessment extends Model
 
         // 5. Asesmen TKA SD
         $tka_sd = $all->filter(function ($item) {
-            return $item->type === 'tka' && str_contains(strtoupper((string) $item->grade_level), 'SD');
+            $grade = trim((string) $item->grade_level);
+
+            return strcasecmp($grade, 'TKA SD') === 0
+                || ($item->type === 'tka' && str_contains(strtoupper($grade), 'SD'));
         });
 
         // 6. Asesmen TKA SMP
         $tka_smp = $all->filter(function ($item) {
-            return $item->type === 'tka' && str_contains(strtoupper((string) $item->grade_level), 'SMP');
+            $grade = trim((string) $item->grade_level);
+
+            return strcasecmp($grade, 'TKA SMP') === 0
+                || ($item->type === 'tka' && str_contains(strtoupper($grade), 'SMP'));
         });
 
         // 7. Asesmen TKA SMA
         $tka_sma = $all->filter(function ($item) {
-            return $item->type === 'tka' && (str_contains(strtoupper((string) $item->grade_level), 'SMA') || empty($item->grade_level));
+            $grade = trim((string) $item->grade_level);
+
+            return strcasecmp($grade, 'TKA SMA') === 0
+                || ($item->type === 'tka' && (str_contains(strtoupper($grade), 'SMA') || empty($grade)));
         });
 
-        // 8. Asesmen UTBK
+        // 8. Asesmen UTBK SNBT
         $utbk = $all->filter(function ($item) {
-            return $item->type === 'utbk';
+            $grade = trim((string) $item->grade_level);
+
+            return strcasecmp($grade, 'UTBK SNBT') === 0
+                || $item->type === 'utbk';
         });
 
-        // 9. Asesmen SKD
+        // 9. Asesmen SKD Kedinasan & CPNS
         $skd = $all->filter(function ($item) {
-            return $item->type === 'skd';
+            $grade = trim((string) $item->grade_level);
+
+            return strcasecmp($grade, 'SKD Kedinasan & CPNS') === 0
+                || $item->type === 'skd';
         });
 
         return [

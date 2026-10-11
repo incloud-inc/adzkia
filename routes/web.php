@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SocialiteController;
+use App\Http\Controllers\Auth\TenantSsoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardUserController;
 use App\Http\Controllers\DichotomyPresetController;
@@ -17,12 +18,14 @@ use App\Http\Controllers\Exam\ExamResultController;
 use App\Http\Controllers\Exam\ExamWorkspaceController;
 use App\Http\Controllers\GradeLevelController;
 use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\MediaGalleryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\PostalCodeController;
 use App\Http\Controllers\ProctoringController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestionBankController;
+use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\QuestionGeneratorController;
 use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\SettingController;
@@ -49,6 +52,7 @@ Route::middleware('web')->group(function () {
     Route::get('/', [LandingPageController::class, 'index'])->name('home');
     Route::get('/@{username}', [ProfileController::class, 'redirectPublicGlobal'])->name('global.student.profile');
     Route::get('/portal/{subdomain}', [TenantController::class, 'showPublic'])->name('tenant.portal.direct');
+    Route::get('/sso/verify', [TenantSsoController::class, 'verify'])->name('tenant.sso.verify');
 });
 
 // 3. API Pencarian Kodepos Lokal (AJAX Throttled)
@@ -150,6 +154,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('question-generator/save-to-bank', [QuestionGeneratorController::class, 'saveToBank'])->name('question-generator.save-to-bank');
     Route::post('question-generator/to-wizard', [QuestionGeneratorController::class, 'toWizard'])->name('question-generator.to-wizard');
 
+    // Galeri Media Cloudflare R2
+    Route::get('media-gallery', [MediaGalleryController::class, 'index'])->name('media.gallery.index');
+    Route::get('media-gallery/files', [MediaGalleryController::class, 'getFiles'])->name('media.gallery.files');
+    Route::post('media-gallery/upload', [MediaGalleryController::class, 'upload'])->name('media.gallery.upload');
+    Route::delete('media-gallery/delete', [MediaGalleryController::class, 'destroy'])->name('media.gallery.delete');
+
     // Assessment Engine & 8-Step Wizard
     Route::get('assessments/wizard', [AssessmentWizardController::class, 'create'])->name('assessments.wizard');
     Route::post('assessments/upload-image', [AssessmentWizardController::class, 'uploadImage'])->name('assessments.upload-image');
@@ -158,12 +168,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('assessments/import-word', [AssessmentWizardController::class, 'importWord'])->name('assessments.import-word');
     Route::get('assessments/{assessment}/result-preview', [AssessmentWizardController::class, 'resultPreview'])->name('assessments.result-preview');
     Route::patch('assessments/{assessment}/toggle-mandatory', [AssessmentWizardController::class, 'toggleMandatory'])->name('assessments.toggle-mandatory');
+    Route::patch('assessments/{assessment}/toggle-status', [AssessmentWizardController::class, 'toggleStatus'])->name('assessments.toggle-status');
 
     // AI Explanation Generator (DeepSeek)
     Route::post('assessments/{assessment}/generate-explanations', [AssessmentExplanationController::class, 'generateAll'])->name('assessments.generate-explanations');
     Route::post('questions/{question}/regenerate-explanation', [AssessmentExplanationController::class, 'regenerateQuestion'])->name('questions.regenerate-explanation');
     Route::match(['put', 'patch', 'post'], 'questions/{question}/explanation', [AssessmentExplanationController::class, 'updateExplanation'])->name('questions.explanation.update');
     Route::get('questions/{question}/explanation-status', [AssessmentExplanationController::class, 'status'])->name('questions.explanation-status');
+    Route::put('questions/{question}', [QuestionController::class, 'update'])->name('questions.update');
 
     Route::post('assessments/draft', [AssessmentWizardController::class, 'saveDraft'])->name('assessments.draft.save');
     Route::resource('assessments', AssessmentWizardController::class);

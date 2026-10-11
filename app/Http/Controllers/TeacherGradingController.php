@@ -7,6 +7,7 @@ use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
 use App\Models\Tenant;
+use App\Services\ExamGradingService;
 use App\Support\MarkdownRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -296,10 +297,8 @@ class TeacherGradingController extends Controller
                 $answer->save();
             }
 
-            // Hitung ulang total skor sesi (Objektif + Essay)
+            // Hitung ulang total skor sesi (Objektif + Essay) dengan pembobotan atau akumulasi
             $allAnswers = ExamAnswer::where('exam_session_id', $session->id)->get();
-            $totalPointsEarned = $allAnswers->sum(fn ($a) => (float) ($a->points_awarded ?? 0));
-            $totalMaxPoints = (float) $questions->sum(fn ($q) => (float) ($q->points ?? 1));
 
             $meta = (array) ($session->meta ?? []);
             if ($action === 'release_final') {
@@ -310,9 +309,11 @@ class TeacherGradingController extends Controller
             }
 
             $scorePenalty = (float) data_get($meta, 'score_penalty', 0);
+            [$finalScore, $computedMaxScore] = ExamGradingService::calculateFinalScores($assessment, $questions, $allAnswers, $scorePenalty);
+
             $session->forceFill([
-                'score' => max(0.0, $totalPointsEarned - $scorePenalty),
-                'max_score' => $totalMaxPoints > 0 ? $totalMaxPoints : $session->max_score,
+                'score' => $finalScore,
+                'max_score' => $computedMaxScore > 0 ? $computedMaxScore : $session->max_score,
                 'meta' => $meta,
             ])->save();
         });

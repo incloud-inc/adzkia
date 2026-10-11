@@ -31,7 +31,7 @@ class SectionTimerAndOrderingTest extends TestCase
     {
         parent::setUp();
 
-        $this->tenant = Tenant::factory()->create(['plan' => 'premium']);
+        $this->tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
 
         $this->teacher = User::factory()->create(['current_tenant_id' => $this->tenant->id]);
         $this->teacher->tenants()->attach($this->tenant->id, ['role' => 'T']);

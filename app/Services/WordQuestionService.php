@@ -42,6 +42,56 @@ class WordQuestionService
     }
 
     /**
+     * Parse a Markdown (.md / .markdown) file and extract structured questions.
+     */
+    public function parseMarkdown(string $filePath): array
+    {
+        if (! file_exists($filePath)) {
+            throw new \RuntimeException('Gagal membuka file Markdown (.md). File tidak ditemukan.');
+        }
+
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            throw new \RuntimeException('Gagal membaca file Markdown (.md). Pastikan file tidak rusak.');
+        }
+
+        return $this->parseMarkdownContent($content);
+    }
+
+    /**
+     * Parse raw Markdown content string into structured question items.
+     */
+    public function parseMarkdownContent(string $content): array
+    {
+        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
+        $rawLines = preg_split('/\r?\n/', $content);
+        $paragraphs = [];
+
+        foreach ($rawLines as $line) {
+            $trimmed = trim($line);
+            if ($trimmed !== '') {
+                $paragraphs[] = $trimmed;
+            }
+        }
+
+        return $this->buildStructuredItems($paragraphs);
+    }
+
+    /**
+     * Parse either a .docx or .md file automatically based on extension or mime.
+     */
+    public function parseFile(string $filePath, ?string $originalName = null): array
+    {
+        $ext = strtolower(pathinfo($originalName ?: $filePath, PATHINFO_EXTENSION));
+
+        if (in_array($ext, ['md', 'markdown'], true)) {
+            return $this->parseMarkdown($filePath);
+        }
+
+        return $this->parseDocx($filePath);
+    }
+
+    /**
      * Extract relationship definitions from word/_rels/document.xml.rels.
      */
     protected function extractRelationships(ZipArchive $zip): array
@@ -1266,6 +1316,9 @@ class WordQuestionService
             if (preg_match('/^[-=~_*]{3,}/', $cleanLine) || preg_match('/^---\s*CONTOH/i', $cleanLine)) {
                 continue;
             }
+            if (preg_match('/^#+\s+/i', $cleanLine) && ! $currentQuestion && ! $inNarrative) {
+                continue;
+            }
 
             // Standalone Question Marker
             if (
@@ -1470,12 +1523,12 @@ class WordQuestionService
             }
 
             // Option Check for MCQ:
-            // "A. Opsi teks" or TKP Format 2: "A. [5] Opsi teks" or "A. (5) Opsi teks" or "A. [Skor: 5] Opsi teks"
-            if ($currentQuestion && preg_match('/^([A-E])[\.\)]\s*(?:\[(\d+(?:\.\d+)?)\]|\((\d+(?:\.\d+)?)\)|\[(?:skor|bobot|poin)\s*:\s*(\d+(?:\.\d+)?)\])?\s*(.*)$/i', $cleanLine, $matchesOpt)) {
+            // "A. Opsi teks" or TKP Format 2: "A. [5] Opsi teks" or "- A. Opsi teks" or "* A. Opsi teks"
+            if ($currentQuestion && preg_match('/^(?:[-*]\s+)?([A-E])[\.\)]\s*(?:\[(\d+(?:\.\d+)?)\]|\((\d+(?:\.\d+)?)\)|\[(?:skor|bobot|poin)\s*:\s*(\d+(?:\.\d+)?)\])?\s*(.*)$/i', $cleanLine, $matchesOpt)) {
                 $letter = strtoupper($matchesOpt[1]);
                 $scoreCandidate = $matchesOpt[2] ?: ($matchesOpt[3] ?: ($matchesOpt[4] ?: null));
 
-                preg_match('/^(?:(?:\*\*|\*|<u>)?[A-E][\.\)](?:\*\*|\*|<\/u>)?\s*)(?:\[(?:\d+(?:\.\d+)?|(?:skor|bobot|poin)\s*:\s*\d+(?:\.\d+)?)\]|\(\d+(?:\.\d+)?\))?\s*(.*)$/i', $line, $matchesLine);
+                preg_match('/^(?:[-*]\s+)?(?:(?:\*\*|\*|<u>)?[A-E][\.\)](?:\*\*|\*|<\/u>)?\s*)(?:\[(?:\d+(?:\.\d+)?|(?:skor|bobot|poin)\s*:\s*\d+(?:\.\d+)?)\]|\(\d+(?:\.\d+)?\))?\s*(.*)$/i', $line, $matchesLine);
                 $optText = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : trim($matchesOpt[5]);
 
                 $optScore = 0.0;
@@ -1537,11 +1590,11 @@ class WordQuestionService
                 }
             }
 
-            // Question Prompt Check: "1. Teks soal..." or "1) Teks soal..." or "Soal 1. ..."
-            if (preg_match('/^(?:Soal\s*)?(\d+)[\.\)]\s*(.*)$/i', $cleanLine, $matchesClean)) {
+            // Question Prompt Check: "1. Teks soal..." or "1) Teks soal..." or "Soal 1. ..." or "### 1. Teks soal..."
+            if (preg_match('/^(?:#+\s*)?(?:[-*]\s+)?(?:Soal\s*)?(\d+)[\.\)]\s*(.*)$/i', $cleanLine, $matchesClean)) {
                 $saveCurrentQuestion();
                 $inExplanation = false;
-                preg_match('/^(?:(?:\*\*|\*|<u>)?(?:Soal\s*)?\d+[\.\)](?:\*\*|\*|<\/u>)?\s*)(.*)$/i', $line, $matchesLine);
+                preg_match('/^(?:#+\s*)?(?:[-*]\s+)?(?:(?:\*\*|\*|<u>)?(?:Soal\s*)?\d+[\.\)](?:\*\*|\*|<\/u>)?\s*)(.*)$/i', $line, $matchesLine);
                 $promptText = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : trim($matchesClean[2]);
 
                 if (! empty($preambleLines)) {
@@ -1856,6 +1909,106 @@ class WordQuestionService
         $zip->close();
 
         return $outputPath;
+    }
+
+    /**
+     * Generate a pristine Markdown (.md) template demonstrating ALL question types.
+     */
+    public function generateMarkdownTemplate(): string
+    {
+        return <<<'MARKDOWN'
+# PANDUAN LENGKAP TEMPLATE IMPORT SOAL CBT ADZKIA (.MD)
+Mendukung seluruh tipe soal: Pilihan Ganda Tunggal (dengan bobot fleksibel), TKP / Pilihan Ganda Berbobot (Skor di Opsi), Pilihan Ganda Kompleks, Tabel Dikotomi Benar/Salah, Menjodohkan, Mengurutkan, Isian Singkat, Esai, serta Stimulus Narasi.
+
+--- CONTOH 1: PILIHAN GANDA TUNGGAL (BOBOT 2.5 DENGAN LATEX) ---
+1. Diberikan persamaan kuadrat **2x^2 - 7x + 3 = 0**. Menggunakan rumus ABC $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$, himpunan penyelesaian dari persamaan tersebut adalah ...
+A. $x_1 = 3$ atau $x_2 = \frac{1}{2}$
+B. $x_1 = -3$ atau $x_2 = -\frac{1}{2}$
+C. $x_1 = 1$ atau $x_2 = 6$
+D. $x_1 = 2$ atau $x_2 = 5$
+KUNCI: A
+BOBOT: 2.5
+PEMBAHASAN: Nilai D = 25. Maka $x = \frac{7 \pm 5}{4}$, sehingga $x_1 = 3$ dan $x_2 = \frac{1}{2}$.
+
+--- CONTOH 2: TKP / PILIHAN GANDA BERBOBOT (SKOR DI AWAL OPSI) ---
+[TKP]
+2. Anda sedang melayani antrean masyarakat yang cukup padat di loket pelayanan kantor. Tiba-tiba seorang rekan kerja Anda datang dan meminta untuk dilayani terlebih dahulu karena sedang terburu-buru. Sikap yang paling tepat Anda lakukan adalah ...
+A. [5] Menolak secara santun dan ramah, serta memintanya mengambil nomor antrean sesuai prosedur demi menjaga keadilan bagi seluruh warga.
+B. [4] Menjelaskan bahwa sistem antrean bersifat digital dan otomatis terpantau sehingga tidak memungkinkan adanya pengistimewaan.
+C. [3] Memintanya menunggu hingga waktu istirahat kantor tiba agar bisa dibantu tanpa mengorbankan waktu antrean warga.
+D. [2] Membantu rekan kerja tersebut secara cepat setelah melayani warga yang sedang berada persis di depan loket.
+E. [1] Langsung mendahulukan rekan kerja tersebut karena merasa sungkan dan khawatir hubungan kerja menjadi canggung.
+PEMBAHASAN: Indikator Pelayanan Publik & Integritas: Opsi A memiliki skor tertinggi (5) karena menjunjung tinggi asas keadilan.
+
+--- CONTOH 3: PILIHAN GANDA KOMPLEKS (JAWABAN BENAR LEBIH DARI SATU) ---
+[KOMPLEKS]
+3. Manakah dari sumber energi berikut yang tergolong ke dalam Energi Baru dan Terbarukan (EBT) ramah lingkungan? (Pilihlah semua jawaban yang benar)
+A. Pembangkit Listrik Tenaga Surya (PLTS)
+B. Pembangkit Listrik Tenaga Uap Batubara (PLTU)
+C. Pembangkit Listrik Tenaga Bayu/Angin (PLTB)
+D. Pembangkit Berbahan Bakar Minyak Diesel
+KUNCI: A, C
+BOBOT: 2.0
+PEMBAHASAN: Energi surya (A) dan bayu/angin (C) merupakan energi terbarukan tanpa emisi karbon langsung.
+
+--- CONTOH 4: TABEL DIKOTOMI (BENAR / SALAH) ---
+[BENAR SALAH]
+4. Analisislah pernyataan-pernyataan berikut mengenai biologi sel dan fotosintesis pada tumbuhan hijau!
+KOLOM: Benar | Salah
+1) Fotosintesis menghasilkan senyawa glukosa dan melepaskan gas oksigen ke atmosfer [BENAR]
+2) Reaksi terang fotosintesis berlangsung di dalam stroma kloroplas tanpa bantuan cahaya [SALAH]
+3) Klorofil merupakan pigmen hijau daun penyerap spektrum cahaya matahari [BENAR]
+BOBOT: 3.0
+
+--- CONTOH 5: MENJODOHKAN (PREMIS ↔ PASANGAN) ---
+[MENJODOHKAN]
+5. Jodohkanlah organ ekskresi manusia berikut dengan zat sisa metabolisme yang dihasilkannya secara tepat!
+1) Ginjal -> Urine dan zat sisa penyaringan darah
+2) Paru-paru -> Karbon dioksida (CO2) dan uap air (H2O)
+3) Kulit -> Keringat, garam mineral, dan sedikit urea
+4) Hati -> Empedu dan perombakan sel darah merah
+BOBOT: 3.0
+
+--- CONTOH 6: MENGURUTKAN (SEQUENCING) ---
+[MENGURUTKAN]
+6. Urutkanlah tahapan siklus metamorfosis sempurna pada kupu-kupu dari awal hingga dewasa!
+1) Telur (ovum) menetas di permukaan daun
+2) Ulat (larva) memakan dedaunan secara aktif
+3) Kepompong (pupa) membungkus diri dalam kokon
+4) Kupu-kupu dewasa (imago) keluar dan mengeringkan sayap
+BOBOT: 2.0
+
+--- CONTOH 7: ISIAN SINGKAT ---
+[ISIAN]
+7. Organel sel eukariotik yang dijuluki sebagai "the powerhouse of cell" karena fungsinya menghasilkan energi utama ATP melalui respirasi seluler adalah ...
+KUNCI: Mitokondria
+BOBOT: 2.0
+PEMBAHASAN: Mitokondria adalah organel respirasi sel penghasil energi ATP.
+
+--- CONTOH 8: URAIAN / ESAI ---
+[ESAI]
+8. Jelaskan 3 (tiga) dampak negatif dari perubahan iklim global terhadap ekosistem pesisir dan terumbu karang di Indonesia, serta rumuskan 2 (dua) langkah mitigasi konkret yang dapat dilakukan oleh masyarakat pesisir!
+BOBOT: 5.0
+PEMBAHASAN: Rubrik Penilaian: Skor 5 jika memaparkan 3 dampak pemanasan laut/pemutihan karang dan 2 mitigasi nyata pelestarian mangrove dan pencegahan polusi.
+
+--- CONTOH 9: SOAL BERSTIMULUS NARASI / WACANA LITERASI ---
+[NARASI]
+JUDUL: Inovasi Panel Surya Apung di Waduk Cirata
+Pembangkit Listrik Tenaga Surya (PLTS) Terapung Cirata di Jawa Barat merupakan salah satu PLTS apung terbesar di Asia Tenggara. Proyek ini membentang di atas permukaan waduk seluas 250 hektar dengan kapasitas 192 MWp. Keberadaan panel surya di atas air dapat mengurangi penguapan air waduk sekaligus meningkatkan efisiensi pendinginan panel surya itu sendiri.
+[AKHIR NARASI]
+
+9. Berdasarkan teks narasi di atas, sebutkan dua keuntungan utama penempatan panel surya di atas permukaan waduk!
+A. Mengurangi penguapan air waduk dan meningkatkan efisiensi pendinginan panel
+B. Mempercepat pertumbuhan eceng gondok dan memperdalam waduk
+C. Menghilangkan kebutuhan transmisi kabel listrik
+D. Memudahkan penangkapan ikan di bawah modul surya
+KUNCI: A
+BOBOT: 1.5
+
+10. Apakah proyek PLTS Apung Cirata berada di Jawa Barat?
+KUNCI: Ya
+BOBOT: 1.0
+MARKDOWN;
     }
 
     /**

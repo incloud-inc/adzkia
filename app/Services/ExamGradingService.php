@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Assessment;
 use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
@@ -40,6 +41,11 @@ class ExamGradingService
             ->keyBy('id');
 
         return self::$inMemoryQuestions[$assessmentId] = $questions;
+    }
+
+    public static function clearMemoryCache(): void
+    {
+        self::$inMemoryQuestions = [];
     }
 
     /**
@@ -108,11 +114,11 @@ class ExamGradingService
             }
 
             $scorePenalty = (float) data_get($session->meta, 'score_penalty', 0);
-            $finalScore = max(0.0, $totalScore - $scorePenalty);
+            [$finalScore, $computedMaxScore] = self::calculateFinalScores($assessment, $questions, $answers, $scorePenalty);
 
             $session->forceFill([
                 'score' => $finalScore,
-                'max_score' => $maxScore > 0 ? $maxScore : $session->max_score,
+                'max_score' => $computedMaxScore > 0 ? $computedMaxScore : $session->max_score,
             ])->save();
         });
     }
@@ -136,8 +142,6 @@ class ExamGradingService
             ->where('exam_session_id', $session->id)
             ->get();
 
-        $totalScore = 0.0;
-        $maxScore = (float) $questionMap->sum(fn ($q) => (float) ($q->points ?? 1));
         $bulkUpsertRows = [];
         $now = now();
 
@@ -153,10 +157,6 @@ class ExamGradingService
             }
 
             if ($q->type === 'essay') {
-                if ($ans->points_awarded !== null) {
-                    $totalScore += (float) $ans->points_awarded;
-                }
-
                 continue;
             }
 
@@ -165,7 +165,6 @@ class ExamGradingService
             }
 
             [$isCorrect, $points] = self::gradeOne($q, $ans);
-            $totalScore += (float) $points;
 
             // Kumpulkan ke array untuk 1 kali Bulk Upsert
             $bulkUpsertRows[] = [
@@ -176,13 +175,18 @@ class ExamGradingService
                 'points_awarded' => $points,
                 'updated_at' => $now,
             ];
+
+            // Perbarui objek in-memory agar perhitungan nilai akhir akurat
+            $ans->is_correct = $isCorrect;
+            $ans->points_awarded = $points;
         }
 
+        $assessment = $session->assessment;
         $scorePenalty = (float) data_get($session->meta, 'score_penalty', 0);
-        $finalScore = max(0.0, $totalScore - $scorePenalty);
+        [$finalScore, $computedMaxScore] = self::calculateFinalScores($assessment, $questionMap, $answers, $scorePenalty);
 
         // 3. Simpan Jawaban Menggunakan Bulk Upsert (1 Single SQL Query!)
-        DB::transaction(function () use ($bulkUpsertRows, $session, $finalScore, $maxScore, $now) {
+        DB::transaction(function () use ($bulkUpsertRows, $session, $finalScore, $computedMaxScore, $now) {
             if (! empty($bulkUpsertRows)) {
                 ExamAnswer::query()->upsert(
                     $bulkUpsertRows,
@@ -193,11 +197,81 @@ class ExamGradingService
 
             $session->forceFill([
                 'score' => $finalScore,
-                'max_score' => $maxScore > 0 ? $maxScore : $session->max_score,
+                'max_score' => $computedMaxScore > 0 ? $computedMaxScore : $session->max_score,
                 'grading_status' => 'completed',
                 'graded_at' => $now,
             ])->save();
         });
+    }
+
+    /**
+     * Hitung skor akhir dan skor maksimum sesi ujian dengan formula pembobotan per bagian (skala 100) atau akumulasi murni.
+     *
+     * @param  Collection<int, Question>  $questionMap
+     * @param  Collection<int, ExamAnswer>|array  $answers
+     * @return array{float, float} [finalScore, maxScore]
+     */
+    public static function calculateFinalScores(?Assessment $assessment, Collection $questionMap, $answers, float $scorePenalty = 0.0): array
+    {
+        $settings = (array) ($assessment?->settings ?? []);
+        $isWeighted = ($settings['formula_type'] ?? '') === 'weighted_percentage' && ! empty($settings['section_weights']);
+
+        if (! $isWeighted) {
+            $rawTotal = 0.0;
+            foreach ($answers as $ans) {
+                $rawTotal += (float) (is_array($ans) ? ($ans['points_awarded'] ?? 0.0) : ($ans->points_awarded ?? 0.0));
+            }
+            $rawMax = (float) $questionMap->sum(fn ($q) => (float) ($q->points ?? 1));
+            $finalScore = max(0.0, $rawTotal - $scorePenalty);
+
+            return [round($finalScore, 2), $rawMax > 0 ? $rawMax : 100.0];
+        }
+
+        $sectionWeights = (array) $settings['section_weights'];
+        $sectionEarned = [];
+        $sectionMax = [];
+
+        foreach ($questionMap as $q) {
+            $secId = $q->assessment_section_id;
+            if (! $secId && $q->questionGroup) {
+                $secId = $q->questionGroup->assessment_section_id;
+            }
+            if ($secId) {
+                $sectionMax[$secId] = ($sectionMax[$secId] ?? 0.0) + (float) ($q->points ?? 1);
+            }
+        }
+
+        foreach ($answers as $ans) {
+            $qId = is_array($ans) ? ($ans['question_id'] ?? null) : ($ans->question_id ?? null);
+            $q = $questionMap->get($qId);
+            if (! $q) {
+                continue;
+            }
+            $secId = $q->assessment_section_id;
+            if (! $secId && $q->questionGroup) {
+                $secId = $q->questionGroup->assessment_section_id;
+            }
+            $awarded = (float) (is_array($ans) ? ($ans['points_awarded'] ?? 0.0) : ($ans->points_awarded ?? 0.0));
+            if ($secId) {
+                $sectionEarned[$secId] = ($sectionEarned[$secId] ?? 0.0) + $awarded;
+            }
+        }
+
+        $weightedTotal = 0.0;
+        foreach ($sectionWeights as $secId => $weight) {
+            $weight = (float) $weight;
+            $maxP = $sectionMax[$secId] ?? 0.0;
+            $earnedP = $sectionEarned[$secId] ?? 0.0;
+
+            if ($maxP > 0) {
+                $sectionScorePct = ($earnedP / $maxP) * 100.0;
+                $weightedTotal += ($sectionScorePct * ($weight / 100.0));
+            }
+        }
+
+        $finalScore = max(0.0, $weightedTotal - $scorePenalty);
+
+        return [round($finalScore, 2), 100.0];
     }
 
     /**

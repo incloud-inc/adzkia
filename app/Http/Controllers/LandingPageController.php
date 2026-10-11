@@ -21,6 +21,9 @@ class LandingPageController extends Controller
      */
     public function index(Request $request): View
     {
+        if (app()->has('currentTenant')) {
+            return app(TenantController::class)->showPublic($request, app('currentTenant')->subdomain);
+        }
         $realTenants = 0;
         $realStudents = 0;
         $realGradeLevels = 0;

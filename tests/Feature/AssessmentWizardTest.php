@@ -320,6 +320,18 @@ class AssessmentWizardTest extends TestCase
         $response->assertHeader('content-disposition', 'attachment; filename=Template_Soal_CBT_ADZKIA.docx');
     }
 
+    public function test_user_can_download_markdown_template(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        $response = $this->actingAs($teacher)->get(route('assessments.download-template', ['format' => 'md']));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-disposition', 'attachment; filename=Template_Soal_CBT_ADZKIA.md');
+    }
+
     public function test_user_can_import_questions_from_word_docx(): void
     {
         $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
@@ -426,6 +438,65 @@ class AssessmentWizardTest extends TestCase
         $this->assertCount(2, $narrativeItem['questions']);
         $this->assertEquals(2.0, $narrativeItem['questions'][0]['points']);
         $this->assertEquals(2.0, $narrativeItem['questions'][1]['points']);
+
+        // Clean up temp file
+        if (file_exists($tempPath)) {
+            @unlink($tempPath);
+        }
+    }
+
+    public function test_user_can_import_questions_from_markdown_file(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        $service = new WordQuestionService;
+        $tempPath = tempnam(sys_get_temp_dir(), 'test_md_').'.md';
+        file_put_contents($tempPath, $service->generateMarkdownTemplate());
+
+        $uploadedFile = new UploadedFile(
+            $tempPath,
+            'Template_Soal_CBT_ADZKIA.md',
+            'text/markdown',
+            null,
+            true
+        );
+
+        $response = $this->actingAs($teacher)->post(route('assessments.import-word'), [
+            'word_file' => $uploadedFile,
+        ], ['Accept' => 'application/json']);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+        ]);
+
+        $data = $response->json();
+        $this->assertNotEmpty($data['items']);
+
+        // 1. Math question with LaTeX and Points 2.5
+        $q1 = collect($data['items'])->first(fn ($item) => ! ($item['is_group'] ?? false) && str_contains($item['prompt'] ?? '', '$$x ='));
+        $this->assertNotNull($q1, 'Soal matematika dari Markdown harus ditemukan.');
+        $this->assertEquals('mcq_single', $q1['type']);
+        $this->assertEquals(2.5, $q1['points']);
+        $this->assertStringContainsString('$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$', $q1['prompt']);
+
+        // 2. TKP question
+        $qTkp = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'mcq_weighted');
+        $this->assertNotNull($qTkp, 'Soal TKP dari Markdown harus terdeteksi.');
+        $this->assertEquals(5.0, $qTkp['options'][0]['score']);
+
+        // 3. Multi answer question
+        $qComp = collect($data['items'])->first(fn ($item) => ($item['type'] ?? '') === 'mcq_multiple');
+        $this->assertNotNull($qComp, 'Soal Kompleks dari Markdown harus terdeteksi.');
+        $this->assertTrue($qComp['options'][0]['is_correct']);
+        $this->assertTrue($qComp['options'][2]['is_correct']);
+
+        // 4. Narrative group
+        $narrativeItem = collect($data['items'])->firstWhere('is_group', true);
+        $this->assertNotNull($narrativeItem, 'Grup Stimulus Narasi dari Markdown harus terdeteksi.');
+        $this->assertCount(2, $narrativeItem['questions']);
 
         // Clean up temp file
         if (file_exists($tempPath)) {

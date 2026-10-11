@@ -252,6 +252,117 @@ class Tenant extends Model
      * CUSTOM DOMAIN & WHITE LABEL
      * ========================================================================= */
 
+    /**
+     * Dapatkan domain pribadi (custom domain) utama tenant jika ada.
+     */
+    public function getPrimaryCustomDomain(): ?string
+    {
+        if (! $this->allowsCustomDomain()) {
+            return null;
+        }
+
+        // 1. Cek dari domain primer terverifikasi di relasi domains
+        $customDomain = $this->domains()
+            ->where('is_primary', true)
+            ->where('is_verified', true)
+            ->value('domain');
+
+        if ($customDomain) {
+            return $customDomain;
+        }
+
+        // 2. Cek dari domain primer di relasi domains (tanpa filter is_verified)
+        $primaryDomain = $this->domains()
+            ->where('is_primary', true)
+            ->value('domain');
+
+        if ($primaryDomain) {
+            return $primaryDomain;
+        }
+
+        // 3. Fallback ke relasi domains terverifikasi apapun
+        $verifiedDomain = $this->domains()
+            ->where('is_verified', true)
+            ->value('domain');
+
+        if ($verifiedDomain) {
+            return $verifiedDomain;
+        }
+
+        // 4. Fallback ke relasi domains apapun
+        $anyDomain = $this->domains()
+            ->value('domain');
+
+        if ($anyDomain) {
+            return $anyDomain;
+        }
+
+        // 5. Fallback ke kolom domain pada tabel tenants
+        if (! empty($this->domain)) {
+            return $this->domain;
+        }
+
+        return null;
+    }
+
+    /**
+     * Dapatkan host utama tenant (domain pribadi jika ada, atau {subdomain}.{baseDomain}).
+     */
+    public function getPrimaryHost(): ?string
+    {
+        $customDomain = $this->getPrimaryCustomDomain();
+        if ($customDomain) {
+            return $customDomain;
+        }
+
+        if ($this->subdomain) {
+            $baseDomain = config('app.url_base_domain', 'localhost');
+
+            return "{$this->subdomain}.{$baseDomain}";
+        }
+
+        return null;
+    }
+
+    /**
+     * Dapatkan URL portal lengkap untuk tenant (memperhitungkan domain pribadi / subdomain dan port).
+     */
+    public function getPortalUrl(): string
+    {
+        $scheme = request()->getScheme() ?: 'http';
+        $port = (request()->getPort() && request()->getPort() != 80 && request()->getPort() != 443) ? ':'.request()->getPort() : '';
+        $host = $this->getPrimaryHost() ?: config('app.url_base_domain', 'localhost');
+
+        return "{$scheme}://{$host}{$port}";
+    }
+
+    /**
+     * Dapatkan URL profil murid lengkap untuk tenant (memperhitungkan domain pribadi / subdomain dan port).
+     */
+    public function getStudentProfileUrl(string $username): string
+    {
+        return rtrim($this->getPortalUrl(), '/')."/@{$username}";
+    }
+
+    /**
+     * Hasilkan URL transfer SSO berpenandatangan aman untuk berpindah ke domain pribadi tanpa login ulang.
+     */
+    public function generateSsoLoginUrl(User $user, string $redirect = '/'): string
+    {
+        $expires = now()->addMinutes(3)->timestamp;
+        $portalUrl = rtrim($this->getPortalUrl(), '/');
+        $signature = hash_hmac('sha256', "{$user->id}:{$this->id}:{$expires}", (string) config('app.key'));
+
+        $query = http_build_query([
+            'user_id' => $user->id,
+            'expires' => $expires,
+            'signature' => $signature,
+            'redirect' => $redirect,
+        ]);
+
+        return "{$portalUrl}/sso/verify?{$query}";
+    }
+
     public function allowsCustomDomain(): bool
     {
         return $this->isPro() || $this->isEnterprise();

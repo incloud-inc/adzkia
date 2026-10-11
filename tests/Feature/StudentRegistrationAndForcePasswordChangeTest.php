@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -115,6 +116,10 @@ class StudentRegistrationAndForcePasswordChangeTest extends TestCase
         $this->assertNotNull($student);
         $this->assertTrue((bool) $student->must_change_password);
         $this->assertTrue(Hash::check('Masuk123!', $student->password));
+
+        // Bersihkan sesi admin
+        Auth::logout();
+        session()->flush();
 
         // Siswa login
         $this->actingAs($student);

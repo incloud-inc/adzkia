@@ -390,6 +390,16 @@ class QuestionGeneratorController extends Controller
                 $stimuliMap[$idx] = $stim;
             }
 
+            if (count($stimuliMap) === 1) {
+                $singleIdx = array_key_first($stimuliMap);
+                foreach ($items as &$it) {
+                    if (empty($it['stimulus_index'])) {
+                        $it['stimulus_index'] = $singleIdx;
+                    }
+                }
+                unset($it);
+            }
+
             // Group items by question type in logical pedagogical order
             $preferredTypeOrder = [
                 'mcq_single',

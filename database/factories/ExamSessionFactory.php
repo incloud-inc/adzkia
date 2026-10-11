@@ -2,8 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\Assessment;
 use App\Models\ExamSession;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<ExamSession>
@@ -18,9 +21,9 @@ class ExamSessionFactory extends Factory
     public function definition(): array
     {
         return [
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
-            'assessment_id' => \App\Models\Assessment::factory(),
-            'user_id' => \App\Models\User::factory(),
+            'uuid' => (string) Str::uuid(),
+            'assessment_id' => Assessment::factory(),
+            'user_id' => User::factory(),
             'status' => 'in_progress',
             'question_count' => 10,
             'started_at' => now(),

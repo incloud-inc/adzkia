@@ -20,7 +20,19 @@ class ProfileController extends Controller
     public function edit()
     {
         $user = auth()->user();
+        $isTeacher = $user->isTeacher();
+        $isAdmin = $user->isAdmin() || $user->isSuperUser();
+        $isStudent = (! $isTeacher && ! $isAdmin);
         $tenant = $user->currentTenant ?? $user->tenants()->first();
+
+        // Redirect murid/siswa ke halaman profil tenant tempat dia belajar (domain pribadi / subdomain tenant)
+        if ($isStudent) {
+            $targetTenant = $tenant ?? Tenant::first();
+            if ($targetTenant) {
+                return redirect()->to($targetTenant->getStudentProfileUrl($user->username));
+            }
+        }
+
         $assessmentGroups = $this->getProfileAssessments($tenant);
 
         return view('profile.edit', [
@@ -276,8 +288,20 @@ class ProfileController extends Controller
         $tenant = Tenant::where('subdomain', $subdomain)->first();
 
         if ($tenant) {
-            $isMember = $user->tenants()->where('tenant_id', $tenant->id)->exists();
+            // Jika tenant memiliki domain pribadi resmi dan pengunjung belum di domain pribadi tersebut, redirect ke domain pribadi
+            $customDomain = $tenant->getPrimaryCustomDomain();
+            if ($customDomain && $request->getHost() !== $customDomain) {
+                return redirect()->to($tenant->getStudentProfileUrl($user->username));
+            }
+
+            $isMember = $user->current_tenant_id === $tenant->id || $user->tenants()->where('tenant_id', $tenant->id)->exists();
             if (! $isMember) {
+                // Jika user terdaftar pada tenant lain, arahkan ke domain pribadi/subdomain tenant miliknya
+                $actualTenant = $user->currentTenant ?? $user->tenants()->first();
+                if ($actualTenant && $actualTenant->id !== $tenant->id) {
+                    return redirect()->to($actualTenant->getStudentProfileUrl($user->username));
+                }
+
                 abort(404, 'User tidak terdaftar pada institusi/tenant ini.');
             }
         }
@@ -287,7 +311,7 @@ class ProfileController extends Controller
 
     /**
      * Tampilan profil publik ketika diakses dari domain utama.
-     * http://localhost:8000/@{username}
+     * http://localhost:8000/@{username} -> redirect ke domain pribadi atau subdomain tenant
      */
     public function redirectPublicGlobal(Request $request, string $username)
     {
@@ -296,18 +320,13 @@ class ProfileController extends Controller
         // Cari tenant aktif atau tenant pertama milik user
         $tenant = $user->currentTenant ?? $user->tenants()->first();
 
-        $host = $request->getHost();
-        $baseDomain = config('app.url_base_domain', 'localhost');
+        if ($tenant) {
+            $targetHost = $tenant->getPrimaryHost();
+            $host = $request->getHost();
 
-        // Pada localhost / 127.0.0.1, jangan redirect ke subdomain.localhost karena Windows DNS tidak mendukung wildcard subdomain
-        $isLocalhost = in_array($host, ['localhost', '127.0.0.1']) || str_ends_with($host, '.local') || $baseDomain === 'localhost';
-
-        if (! $isLocalhost && $tenant && $tenant->subdomain) {
-            $scheme = $request->getScheme();
-            $port = ($request->getPort() != 80 && $request->getPort() != 443) ? ':'.$request->getPort() : '';
-            $url = "{$scheme}://{$tenant->subdomain}.{$baseDomain}{$port}/@{$user->username}";
-
-            return redirect()->to($url);
+            if ($targetHost && $host !== $targetHost) {
+                return redirect()->to($tenant->getStudentProfileUrl($user->username));
+            }
         }
 
         return $this->renderProfileView($user, $tenant);

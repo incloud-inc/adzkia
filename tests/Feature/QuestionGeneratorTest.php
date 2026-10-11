@@ -745,11 +745,14 @@ class QuestionGeneratorTest extends TestCase
         $wizardData = session('wizard_prefill');
         $this->assertNotNull($wizardData);
 
-        $this->assertCount(2, $wizardData['sections']);
-        $this->assertTrue($wizardData['sections'][0]['items'][0]['is_group']);
-        $this->assertEquals('Siklus Carnot efisiensi mesin pendingin...', $wizardData['sections'][0]['items'][0]['stimulus_content']);
-        $this->assertTrue($wizardData['sections'][1]['items'][0]['is_group']);
-        $this->assertEquals('Induksi Faraday pada kumparan generator...', $wizardData['sections'][1]['items'][0]['stimulus_content']);
+        $this->assertCount(1, $wizardData['sections']);
+        $section = $wizardData['sections'][0];
+        $this->assertCount(2, $section['items']);
+
+        $this->assertTrue($section['items'][0]['is_group']);
+        $this->assertEquals('Siklus Carnot efisiensi mesin pendingin...', $section['items'][0]['stimulus_content']);
+        $this->assertTrue($section['items'][1]['is_group']);
+        $this->assertEquals('Induksi Faraday pada kumparan generator...', $section['items'][1]['stimulus_content']);
     }
 
     public function test_word_export_handles_multi_stimuli_package(): void

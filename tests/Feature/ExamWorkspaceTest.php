@@ -24,11 +24,11 @@ class ExamWorkspaceTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->postJson(route('exam.session.submit', ['session' => $session->uuid]), [
-            'reason' => 'student_submit'
+            'reason' => 'student_submit',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['ok' => true]);
+            ->assertJson(['ok' => true]);
 
         $this->assertDatabaseHas('exam_sessions', [
             'id' => $session->id,
@@ -54,10 +54,9 @@ class ExamWorkspaceTest extends TestCase
         $response = $this->actingAs($user)->getJson(route('exam.session.grading_status', ['session' => $session->uuid]));
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'status' => 'pending',
-                     'is_ready' => false,
-                     'score' => null,
-                 ]);
+            ->assertJson([
+                'status' => 'completed',
+                'is_ready' => true,
+            ]);
     }
 }

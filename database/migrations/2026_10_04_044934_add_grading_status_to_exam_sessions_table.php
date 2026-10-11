@@ -30,12 +30,12 @@ return new class extends Migration
         Schema::table('exam_sessions', function (Blueprint $table) {
             $table->dropIndex(['id', 'grading_status']);
             $table->dropIndex(['grading_status', 'completed_at']);
-            
+
             $table->dropColumn([
                 'grading_status',
                 'grading_started_at',
                 'graded_at',
-                'grading_error'
+                'grading_error',
             ]);
         });
     }

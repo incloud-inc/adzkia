@@ -110,8 +110,8 @@ class BahasaIndonesiaGrade1Semester1Seeder extends Seeder
                     'settings' => [
                         'token' => $token,
                         'validity_type' => 'forever',
-                        'randomize_questions' => false,
-                        'randomize_options' => false,
+                        'randomize_questions' => true,
+                        'randomize_options' => true,
                         'passing_grade' => [
                             'enabled' => true,
                             'min_score' => 70,
@@ -160,14 +160,19 @@ class BahasaIndonesiaGrade1Semester1Seeder extends Seeder
                         $qCount++;
 
                         if (! empty($qData['options'])) {
-                            foreach ($qData['options'] as $idx => $optData) {
+                            $optsToInsert = $qData['options'];
+                            if (in_array($qData['type'], ['mcq_single', 'mcq_multiple', 'mcq_weighted'], true) && count($optsToInsert) > 1) {
+                                shuffle($optsToInsert);
+                            }
+                            $labels = ['A', 'B', 'C', 'D', 'E', 'F'];
+                            foreach ($optsToInsert as $idx => $optData) {
                                 QuestionOption::create([
                                     'question_id' => $question->id,
-                                    'label' => $optData['label'] ?? null,
+                                    'label' => $labels[$idx] ?? ($optData['label'] ?? null),
                                     'option_text' => $optData['option_text'],
                                     'is_correct' => (bool) ($optData['is_correct'] ?? false),
                                     'match_key' => $optData['match_key'] ?? null,
-                                    'order' => $optData['order'] ?? ($idx + 1),
+                                    'order' => $idx + 1,
                                 ]);
 
                                 $totalOptions++;

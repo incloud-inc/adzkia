@@ -23,7 +23,7 @@ class AssessmentAttemptQuotaAndPackagesTest extends TestCase
 
     private function createTeacherAndTenant(): array
     {
-        $tenant = Tenant::factory()->create(['plan' => 'premium']);
+        $tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
         $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
 

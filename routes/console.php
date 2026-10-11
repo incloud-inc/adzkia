@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Assessment;
+use App\Models\ExamSession;
+use App\Models\Question;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
@@ -37,3 +39,55 @@ Artisan::command('assessments:insert-grade12-image', function () {
 
     $this->info("Berhasil menyisipkan gambar segitiga siku-siku ke {$updatedCount} butir soal nomor 1 asesmen kelas 12.");
 })->purpose('Sisipkan gambar Cloudflare R2 ke butir soal nomor 1 kelas 12');
+
+Artisan::command('assessments:randomize-options', function () {
+    $this->info('Mengaktifkan randomize_questions & randomize_options pada seluruh asesmen...');
+
+    $assessmentCount = 0;
+    Assessment::withoutGlobalScopes()->chunk(100, function ($assessments) use (&$assessmentCount) {
+        foreach ($assessments as $a) {
+            $settings = (array) ($a->settings ?? []);
+            $settings['randomize_questions'] = true;
+            $settings['randomize_options'] = true;
+            $a->forceFill(['settings' => $settings])->save();
+            $assessmentCount++;
+        }
+    });
+    $this->info("Berhasil mengaktifkan setting acak pada {$assessmentCount} asesmen.");
+
+    $sessionCount = 0;
+    ExamSession::withoutGlobalScopes()->chunk(100, function ($sessions) use (&$sessionCount) {
+        foreach ($sessions as $s) {
+            $snapshot = (array) ($s->schedule_snapshot ?? []);
+            $snapshot['randomize_questions'] = true;
+            $snapshot['randomize_options'] = true;
+            $s->forceFill(['schedule_snapshot' => $snapshot])->save();
+            $sessionCount++;
+        }
+    });
+    $this->info("Berhasil memperbarui snapshot pada {$sessionCount} sesi ujian aktif.");
+
+    $this->info('Mengacak urutan dan label opsi pada butir soal pilihan ganda (mcq_single, mcq_multiple, mcq_weighted)...');
+    $labels = ['A', 'B', 'C', 'D', 'E', 'F'];
+    $questionCount = 0;
+
+    Question::whereIn('type', ['mcq_single', 'mcq_multiple', 'mcq_weighted'])
+        ->with('options')
+        ->chunk(200, function ($questions) use (&$questionCount, $labels) {
+            foreach ($questions as $q) {
+                $options = $q->options;
+                if ($options->count() > 1) {
+                    $shuffled = $options->shuffle()->values();
+                    foreach ($shuffled as $idx => $opt) {
+                        $opt->update([
+                            'order' => $idx + 1,
+                            'label' => $labels[$idx] ?? (string) ($idx + 1),
+                        ]);
+                    }
+                    $questionCount++;
+                }
+            }
+        });
+
+    $this->info("Berhasil mengacak urutan dan label opsi pada {$questionCount} butir soal.");
+})->purpose('Aktifkan acak soal & acak opsi pada seluruh asesmen serta acak posisi opsi di database');

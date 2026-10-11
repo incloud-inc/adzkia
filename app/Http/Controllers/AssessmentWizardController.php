@@ -62,10 +62,38 @@ class AssessmentWizardController extends Controller
         }
 
         if ($request->filled('grade_level')) {
-            $grade = $request->grade_level;
-            $query->where(function ($q) use ($grade) {
-                $q->where('grade_level', $grade)
-                    ->orWhereRaw('LOWER(grade_level) = ?', [strtolower($grade)]);
+            $grade = trim((string) $request->grade_level);
+            $lowerGrade = strtolower($grade);
+
+            $query->where(function ($q) use ($grade, $lowerGrade) {
+                if ($lowerGrade === 'sd') {
+                    $q->where('grade_level', 'like', '%SD%')
+                        ->orWhere('grade_level', 'like', '%MI%');
+                } elseif ($lowerGrade === 'smp') {
+                    $q->where('grade_level', 'like', '%SMP%')
+                        ->orWhere('grade_level', 'like', '%MTS%');
+                } elseif ($lowerGrade === 'sma') {
+                    $q->where('grade_level', 'like', '%SMA%')
+                        ->orWhere('grade_level', 'like', '%SMK%')
+                        ->orWhere('grade_level', 'like', '%MA%');
+                } elseif (in_array($lowerGrade, ['tka_sd', 'tkasd'])) {
+                    $q->where('grade_level', 'like', '%TKA SD%')
+                        ->orWhere('grade_level', 'TKASD');
+                } elseif (in_array($lowerGrade, ['tka_smp', 'tkasmp'])) {
+                    $q->where('grade_level', 'like', '%TKA SMP%')
+                        ->orWhere('grade_level', 'TKASMP');
+                } elseif (in_array($lowerGrade, ['tka_sma', 'tkasma'])) {
+                    $q->where('grade_level', 'like', '%TKA SMA%')
+                        ->orWhere('grade_level', 'TKASMA');
+                } elseif ($lowerGrade === 'utbk') {
+                    $q->where('grade_level', 'like', '%UTBK%');
+                } elseif (in_array($lowerGrade, ['skd', 'cpns'])) {
+                    $q->where('grade_level', 'like', '%SKD%')
+                        ->orWhere('grade_level', 'like', '%CPNS%');
+                } else {
+                    $q->where('grade_level', $grade)
+                        ->orWhereRaw('LOWER(grade_level) = ?', [$lowerGrade]);
+                }
             });
         }
 
@@ -291,6 +319,7 @@ class AssessmentWizardController extends Controller
             'packages.*.attempts' => 'required|integer|min:1',
             'packages.*.validity_days' => 'nullable|integer|min:1',
             'sections' => 'required|array|min:1',
+            'sections.*.id' => 'nullable',
             'sections.*.title' => 'required|string|max:255',
             'sections.*.instructions' => 'nullable|string',
             'sections.*.order' => 'nullable|integer',
@@ -332,7 +361,10 @@ class AssessmentWizardController extends Controller
                 'duration_minutes' => $validated['duration_minutes'] ?? 90,
                 'scoring_type' => $validated['scoring_type'] ?? 'standard',
                 'status' => $validated['status'] ?? 'draft',
-                'settings' => $validated['settings'] ?? [],
+                'settings' => array_merge([
+                    'randomize_questions' => true,
+                    'randomize_options' => true,
+                ], $validated['settings'] ?? []),
                 'price_type' => $priceType,
                 'price' => $price,
                 'max_attempts' => ! empty($validated['max_attempts']) ? (int) $validated['max_attempts'] : null,
@@ -358,6 +390,7 @@ class AssessmentWizardController extends Controller
             }
 
             // 2. Iterate Sections
+            $createdSections = [];
             foreach ($validated['sections'] as $sIndex => $secData) {
                 $section = AssessmentSection::create([
                     'assessment_id' => $assessment->id,
@@ -366,6 +399,7 @@ class AssessmentWizardController extends Controller
                     'order' => $secData['order'] ?? ($sIndex + 1),
                     'duration_minutes' => ! empty($secData['duration_minutes']) ? (int) $secData['duration_minutes'] : null,
                 ]);
+                $createdSections[$sIndex] = $section;
 
                 if (! empty($secData['items']) && is_array($secData['items'])) {
                     foreach ($secData['items'] as $itemIndex => $item) {
@@ -389,6 +423,30 @@ class AssessmentWizardController extends Controller
                             $this->createQuestionRecord($section->id, null, $item, $itemIndex + 1);
                         }
                     }
+                }
+            }
+
+            // Petakan section_weights jika formula pembobotan persentase dipilih
+            if (! empty($validated['settings']['formula_type']) && $validated['settings']['formula_type'] === 'weighted_percentage') {
+                $rawWeights = (array) ($validated['settings']['section_weights'] ?? []);
+                $mappedWeights = [];
+
+                foreach ($validated['sections'] as $sIndex => $secData) {
+                    $realSec = $createdSections[$sIndex] ?? null;
+                    if (! $realSec) {
+                        continue;
+                    }
+                    $clientSecId = $secData['id'] ?? null;
+                    $weight = $rawWeights[$clientSecId] ?? $rawWeights[$sIndex] ?? null;
+                    if ($weight !== null) {
+                        $mappedWeights[$realSec->id] = (int) $weight;
+                    }
+                }
+
+                if (! empty($mappedWeights)) {
+                    $curSettings = (array) ($assessment->settings ?? []);
+                    $curSettings['section_weights'] = $mappedWeights;
+                    $assessment->forceFill(['settings' => $curSettings])->save();
                 }
             }
 
@@ -491,11 +549,25 @@ class AssessmentWizardController extends Controller
     }
 
     /**
-     * Download sample Microsoft Word (.docx) question template.
+     * Download sample Microsoft Word (.docx) or Markdown (.md) question template.
      */
-    public function downloadTemplate(WordQuestionService $service): BinaryFileResponse
+    public function downloadTemplate(Request $request, WordQuestionService $service): BinaryFileResponse
     {
         $this->authorizeEnterpriseTenantAccess();
+
+        $format = strtolower((string) $request->query('format', 'docx'));
+
+        if (in_array($format, ['md', 'markdown'], true)) {
+            $tmp = tempnam(sys_get_temp_dir(), 'md_tpl_');
+            $filePath = $tmp.'.md';
+            @unlink($tmp);
+
+            file_put_contents($filePath, $service->generateMarkdownTemplate());
+
+            return response()->download($filePath, 'Template_Soal_CBT_ADZKIA.md', [
+                'Content-Type' => 'text/markdown; charset=UTF-8',
+            ])->deleteFileAfterSend(true);
+        }
 
         $tmp = tempnam(sys_get_temp_dir(), 'docx_tpl_');
         $filePath = $tmp.'.docx';
@@ -509,7 +581,7 @@ class AssessmentWizardController extends Controller
     }
 
     /**
-     * Import questions from uploaded Microsoft Word (.docx) document.
+     * Import questions from uploaded Microsoft Word (.docx) or Markdown (.md) document.
      */
     public function importWord(Request $request, WordQuestionService $service): JsonResponse
     {
@@ -520,17 +592,26 @@ class AssessmentWizardController extends Controller
 
         try {
             $file = $request->file('word_file');
-            $items = $service->parseDocx($file->getRealPath());
+            $ext = strtolower($file->getClientOriginalExtension());
+            $mime = (string) $file->getClientMimeType();
+
+            if (in_array($ext, ['md', 'markdown'], true) || str_contains($mime, 'markdown')) {
+                $items = $service->parseMarkdown($file->getRealPath());
+                $docType = 'Markdown (.md)';
+            } else {
+                $items = $service->parseDocx($file->getRealPath());
+                $docType = 'Word (.docx)';
+            }
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Berhasil mengimpor '.count($items).' butir soal/stimulus dari dokumen Word.',
+                'message' => 'Berhasil mengimpor '.count($items).' butir soal/stimulus dari dokumen '.$docType.'.',
                 'items' => $items,
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal membaca dokumen Word: '.$e->getMessage(),
+                'message' => 'Gagal membaca dokumen: '.$e->getMessage(),
             ], 422);
         }
     }
@@ -804,5 +885,36 @@ class AssessmentWizardController extends Controller
     public function uploadImage(Request $request): JsonResponse
     {
         return $this->uploadMedia($request);
+    }
+
+    /**
+     * Toggle status aktif (published) / nonaktif (draft) asesmen dari halaman detail asesmen.
+     */
+    public function toggleStatus(Request $request, Assessment $assessment): RedirectResponse|JsonResponse
+    {
+        $user = Auth::user();
+        if (! $user || (! $user->isTeacher() && ! $user->isAdmin() && ! $user->isSuperUser())) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk mengubah status asesmen.');
+        }
+
+        $newStatus = $request->input('status');
+        if (! in_array($newStatus, ['published', 'draft', 'archived'], true)) {
+            $newStatus = ($assessment->status === 'published') ? 'draft' : 'published';
+        }
+
+        $assessment->update(['status' => $newStatus]);
+
+        $label = $newStatus === 'published' ? 'diaktifkan (tayang)' : 'dinonaktifkan (draf)';
+        $msg = "Status asesmen '{$assessment->title}' berhasil {$label}.";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'status' => $newStatus,
+                'message' => $msg,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 }

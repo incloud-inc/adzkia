@@ -82,6 +82,19 @@
                 </span>
             </a>
 
+            <a href="{{ route('media.gallery.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('media.gallery.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Galeri Media Cloudflare R2">
+                <x-radix-icon name="image" class="w-6 h-6 shrink-0 {{ request()->routeIs('media.gallery.*') ? 'text-green-11' : 'text-sky-600' }}" />
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Galeri Media R2</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-sky-800 bg-sky-100 border border-sky-300 rounded-md">
+                        R2
+                    </span>
+                </span>
+            </a>
+
             <a href="{{ route('grade-levels.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('grade-levels.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
@@ -169,6 +182,21 @@
                 </span>
             </a>
 
+            @if($currentTenant && $currentTenant->isEnterprise())
+            <a href="{{ route('media.gallery.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('media.gallery.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Galeri Media Cloudflare R2">
+                <x-radix-icon name="image" class="w-6 h-6 shrink-0 {{ request()->routeIs('media.gallery.*') ? 'text-green-11' : 'text-sky-600' }}" />
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Galeri Media R2</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-sky-800 bg-sky-100 border border-sky-300 rounded-md">
+                        R2
+                    </span>
+                </span>
+            </a>
+            @endif
+
             <a href="{{ route('reports.sales') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('reports.sales*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
@@ -236,6 +264,21 @@
                     @endif
                 </span>
             </a>
+
+            @if($currentTenant && $currentTenant->isEnterprise())
+            <a href="{{ route('media.gallery.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('media.gallery.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Galeri Media Cloudflare R2">
+                <x-radix-icon name="image" class="w-6 h-6 shrink-0 {{ request()->routeIs('media.gallery.*') ? 'text-green-11' : 'text-sky-600' }}" />
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Galeri Media R2</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-sky-800 bg-sky-100 border border-sky-300 rounded-md">
+                        R2
+                    </span>
+                </span>
+            </a>
+            @endif
 
             <a href="{{ route('assessments.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('assessments.grading*') || request()->routeIs('assessments.analytics*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"

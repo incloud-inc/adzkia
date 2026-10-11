@@ -13,12 +13,14 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
-class GradeExamSessionJob implements ShouldQueue, ShouldBeUnique
+class GradeExamSessionJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 60;
+
     public int $uniqueFor = 3600;
 
     public function __construct(public int $examSessionId) {}
@@ -31,7 +33,7 @@ class GradeExamSessionJob implements ShouldQueue, ShouldBeUnique
     public function handle(): void
     {
         $session = ExamSession::query()->find($this->examSessionId);
-        
+
         if (! $session || $session->grading_status === 'completed') {
             return;
         }

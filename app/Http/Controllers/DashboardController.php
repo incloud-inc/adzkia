@@ -7,6 +7,7 @@ use App\Models\QuestionBank;
 use App\Models\Subject;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -16,7 +17,7 @@ class DashboardController extends Controller
     /**
      * Display the main application dashboard.
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $user = Auth::user();
         $isOwner = $user->isSuperUser();
@@ -61,8 +62,18 @@ class DashboardController extends Controller
         $isAdmin = $user->isAdmin() || $isOwner;
         $isStudent = (! $isTeacher && ! $isAdmin);
 
-        // A. SISI MURID / SISWA
+        // A. SISI MURID / SISWA -> Redirect ke domain pribadi / subdomain tenant tempat dia belajar
         if ($isStudent) {
+            $targetTenant = $tenant ?? Tenant::first();
+
+            // Jika murid mengakses dashboard dari luar host tenant miliknya, redirect ke portal tenant
+            if ($targetTenant) {
+                $targetHost = $targetTenant->getPrimaryHost();
+                if ($targetHost && $request->getHost() !== $targetHost) {
+                    return redirect()->to($targetTenant->getPortalUrl());
+                }
+            }
+
             $userId = $user->id;
             $availableAssessments = Assessment::where('status', 'published')
                 ->with([
@@ -90,7 +101,7 @@ class DashboardController extends Controller
             return view('dashboard', [
                 'isOwner' => false,
                 'role' => 'student',
-                'tenant' => $tenant,
+                'tenant' => $targetTenant,
                 'availableAssessments' => $availableAssessments,
                 'totalAvailable' => $totalAvailable,
                 'subjectsCount' => $subjectsCount,

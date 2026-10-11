@@ -81,7 +81,7 @@
             <!-- Quick Stats Cards (4 Radix Metrics) - Swipeable Snap Carousel on Mobile -->
             <section class="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
                 <!-- Total Tenant -->
-                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
+                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-green-8 transition-colors duration-150 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Total Tenant</span>
                         <div class="w-10 h-10 rounded-xl bg-green-3 text-green-11 flex items-center justify-center shadow-xs">
@@ -95,7 +95,7 @@
                 </article>
 
                 <!-- Total Guru -->
-                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
+                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-blue-8 transition-colors duration-150 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Total Guru</span>
                         <div class="w-10 h-10 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center shadow-xs">
@@ -109,7 +109,7 @@
                 </article>
 
                 <!-- Total Murid -->
-                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
+                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-amber-8 transition-colors duration-150 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Total Siswa</span>
                         <div class="w-10 h-10 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center shadow-xs">
@@ -123,7 +123,7 @@
                 </article>
 
                 <!-- Total Admin Tenant -->
-                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-red-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between">
+                <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-red-8 transition-colors duration-150 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Admin Cabang</span>
                         <div class="w-10 h-10 rounded-xl bg-red-3 text-red-11 flex items-center justify-center shadow-xs">
@@ -490,7 +490,7 @@
 
             <!-- Stats Ringkasan Siswa (4 Metric Cards) - Swipeable Snap Carousel on Mobile -->
             <section class="flex overflow-x-auto sm:grid grid-cols-2 sm:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
-                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-blue-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Ujian Tersedia</span>
                         <div class="w-9 h-9 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center">
@@ -501,7 +501,7 @@
                     <div class="font-sans text-xs text-blue-11 font-medium mt-1">Siap dikerjakan</div>
                 </article>
 
-                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-indigo-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-indigo-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Mata Pelajaran</span>
                         <div class="w-9 h-9 rounded-xl bg-indigo-3 text-indigo-11 flex items-center justify-center">
@@ -512,7 +512,7 @@
                     <div class="font-sans text-xs text-indigo-11 font-medium mt-1">Bidang studi aktif</div>
                 </article>
 
-                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-green-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Status Akun</span>
                         <div class="w-9 h-9 rounded-xl bg-green-3 text-green-11 flex items-center justify-center">
@@ -523,7 +523,7 @@
                     <div class="font-sans text-xs text-gray-11 mt-0.5">Siswa Terdaftar</div>
                 </article>
 
-                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-amber-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Institusi Mitra</span>
                         <div class="w-9 h-9 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center">
@@ -573,7 +573,7 @@
                                 $access = $exam->accesses?->first();
                                 $isPurchased = !is_null($access);
                             @endphp
-                            <article class="min-w-[280px] xs:min-w-[320px] md:min-w-0 snap-start shrink-0 md:shrink flex-1 p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] {{ $isPurchased ? 'border-amber-400 shadow-xs' : 'border-gray-6 bg-gray-1 hover:bg-white hover:border-blue-6' }}"
+                            <article class="min-w-[280px] xs:min-w-[320px] md:min-w-0 snap-start shrink-0 md:shrink flex-1 p-5 rounded-2xl border-2 transition-colors duration-150 flex flex-col justify-between {{ $isPurchased ? 'border-amber-500 shadow-xs hover:border-amber-700' : 'border-gray-6 bg-gray-1 hover:bg-white hover:border-blue-8' }}"
                                      style="{{ $isPurchased ? 'background-color: #ffd8a8 !important;' : '' }}">
                                 <div>
                                     <div class="flex items-center justify-between gap-2 mb-2.5">
@@ -695,7 +695,7 @@
 
             <!-- Stats Ringkasan Guru - Swipeable Snap Carousel on Mobile -->
             <section class="flex overflow-x-auto sm:grid grid-cols-2 sm:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
-                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-green-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Ujian Dibuat</span>
                         <div class="w-9 h-9 rounded-xl bg-green-3 text-green-11 flex items-center justify-center">
@@ -706,7 +706,7 @@
                     <div class="font-sans text-xs text-green-11 font-medium mt-1">Asesmen binaan saya</div>
                 </article>
 
-                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-blue-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Bank Soal</span>
                         <div class="w-9 h-9 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center">
@@ -717,7 +717,7 @@
                     <div class="font-sans text-xs text-blue-11 font-medium mt-1">Paket soal tersimpan</div>
                 </article>
 
-                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-amber-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Siswa Terdaftar</span>
                         <div class="w-9 h-9 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center">
@@ -728,7 +728,7 @@
                     <div class="font-sans text-xs text-amber-11 font-medium mt-1">Peserta didik aktif</div>
                 </article>
 
-                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-teal-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200">
+                <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-teal-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Institusi Sekolah</span>
                         <div class="w-9 h-9 rounded-xl bg-teal-3 text-teal-11 flex items-center justify-center">
@@ -946,7 +946,7 @@
                                     </span>
                                 </h1>
                                 <p class="font-sans text-sm text-gray-11 mt-1 max-w-2xl">
-                                    {{ $tenant->tagline ?: 'Mewujudkan ekosistem asesmen digital yang mandiri, terukur, dan berstandar nasional.' }}
+                                    {{ $tenant?->tagline ?: 'Mewujudkan ekosistem asesmen digital yang mandiri, terukur, dan berstandar nasional.' }}
                                 </p>
                             </div>
                         </div>
@@ -1012,7 +1012,7 @@
             <!-- 2. STATS RINGKASAN EKOSISTEM SEKOLAH (4 KARTU METRIK) - Swipeable Snap Carousel on Mobile -->
             <section class="flex overflow-x-auto lg:grid grid-cols-2 lg:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x lg:overflow-visible">
                 <!-- Dewan Guru & Pengawas -->
-                <article @click="tab = 'teachers'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer group">
+                <article @click="tab = 'teachers'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-blue-8 transition-colors duration-150 cursor-pointer group">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider group-hover:text-blue-11 transition-colors">Dewan Guru</span>
                         <div class="w-10 h-10 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center shadow-xs">
@@ -1024,7 +1024,7 @@
                 </article>
 
                 <!-- Siswa Terdaftar -->
-                <article @click="tab = 'students'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer group">
+                <article @click="tab = 'students'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-amber-8 transition-colors duration-150 cursor-pointer group">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider group-hover:text-amber-11 transition-colors">Siswa Terdaftar</span>
                         <div class="w-10 h-10 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center shadow-xs">
@@ -1036,7 +1036,7 @@
                 </article>
 
                 <!-- Katalog Ujian Institusi -->
-                <article @click="tab = 'assessments'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer group">
+                <article @click="tab = 'assessments'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-green-8 transition-colors duration-150 cursor-pointer group">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider group-hover:text-green-11 transition-colors">Katalog Ujian</span>
                         <div class="w-10 h-10 rounded-xl bg-green-3 text-green-11 flex items-center justify-center shadow-xs">
@@ -1048,7 +1048,7 @@
                 </article>
 
                 <!-- Paket Bank Soal -->
-                <a href="{{ route('assessments.index') }}" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-indigo-7 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] transition-all duration-200 group block">
+                <a href="{{ route('assessments.index') }}" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-indigo-8 transition-colors duration-150 group block">
                     <div class="flex items-center justify-between mb-3">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider group-hover:text-indigo-11 transition-colors">Bank Soal</span>
                         <div class="w-10 h-10 rounded-xl bg-indigo-3 text-indigo-11 flex items-center justify-center shadow-xs">

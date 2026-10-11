@@ -43,7 +43,7 @@ class StudentDashboardAndProfileTest extends TestCase
             'settings' => ['token' => 'UTBK01'],
         ]);
 
-        $response = $this->actingAs($user)->get(route('dashboard'));
+        $response = $this->actingAs($user)->get("http://{$tenant->subdomain}.localhost/dashboard");
 
         $response->assertStatus(200);
         $response->assertSee('Dashboard Siswa');
@@ -85,6 +85,12 @@ class StudentDashboardAndProfileTest extends TestCase
         $responseGate = $this->actingAs($user)->get(route('exam.gate.show', $assessment));
         $responseGate->assertStatus(200);
         $responseGate->assertSee('Gerbang Ujian');
+
+        // Assessments index screen has "Ikuti Ujian" button directed to exam gate
+        $responseIndex = $this->actingAs($user)->get(route('assessments.index'));
+        $responseIndex->assertStatus(200);
+        $responseIndex->assertSee('Ikuti Ujian');
+        $responseIndex->assertSee(route('exam.gate.show', $assessment));
     }
 
     public function test_student_can_view_exam_history_page(): void
@@ -673,7 +679,7 @@ class StudentDashboardAndProfileTest extends TestCase
         ]);
         $student->tenants()->attach($tenant->id, ['role' => 'U']);
 
-        $response = $this->actingAs($student)->get(route('dashboard'));
+        $response = $this->actingAs($student)->get("http://{$tenant->subdomain}.localhost/dashboard");
 
         $response->assertOk();
         $response->assertSee($tenant->favicon_url);

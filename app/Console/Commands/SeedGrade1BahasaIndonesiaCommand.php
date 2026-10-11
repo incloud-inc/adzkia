@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use Database\Seeders\BahasaIndonesiaGrade1Semester1Seeder;
+use Database\Seeders\BahasaIndonesiaKurikulumMerdekaKelas1Seeder;
 use Illuminate\Console\Command;
 
 class SeedGrade1BahasaIndonesiaCommand extends Command
@@ -19,7 +19,7 @@ class SeedGrade1BahasaIndonesiaCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Masukkan 18 paket asesmen Bahasa Indonesia Kelas 1 SD Semester 1 (Kuis Bab 1-4, ATS 1, AAS 1) ke database ADZKIA.';
+    protected $description = 'Masukkan 36 paket asesmen Bahasa Indonesia Kelas 1 SD Kurikulum Merdeka (Kuis Bab 1-8, ASTS 1, ASAS 1, ASTS 2, ASAT) ke database ADZKIA.';
 
     /**
      * Execute the console command.
@@ -28,16 +28,16 @@ class SeedGrade1BahasaIndonesiaCommand extends Command
     {
         $this->newLine();
         $this->info('========================================================================');
-        $this->info('  ADZKIA CBT - SEED ASESMEN BAHASA INDONESIA KELAS 1 SD (SEMESTER 1)    ');
+        $this->info('  ADZKIA CBT - SEED 36 ASESMEN BAHASA INDONESIA KELAS 1 SD (FULL YEAR)  ');
         $this->info('========================================================================');
         $this->newLine();
 
-        $seeder = new BahasaIndonesiaGrade1Semester1Seeder;
+        $seeder = new BahasaIndonesiaKurikulumMerdekaKelas1Seeder;
         $seeder->setCommand($this);
         $seeder->run();
 
         $this->newLine();
-        $this->info('Semua asesmen siap digunakan untuk ujian siswa!');
+        $this->info('Semua 36 asesmen siap digunakan untuk ujian siswa!');
 
         return self::SUCCESS;
     }

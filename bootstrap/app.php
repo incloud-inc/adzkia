@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ConfigureSessionDomainForHost;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\IdentifyTenantByDomain;
 use App\Http\Middleware\SecurityHeaders;
@@ -7,6 +8,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\AuthenticateSession;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,12 +20,17 @@ return Application::configure(basePath: dirname(__DIR__))
         // Percayai IP dari Cloudflare Tunnel / Traefik
         $middleware->trustProxies(at: '*');
 
-        $middleware->web(append: [
-            IdentifyTenantByDomain::class,
-            SecurityHeaders::class,
-            EnsurePasswordIsChanged::class,
-            \Illuminate\Session\Middleware\AuthenticateSession::class,
-        ]);
+        $middleware->web(
+            prepend: [
+                ConfigureSessionDomainForHost::class,
+            ],
+            append: [
+                IdentifyTenantByDomain::class,
+                SecurityHeaders::class,
+                EnsurePasswordIsChanged::class,
+                AuthenticateSession::class,
+            ]
+        );
         $middleware->validateCsrfTokens(except: [
             'api/webhooks/*',
             'webhooks/*',
