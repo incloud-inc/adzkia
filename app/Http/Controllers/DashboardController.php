@@ -23,7 +23,7 @@ class DashboardController extends Controller
         $isOwner = $user->isSuperUser();
 
         // 1. OWNER / SUPER USER DASHBOARD (Platform-wide mode)
-        if ($isOwner && ! $user->current_tenant_id) {
+        if ($isOwner && ! $user->current_tenant_id && ! app()->has('currentTenant')) {
             $tenants = Tenant::withCount([
                 'users as teachers_count' => fn ($q) => $q->where('role', 'T'),
                 'users as students_count' => fn ($q) => $q->where('role', 'U'),
@@ -53,26 +53,49 @@ class DashboardController extends Controller
         }
 
         // 2. TENANT-BOUND DASHBOARD (Student, Teacher, or Tenant Admin)
-        $tenant = $user->currentTenant ?? $user->tenants()->first();
-        if (! $user->current_tenant_id && $tenant) {
-            $user->update(['current_tenant_id' => $tenant->id]);
+        if (app()->has('currentTenant')) {
+            $domainTenant = app('currentTenant');
+            $hasDomainAccess = $isOwner || $user->tenants()->where('tenant_id', $domainTenant->id)->exists();
+
+            if (! $hasDomainAccess) {
+                $userTenant = $user->currentTenant ?? $user->tenants()->first();
+                if ($userTenant) {
+                    return redirect()->to($userTenant->getPortalUrl())->with('error', 'Akun Anda tidak terdaftar pada institusi '.$domainTenant->name.'.');
+                }
+                abort(403, 'Anda tidak memiliki akses ke institusi ini.');
+            }
+
+            $tenant = $domainTenant;
+            if ($user->current_tenant_id !== $tenant->id) {
+                $user->switchTenant($tenant->id);
+            }
+        } else {
+            $tenant = $user->currentTenant ?? $user->tenants()->first();
+            if (! $user->current_tenant_id && $tenant) {
+                $user->update(['current_tenant_id' => $tenant->id]);
+            }
         }
 
         $isTeacher = $user->isTeacher();
         $isAdmin = $user->isAdmin() || $isOwner;
         $isStudent = (! $isTeacher && ! $isAdmin);
 
-        // A. SISI MURID / SISWA -> Redirect ke domain pribadi / subdomain tenant tempat dia belajar
-        if ($isStudent) {
+        // B2B2C Rule: Hanya Owner yang boleh berada di domain utama adzkia.
+        // Admin, Guru, dan Murid yang mengakses dashboard dari luar host tenant miliknya
+        // (misalnya dari domain utama adzkia) HARUS dialihkan ke portal/host tenant miliknya.
+        if (! $isOwner) {
             $targetTenant = $tenant ?? Tenant::first();
-
-            // Jika murid mengakses dashboard dari luar host tenant miliknya, redirect ke portal tenant
             if ($targetTenant) {
                 $targetHost = $targetTenant->getPrimaryHost();
                 if ($targetHost && $request->getHost() !== $targetHost) {
                     return redirect()->to($targetTenant->getPortalUrl());
                 }
             }
+        }
+
+        // A. SISI MURID / SISWA
+        if ($isStudent) {
+            $targetTenant = $tenant ?? Tenant::first();
 
             $userId = $user->id;
             $availableAssessments = Assessment::where('status', 'published')

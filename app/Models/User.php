@@ -168,8 +168,8 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        if ($this->currentRole() === 'A') {
-            return true;
+        if ($this->current_tenant_id) {
+            return $this->currentRole() === 'A';
         }
 
         return $this->tenants()->wherePivot('role', 'A')->exists();
@@ -180,8 +180,8 @@ class User extends Authenticatable
      */
     public function isTeacher(): bool
     {
-        if ($this->currentRole() === 'T') {
-            return true;
+        if ($this->current_tenant_id) {
+            return $this->currentRole() === 'T';
         }
 
         return $this->tenants()->wherePivot('role', 'T')->exists();
@@ -192,7 +192,11 @@ class User extends Authenticatable
      */
     public function isUser(): bool
     {
-        return $this->currentRole() === 'U';
+        if ($this->current_tenant_id) {
+            return $this->currentRole() === 'U';
+        }
+
+        return $this->tenants()->wherePivot('role', 'U')->exists();
     }
 
     /**
@@ -200,8 +204,8 @@ class User extends Authenticatable
      */
     public function isStudent(): bool
     {
-        if ($this->currentRole() === 'U') {
-            return true;
+        if ($this->current_tenant_id) {
+            return $this->currentRole() === 'U';
         }
 
         return ! $this->isSuperUser() && ! $this->isAdmin() && ! $this->isTeacher();

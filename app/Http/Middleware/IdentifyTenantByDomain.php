@@ -22,8 +22,12 @@ class IdentifyTenantByDomain
 
         // Base domains for the central portal
         $centralDomains = ['adzkia.test', 'adzkia.id', 'localhost', '127.0.0.1'];
+        $baseDomain = config('app.url_base_domain', 'localhost');
+        if (! in_array($baseDomain, $centralDomains, true)) {
+            $centralDomains[] = $baseDomain;
+        }
 
-        if (! in_array($host, $centralDomains)) {
+        if (! in_array($host, $centralDomains, true)) {
             // 1. Find tenant by custom domain in tenant_domains table (Multi-domain Enterprise / Pro)
             $tenantDomain = TenantDomain::where('domain', $host)->first();
             $tenant = $tenantDomain?->tenant;
@@ -35,10 +39,17 @@ class IdentifyTenantByDomain
 
             // 3. Fallback to subdomain check (e.g. subdomain.adzkia.id or subdomain.localhost)
             if (! $tenant) {
-                $parts = explode('.', $host);
-                if (count($parts) >= 2) {
-                    $subdomain = $parts[0];
-                    $tenant = Tenant::where('subdomain', $subdomain)->first();
+                $isSubdomainOfCentral = str_ends_with($host, '.'.$baseDomain)
+                    || str_ends_with($host, '.localhost')
+                    || str_ends_with($host, '.adzkia.id')
+                    || str_ends_with($host, '.adzkia.test');
+
+                if ($isSubdomainOfCentral) {
+                    $parts = explode('.', $host);
+                    if (count($parts) >= 2) {
+                        $subdomain = $parts[0];
+                        $tenant = Tenant::where('subdomain', $subdomain)->first();
+                    }
                 }
             }
 

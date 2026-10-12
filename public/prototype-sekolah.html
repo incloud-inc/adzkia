@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Portal Pembelajaran & CBT Sekolah - SMA Negeri 1 Nusantara</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js untuk tema interaktif & kontrol -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    maxWidth: {
+                        '7xl': '60rem',
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        // Open Color (https://yeun.github.io/open-color/)
+                        'oc-gray': {
+                            0: '#f8f9fa',
+                            1: '#f1f3f5',
+                            2: '#e9ecef',
+                            3: '#dee2e6',
+                            4: '#ced4da',
+                            5: '#adb5bd',
+                            6: '#868e96',
+                            7: '#495057',
+                            8: '#343a40',
+                            9: '#212529',
+                        },
+                        'oc-blue': {
+                            0: '#e7f5ff',
+                            1: '#d0ebff',
+                            2: '#a5d8ff',
+                            3: '#74c0fc',
+                            4: '#4dabf7',
+                            5: '#339af0',
+                            6: '#228be6',
+                            7: '#1c7ed6',
+                            8: '#1971c2',
+                            9: '#1864ab',
+                        },
+                        'oc-red': {
+                            0: '#fff5f5',
+                            1: '#ffe3e3',
+                            2: '#ffc9c9',
+                            3: '#ffa8a8',
+                            4: '#ff8787',
+                            5: '#ff6b6b',
+                            6: '#fa5252',
+                            7: '#f03e3e',
+                            8: '#e03131',
+                            9: '#c92a2a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8f9fa; /* oc-gray-0 */
+            color: #212529; /* oc-gray-9 */
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .spring-ease {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pro-scroll-track::-webkit-scrollbar {
+            height: 6px;
+        }
+        .pro-scroll-track::-webkit-scrollbar-track {
+            background: #e9ecef;
+            border-radius: 999px;
+        }
+        .pro-scroll-track::-webkit-scrollbar-thumb {
+            background: #ced4da;
+            border-radius: 999px;
+        }
+        [x-cloak] { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .max-w-7xl {
+            max-width: 60rem !important;
+        }
+
+        body {
+            background-color: var(--theme-bg, #f1f3f5);
+            color: var(--theme-text, #212529);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .theme-card {
+            background-color: var(--theme-card-bg, #ffffff) !important;
+            border-color: var(--theme-border, #dee2e6) !important;
+            color: var(--theme-text, #212529);
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        .theme-card:hover {
+            border-color: var(--theme-primary, #1c7ed6) !important;
+        }
+        .theme-inner {
+            background-color: var(--theme-inner-bg, #f1f3f5) !important;
+            border-color: var(--theme-border, #dee2e6) !important;
+            color: var(--theme-text, #212529);
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        .theme-border {
+            border-color: var(--theme-border, #dee2e6) !important;
+            transition: border-color 0.3s ease;
+        }
+        .theme-heading {
+            color: var(--theme-text, #212529) !important;
+            transition: color 0.3s ease;
+        }
+        .theme-subtext {
+            color: var(--theme-subtext, #495057) !important;
+            transition: color 0.3s ease;
+        }
+    </style>
+</head>
+<body x-data="schoolApp()"
+      :style="{
+          '--theme-bg': currentTheme.bg,
+          '--theme-card-bg': currentTheme.cardBg,
+          '--theme-inner-bg': currentTheme.innerBg,
+          '--theme-border': currentTheme.border,
+          '--theme-text': currentTheme.text,
+          '--theme-subtext': currentTheme.subtext,
+          '--theme-primary': currentTheme.primary,
+          '--theme-hex': currentTheme.hex,
+          backgroundColor: currentTheme.bg,
+          color: currentTheme.text
+      }"
+      class="min-h-screen antialiased selection:bg-oc-blue-6 selection:text-white p-3 sm:p-6 lg:p-8 transition-colors duration-300">
+
+    <!-- ================= MAIN CONTAINER (Max Width 60rem / 960px) ================= -->
+    <main class="max-w-7xl max-w-[60rem] w-full mx-auto space-y-8 sm:space-y-10">
+        
+        <!-- ================= 1. CARD PROFILE SEKOLAH ================= -->
+        <section class="theme-card rounded-3xl border shadow-sm relative transition-colors duration-300">
+            <!-- Cover Banner: Foto Sekolah (Dapat Diubah Admin) + Tint Overlay Halus & Kontrol -->
+            <div class="h-36 sm:h-48 md:h-52 w-full relative select-none rounded-t-3xl">
+                <!-- Background Layer Terisolasi (Foto Cover Sekolah dari Admin) -->
+                <div class="absolute inset-0 rounded-t-3xl overflow-hidden pointer-events-none">
+                    <!-- Foto Cover Sekolah yang dapat diganti oleh admin -->
+                    <img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1600&q=80" 
+                         alt="Foto Gedung SMA Negeri 1 Nusantara" 
+                         class="w-full h-full object-cover">
+                    
+                    <!-- Overlay Gradasi Gelap & Tint Halus Mengikuti Warna Tema -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/25"></div>
+                    <div class="absolute inset-0 opacity-25 transition-all duration-500"
+                         :style="{ backgroundColor: currentTheme.hex }"></div>
+                    <!-- Watermark Pola Garis Arsitektur Halus -->
+                    <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#ffffff_1.2px,transparent_1.2px)] [background-size:18px_18px]"></div>
+                </div>
+
+                <!-- TOP CONTROLS DI ATAS COVER: PILIHAN TEMA 14 OPEN COLOR (Kanan) -->
+                <div class="absolute top-3 right-3 sm:top-4 sm:right-4 z-30">
+                    <div class="relative">
+                        <button @click="openPalette = !openPalette"
+                                class="px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md bg-black/45 hover:bg-black/65 text-white border border-white/20 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                                :title="'Pilih Tema: ' + currentTheme.name">
+                            <span class="w-3.5 h-3.5 rounded-full border border-white/60 shadow-xs shrink-0 transition-colors duration-300" :style="{ backgroundColor: currentTheme.hex }"></span>
+                            <span class="text-xs font-semibold hidden sm:inline" x-text="currentTheme.name"></span>
+                            <svg class="w-3 h-3 opacity-80 transition-transform duration-200" :class="openPalette ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+
+                        <!-- DROPDOWN 14 PALET WARNA (OPEN COLOR) -->
+                        <div x-show="openPalette" @click.outside="openPalette = false" x-cloak
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100"
+                             x-transition:leave-end="opacity-0"
+                             class="absolute right-0 mt-2 w-72 p-3 rounded-2xl shadow-2xl border text-xs z-50 backdrop-blur-xl bg-slate-900/95 border-slate-700/80 text-white">
+                            
+                            <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+                                <span class="font-bold text-[11px] uppercase tracking-wider opacity-80">Pilihan Tema Sekolah</span>
+                                <span class="text-[10px] font-mono opacity-50">14 Open Color</span>
+                            </div>
+
+                            <!-- Grid 14 Warna (2 Kolom x 7 Baris, Semua Terlihat Jelas) -->
+                            <div class="grid grid-cols-2 gap-1.5 max-h-80 overflow-y-auto no-scrollbar pr-0.5">
+                                <template x-for="(thm, key) in themes" :key="key">
+                                    <button @click="setTheme(key); openPalette = false" 
+                                            class="w-full text-left px-2.5 py-1.5 rounded-xl flex items-center gap-2 transition-all hover:scale-[1.02] border"
+                                            :style="{ borderColor: themeKey === key ? thm.primary : 'transparent', backgroundColor: themeKey === key ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.03)' }">
+                                        <span class="w-3.5 h-3.5 rounded-full shrink-0 border border-white/30 shadow-xs" :style="{ backgroundColor: thm.hex }"></span>
+                                        <span class="truncate text-xs font-medium" x-text="thm.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Info Body (Gunakan px-* dan pb-* agar pt-0 tidak tertimpa media query sm:p-6 / md:p-8) -->
+            <div class="px-4 sm:px-6 md:px-8 pb-5 sm:pb-6 md:pb-8 pt-0 sm:pt-0 md:pt-0">
+                <!-- Top Block: Logo 1:1 + Nama Sekolah + Deskripsi (Layout Seragam: Logo Pas Separuh di Cover & Separuh di Bawah Cover) -->
+                <div class="flex flex-col gap-3.5 sm:gap-4 mb-5">
+                    
+                    <!-- Logo Sekolah (1:1 Aspect Ratio: Lebar = Tinggi, Presisi 50% di Cover & 50% di Bawah Cover) -->
+                    <div class="-mt-10 sm:-mt-12 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-2xl sm:rounded-3xl bg-white p-1.5 shadow-md border border-oc-gray-2 flex items-center justify-center shrink-0 relative z-10">
+                        <div class="w-full h-full aspect-square rounded-xl sm:rounded-2xl bg-gradient-to-br from-oc-gray-1 to-oc-blue-0 border border-oc-gray-3 flex flex-col items-center justify-center transition-colors duration-300" :style="{ color: currentTheme.hex }">
+                            <!-- Lucide Icon: School / Landmark -->
+                            <svg class="w-8 h-8 sm:w-10 sm:h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m4 6 8-4 8 4"/>
+                                <path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/>
+                                <path d="M14 22v-4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v4"/>
+                                <path d="M18 5v17"/>
+                                <path d="M6 5v17"/>
+                                <circle cx="12" cy="9" r="2"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Nama Sekolah & Deskripsi Singkat (Tata letak vertikal seragam seperti di mobile) -->
+                    <div class="space-y-1 sm:space-y-1.5 min-w-0">
+                        <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold theme-heading tracking-tight leading-tight">
+                            SMA Negeri 1 Nusantara
+                        </h1>
+                        <p class="text-xs sm:text-sm theme-subtext max-w-3xl leading-relaxed">
+                            Portal evaluasi digital terpadu, asesmen sumatif harian, dan latihan simulasi UTBK SNBT bagi seluruh civitas akademika SMA Negeri 1 Nusantara.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Info Statistik Ringkas & Kompak (Proporsional di Mobile & Desktop) -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 pt-3 border-t theme-border">
+                    
+                    <!-- Stat 1: Siswa -->
+                    <div class="flex items-center gap-2.5 p-2 sm:p-2.5 rounded-xl theme-inner border theme-border hover:border-oc-blue-4 transition">
+                        <div class="w-8 h-8 aspect-square rounded-lg theme-card border theme-border flex items-center justify-center text-oc-blue-7 shrink-0">
+                            <!-- Lucide Icon: Users -->
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="font-mono text-xs sm:text-sm font-extrabold theme-heading leading-tight block">1.420</span>
+                            <span class="text-[10px] sm:text-[11px] font-semibold theme-subtext truncate block mt-0.5">Siswa Aktif</span>
+                        </div>
+                    </div>
+
+                    <!-- Stat 2: Guru -->
+                    <div class="flex items-center gap-2.5 p-2 sm:p-2.5 rounded-xl theme-inner border theme-border hover:border-oc-blue-4 transition">
+                        <div class="w-8 h-8 aspect-square rounded-lg theme-card border theme-border flex items-center justify-center theme-heading shrink-0">
+                            <!-- Lucide Icon: GraduationCap -->
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21.42 10.922a1 1 0 0 0-.019-.838L12.83 3.18a2 2 0 0 0-1.66 0L2.6 10.084a1 1 0 0 0 0 1.832l8.57 6.908a2 2 0 0 0 1.66 0l8.57-6.908a1 1 0 0 0 .02-.994z"/>
+                                <path d="M6 13.5V19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-5.5"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="font-mono text-xs sm:text-sm font-extrabold theme-heading leading-tight block">84</span>
+                            <span class="text-[10px] sm:text-[11px] font-semibold theme-subtext truncate block mt-0.5">Guru & Staf</span>
+                        </div>
+                    </div>
+
+                    <!-- Stat 3: Bank Soal -->
+                    <div class="flex items-center gap-2.5 p-2 sm:p-2.5 rounded-xl theme-inner border theme-border hover:border-oc-blue-4 transition">
+                        <div class="w-8 h-8 aspect-square rounded-lg theme-card border theme-border flex items-center justify-center text-oc-blue-7 shrink-0">
+                            <!-- Lucide Icon: FileText -->
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                <path d="M10 9H8"/>
+                                <path d="M16 13H8"/>
+                                <path d="M16 17H8"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="font-mono text-xs sm:text-sm font-extrabold theme-heading leading-tight block">156</span>
+                            <span class="text-[10px] sm:text-[11px] font-semibold theme-subtext truncate block mt-0.5">Paket Soal</span>
+                        </div>
+                    </div>
+
+                    <!-- Stat 4: Lulus PTN -->
+                    <div class="flex items-center gap-2.5 p-2 sm:p-2.5 rounded-xl theme-inner border theme-border hover:border-emerald-400 transition">
+                        <div class="w-8 h-8 aspect-square rounded-lg theme-card border theme-border flex items-center justify-center text-emerald-500 shrink-0">
+                            <!-- Lucide Icon: TrendingUp -->
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                                <polyline points="16 7 22 7 22 13"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="font-mono text-xs sm:text-sm font-extrabold theme-heading leading-tight block">98.8%</span>
+                            <span class="text-[10px] sm:text-[11px] font-semibold theme-subtext truncate block mt-0.5">Lulus PTN</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 2. BAGIAN KEDUA: "PRO" ================= -->
+        <!-- Judul "PRO". Card square 1:1. Di mobile w-[84vw] agar kartu berikutnya mengintip (peek affordance). -->
+        <section class="space-y-4">
+            
+            <!-- Section Header: Hanya "PRO" & Tombol Geser Kiri-Kanan -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <h2 class="text-xl sm:text-2xl font-black theme-heading tracking-tight">PRO</h2>
+                    <span class="px-2 py-0.5 rounded-full bg-oc-blue-1 text-oc-blue-7 text-[10px] font-mono font-bold uppercase border border-oc-blue-2">Eksklusif</span>
+                </div>
+
+                <!-- Slide Buttons (Kiri - Kanan) -->
+                <div class="flex items-center gap-2">
+                    <button onclick="slideProCards('left')" aria-label="Slide Kiri" class="w-9 h-9 aspect-square rounded-full border theme-border theme-card hover:opacity-85 theme-heading flex items-center justify-center shadow-xs spring-ease active:scale-95">
+                        <!-- Lucide Icon: ChevronLeft -->
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m15 18-6-6 6-6"/>
+                        </svg>
+                    </button>
+                    <button onclick="slideProCards('right')" aria-label="Slide Kanan" class="w-9 h-9 aspect-square rounded-full border theme-border theme-card hover:opacity-85 theme-heading flex items-center justify-center shadow-xs spring-ease active:scale-95">
+                        <!-- Lucide Icon: ChevronRight -->
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m9 18 6-6-6-6"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Horizontal Scroll Container (Slide Kanan-Kiri) -->
+            <div id="proScrollContainer" class="pro-scroll-track flex gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scroll-smooth hide-scrollbar">
+                
+                <!-- 1. KELAS 10 (SQUARE 1:1 CARD - MOBILE: w-[84vw], DESKTOP: w-[360px]) -->
+                <div class="w-[84vw] sm:w-[360px] aspect-square rounded-3xl theme-card border theme-border shadow-sm hover:shadow-md spring-ease p-5 sm:p-6 flex flex-col justify-between shrink-0 snap-start">
+                    <div>
+                        <span class="text-[11px] font-extrabold uppercase tracking-widest theme-subtext block">KELAS 10</span>
+                        <h3 class="text-lg sm:text-2xl font-black theme-heading tracking-tight leading-tight mt-0.5">Asesmen Pilihan Kelas X</h3>
+                    </div>
+
+                    <!-- 3 Asesmen List -->
+                    <div class="space-y-3 my-auto">
+                        <!-- Item 1 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: BookOpen -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Simulasi TPS Skolastik</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Penalaran Umum & Skolastik</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="px-3.5 sm:px-4 py-1.5 rounded-full theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                                Mulai
+                            </a>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: Calculator -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="16" height="20" x="4" y="2" rx="2"/>
+                                        <line x1="8" x2="16" y1="6" y2="6"/>
+                                        <line x1="16" x2="16" y1="14" y2="18"/>
+                                        <path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Matematika Wajib</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Fungsi Kuadrat & Polinomial</p>
+                                </div>
+                            </div>
+                            <!-- Lucide Icon: CloudDownload -->
+                            <a href="prototype-layout.html" class="p-2 text-oc-blue-6 hover:bg-oc-blue-0 rounded-full spring-ease shrink-0" title="Kerjakan">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                                    <path d="M12 12v9"/>
+                                    <path d="m8 17 4 4 4-4"/>
+                                </svg>
+                            </a>
+                        </div>
+
+                        <!-- Item 3 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: FileText -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                        <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                        <path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Literasi B. Indonesia</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Analisis Teks Ide Pokok</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="px-3.5 sm:px-4 py-1.5 rounded-full theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                                Mulai
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t theme-border flex items-center justify-between text-[11px] theme-subtext">
+                        <span>Kurikulum Fase E</span>
+                        <span class="font-mono font-bold theme-heading">3 Paket Siap</span>
+                    </div>
+                </div>
+
+                <!-- 2. KELAS 11 (SQUARE 1:1 CARD) -->
+                <div class="w-[84vw] sm:w-[360px] aspect-square rounded-3xl theme-card border theme-border shadow-sm hover:shadow-md spring-ease p-5 sm:p-6 flex flex-col justify-between shrink-0 snap-start">
+                    <div>
+                        <span class="text-[11px] font-extrabold uppercase tracking-widest theme-subtext block">KELAS 11</span>
+                        <h3 class="text-lg sm:text-2xl font-black theme-heading tracking-tight leading-tight mt-0.5">Asesmen Pilihan Kelas XI</h3>
+                    </div>
+
+                    <div class="space-y-3 my-auto">
+                        <!-- Item 1 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: FlaskConical -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M10 2v7.31M14 9.3V1.99M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Kimia: Laju Reaksi</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Termokimia & Kesetimbangan</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="px-3.5 sm:px-4 py-1.5 rounded-full theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                                Mulai
+                            </a>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-cyan-600 to-blue-700 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: Atom -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="1"/>
+                                        <path d="M20.2 20.2c2.4-2.4 2.4-6.3 0-8.7L12 3.3 3.8 11.5c-2.4 2.4-2.4 6.3 0 8.7s6.3 2.4 8.7 0l8.2-8.2"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Fisika Fluida & Termo</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Hukum Bernoulli & Viskositas</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="p-2 text-oc-blue-6 hover:bg-oc-blue-0 rounded-full spring-ease shrink-0" title="Kerjakan">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                                    <path d="M12 12v9"/>
+                                    <path d="m8 17 4 4 4-4"/>
+                                </svg>
+                            </a>
+                        </div>
+
+                        <!-- Item 3 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: TrendingUp -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                                        <polyline points="16 7 22 7 22 13"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Ekonomi & Bisnis</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Pendapatan Nasional & Inflasi</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="px-3.5 sm:px-4 py-1.5 rounded-full theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                                Mulai
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t theme-border flex items-center justify-between text-[11px] theme-subtext">
+                        <span>Kurikulum Fase F</span>
+                        <span class="font-mono font-bold theme-heading">3 Paket Siap</span>
+                    </div>
+                </div>
+
+                <!-- 3. KELAS 12 (SQUARE 1:1 CARD) -->
+                <div class="w-[84vw] sm:w-[360px] aspect-square rounded-3xl theme-card border theme-border shadow-sm hover:shadow-md spring-ease p-5 sm:p-6 flex flex-col justify-between shrink-0 snap-start">
+                    <div>
+                        <span class="text-[11px] font-extrabold uppercase tracking-widest theme-subtext block">KELAS 12</span>
+                        <h3 class="text-lg sm:text-2xl font-black theme-heading tracking-tight leading-tight mt-0.5">Asesmen Pilihan Kelas XII</h3>
+                    </div>
+
+                    <div class="space-y-3 my-auto">
+                        <!-- Item 1 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-rose-600 via-red-600 to-amber-600 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: Award -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="8" r="6"/>
+                                        <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">TryOut Akbar UTBK 2026</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">TPS, Literasi & Penalaran MTK</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="px-3.5 sm:px-4 py-1.5 rounded-full theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                                Mulai
+                            </a>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-blue-700 to-indigo-900 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: Landmark -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="3" x2="21" y1="22" y2="22"/>
+                                        <line x1="6" x2="6" y1="18" y2="11"/>
+                                        <line x1="10" x2="10" y1="18" y2="11"/>
+                                        <line x1="14" x2="14" y1="18" y2="11"/>
+                                        <line x1="18" x2="18" y1="18" y2="11"/>
+                                        <polygon points="12 2 20 7 4 7"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Ujian Sekolah Kelulusan</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Standar USBN Nasional 2026</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="p-2 text-oc-blue-6 hover:bg-oc-blue-0 rounded-full spring-ease shrink-0" title="Kerjakan">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                                    <path d="M12 12v9"/>
+                                    <path d="m8 17 4 4 4-4"/>
+                                </svg>
+                            </a>
+                        </div>
+
+                        <!-- Item 3 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: Dna -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m8 8 8 8"/>
+                                        <path d="m9 2 6 6"/>
+                                        <path d="m2 9 6 6"/>
+                                        <path d="m15 16 6 6"/>
+                                        <path d="m16 22 6-6"/>
+                                        <circle cx="6" cy="6" r="2"/>
+                                        <circle cx="18" cy="18" r="2"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Biologi: Genetika</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Hereditas & Sintesis Protein</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="px-3.5 sm:px-4 py-1.5 rounded-full theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                                Mulai
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t theme-border flex items-center justify-between text-[11px] theme-subtext">
+                        <span>Persiapan Akhir Siswa</span>
+                        <span class="font-mono font-bold theme-heading">3 Paket Siap</span>
+                    </div>
+                </div>
+
+                <!-- 4. KELAS KEDINASAN & ALUMNI (SQUARE 1:1 CARD) -->
+                <div class="w-[84vw] sm:w-[360px] aspect-square rounded-3xl theme-card border theme-border shadow-sm hover:shadow-md spring-ease p-5 sm:p-6 flex flex-col justify-between shrink-0 snap-start">
+                    <div>
+                        <span class="text-[11px] font-extrabold uppercase tracking-widest theme-subtext block">KEDINASAN</span>
+                        <h3 class="text-lg sm:text-2xl font-black theme-heading tracking-tight leading-tight mt-0.5">Kedinasan & Seleksi PTN</h3>
+                    </div>
+
+                    <div class="space-y-3 my-auto">
+                        <!-- Item 1 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-amber-600 to-red-700 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: Shield -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Simulasi SKD Kedinasan</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">TWK, TIU, TKP Sistem CAT</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="px-3.5 sm:px-4 py-1.5 rounded-full theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                                Mulai
+                            </a>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-800 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: Target -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">TKA Saintek & Soshum</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Pendalaman Soal Analitis Lanjut</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="px-3.5 sm:px-4 py-1.5 rounded-full theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                                Mulai
+                            </a>
+                        </div>
+
+                        <!-- Item 3 -->
+                        <div class="flex items-center justify-between gap-3 group/item">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 aspect-square rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-sm shrink-0 group-hover/item:scale-105 spring-ease">
+                                    <!-- Lucide Icon: Zap -->
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-extrabold text-xs sm:text-[15px] theme-heading truncate leading-snug">Drill Penalaran MTK</h4>
+                                    <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">Trik Cepat & Pembahasan Video</p>
+                                </div>
+                            </div>
+                            <a href="prototype-layout.html" class="p-2 text-oc-blue-6 hover:bg-oc-blue-0 rounded-full spring-ease shrink-0" title="Kerjakan">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                                    <path d="M12 12v9"/>
+                                    <path d="m8 17 4 4 4-4"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t theme-border flex items-center justify-between text-[11px] theme-subtext">
+                        <span>Target IPDN, STAN, Akpol</span>
+                        <span class="font-mono font-bold theme-heading">3 Paket Siap</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= 3. KATALOG MATA PELAJARAN (SMA, SMP, SD) ================= -->
+        <!-- Dilengkapi Quick Search, Tab Kelas di SMA, SMP, dan SD.
+             Mobile: Hanya tampil angka (10, 11, 12 | 7, 8, 9 | 1, 2, 3, 4, 5, 6).
+             Desktop: Tampil lengkap (Kelas 10, dll).
+             Warna Open Color: SMA (Gray), SMP (Blue), SD (Red). Kompak tanpa 'tersedia' dan tombol 'buka'. -->
+        <section class="space-y-8">
+            
+            <!-- Quick Search Bar Interaktif -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b theme-border pb-4">
+                <div>
+                    <h3 class="text-lg sm:text-xl font-black theme-heading tracking-tight">Katalog Mata Pelajaran</h3>
+                    <p class="text-xs theme-subtext">Jelajahi materi dan evaluasi per jenjang kelas</p>
+                </div>
+
+                <!-- Input Pencarian Cepat -->
+                <div class="relative w-full sm:w-72 md:w-80">
+                    <svg class="w-4 h-4 theme-subtext absolute left-3.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                    </svg>
+                    <input type="text" id="catalogSearchInput" oninput="handleCatalogSearch()" placeholder="Cari mata pelajaran atau ujian..." class="w-full pl-10 pr-4 py-2 theme-card border theme-border rounded-2xl text-xs sm:text-sm theme-heading placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-oc-blue-4 shadow-2xs spring-ease">
+                </div>
+            </div>
+
+            <!-- ---------------- A. KATALOG SMA (OPEN COLOR: GRAY) ---------------- -->
+            <!-- Tab Kelas: Desktop [Kelas 10][Kelas 11][Kelas 12] -> Mobile [10][11][12] -->
+            <div class="space-y-3.5">
+                <div class="flex flex-wrap items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-md bg-oc-gray-8 text-white font-mono font-bold text-xs uppercase">
+                            SMA
+                        </span>
+                        <span class="text-sm sm:text-base font-extrabold theme-heading">Fase E & F</span>
+                    </div>
+
+                    <!-- Tab Switcher SMA: GRAY | Font & Border: #212529 | Body: #ced4da -->
+                    <div class="inline-flex p-1 rounded-xl bg-[#ced4da] border border-[#212529]">
+                        <button onclick="switchSmaGrade('10')" id="tabBtnSma10" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#212529] border border-[#212529] shadow-xs spring-ease">
+                            <span class="hidden sm:inline">Kelas </span>10
+                        </button>
+                        <button onclick="switchSmaGrade('11')" id="tabBtnSma11" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#212529]/75 hover:text-[#212529] spring-ease border border-transparent">
+                            <span class="hidden sm:inline">Kelas </span>11
+                        </button>
+                        <button onclick="switchSmaGrade('12')" id="tabBtnSma12" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#212529]/75 hover:text-[#212529] spring-ease border border-transparent">
+                            <span class="hidden sm:inline">Kelas </span>12
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grid Kompak SMA -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="smaGradeContainer">
+                    <!-- Terisi otomatis via switchSmaGrade() -->
+                </div>
+            </div>
+
+            <!-- ---------------- B. KATALOG SMP (OPEN COLOR: BLUE) ---------------- -->
+            <!-- Tab Kelas: Desktop [Kelas 7][Kelas 8][Kelas 9] -> Mobile [7][8][9] -->
+            <div class="space-y-3.5 pt-2">
+                <div class="flex flex-wrap items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-md bg-oc-blue-6 text-white font-mono font-bold text-xs uppercase">
+                            SMP
+                        </span>
+                        <span class="text-sm sm:text-base font-extrabold theme-heading">Fase D</span>
+                    </div>
+
+                    <!-- Tab Switcher SMP: BLUE | Font & Border: #1864ab | Body: #a5d8ff -->
+                    <div class="inline-flex p-1 rounded-xl bg-[#a5d8ff] border border-[#1864ab]">
+                        <button onclick="switchSmpGrade('7')" id="tabBtnSmp7" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#1864ab] border border-[#1864ab] shadow-xs spring-ease">
+                            <span class="hidden sm:inline">Kelas </span>7
+                        </button>
+                        <button onclick="switchSmpGrade('8')" id="tabBtnSmp8" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#1864ab]/75 hover:text-[#1864ab] spring-ease border border-transparent">
+                            <span class="hidden sm:inline">Kelas </span>8
+                        </button>
+                        <button onclick="switchSmpGrade('9')" id="tabBtnSmp9" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#1864ab]/75 hover:text-[#1864ab] spring-ease border border-transparent">
+                            <span class="hidden sm:inline">Kelas </span>9
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grid Kompak SMP -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="smpGradeContainer">
+                    <!-- Terisi otomatis via switchSmpGrade() -->
+                </div>
+            </div>
+
+            <!-- ---------------- C. KATALOG SD (OPEN COLOR: RED) ---------------- -->
+            <!-- Tab Kelas: Desktop [Kelas 1]..[Kelas 6] -> Mobile [1][2][3][4][5][6] -->
+            <div class="space-y-3.5 pt-2">
+                <div class="flex flex-wrap items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-md bg-oc-red-6 text-white font-mono font-bold text-xs uppercase">
+                            SD
+                        </span>
+                        <span class="text-sm sm:text-base font-extrabold theme-heading">Fase A, B & C</span>
+                    </div>
+
+                    <!-- Tab Switcher SD: RED | Font & Border: #c92a2a | Body: #ffc9c9 -->
+                    <div class="inline-flex p-1 rounded-xl bg-[#ffc9c9] border border-[#c92a2a] overflow-x-auto max-w-full">
+                        <button onclick="switchSdGrade('1')" id="tabBtnSd1" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold bg-white text-[#c92a2a] border border-[#c92a2a] shadow-xs spring-ease shrink-0">
+                            <span class="hidden sm:inline">Kelas </span>1
+                        </button>
+                        <button onclick="switchSdGrade('2')" id="tabBtnSd2" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                            <span class="hidden sm:inline">Kelas </span>2
+                        </button>
+                        <button onclick="switchSdGrade('3')" id="tabBtnSd3" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                            <span class="hidden sm:inline">Kelas </span>3
+                        </button>
+                        <button onclick="switchSdGrade('4')" id="tabBtnSd4" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                            <span class="hidden sm:inline">Kelas </span>4
+                        </button>
+                        <button onclick="switchSdGrade('5')" id="tabBtnSd5" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                            <span class="hidden sm:inline">Kelas </span>5
+                        </button>
+                        <button onclick="switchSdGrade('6')" id="tabBtnSd6" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                            <span class="hidden sm:inline">Kelas </span>6
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grid Kompak SD -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="sdGradeContainer">
+                    <!-- Terisi otomatis via switchSdGrade() -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ================= 4. DUA BILAH DIV (KIRI: GURU, KANAN: MURID) ================= -->
+        <!-- Dibawah katalog SD. Kiri berisi icon guru 1:1. Kanan berisi icon murid 1:1. Chip menu responsif flex-wrap. -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+            
+            <!-- BILAH KIRI: RUANG GURU (ICON GURU DENGAN ASPECT-SQUARE) -->
+            <div class="theme-card rounded-3xl border p-5 sm:p-7 flex flex-col justify-between hover:shadow-md hover:border-oc-blue-4 spring-ease group">
+                <div class="space-y-4">
+                    
+                    <div class="flex items-center justify-between">
+                        <!-- Icon Guru 1:1 Aspect-Square (Lucide GraduationCap) -->
+                        <div class="w-16 h-16 sm:w-18 sm:h-18 aspect-square rounded-2xl sm:rounded-3xl bg-gradient-to-br from-oc-blue-6 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-oc-blue-6/20 group-hover:scale-105 spring-ease shrink-0">
+                            <svg class="w-8 h-8 sm:w-9 sm:h-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21.42 10.922a1 1 0 0 0-.019-.838L12.83 3.18a2 2 0 0 0-1.66 0L2.6 10.084a1 1 0 0 0 0 1.832l8.57 6.908a2 2 0 0 0 1.66 0l8.57-6.908a1 1 0 0 0 .02-.994z"/>
+                                <path d="M6 13.5V19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-5.5"/>
+                            </svg>
+                        </div>
+
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-oc-blue-0 border border-oc-blue-2 text-oc-blue-7 uppercase tracking-wider">
+                            Pendidik
+                        </span>
+                    </div>
+
+                    <div>
+                        <h4 class="text-lg sm:text-xl font-black theme-heading tracking-tight group-hover:text-oc-blue-7 spring-ease">
+                            Ruang Guru & Pengajar
+                        </h4>
+                        <p class="text-xs sm:text-sm theme-subtext mt-1 leading-relaxed">
+                            Akses pembuatan bank soal, penjadwalan ujian CBT, pengawasan langsung, dan rekapitulasi nilai siswa.
+                        </p>
+                    </div>
+
+                    <!-- Chip Menu Fleksibel (Tidak Truncate di Layar Kecil) -->
+                    <div class="flex flex-wrap gap-2 pt-1 text-[11px] sm:text-xs font-semibold theme-subtext">
+                        <div class="theme-inner px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-oc-blue-6 shrink-0"></span>
+                            <span>Buat Butir Soal</span>
+                        </div>
+                        <div class="theme-inner px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-oc-blue-6 shrink-0"></span>
+                            <span>Monitoring Realtime</span>
+                        </div>
+                        <div class="theme-inner px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-oc-blue-6 shrink-0"></span>
+                            <span>Analisis Butir</span>
+                        </div>
+                        <div class="theme-inner px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-oc-blue-6 shrink-0"></span>
+                            <span>Rekap Nilai</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-5 mt-4 border-t theme-border">
+                    <a href="prototype-profile.html" class="w-full py-3 px-4 rounded-xl bg-oc-gray-9 hover:bg-oc-blue-7 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 spring-ease shadow-xs">
+                        <span>Buka Ruang Guru</span>
+                        <!-- Lucide Icon: ArrowRight -->
+                        <svg class="w-4 h-4 text-oc-blue-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- BILAH KANAN: RUANG MURID (ICON MURID DENGAN ASPECT-SQUARE) -->
+            <div class="theme-card rounded-3xl border p-5 sm:p-7 flex flex-col justify-between hover:shadow-md hover:border-emerald-400 spring-ease group">
+                <div class="space-y-4">
+                    
+                    <div class="flex items-center justify-between">
+                        <!-- Icon Murid 1:1 Aspect-Square (Lucide UserCheck) -->
+                        <div class="w-16 h-16 sm:w-18 sm:h-18 aspect-square rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 spring-ease shrink-0">
+                            <svg class="w-8 h-8 sm:w-9 sm:h-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <polyline points="16 11 18 13 22 9"/>
+                            </svg>
+                        </div>
+
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 border border-emerald-200 text-emerald-700 uppercase tracking-wider">
+                            Siswa
+                        </span>
+                    </div>
+
+                    <div>
+                        <h4 class="text-lg sm:text-xl font-black theme-heading tracking-tight group-hover:text-emerald-700 spring-ease">
+                            Ruang Murid & CBT
+                        </h4>
+                        <p class="text-xs sm:text-sm theme-subtext mt-1 leading-relaxed">
+                            Mulai pengerjaan latihan mandiri, ikuti evaluasi terjadwal, dan unduh lembar pembahasan komprehensif.
+                        </p>
+                    </div>
+
+                    <!-- Chip Menu Fleksibel (Tidak Truncate di Layar Kecil) -->
+                    <div class="flex flex-wrap gap-2 pt-1 text-[11px] sm:text-xs font-semibold theme-subtext">
+                        <div class="theme-inner px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span>Mulai Ujian Aktif</span>
+                        </div>
+                        <div class="theme-inner px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span>Riwayat & Rapor</span>
+                        </div>
+                        <div class="theme-inner px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span>Pembahasan Soal</span>
+                        </div>
+                        <div class="theme-inner px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span>Peringkat Skor</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-5 mt-4 border-t theme-border">
+                    <a href="prototype-layout.html" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 spring-ease shadow-xs">
+                        <span>Masuk Ruang Siswa</span>
+                        <!-- Lucide Icon: ArrowRight -->
+                        <svg class="w-4 h-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ================= JAVASCRIPT: DATA & INTERAKTIVITAS ================= -->
+    <script>
+        // 1. Slider Kiri-Kanan PRO Cards
+        function slideProCards(direction) {
+            const container = document.getElementById('proScrollContainer');
+            const cardWidth = 360;
+            const scrollDistance = direction === 'left' ? -cardWidth : cardWidth;
+            container.scrollBy({
+                left: scrollDistance,
+                behavior: 'smooth'
+            });
+        }
+
+        // 2. Data Kurikulum Lengkap: SMA, SMP, dan SD
+        const catalogDataset = {
+            sma: {
+                '10': [
+                    { badge: 'BIO', title: 'Keanekaragaman Hayati', subject: 'Biologi SMA', count: '40 Soal • 60 Mnt' },
+                    { badge: 'MTK', title: 'Fungsi Kuadrat & Logaritma', subject: 'Matematika Wajib', count: '30 Soal • 45 Mnt' },
+                    { badge: 'FIS', title: 'Hukum Newton & Gravitasi', subject: 'Fisika SMA', count: '25 Soal • 50 Mnt' },
+                    { badge: 'KIM', title: 'Ikatan Kimia & Tata Nama', subject: 'Kimia SMA', count: '30 Soal • 60 Mnt' },
+                    { badge: 'ING', title: 'Reading & Basic Grammar', subject: 'Bahasa Inggris', count: '50 Soal • 60 Mnt' },
+                    { badge: 'SOS', title: 'Dinamika Kelompok Sosial', subject: 'Sosiologi SMA', count: '25 Soal • 40 Mnt' }
+                ],
+                '11': [
+                    { badge: 'KIM', title: 'Termokimia & Laju Reaksi', subject: 'Kimia SMA', count: '30 Soal • 50 Mnt' },
+                    { badge: 'FIS', title: 'Dinamika Rotasi & Fluida', subject: 'Fisika SMA', count: '25 Soal • 50 Mnt' },
+                    { badge: 'MTK', title: 'Trigonometri Lanjut & Polinomial', subject: 'Matematika Peminatan', count: '30 Soal • 60 Mnt' },
+                    { badge: 'BIO', title: 'Sistem Organ & Jaringan Tubuh', subject: 'Biologi SMA', count: '35 Soal • 50 Mnt' },
+                    { badge: 'EKO', title: 'Pendapatan Nasional & Kebijakan', subject: 'Ekonomi SMA', count: '30 Soal • 45 Mnt' },
+                    { badge: 'GEO', title: 'Antroposfer & Lingkungan Hidup', subject: 'Geografi SMA', count: '25 Soal • 40 Mnt' }
+                ],
+                '12': [
+                    { badge: 'MTK', title: 'Limit Fungsi & Turunan Aljabar', subject: 'Matematika Kelas 12', count: '35 Soal • 60 Mnt' },
+                    { badge: 'FIS', title: 'Rangkaian Arus Bolak-Balik', subject: 'Fisika Kelas 12', count: '30 Soal • 55 Mnt' },
+                    { badge: 'KIM', title: 'Sifat Koligatif Larutan & Redoks', subject: 'Kimia Kelas 12', count: '30 Soal • 50 Mnt' },
+                    { badge: 'BIO', title: 'Metabolisme, Genetik & Evolusi', subject: 'Biologi Kelas 12', count: '40 Soal • 60 Mnt' },
+                    { badge: 'BIN', title: 'Teks Editorial & Artikel Opini', subject: 'Bahasa Indonesia', count: '30 Soal • 45 Mnt' },
+                    { badge: 'SEJ', title: 'Peristiwa Reformasi & Modern', subject: 'Sejarah Indonesia', count: '25 Soal • 40 Mnt' }
+                ]
+            },
+            smp: {
+                '7': [
+                    { badge: 'MTK', title: 'Operasi Bilangan Bulat & Pecahan', subject: 'Matematika SMP', count: '30 Soal • 45 Mnt' },
+                    { badge: 'IPA', title: 'Klasifikasi Makhluk Hidup', subject: 'IPA Terpadu', count: '25 Soal • 40 Mnt' },
+                    { badge: 'BIN', title: 'Teks Deskripsi & Cerita Fantasi', subject: 'Bahasa Indonesia', count: '25 Soal • 35 Mnt' },
+                    { badge: 'ENG', title: 'Greetings, Family & Everyday Things', subject: 'Bahasa Inggris SMP', count: '30 Soal • 40 Mnt' },
+                    { badge: 'IPS', title: 'Keluarga Awal Kehidupan Manusia', subject: 'IPS Terpadu', count: '20 Soal • 30 Mnt' },
+                    { badge: 'TIK', title: 'Perangkat Keras & Sistem Komputer', subject: 'Informatika SMP', count: '20 Soal • 30 Mnt' }
+                ],
+                '8': [
+                    { badge: 'MTK', title: 'Pola Bilangan & Teorema Pythagoras', subject: 'Matematika SMP', count: '30 Soal • 45 Mnt' },
+                    { badge: 'IPA', title: 'Sistem Gerak & Pencernaan Makanan', subject: 'IPA Terpadu', count: '30 Soal • 45 Mnt' },
+                    { badge: 'BIN', title: 'Teks Iklan, Slogan & Poster', subject: 'Bahasa Indonesia', count: '25 Soal • 40 Mnt' },
+                    { badge: 'ENG', title: 'Recount Text & Daily Experiences', subject: 'Bahasa Inggris SMP', count: '30 Soal • 45 Mnt' },
+                    { badge: 'IPS', title: 'Keragaman Alam & Budaya Indonesia', subject: 'IPS Terpadu', count: '25 Soal • 35 Mnt' },
+                    { badge: 'TIK', title: 'Jaringan Komputer & Internet Sehat', subject: 'Informatika SMP', count: '20 Soal • 30 Mnt' }
+                ],
+                '9': [
+                    { badge: 'MTK', title: 'Perpangkatan & Transformasi Geometri', subject: 'Matematika SMP', count: '30 Soal • 50 Mnt' },
+                    { badge: 'IPA', title: 'Listrik Statis & Kemagnetan', subject: 'IPA Terpadu', count: '35 Soal • 50 Mnt' },
+                    { badge: 'BIN', title: 'Teks Tanggapan & Pidato Persuasif', subject: 'Bahasa Indonesia', count: '30 Soal • 40 Mnt' },
+                    { badge: 'ENG', title: 'Report Text & Passive Voice', subject: 'Bahasa Inggris SMP', count: '30 Soal • 45 Mnt' },
+                    { badge: 'IPS', title: 'Perubahan Sosial & Globalisasi', subject: 'IPS Terpadu', count: '25 Soal • 40 Mnt' },
+                    { badge: 'TIK', title: 'Algoritma Pemrograman Sederhana', subject: 'Informatika SMP', count: '20 Soal • 35 Mnt' }
+                ]
+            },
+            sd: {
+                '1': [
+                    { badge: 'MTK', title: 'Mengenal Bilangan 1 sampai 20', subject: 'Matematika Dasar', count: '15 Soal • 25 Mnt' },
+                    { badge: 'BIN', title: 'Mengenal Huruf Vokal & Konsonan', subject: 'Bahasa Indonesia SD', count: '15 Soal • 25 Mnt' },
+                    { badge: 'IPA', title: 'Bagian Tubuh Saya & Kebersihan', subject: 'IPAS Dasar', count: '15 Soal • 20 Mnt' },
+                    { badge: 'PKN', title: 'Aku Cinta Lingkungan Rumah & Sekolah', subject: 'Pendidikan Pancasila', count: '15 Soal • 20 Mnt' },
+                    { badge: 'SBD', title: 'Mengenal Warna Primer & Pola Garis', subject: 'Seni Budaya (SBdP)', count: '15 Soal • 20 Mnt' },
+                    { badge: 'PJK', title: 'Gerak Dasar Berjalan & Melompat', subject: 'PJOK Olahraga', count: '15 Soal • 20 Mnt' }
+                ],
+                '2': [
+                    { badge: 'MTK', title: 'Penjumlahan, Pengurangan & Jam', subject: 'Matematika Dasar', count: '20 Soal • 30 Mnt' },
+                    { badge: 'BIN', title: 'Membaca Kalimat & Tanda Titik', subject: 'Bahasa Indonesia SD', count: '15 Soal • 25 Mnt' },
+                    { badge: 'IPA', title: 'Wujud Benda Padat, Cair & Gas', subject: 'IPAS Dasar', count: '15 Soal • 25 Mnt' },
+                    { badge: 'PKN', title: 'Toleransi & Kebersamaan Keluarga', subject: 'Pendidikan Pancasila', count: '15 Soal • 20 Mnt' },
+                    { badge: 'SBD', title: 'Gerak Tari Anggota Tubuh Dasar', subject: 'Seni Budaya (SBdP)', count: '15 Soal • 20 Mnt' },
+                    { badge: 'PJK', title: 'Senam Irama & Keseimbangan', subject: 'PJOK Olahraga', count: '15 Soal • 25 Mnt' }
+                ],
+                '3': [
+                    { badge: 'MTK', title: 'Perkalian & Pembagian Sederhana', subject: 'Matematika SD', count: '20 Soal • 30 Mnt' },
+                    { badge: 'BIN', title: 'Menceritakan Pengalaman Liburan', subject: 'Bahasa Indonesia SD', count: '20 Soal • 30 Mnt' },
+                    { badge: 'IPA', title: 'Daur Hidup Kupu-kupu & Hewan', subject: 'IPAS Dasar', count: '20 Soal • 30 Mnt' },
+                    { badge: 'PKN', title: 'Gotong Royong di Lingkungan RT', subject: 'Pendidikan Pancasila', count: '15 Soal • 25 Mnt' },
+                    { badge: 'SBD', title: 'Seni Tempel Mozaik & Kolase Kertas', subject: 'Seni Budaya (SBdP)', count: '15 Soal • 25 Mnt' },
+                    { badge: 'PJK', title: 'Permainan Melempar & Menangkap Bola', subject: 'PJOK Olahraga', count: '15 Soal • 25 Mnt' }
+                ],
+                '4': [
+                    { badge: 'MTK', title: 'Pecahan Senilai & Luas Persegi', subject: 'Matematika SD', count: '20 Soal • 30 Mnt' },
+                    { badge: 'BIN', title: 'Gagasan Pokok Paragraf & Wawancara', subject: 'Bahasa Indonesia SD', count: '20 Soal • 30 Mnt' },
+                    { badge: 'IPA', title: 'Bagian Tumbuhan & Fotosintesis', subject: 'IPAS Dasar', count: '25 Soal • 35 Mnt' },
+                    { badge: 'PKN', title: 'Aturan & Norma di Sekolah Tercinta', subject: 'Pendidikan Pancasila', count: '15 Soal • 25 Mnt' },
+                    { badge: 'SBD', title: 'Mengenal Tangga Nada & Pola Gambar', subject: 'Seni Budaya (SBdP)', count: '20 Soal • 30 Mnt' },
+                    { badge: 'PJK', title: 'Gerak Lokomotor & Kebugaran Jasmani', subject: 'PJOK Olahraga', count: '15 Soal • 25 Mnt' }
+                ],
+                '5': [
+                    { badge: 'MTK', title: 'Operasi Pecahan & Kecepatan Waktu', subject: 'Matematika SD', count: '25 Soal • 35 Mnt' },
+                    { badge: 'BIN', title: 'Teks Eksplanasi & Menulis Ringkasan', subject: 'Bahasa Indonesia SD', count: '20 Soal • 30 Mnt' },
+                    { badge: 'IPA', title: 'Sistem Pernapasan & Rantai Makanan', subject: 'IPAS Dasar', count: '25 Soal • 35 Mnt' },
+                    { badge: 'PKN', title: 'Keragaman Budaya Nusantara Kita', subject: 'Pendidikan Pancasila', count: '20 Soal • 30 Mnt' },
+                    { badge: 'SBD', title: 'Seni Rupa Anyaman & Motif Tradisional', subject: 'Seni Budaya (SBdP)', count: '20 Soal • 30 Mnt' },
+                    { badge: 'PJK', title: 'Variasi Servis & Passing Bola Voli', subject: 'PJOK Olahraga', count: '20 Soal • 30 Mnt' }
+                ],
+                '6': [
+                    { badge: 'MTK', title: 'Bilangan Bulat Negatif & Lingkaran', subject: 'Matematika SD', count: '25 Soal • 40 Mnt' },
+                    { badge: 'BIN', title: 'Teks Pidato, Formulir & Fiksi', subject: 'Bahasa Indonesia SD', count: '25 Soal • 35 Mnt' },
+                    { badge: 'IPA', title: 'Sistem Tata Surya & Perkembangbiakan', subject: 'IPAS Dasar', count: '30 Soal • 40 Mnt' },
+                    { badge: 'PKN', title: 'Penerapan Nilai-Nilai Sila Pancasila', subject: 'Pendidikan Pancasila', count: '20 Soal • 30 Mnt' },
+                    { badge: 'SBD', title: 'Patung Tiga Dimensi & Reklame Kreatif', subject: 'Seni Budaya (SBdP)', count: '20 Soal • 30 Mnt' },
+                    { badge: 'PJK', title: 'Latihan Daya Tahan & Sirkuit Training', subject: 'PJOK Olahraga', count: '20 Soal • 30 Mnt' }
+                ]
+            }
+        };
+
+        let currentSma = '10';
+        let currentSmp = '7';
+        let currentSd = '4';
+
+        // 3. Render Helper untuk Tiap Jenjang
+        function renderGradeList(level, grade) {
+            const container = document.getElementById(`${level}GradeContainer`);
+            if (!container) return;
+            const items = catalogDataset[level][grade] || [];
+            
+            let colorClasses = {
+                sma: {
+                    border: 'border-oc-gray-3 hover:border-oc-gray-6',
+                    iconBg: 'bg-oc-gray-1 border-oc-gray-3 text-oc-gray-8 group-hover:bg-oc-gray-8 group-hover:text-white',
+                    subColor: 'text-oc-gray-5'
+                },
+                smp: {
+                    border: 'border-oc-blue-2 hover:border-oc-blue-5',
+                    iconBg: 'bg-oc-blue-0 border-oc-blue-2 text-oc-blue-7 group-hover:bg-oc-blue-6 group-hover:text-white',
+                    subColor: 'text-oc-blue-6'
+                },
+                sd: {
+                    border: 'border-oc-red-2 hover:border-oc-red-5',
+                    iconBg: 'bg-oc-red-0 border-oc-red-2 text-oc-red-7 group-hover:bg-oc-red-6 group-hover:text-white',
+                    subColor: 'text-oc-red-6'
+                }
+            }[level];
+
+            container.innerHTML = items.map(item => `
+                <a href="prototype-layout.html" class="catalog-item flex items-center gap-3.5 p-3 rounded-2xl theme-card border hover:shadow-xs spring-ease group">
+                    <div class="w-11 h-11 aspect-square rounded-xl ${colorClasses.iconBg} flex items-center justify-center font-mono font-black text-xs spring-ease shrink-0">
+                        ${item.badge}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h4 class="item-title text-xs sm:text-sm font-bold theme-heading truncate group-hover:text-oc-blue-5 spring-ease">${item.title}</h4>
+                        <div class="flex items-center gap-2 mt-0.5 text-xs theme-subtext">
+                            <span class="item-subject font-semibold ${colorClasses.subColor} truncate">${item.subject}</span>
+                            <span>•</span>
+                            <span class="font-mono text-[11px] shrink-0">${item.count}</span>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        // 4. Switcher SMA
+        function switchSmaGrade(grade) {
+            currentSma = grade;
+            ['10', '11', '12'].forEach(g => {
+                const btn = document.getElementById(`tabBtnSma${g}`);
+                if (btn) {
+                    if (g === grade) {
+                        btn.className = "tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#212529] border border-[#212529] shadow-xs spring-ease";
+                    } else {
+                        btn.className = "tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#212529]/75 hover:text-[#212529] spring-ease border border-transparent";
+                    }
+                }
+            });
+            renderGradeList('sma', grade);
+        }
+
+        // 5. Switcher SMP
+        function switchSmpGrade(grade) {
+            currentSmp = grade;
+            ['7', '8', '9'].forEach(g => {
+                const btn = document.getElementById(`tabBtnSmp${g}`);
+                if (btn) {
+                    if (g === grade) {
+                        btn.className = "tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#1864ab] border border-[#1864ab] shadow-xs spring-ease";
+                    } else {
+                        btn.className = "tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#1864ab]/75 hover:text-[#1864ab] spring-ease border border-transparent";
+                    }
+                }
+            });
+            renderGradeList('smp', grade);
+        }
+
+        // 6. Switcher SD
+        function switchSdGrade(grade) {
+            currentSd = grade;
+            ['1', '2', '3', '4', '5', '6'].forEach(g => {
+                const btn = document.getElementById(`tabBtnSd${g}`);
+                if (btn) {
+                    if (g === grade) {
+                        btn.className = "tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold bg-white text-[#c92a2a] border border-[#c92a2a] shadow-xs spring-ease shrink-0";
+                    } else {
+                        btn.className = "tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent";
+                    }
+                }
+            });
+            renderGradeList('sd', grade);
+        }
+
+        // 7. Live Filter Search
+        function handleCatalogSearch() {
+            const query = document.getElementById('catalogSearchInput').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.catalog-item');
+
+            items.forEach(item => {
+                const title = item.querySelector('.item-title')?.textContent.toLowerCase() || '';
+                const subject = item.querySelector('.item-subject')?.textContent.toLowerCase() || '';
+                
+                if (!query || title.includes(query) || subject.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // 8. Alpine.js School App Theme State
+        function schoolApp() {
+            return {
+                openPalette: false,
+                themeKey: localStorage.getItem('adzkia_school_theme') || 'light',
+                
+                themes: {
+                    'light': {
+                        name: 'Light',
+                        hex: '#f1f3f5',
+                        bg: '#f1f3f5',
+                        cardBg: '#ffffff',
+                        innerBg: '#f8f9fa',
+                        border: '#dee2e6',
+                        text: '#212529',
+                        subtext: '#495057',
+                        primary: '#1c7ed6',
+                        gradient: 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 50%, #ced4da 100%)',
+                        isDark: false
+                    },
+                    'gray': {
+                        name: 'Gray',
+                        hex: '#868e96',
+                        bg: '#343a40',
+                        cardBg: '#212529',
+                        innerBg: '#2b3035',
+                        border: '#495057',
+                        text: '#f8f9fa',
+                        subtext: '#ced4da',
+                        primary: '#adb5bd',
+                        gradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #343a40 100%)',
+                        isDark: true
+                    },
+                    'blue': {
+                        name: 'Blue',
+                        hex: '#228be6',
+                        bg: '#071524',
+                        cardBg: '#0c1f33',
+                        innerBg: '#122b46',
+                        border: '#1971c2',
+                        text: '#f8f9fa',
+                        subtext: '#a5d8ff',
+                        primary: '#339af0',
+                        gradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #1864ab 100%)',
+                        isDark: true
+                    },
+                    'indigo': {
+                        name: 'Indigo',
+                        hex: '#4c6ef5',
+                        bg: '#0a0f24',
+                        cardBg: '#121838',
+                        innerBg: '#1a224d',
+                        border: '#3b5bdb',
+                        text: '#f8f9fa',
+                        subtext: '#bac8ff',
+                        primary: '#5c7cfa',
+                        gradient: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #364fc7 100%)',
+                        isDark: true
+                    },
+                    'teal': {
+                        name: 'Teal',
+                        hex: '#12b886',
+                        bg: '#051a14',
+                        cardBg: '#092920',
+                        innerBg: '#0e382c',
+                        border: '#0ca678',
+                        text: '#f8f9fa',
+                        subtext: '#96f2d7',
+                        primary: '#20c997',
+                        gradient: 'linear-gradient(135deg, #064e3b 0%, #042f2e 40%, #087f5b 100%)',
+                        isDark: true
+                    },
+                    'cyan': {
+                        name: 'Cyan',
+                        hex: '#15aabf',
+                        bg: '#05181c',
+                        cardBg: '#0a262d',
+                        innerBg: '#0f353f',
+                        border: '#0c8599',
+                        text: '#f8f9fa',
+                        subtext: '#99e9f2',
+                        primary: '#22b8cf',
+                        gradient: 'linear-gradient(135deg, #083344 0%, #0e7490 50%, #0b7285 100%)',
+                        isDark: true
+                    },
+                    'green': {
+                        name: 'Green',
+                        hex: '#40c057',
+                        bg: '#081a0c',
+                        cardBg: '#0f2916',
+                        innerBg: '#15381f',
+                        border: '#2f9e44',
+                        text: '#f8f9fa',
+                        subtext: '#b2f2bb',
+                        primary: '#51cf66',
+                        gradient: 'linear-gradient(135deg, #14532d 0%, #166534 50%, #2b8a3e 100%)',
+                        isDark: true
+                    },
+                    'lime': {
+                        name: 'Lime',
+                        hex: '#82c91e',
+                        bg: '#121a05',
+                        cardBg: '#1b270a',
+                        innerBg: '#25350f',
+                        border: '#66a80f',
+                        text: '#f8f9fa',
+                        subtext: '#d8f5a2',
+                        primary: '#94d82d',
+                        gradient: 'linear-gradient(135deg, #365314 0%, #4d7c0f 50%, #5c940d 100%)',
+                        isDark: true
+                    },
+                    'yellow': {
+                        name: 'Yellow',
+                        hex: '#f59f00',
+                        bg: '#1c1404',
+                        cardBg: '#291e07',
+                        innerBg: '#382a0b',
+                        border: '#f08c00',
+                        text: '#f8f9fa',
+                        subtext: '#ffec99',
+                        primary: '#fcc419',
+                        gradient: 'linear-gradient(135deg, #713f12 0%, #a16207 50%, #e67700 100%)',
+                        isDark: true
+                    },
+                    'orange': {
+                        name: 'Orange',
+                        hex: '#fd7e14',
+                        bg: '#1f0d05',
+                        cardBg: '#2d1408',
+                        innerBg: '#3d1d0c',
+                        border: '#e8590c',
+                        text: '#f8f9fa',
+                        subtext: '#ffd8a8',
+                        primary: '#ff922b',
+                        gradient: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 50%, #d9480f 100%)',
+                        isDark: true
+                    },
+                    'red': {
+                        name: 'Red',
+                        hex: '#fa5252',
+                        bg: '#1a0909',
+                        cardBg: '#280f0f',
+                        innerBg: '#381616',
+                        border: '#e03131',
+                        text: '#f8f9fa',
+                        subtext: '#ffc9c9',
+                        primary: '#ff6b6b',
+                        gradient: 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #c92a2a 100%)',
+                        isDark: true
+                    },
+                    'pink': {
+                        name: 'Pink',
+                        hex: '#e64980',
+                        bg: '#1c0812',
+                        cardBg: '#2a0e1c',
+                        innerBg: '#3a1528',
+                        border: '#c2255c',
+                        text: '#f8f9fa',
+                        subtext: '#fcc2d7',
+                        primary: '#f06595',
+                        gradient: 'linear-gradient(135deg, #831843 0%, #9d174d 50%, #a61e4d 100%)',
+                        isDark: true
+                    },
+                    'grape': {
+                        name: 'Grape',
+                        hex: '#be4bdb',
+                        bg: '#18081f',
+                        cardBg: '#240d2f',
+                        innerBg: '#321340',
+                        border: '#9c36b5',
+                        text: '#f8f9fa',
+                        subtext: '#eebefa',
+                        primary: '#cc5de8',
+                        gradient: 'linear-gradient(135deg, #581c87 0%, #701a75 50%, #862e9c 100%)',
+                        isDark: true
+                    },
+                    'violet': {
+                        name: 'Violet',
+                        hex: '#7950f2',
+                        bg: '#120a22',
+                        cardBg: '#1b1033',
+                        innerBg: '#261747',
+                        border: '#6741d9',
+                        text: '#f8f9fa',
+                        subtext: '#d0bfff',
+                        primary: '#845ef7',
+                        gradient: 'linear-gradient(135deg, #3b0764 0%, #4c1d95 50%, #5f3dc4 100%)',
+                        isDark: true
+                    }
+                },
+
+                get currentTheme() {
+                    return this.themes[this.themeKey] || this.themes['light'];
+                },
+
+                get coverGradient() {
+                    return this.currentTheme.gradient;
+                },
+
+                setTheme(key) {
+                    this.themeKey = key;
+                    try {
+                        localStorage.setItem('adzkia_school_theme', key);
+                    } catch (e) {}
+                }
+            };
+        }
+
+        // Jalankan Inisialisasi
+        switchSmaGrade('10');
+        switchSmpGrade('7');
+        switchSdGrade('4');
+    </script>
+</body>
+</html>

@@ -658,7 +658,7 @@ class StudentDashboardAndProfileTest extends TestCase
         ]);
         $admin->tenants()->attach($tenant->id, ['role' => 'A']);
 
-        $response = $this->actingAs($admin)->get(route('dashboard'));
+        $response = $this->actingAs($admin)->get("http://{$tenant->subdomain}.localhost/dashboard");
 
         $response->assertOk();
         $response->assertSee('APLIKASI UJIAN.png');

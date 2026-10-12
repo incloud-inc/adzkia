@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Muhammad Daffa Pratama (@daffapratama) - Biolink Profil Siswa</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js untuk interaktivitas -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    
+    <!-- Google Fonts: Open Sans, Ubuntu untuk body; Fredoka untuk heading ceria/funny & nyaman -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Ubuntu:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Open Sans"', '"Ubuntu"', 'sans-serif'],
+                        display: ['"Fredoka"', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'soft': '0 8px 30px rgba(0,0,0,0.06)',
+                        'card': '0 4px 20px -2px rgba(0,0,0,0.12)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Open Sans', 'Ubuntu', sans-serif;
+            letter-spacing: -0.01em;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-display {
+            font-family: 'Fredoka', sans-serif;
+            letter-spacing: 0.01em;
+        }
+        /* Hide scrollbars */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Smooth backdrop blur */
+        .glass-panel {
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+    </style>
+</head>
+<body x-data="biolinkApp()" :style="{ backgroundColor: currentTheme.bg, color: currentTheme.text }" class="min-h-screen transition-colors duration-300 antialiased flex justify-center selection:bg-amber-400 selection:text-black">
+
+    <!-- WRAPPER MOBILE CANVAS (Responsive Center Frame: Mobile Width di Layar Besar) -->
+    <div class="w-full max-w-lg min-h-screen relative flex flex-col pb-16 transition-colors duration-300"
+         :style="{ backgroundColor: currentTheme.bg, color: currentTheme.text }">
+
+        <!-- ================= HERO COVER & IDENTITAS SISWA ================= -->
+        <section class="relative px-4 pt-4">
+            <!-- Cover Banner Card (Tanpa overflow-hidden di root agar dropdown tidak terpotong) -->
+            <div class="w-full h-40 sm:h-48 rounded-3xl relative border border-white/10 shadow-inner">
+                <!-- Background Layer Terisolasi (Overflow Hidden disini) -->
+                <div class="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none"
+                     :style="{ background: coverGradient }">
+                    <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1.2px,transparent_1.2px)] [background-size:16px_16px]"></div>
+                </div>
+                
+                <!-- TOP CONTROLS DI ATAS COVER: BAGIKAN (Kiri) & PILIHAN WARNA 14 OPEN-COLOR (Kanan) -->
+                <div class="absolute top-3 left-3 right-3 flex items-center justify-between z-30">
+                    <!-- Tombol Bagikan -->
+                    <button @click="openShareModal = true" 
+                            class="px-3 py-1.5 rounded-full text-xs font-display font-bold backdrop-blur-md bg-black/40 hover:bg-black/60 text-white border border-white/20 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                        <span>Bagikan</span>
+                    </button>
+
+                    <!-- PILIHAN WARNA (14 WARNA OPEN COLOR) -->
+                    <div class="relative">
+                        <button @click="openPalette = !openPalette"
+                                class="p-1.5 sm:px-2.5 sm:py-1.5 rounded-full text-xs font-display font-bold backdrop-blur-md bg-black/45 hover:bg-black/65 text-white border border-white/20 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                                :title="'Pilih Tema: ' + currentTheme.name">
+                            <span class="w-3.5 h-3.5 rounded-full border border-white/60 shadow-xs shrink-0" :style="{ backgroundColor: currentTheme.hex }"></span>
+                            <svg class="w-3 h-3 opacity-80 transition-transform" :class="openPalette ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+
+                        <!-- DROPDOWN 14 PALET WARNA (OPEN COLOR) - Bebas dari overflow-hidden -->
+                        <div x-show="openPalette" @click.outside="openPalette = false" x-cloak
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100"
+                             x-transition:leave-end="opacity-0"
+                             class="absolute right-0 mt-2 w-72 p-3 rounded-2xl shadow-2xl border text-xs z-50 glass-panel"
+                             :style="{ backgroundColor: themeKey === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(20,20,25,0.98)', borderColor: themeKey === 'light' ? '#ced4da' : '#495057', color: themeKey === 'light' ? '#212529' : '#f8f9fa' }">
+                            
+                            <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+                                <span class="font-display font-bold text-[11px] uppercase tracking-wider opacity-75">Pilih Warna (14 Tema)</span>
+                                <span class="text-[10px] font-mono opacity-50">Open Color</span>
+                            </div>
+
+                            <!-- Grid 14 Warna (2 Kolom x 7 Baris, Semua Terlihat Jelas) -->
+                            <div class="grid grid-cols-2 gap-1.5 max-h-80 overflow-y-auto no-scrollbar pr-0.5">
+                                <template x-for="(thm, key) in themes" :key="key">
+                                    <button @click="setTheme(key); openPalette = false" 
+                                            class="w-full text-left px-2.5 py-1.5 rounded-xl flex items-center gap-2 transition-all hover:scale-[1.02] border"
+                                            :style="{ borderColor: themeKey === key ? thm.primary : 'transparent', backgroundColor: themeKey === key ? (themeKey === 'light' ? '#e9ecef' : 'rgba(255,255,255,0.12)') : 'transparent' }">
+                                        <span class="w-3.5 h-3.5 rounded-full shrink-0 border border-black/20 shadow-xs" :style="{ backgroundColor: thm.hex }"></span>
+                                        <span class="truncate font-display text-xs font-semibold" x-text="thm.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Picture (Floating di Tengah Bawah Cover) -->
+            <div class="flex flex-col items-center -mt-16 sm:-mt-20 relative z-10 text-center px-2">
+                <div class="relative group">
+                    <!-- Avatar Frame Glow -->
+                    <div class="w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1 shadow-2xl transition-transform group-hover:scale-105 duration-300"
+                         :style="{ background: avatarGlow }">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" 
+                             alt="Muhammad Daffa Pratama" 
+                             class="w-full h-full object-cover rounded-full bg-zinc-800 border-2 border-white/30">
+                    </div>
+
+                    <!-- Verified Badge Checkmark -->
+                    <div class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg border-2 border-white"
+                         title="Akun Siswa Terverifikasi Resmi Adzkia">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                </div>
+
+                <!-- Nama Lengkap -->
+                <div class="mt-3.5">
+                    <h1 class="text-2xl sm:text-3xl font-display font-extrabold tracking-tight leading-tight">
+                        Muhammad Daffa Pratama
+                    </h1>
+
+                    <!-- Bio Personal -->
+                    <p class="text-xs sm:text-sm max-w-sm mx-auto mt-2 leading-relaxed opacity-90">
+                        Calon Dokter UI 2026 • Pejuang UTBK SNBT &amp; Pemburu Tryout! "Konsisten lebih bernilai daripada sempurna."
+                    </p>
+                </div>
+
+                <!-- Media Sosial & Kontak Quick-Bar (Icons dari shadcn.io/icons/tag/social) -->
+                <div class="flex items-center justify-center gap-2 mt-4 flex-wrap">
+                    <!-- Instagram (shadcn social Instagram) -->
+                    <a href="https://instagram.com" target="_blank" class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 shadow-soft hover:text-pink-500"
+                       :class="cardStyle" title="Instagram">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                    </a>
+
+                    <!-- TikTok (shadcn social TikTok) -->
+                    <a href="https://tiktok.com" target="_blank" class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 shadow-soft hover:text-cyan-400"
+                       :class="cardStyle" title="TikTok">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z"/></svg>
+                    </a>
+
+                    <!-- WhatsApp (shadcn social WhatsApp) -->
+                    <a href="https://wa.me/6281234567890" target="_blank" class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 shadow-soft hover:text-emerald-500"
+                       :class="cardStyle" title="WhatsApp">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.301-.15-1.777-.877-2.052-.977-.275-.1-.476-.15-.676.15-.2.301-.776.977-.951 1.178-.175.2-.351.226-.652.075-.3-.15-1.27-.468-2.42-1.494-.894-.798-1.497-1.784-1.672-2.084-.176-.301-.019-.464.132-.614.135-.136.301-.351.451-.527.151-.176.201-.301.302-.502.1-.2.05-.376-.026-.526-.075-.151-.676-1.63-.927-2.232-.244-.587-.493-.507-.677-.517-.175-.01-.376-.01-.577-.01-.2 0-.526.075-.802.376-.276.301-1.053 1.028-1.053 2.508 0 1.48 1.079 2.909 1.229 3.109.15.201 2.124 3.243 5.145 4.549.719.311 1.28.497 1.718.636.723.23 1.381.198 1.901.12.579-.087 1.777-.727 2.027-1.43.25-.702.25-1.304.175-1.43-.075-.126-.276-.201-.577-.351zM12.042 21.84c-1.787 0-3.535-.48-5.064-1.388l-.363-.215-3.766.988 1.005-3.67-.236-.375c-.998-1.587-1.526-3.425-1.526-5.31C2.1 6.57 6.562 2.1 12.043 2.1c2.656 0 5.153 1.034 7.03 2.91 1.876 1.877 2.909 4.373 2.909 7.03 0 5.473-4.462 9.943-9.94 9.943z"/></svg>
+                    </a>
+
+                    <!-- Discord (shadcn social Discord) -->
+                    <a href="https://discord.com" target="_blank" class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 shadow-soft hover:text-indigo-400"
+                       :class="cardStyle" title="Discord Study Server">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                    </a>
+
+                    <!-- X / Twitter (shadcn social X) -->
+                    <a href="https://x.com" target="_blank" class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 shadow-soft hover:text-white"
+                       :class="cardStyle" title="X (Twitter)">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    </a>
+
+                    <!-- Spotify (shadcn social Spotify) -->
+                    <a href="https://spotify.com" target="_blank" class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 shadow-soft hover:text-emerald-400"
+                       :class="cardStyle" title="Study Lo-Fi Playlist">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                    </a>
+
+                    <!-- LinkedIn (shadcn social LinkedIn) -->
+                    <a href="https://linkedin.com" target="_blank" class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 shadow-soft hover:text-blue-500"
+                       :class="cardStyle" title="LinkedIn Profile">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+                    </a>
+
+                    <!-- YouTube (shadcn social YouTube) -->
+                    <a href="https://youtube.com" target="_blank" class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 shadow-soft hover:text-red-500"
+                       :class="cardStyle" title="YouTube Channel">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><polygon points="10 15 15 12 10 9 10 15"/></svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= BENTO BRAG SHEET: STATISTIK RINGKAS ================= -->
+        <section class="px-4 mt-6">
+            <div class="flex items-center justify-between mb-2.5 px-1">
+                <h2 class="text-xs font-display font-bold uppercase tracking-wider opacity-70 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <span>Rapor Kilat &amp; Pencapaian</span>
+                </h2>
+                <span class="text-[10px] font-display font-bold px-2 py-0.5 rounded-full border shadow-2xs"
+                      :style="{ color: currentTheme.primary, borderColor: currentTheme.hex + '40', backgroundColor: currentTheme.hex + '15' }">
+                    Terverifikasi CBT
+                </span>
+            </div>
+
+            <!-- Bento 2x2 Grid -->
+            <div class="grid grid-cols-2 gap-2.5">
+                <!-- Rata-rata Skor -->
+                <div class="p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between" :class="cardStyle">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-display font-bold uppercase tracking-wider opacity-70">Rata-rata Skor</span>
+                        <span class="w-6 h-6 rounded-lg flex items-center justify-center" :style="{ backgroundColor: currentTheme.hex + '20', color: currentTheme.primary }">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                        </span>
+                    </div>
+                    <div class="mt-2">
+                        <div class="flex items-baseline gap-1.5">
+                            <span class="text-2xl font-display font-bold tracking-tight" :style="{ color: currentTheme.primary }">84.5</span>
+                            <span class="text-[11px] font-bold px-1.5 py-0.5 rounded" :style="{ backgroundColor: currentTheme.hex + '25', color: currentTheme.primary }">+3.2pt</span>
+                        </div>
+                        <p class="text-[10px] opacity-65 mt-0.5">Dari 38 evaluasi CBT</p>
+                    </div>
+                </div>
+
+                <!-- Peringkat Sekolah -->
+                <div class="p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between" :class="cardStyle">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-display font-bold uppercase tracking-wider opacity-70">Peringkat</span>
+                        <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+                        </span>
+                    </div>
+                    <div class="mt-2">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-display font-bold tracking-tight text-amber-400">#3</span>
+                            <span class="text-xs font-semibold opacity-65">/ 36 Siswa</span>
+                        </div>
+                        <p class="text-[10px] opacity-65 mt-0.5">Top 8% Angkatan 2026</p>
+                    </div>
+                </div>
+
+                <!-- Learning Streak -->
+                <div class="p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between" :class="cardStyle">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-display font-bold uppercase tracking-wider opacity-70">Study Streak</span>
+                        <span class="w-6 h-6 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                        </span>
+                    </div>
+                    <div class="mt-2">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-display font-bold tracking-tight text-orange-400">14 Hari</span>
+                        </div>
+                        <p class="text-[10px] opacity-65 mt-0.5">Latihan tanpa jeda</p>
+                    </div>
+                </div>
+
+                <!-- Akurasi Soal -->
+                <div class="p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between" :class="cardStyle">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-display font-bold uppercase tracking-wider opacity-70">Akurasi Soal</span>
+                        <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        </span>
+                    </div>
+                    <div class="mt-2">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-display font-bold tracking-tight text-blue-400">89.2%</span>
+                        </div>
+                        <p class="text-[10px] opacity-65 mt-0.5">1.106 dari 1.240 benar</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB CONTAINER: TARGET KAMPUS | PETA MAPEL | HASIL UJIAN ================= -->
+        <!-- Memangkas scroll panjang menjadi 3 tab interaktif yang ringkas -->
+        <section class="px-4 mt-6">
+            <!-- TAB BAR HEADER -->
+            <div class="p-1 rounded-2xl border flex items-center gap-1 shadow-soft transition-all"
+                 :class="tabNavStyle">
+                
+                <!-- Tab 1: Hasil Ujian (Digeser ke depan) -->
+                <button @click="activeTab = 'history'" 
+                        class="flex-1 py-2 px-1 rounded-xl text-xs font-display font-bold transition-all duration-200 flex items-center justify-center gap-1.5"
+                        :class="activeTab === 'history' ? tabActiveStyle : tabInactiveStyle">
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"/><circle cx="12" cy="8" r="6"/></svg>
+                    <span class="truncate">Hasil Ujian</span>
+                </button>
+
+                <!-- Tab 2: Peta Mapel -->
+                <button @click="activeTab = 'mapel'" 
+                        class="flex-1 py-2 px-1 rounded-xl text-xs font-display font-bold transition-all duration-200 flex items-center justify-center gap-1.5"
+                        :class="activeTab === 'mapel' ? tabActiveStyle : tabInactiveStyle">
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+                    <span class="truncate">Peta Mapel</span>
+                </button>
+
+                <!-- Tab 3: Target SNBT (Digeser ke belakang) -->
+                <button @click="activeTab = 'target'" 
+                        class="flex-1 py-2 px-1 rounded-xl text-xs font-display font-bold transition-all duration-200 flex items-center justify-center gap-1.5"
+                        :class="activeTab === 'target' ? tabActiveStyle : tabInactiveStyle">
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                    <span class="truncate">Target SNBT</span>
+                </button>
+            </div>
+
+            <!-- TAB CONTENT 1: HASIL UJIAN TERAKHIR -->
+            <div x-show="activeTab === 'history'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="mt-3 space-y-2.5">
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-xs font-display font-bold opacity-75">Riwayat 3 Evaluasi Terbaru</span>
+                    <span class="text-[10px] font-sans opacity-60">Status Kelulusan</span>
+                </div>
+
+                <!-- Exam 1 -->
+                <div class="p-3.5 rounded-2xl border transition-all duration-200 flex items-center justify-between" :class="cardStyle">
+                    <div class="flex items-center gap-3 min-w-0 pr-2">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-display font-bold text-xs shrink-0"
+                             :style="{ backgroundColor: currentTheme.hex + '20', color: currentTheme.primary }">
+                            BIO
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="font-display font-bold text-xs sm:text-sm truncate">Ulangan Harian: Metabolisme &amp; Enzim</h4>
+                            <p class="text-[11px] opacity-65 mt-0.5 font-sans">18 Sep 2026 • 40 Soal</p>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="text-base font-display font-bold" :style="{ color: currentTheme.primary }">95</span>
+                        <span class="text-[9px] font-display font-bold uppercase block px-1.5 py-0.5 rounded"
+                              :style="{ backgroundColor: currentTheme.hex + '20', color: currentTheme.primary }">LULUS</span>
+                    </div>
+                </div>
+
+                <!-- Exam 2 -->
+                <div class="p-3.5 rounded-2xl border transition-all duration-200 flex items-center justify-between" :class="cardStyle">
+                    <div class="flex items-center gap-3 min-w-0 pr-2">
+                        <div class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center font-display font-bold text-xs shrink-0">
+                            UTBK
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="font-display font-bold text-xs sm:text-sm truncate">Simulasi UTBK SNBT 2026 Gelombang 1</h4>
+                            <p class="text-[11px] opacity-65 mt-0.5 font-sans">15 Sep 2026 • 155 Soal</p>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="text-base font-display font-bold text-orange-400">712</span>
+                        <span class="text-[9px] font-display font-bold uppercase block px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400">TOP 5%</span>
+                    </div>
+                </div>
+
+                <!-- Exam 3 -->
+                <div class="p-3.5 rounded-2xl border transition-all duration-200 flex items-center justify-between" :class="cardStyle">
+                    <div class="flex items-center gap-3 min-w-0 pr-2">
+                        <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-display font-bold text-xs shrink-0">
+                            KIM
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="font-display font-bold text-xs sm:text-sm truncate">Quiz Ikatan Kimia &amp; Stoikiometri</h4>
+                            <p class="text-[11px] opacity-65 mt-0.5 font-sans">10 Sep 2026 • 30 Soal</p>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="text-base font-display font-bold text-blue-400">86</span>
+                        <span class="text-[9px] font-display font-bold uppercase block px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">GRADE A</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 2: PETA KEKUATAN MATA PELAJARAN -->
+            <div x-show="activeTab === 'mapel'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="mt-3">
+                <div class="p-4 rounded-3xl border transition-all duration-200" :class="cardStyle">
+                    <div class="flex items-center justify-between mb-3.5">
+                        <span class="text-xs font-display font-bold opacity-75">Distribusi Kekuatan Siswa</span>
+                        <span class="text-[10px] font-sans opacity-60">Evaluasi 30 Hari Terakhir</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <!-- Biologi -->
+                        <div>
+                            <div class="flex justify-between items-center text-xs font-semibold mb-1">
+                                <span class="flex items-center gap-1.5 font-display font-bold">
+                                    <svg class="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 15 6.5-6.5"/><path d="m22 9-6.5 6.5"/><path d="m15 2-6.5 6.5"/><path d="m9 22 6.5-6.5"/><path d="m17 7-5 5"/><path d="m7 17 5-5"/></svg>
+                                    <span>Biologi</span>
+                                </span>
+                                <span class="font-mono font-bold" :style="{ color: currentTheme.primary }">94% • Sangat Kuat</span>
+                            </div>
+                            <div class="w-full h-2 rounded-full overflow-hidden bg-black/15 dark:bg-white/10">
+                                <div class="h-full rounded-full transition-all duration-500" :style="{ width: '94%', backgroundColor: currentTheme.primary }"></div>
+                            </div>
+                        </div>
+
+                        <!-- B. Indonesia -->
+                        <div>
+                            <div class="flex justify-between items-center text-xs font-semibold mb-1">
+                                <span class="flex items-center gap-1.5 font-display font-bold">
+                                    <svg class="w-4 h-4 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                                    <span>Bahasa Indonesia &amp; Literasi</span>
+                                </span>
+                                <span class="font-mono font-bold" :style="{ color: currentTheme.primary }">88% • Kuat</span>
+                            </div>
+                            <div class="w-full h-2 rounded-full overflow-hidden bg-black/15 dark:bg-white/10">
+                                <div class="h-full rounded-full transition-all duration-500" :style="{ width: '88%', backgroundColor: currentTheme.primary }"></div>
+                            </div>
+                        </div>
+
+                        <!-- Matematika Minat -->
+                        <div>
+                            <div class="flex justify-between items-center text-xs font-semibold mb-1">
+                                <span class="flex items-center gap-1.5 font-display font-bold">
+                                    <svg class="w-4 h-4 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+                                    <span>Penalaran Matematika</span>
+                                </span>
+                                <span class="font-mono font-bold text-amber-400">72% • Perlu Latihan</span>
+                            </div>
+                            <div class="w-full h-2 rounded-full overflow-hidden bg-black/15 dark:bg-white/10">
+                                <div class="h-full rounded-full bg-amber-400 transition-all duration-500" style="width: 72%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Fisika -->
+                        <div>
+                            <div class="flex justify-between items-center text-xs font-semibold mb-1">
+                                <span class="flex items-center gap-1.5 font-display font-bold">
+                                    <svg class="w-4 h-4 text-orange-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 20.2c4.54-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"/></svg>
+                                    <span>Fisika</span>
+                                </span>
+                                <span class="font-mono font-bold text-orange-400">65% • Ditingkatkan</span>
+                            </div>
+                            <div class="w-full h-2 rounded-full overflow-hidden bg-black/15 dark:bg-white/10">
+                                <div class="h-full rounded-full bg-orange-400 transition-all duration-500" style="width: 65%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 3: TARGET KAMPUS IMPIAN (SNBT) -->
+            <div x-show="activeTab === 'target'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="mt-3 space-y-2.5">
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-xs font-display font-bold opacity-75">Kampus &amp; Jurusan Incaran</span>
+                    <span class="text-[10px] font-display font-bold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20 inline-flex items-center gap-1">
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>28 Hari Menuju UTBK</span>
+                    </span>
+                </div>
+
+                <!-- Pilihan 1: FK UI -->
+                <div class="p-3.5 rounded-2xl border transition-all duration-200" :class="cardStyle">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center font-display font-bold text-amber-400 text-sm">
+                                UI
+                            </div>
+                            <div>
+                                <h3 class="font-display font-bold text-sm leading-tight">Pendidikan Dokter</h3>
+                                <p class="text-xs opacity-65">Universitas Indonesia • Pilihan 1</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-xl text-xs font-display font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            84% Peluang
+                        </span>
+                    </div>
+                    <!-- Progress Bar Target Skor -->
+                    <div class="mt-2.5">
+                        <div class="flex justify-between text-[11px] font-semibold mb-1 opacity-75 font-sans">
+                            <span>Skor TO: <b class="font-mono text-emerald-400">712</b></span>
+                            <span>Passing Target: <b class="font-mono">740</b></span>
+                        </div>
+                        <div class="w-full h-2 rounded-full overflow-hidden bg-black/15 dark:bg-white/10">
+                            <div class="h-full rounded-full transition-all duration-500" :style="{ width: '84%', backgroundColor: currentTheme.primary }"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pilihan 2: SF ITB -->
+                <div class="p-3.5 rounded-2xl border transition-all duration-200" :class="cardStyle">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center font-display font-bold text-blue-400 text-sm">
+                                ITB
+                            </div>
+                            <div>
+                                <h3 class="font-display font-bold text-sm leading-tight">Sekolah Farmasi (SF)</h3>
+                                <p class="text-xs opacity-65">Institut Teknologi Bandung • Pilihan 2</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-xl text-xs font-display font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            91% Peluang
+                        </span>
+                    </div>
+                    <!-- Progress Bar Target Skor -->
+                    <div class="mt-2.5">
+                        <div class="flex justify-between text-[11px] font-semibold mb-1 opacity-75 font-sans">
+                            <span>Skor TO: <b class="font-mono text-emerald-400">712</b></span>
+                            <span>Passing Target: <b class="font-mono">685</b></span>
+                        </div>
+                        <div class="w-full h-2 rounded-full overflow-hidden bg-black/15 dark:bg-white/10">
+                            <div class="h-full rounded-full transition-all duration-500" :style="{ width: '96%', backgroundColor: currentTheme.primary }"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= BIOLINK ACTION BUTTONS: TAUTAN & AKTIVITAS REKOMENDASI ================= -->
+        <section class="px-4 mt-6 pb-12">
+            <div class="flex items-center justify-between mb-2.5 px-1">
+                <h2 class="text-xs font-display font-bold uppercase tracking-wider opacity-70 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <span>Tautan &amp; Aktivitas Rekomendasi</span>
+                </h2>
+                <span class="text-[10px] font-sans opacity-50">5 Tautan</span>
+            </div>
+
+            <div class="space-y-3">
+                <!-- Action 1: Tantang Ikut Tryout -->
+                <a href="#tantang" @click.prevent="alert('Fitur Simulasi Ujian CBT Bersama Daffa dimulai!')" 
+                    class="p-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between group active:scale-[0.98] shadow-md"
+                    :class="cardStyle"
+                    :style="{ borderColor: currentTheme.primary }">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"
+                             :style="{ backgroundColor: currentTheme.hex + '20', color: currentTheme.primary }">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-display font-bold text-sm transition-colors" :style="{ color: currentTheme.primary }">Tantang Skor Ujian Bareng Daffa</h3>
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-display font-bold uppercase bg-amber-400 text-black">HOT</span>
+                            </div>
+                            <p class="text-xs opacity-65 mt-0.5 font-sans">Simulasi Tryout UTBK SNBT 2026 Gelombang 1</p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all"
+                         :style="{ color: currentTheme.primary }">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </div>
+                </a>
+
+                <!-- Action 2: Notion Study Notes -->
+                <a href="https://notion.so" target="_blank"
+                    class="p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group active:scale-[0.98] shadow-soft"
+                    :class="cardStyle">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-display font-bold text-sm group-hover:text-amber-400 transition-colors">Resume &amp; Flashcards Biologi</h3>
+                            <p class="text-xs opacity-65 mt-0.5 font-sans">Catatan Notion lengkap bab Metabolisme &amp; Genetika</p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </div>
+                </a>
+
+                <!-- Action 3: E-Sertifikat Tryout Resmi -->
+                <button @click="openCertModal = true"
+                        class="w-full text-left p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group active:scale-[0.98] shadow-soft"
+                        :class="cardStyle">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"/></svg>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-display font-bold text-sm group-hover:text-purple-400 transition-colors">Lihat E-Sertifikat Tryout Resmi</h3>
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-display font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">RESMI</span>
+                            </div>
+                            <p class="text-xs opacity-65 mt-0.5 font-sans">Sertifikat Kelulusan Tryout Nasional SNBT 2026</p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </div>
+                </button>
+
+                <!-- Action 4: Tanya & Diskusi Belajar via WA -->
+                <a href="https://wa.me/6281234567890?text=Halo%20Daffa,%20mau%20tanya%20seputar%20tips%20belajar%20UTBK" target="_blank"
+                    class="p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group active:scale-[0.98] shadow-soft"
+                    :class="cardStyle">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.301-.15-1.777-.877-2.052-.977-.275-.1-.476-.15-.676.15-.2.301-.776.977-.951 1.178-.175.2-.351.226-.652.075-.3-.15-1.27-.468-2.42-1.494-.894-.798-1.497-1.784-1.672-2.084-.176-.301-.019-.464.132-.614.135-.136.301-.351.451-.527.151-.176.201-.301.302-.502.1-.2.05-.376-.026-.526-.075-.151-.676-1.63-.927-2.232-.244-.587-.493-.507-.677-.517-.175-.01-.376-.01-.577-.01-.2 0-.526.075-.802.376-.276.301-1.053 1.028-1.053 2.508 0 1.48 1.079 2.909 1.229 3.109.15.201 2.124 3.243 5.145 4.549.719.311 1.28.497 1.718.636.723.23 1.381.198 1.901.12.579-.087 1.777-.727 2.027-1.43.25-.702.25-1.304.175-1.43-.075-.126-.276-.201-.577-.351zM12.042 21.84c-1.787 0-3.535-.48-5.064-1.388l-.363-.215-3.766.988 1.005-3.67-.236-.375c-.998-1.587-1.526-3.425-1.526-5.31C2.1 6.57 6.562 2.1 12.043 2.1c2.656 0 5.153 1.034 7.03 2.91 1.876 1.877 2.909 4.373 2.909 7.03 0 5.473-4.462 9.943-9.94 9.943z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-display font-bold text-sm group-hover:text-emerald-400 transition-colors">Tanya &amp; Sapa Daffa di WhatsApp</h3>
+                            <p class="text-xs opacity-65 mt-0.5 font-sans">Terbuka untuk diskusi soal &amp; info bimbel</p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </div>
+                </a>
+
+                <!-- Action 5: Traktir Belajar / Saweria -->
+                <a href="https://saweria.co" target="_blank"
+                    class="p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group active:scale-[0.98] shadow-soft"
+                    :class="cardStyle">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" x2="6" y1="1" y2="4"/><line x1="10" x2="10" y1="1" y2="4"/><line x1="14" x2="14" y1="1" y2="4"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-display font-bold text-sm group-hover:text-yellow-400 transition-colors">Traktir Kopi Semangat Belajar</h3>
+                            <p class="text-xs opacity-65 mt-0.5 font-sans">Dukungan via Saweria / QRIS untuk beli modul belajar</p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- ================= MODAL 1: SHARE POPUP ================= -->
+        <div x-show="openShareModal" x-cloak class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+            <div @click.outside="openShareModal = false"
+                 class="w-full max-w-sm rounded-3xl p-6 border shadow-2xl space-y-4"
+                 :style="{ backgroundColor: currentTheme.bg, color: currentTheme.text, borderColor: currentTheme.hex + '40' }">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-display font-bold text-lg">Bagikan Biolink</h3>
+                    <button @click="openShareModal = false" class="p-1 rounded-full opacity-60 hover:opacity-100 transition-opacity" title="Tutup">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <!-- QR Code Box Aesthetic -->
+                <div class="p-4 rounded-2xl flex flex-col items-center justify-center gap-2 border"
+                     :class="cardStyle">
+                    <div class="w-32 h-32 bg-white p-2 rounded-xl shadow-sm flex items-center justify-center">
+                        <svg class="w-full h-full text-zinc-900" viewBox="0 0 100 100" fill="currentColor">
+                            <rect x="10" y="10" width="25" height="25" rx="3" fill="#18181b"/>
+                            <rect x="15" y="15" width="15" height="15" fill="#ffffff"/>
+                            <rect x="18" y="18" width="9" height="9" :fill="currentTheme.primary"/>
+
+                            <rect x="65" y="10" width="25" height="25" rx="3" fill="#18181b"/>
+                            <rect x="70" y="15" width="15" height="15" fill="#ffffff"/>
+                            <rect x="73" y="18" width="9" height="9" :fill="currentTheme.primary"/>
+
+                            <rect x="10" y="65" width="25" height="25" rx="3" fill="#18181b"/>
+                            <rect x="15" y="70" width="15" height="15" fill="#ffffff"/>
+                            <rect x="18" y="73" width="9" height="9" :fill="currentTheme.primary"/>
+
+                            <rect x="45" y="15" width="8" height="8" fill="#18181b"/>
+                            <rect x="45" y="30" width="8" height="8" fill="#18181b"/>
+                            <rect x="45" y="45" width="8" height="8" :fill="currentTheme.primary"/>
+                            <rect x="25" y="45" width="8" height="8" fill="#18181b"/>
+                            <rect x="65" y="45" width="8" height="8" fill="#18181b"/>
+                            <rect x="45" y="65" width="8" height="8" fill="#18181b"/>
+                            <rect x="65" y="65" width="8" height="8" fill="#18181b"/>
+                            <rect x="80" y="80" width="8" height="8" :fill="currentTheme.primary"/>
+                        </svg>
+                    </div>
+                    <p class="text-[11px] font-mono opacity-65 font-semibold">adzkia.id/@daffapratama</p>
+                </div>
+
+                <!-- Salin URL Box -->
+                <div class="flex items-center gap-2">
+                    <input type="text" readonly value="http://localhost:8000/prototype-biolink.html" 
+                           class="flex-1 px-3 py-2.5 rounded-xl border text-xs font-mono font-semibold outline-none"
+                           :class="cardStyle">
+                    <button @click="copyFullLink()" class="px-4 py-2.5 rounded-xl text-white font-display font-bold text-xs shrink-0 transition-all active:scale-95 shadow-md"
+                            :style="{ backgroundColor: currentTheme.primary }">
+                        Salin
+                    </button>
+                </div>
+
+                <!-- Bagikan ke Sosmed -->
+                <div class="grid grid-cols-3 gap-2 pt-1 font-display">
+                    <a :href="'https://wa.me/?text=' + encodeURIComponent('Lihat profil biolink belajarku di Adzkia: http://localhost:8000/prototype-biolink.html')" target="_blank"
+                       class="py-2.5 px-2 rounded-xl text-xs font-bold text-center border transition-all flex items-center justify-center gap-1.5 hover:text-emerald-500"
+                       :class="cardStyle">
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.301-.15-1.777-.877-2.052-.977-.275-.1-.476-.15-.676.15-.2.301-.776.977-.951 1.178-.175.2-.351.226-.652.075-.3-.15-1.27-.468-2.42-1.494-.894-.798-1.497-1.784-1.672-2.084-.176-.301-.019-.464.132-.614.135-.136.301-.351.451-.527.151-.176.201-.301.302-.502.1-.2.05-.376-.026-.526-.075-.151-.676-1.63-.927-2.232-.244-.587-.493-.507-.677-.517-.175-.01-.376-.01-.577-.01-.2 0-.526.075-.802.376-.276.301-1.053 1.028-1.053 2.508 0 1.48 1.079 2.909 1.229 3.109.15.201 2.124 3.243 5.145 4.549.719.311 1.28.497 1.718.636.723.23 1.381.198 1.901.12.579-.087 1.777-.727 2.027-1.43.25-.702.25-1.304.175-1.43-.075-.126-.276-.201-.577-.351zM12.042 21.84c-1.787 0-3.535-.48-5.064-1.388l-.363-.215-3.766.988 1.005-3.67-.236-.375c-.998-1.587-1.526-3.425-1.526-5.31C2.1 6.57 6.562 2.1 12.043 2.1c2.656 0 5.153 1.034 7.03 2.91 1.876 1.877 2.909 4.373 2.909 7.03 0 5.473-4.462 9.943-9.94 9.943z"/></svg>
+                        <span>WhatsApp</span>
+                    </a>
+                    <a :href="'https://twitter.com/intent/tweet?text=' + encodeURIComponent('Cek profil akademik Adzkia-ku @daffapratama')" target="_blank"
+                       class="py-2.5 px-2 rounded-xl text-xs font-bold text-center border transition-all flex items-center justify-center gap-1.5 hover:text-white"
+                       :class="cardStyle">
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        <span>Twitter/X</span>
+                    </a>
+                    <button @click="shareNative()" 
+                            class="py-2.5 px-2 rounded-xl text-xs font-bold text-center border transition-all flex items-center justify-center gap-1.5 hover:opacity-100"
+                            :class="cardStyle">
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+                        <span>Lainnya</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MODAL 2: E-SERTIFIKAT PREVIEW ================= -->
+        <div x-show="openCertModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+            <div @click.outside="openCertModal = false"
+                 class="w-full max-w-md rounded-3xl p-6 border shadow-2xl space-y-4"
+                 :style="{ backgroundColor: currentTheme.bg, color: currentTheme.text, borderColor: currentTheme.hex + '40' }">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-display font-bold uppercase tracking-wider" :style="{ color: currentTheme.primary }">Sertifikat Digital Resmi</span>
+                        <h3 class="font-display font-bold text-base">E-Certificate of Achievement</h3>
+                    </div>
+                    <button @click="openCertModal = false" class="p-1.5 rounded-full opacity-60 hover:opacity-100 transition-opacity" title="Tutup">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <!-- Piagam Desain Mini -->
+                <div class="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 text-zinc-900 relative shadow-inner overflow-hidden text-center">
+                    <div class="absolute top-2 right-2 opacity-10">
+                        <svg class="w-24 h-24 text-amber-900" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    </div>
+
+                    <div class="w-10 h-10 mx-auto rounded-full bg-amber-500 text-white flex items-center justify-center text-lg shadow-md mb-2">
+                        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"/></svg>
+                    </div>
+                    <p class="text-[10px] uppercase tracking-widest font-display font-bold text-amber-800">SERTIFIKAT KELULUSAN TRYOUT</p>
+                    <h4 class="font-display font-bold text-lg text-zinc-900 mt-1">Muhammad Daffa Pratama</h4>
+                    <p class="text-xs text-zinc-700 mt-0.5 font-sans">Atas Keberhasilan Mencapai Nilai Ambang Batas UTBK SNBT 2026</p>
+                    
+                    <div class="my-3 py-2 border-y border-amber-200 flex justify-around text-xs">
+                        <div>
+                            <span class="block text-[10px] text-zinc-500 font-sans">Skor Akhir</span>
+                            <span class="font-display font-bold text-amber-700 text-base">712.50</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-zinc-500 font-sans">Predikat</span>
+                            <span class="font-display font-bold text-emerald-700 text-base">SANGAT BAIK</span>
+                        </div>
+                    </div>
+
+                    <p class="text-[9px] font-mono text-zinc-500">ID: ADZ-SNBT-2026-99482 • Terverifikasi Resmi oleh Adzkia</p>
+                </div>
+
+                <div class="flex gap-2">
+                    <button @click="alert('Mengunduh file PDF Sertifikat...')" 
+                            class="flex-1 py-3 rounded-xl text-white font-display font-bold text-xs transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5"
+                            :style="{ backgroundColor: currentTheme.primary }">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span>Unduh PDF Sertifikat</span>
+                    </button>
+                    <button @click="openCertModal = false" class="px-4 py-3 rounded-xl border border-zinc-500/30 font-display font-bold text-xs transition-colors">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= FLOATING TOAST FEEDBACK ================= -->
+        <div x-show="toastMessage" x-cloak
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 translate-y-4"
+             class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-display font-bold shadow-2xl flex items-center gap-2 border border-white/20">
+             <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+            <span x-text="toastMessage"></span>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT DATA & THEMES (14 WARNA: LIGHT CLEAN + 13 OPEN COLOR) -->
+    <script>
+        function biolinkApp() {
+            return {
+                themeKey: 'teal', // Default: Open Color Teal
+                activeTab: 'history', // 'history' (Hasil Ujian), 'mapel', 'target'
+                openPalette: false,
+                openShareModal: false,
+                openCertModal: false,
+                toastMessage: '',
+
+                // 14 Pilihan Warna: Light + 13 Palet Open Color (https://yeun.github.io/open-color/)
+                themes: {
+                    'light': {
+                        name: 'Light',
+                        hex: '#f1f3f5',
+                        bg: '#f1f3f5',
+                        text: '#212529',
+                        primary: '#2b8a3e', // Open Color Green-8
+                        gradient: 'linear-gradient(135deg, #2b8a3e 0%, #12b886 100%)',
+                        isDark: false
+                    },
+                    'gray': {
+                        name: 'Gray',
+                        hex: '#868e96',
+                        bg: '#343a40',
+                        text: '#f8f9fa',
+                        primary: '#ced4da',
+                        gradient: 'linear-gradient(135deg, #343a40 0%, #212529 100%)',
+                        isDark: true
+                    },
+                    'red': {
+                        name: 'Red',
+                        hex: '#fa5252',
+                        bg: '#1a0909',
+                        text: '#fff5f5',
+                        primary: '#fa5252',
+                        gradient: 'linear-gradient(135deg, #c92a2a 0%, #e03131 100%)',
+                        isDark: true
+                    },
+                    'pink': {
+                        name: 'Pink',
+                        hex: '#e64980',
+                        bg: '#1c0812',
+                        text: '#fff0f6',
+                        primary: '#f06595',
+                        gradient: 'linear-gradient(135deg, #a61e4d 0%, #c2255c 100%)',
+                        isDark: true
+                    },
+                    'grape': {
+                        name: 'Grape',
+                        hex: '#be4bdb',
+                        bg: '#18081f',
+                        text: '#f8f0fc',
+                        primary: '#da77f2',
+                        gradient: 'linear-gradient(135deg, #862e9c 0%, #9c36b5 100%)',
+                        isDark: true
+                    },
+                    'violet': {
+                        name: 'Violet',
+                        hex: '#7950f2',
+                        bg: '#120a22',
+                        text: '#f3f0ff',
+                        primary: '#9775fa',
+                        gradient: 'linear-gradient(135deg, #5f3dc4 0%, #6741d9 100%)',
+                        isDark: true
+                    },
+                    'indigo': {
+                        name: 'Indigo',
+                        hex: '#4c6ef5',
+                        bg: '#0a0f24',
+                        text: '#edf2ff',
+                        primary: '#748ffc',
+                        gradient: 'linear-gradient(135deg, #364fc7 0%, #3b5bdb 100%)',
+                        isDark: true
+                    },
+                    'blue': {
+                        name: 'Blue',
+                        hex: '#228be6',
+                        bg: '#071524',
+                        text: '#e7f5ff',
+                        primary: '#4dabf7',
+                        gradient: 'linear-gradient(135deg, #1864ab 0%, #1971c2 100%)',
+                        isDark: true
+                    },
+                    'cyan': {
+                        name: 'Cyan',
+                        hex: '#15aabf',
+                        bg: '#05181c',
+                        text: '#e3fafc',
+                        primary: '#3bc9db',
+                        gradient: 'linear-gradient(135deg, #0b7285 0%, #0c8599 100%)',
+                        isDark: true
+                    },
+                    'teal': {
+                        name: 'Teal',
+                        hex: '#12b886',
+                        bg: '#051a14',
+                        text: '#e6fcf5',
+                        primary: '#20c997',
+                        gradient: 'linear-gradient(135deg, #087f5b 0%, #099268 100%)',
+                        isDark: true
+                    },
+                    'green': {
+                        name: 'Green',
+                        hex: '#40c057',
+                        bg: '#081a0c',
+                        text: '#ebfbee',
+                        primary: '#51cf66',
+                        gradient: 'linear-gradient(135deg, #2b8a3e 0%, #2f9e44 100%)',
+                        isDark: true
+                    },
+                    'lime': {
+                        name: 'Lime',
+                        hex: '#82c91e',
+                        bg: '#121a05',
+                        text: '#f4fce3',
+                        primary: '#94d82d',
+                        gradient: 'linear-gradient(135deg, #5c940d 0%, #66a80f 100%)',
+                        isDark: true
+                    },
+                    'yellow': {
+                        name: 'Yellow',
+                        hex: '#f59f00',
+                        bg: '#1c1404',
+                        text: '#fff9db',
+                        primary: '#ffd43b',
+                        gradient: 'linear-gradient(135deg, #e67700 0%, #f08c00 100%)',
+                        isDark: true
+                    },
+                    'orange': {
+                        name: 'Orange',
+                        hex: '#fd7e14',
+                        bg: '#1f0d05',
+                        text: '#fff4e6',
+                        primary: '#ffa94d',
+                        gradient: 'linear-gradient(135deg, #d9480f 0%, #e8590c 100%)',
+                        isDark: true
+                    }
+                },
+
+                get currentTheme() {
+                    return this.themes[this.themeKey] || this.themes['teal'];
+                },
+
+                get coverGradient() {
+                    return this.currentTheme.gradient;
+                },
+
+                get avatarGlow() {
+                    return this.currentTheme.gradient;
+                },
+
+                get cardStyle() {
+                    if (this.themeKey === 'light') {
+                        return 'bg-white border-zinc-200/90 shadow-soft text-zinc-900';
+                    } else {
+                        return 'bg-white/5 border-white/10 hover:border-white/20 backdrop-blur-md shadow-card';
+                    }
+                },
+
+                get pillStyle() {
+                    if (this.themeKey === 'light') {
+                        return 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200 text-zinc-800';
+                    } else {
+                        return 'bg-white/10 hover:bg-white/15 border-white/10 text-white';
+                    }
+                },
+
+                get tabNavStyle() {
+                    if (this.themeKey === 'light') {
+                        return 'bg-zinc-200/70 border-zinc-300/80';
+                    } else {
+                        return 'bg-black/30 border-white/10';
+                    }
+                },
+
+                get tabActiveStyle() {
+                    if (this.themeKey === 'light') {
+                        return 'bg-white text-zinc-900 shadow-sm border border-zinc-200/80';
+                    } else {
+                        return 'bg-white/20 text-white shadow-sm border border-white/20';
+                    }
+                },
+
+                get tabInactiveStyle() {
+                    return 'opacity-60 hover:opacity-100';
+                },
+
+                setTheme(k) {
+                    this.themeKey = k;
+                    this.showToast('Tema ' + this.themes[k].name + ' aktif');
+                },
+
+                copyUsername() {
+                    navigator.clipboard.writeText('@daffapratama');
+                    this.showToast('Username @daffapratama disalin!');
+                },
+
+                copyFullLink() {
+                    const url = window.location.origin + '/prototype-biolink.html';
+                    navigator.clipboard.writeText(url);
+                    this.showToast('Tautan Biolink disalin ke clipboard!');
+                    this.openShareModal = false;
+                },
+
+                shareNative() {
+                    const url = window.location.origin + '/prototype-biolink.html';
+                    if (navigator.share) {
+                        navigator.share({
+                            title: 'Muhammad Daffa Pratama - Biolink Profil Siswa',
+                            text: 'Lihat profil akademik dan capaian tryout Daffa di Adzkia:',
+                            url: url
+                        });
+                    } else {
+                        this.copyFullLink();
+                    }
+                },
+
+                showToast(msg) {
+                    this.toastMessage = msg;
+                    setTimeout(() => {
+                        this.toastMessage = '';
+                    }, 2800);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

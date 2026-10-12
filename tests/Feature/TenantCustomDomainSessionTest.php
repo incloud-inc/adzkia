@@ -14,11 +14,16 @@ class TenantCustomDomainSessionTest extends TestCase
 
     public function test_session_cookie_domain_is_null_for_custom_domains_and_wildcard_for_subdomains(): void
     {
-        // 1. Host subdomain localhost
+        // 1. Host subdomain localhost (must be null so modern browsers do not reject .localhost cookies)
         $this->get('http://dikdasmen.localhost:8000/');
-        $this->assertEquals('.localhost', config('session.domain'));
+        $this->assertNull(config('session.domain'));
 
-        // 2. Host custom domain pribadi
+        // 2. Host central subdomain in production (e.g. *.adzkia.id)
+        config(['app.url_base_domain' => 'adzkia.id']);
+        $this->get('http://dikdasmen.adzkia.id:8000/');
+        $this->assertEquals('.adzkia.id', config('session.domain'));
+
+        // 3. Host custom domain pribadi (bind to host)
         $this->get('http://cbt.bimbelhebat.sch.id:8000/');
         $this->assertNull(config('session.domain'));
     }

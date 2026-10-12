@@ -34,16 +34,30 @@ class LoginController extends Controller
 
         $user = Auth::user();
 
-        // 1. Super User / OWNER directly enters dashboard without choosing a tenant
-        if ($user->isSuperUser()) {
-            $user->update(['current_tenant_id' => null]);
+        // 1. If a tenant was matched via domain (IdentifyTenantByDomain middleware)
+        if (app()->has('currentTenant')) {
+            $tenant = app('currentTenant');
+            $hasAccess = $user->isSuperUser() || $user->tenants()->where('tenant_id', $tenant->id)->exists();
+
+            if (! $hasAccess) {
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Akun Anda tidak terdaftar pada institusi ini.',
+                ]);
+            }
+
+            $user->switchTenant($tenant->id);
 
             return redirect()->intended(route('dashboard', absolute: false));
         }
 
-        // If a tenant was matched via domain (IdentifyTenantByDomain middleware),
-        // the user's current_tenant_id should already be switched.
-        if (app()->has('currentTenant')) {
+        // 2. Super User / OWNER on central portal directly enters dashboard in platform-wide mode
+        if ($user->isSuperUser()) {
+            $user->update(['current_tenant_id' => null]);
+
             return redirect()->intended(route('dashboard', absolute: false));
         }
 

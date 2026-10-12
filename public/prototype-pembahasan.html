@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADZKIA - Pembahasan & Analisis Ujian</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                            dark: '#022c22'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .spring-ease {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</head>
+<body class="bg-[#F8F9FA] text-[#1E293B] antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- 1. TOP BAR NAVIGATION (MODE PEMBAHASAN) -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            
+            <!-- Left: Brand & Header Status -->
+            <div class="flex items-center gap-3 min-w-0">
+                <a href="prototype-sekolah.html" class="flex items-center gap-2.5 group shrink-0" title="Kembali ke Beranda Sekolah">
+                    <div class="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm group-hover:scale-105 spring-ease">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>
+                        </svg>
+                    </div>
+                    <div class="hidden sm:block">
+                        <span class="font-extrabold text-lg tracking-tight text-slate-900 block leading-tight">ADZKIA<span class="text-brand-600">.</span></span>
+                        <span class="text-[10px] tracking-wider uppercase font-semibold text-slate-400 block -mt-0.5">Review & Solusi</span>
+                    </div>
+                </a>
+
+                <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+                <div class="truncate">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            MODE PEMBAHASAN
+                        </span>
+                        <span class="text-xs text-slate-400 hidden md:inline">• Simulasi Selesai</span>
+                    </div>
+                    <h1 class="text-xs sm:text-sm font-bold text-slate-800 truncate">Sejarah Indonesia — UTBK SNBT 2026</h1>
+                </div>
+            </div>
+
+            <!-- Right: Score Telemetry & Back to Test -->
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <!-- Score Pill -->
+                <div class="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white shadow-sm border border-slate-800">
+                    <div class="text-right">
+                        <span class="block text-[9px] uppercase tracking-wider text-slate-400 font-semibold leading-none">Skor Akhir</span>
+                        <span class="font-mono text-xs sm:text-sm font-extrabold text-emerald-400">740<span class="text-slate-400 font-normal text-xs">/1000</span></span>
+                    </div>
+                </div>
+
+                <!-- Back to CBT Button -->
+                <a href="prototype-layout.html" class="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 spring-ease">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span class="hidden sm:inline">Ulangi Ujian</span>
+                </a>
+
+                <!-- Back to School Button -->
+                <a href="prototype-sekolah.html" class="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold spring-ease shadow-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span>Hub Sekolah</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. TELEMETRY STRIP & FILTER TABS -->
+    <section class="bg-white border-b border-slate-200/90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Result Stats Counters -->
+            <div class="flex items-center gap-3 sm:gap-6 text-xs font-semibold">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <span class="text-slate-600">Benar: <strong class="text-slate-900 font-mono">14</strong></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                    <span class="text-slate-600">Salah: <strong class="text-slate-900 font-mono">5</strong></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                    <span class="text-slate-600">Ragu: <strong class="text-slate-900 font-mono">1</strong></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+                    <span class="text-slate-600">Kosong: <strong class="text-slate-900 font-mono">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                <button class="px-3 py-1 rounded-lg bg-white text-slate-900 shadow-sm">Semua (20)</button>
+                <button class="px-3 py-1 rounded-lg text-rose-600 hover:text-rose-800">Salah (5)</button>
+                <button class="px-3 py-1 rounded-lg text-slate-500 hover:text-slate-800">Benar (14)</button>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- 3. MAIN WORKSPACE AREA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- ================= LEFT: QUESTION REVIEW & EXPLANATION ================= -->
+        <section class="lg:col-span-8 space-y-5">
+            
+            <!-- Question Review Header Ribbon -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-[0_2px_4px_rgba(0,0,0,0.02)] flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-extrabold text-sm font-mono">
+                        3
+                    </span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm font-bold text-slate-800">Soal Nomor 3</h2>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+                                <svg class="w-3 h-3 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                Jawaban Anda Salah (-0 Poin)
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">Topik: Sistem Tanam Paksa & Kebijakan Kolonial</p>
+                    </div>
+                </div>
+
+                <div class="text-xs font-semibold text-slate-400">
+                    Kunci: <span class="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Opsi B</span>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-7 shadow-[0_2px_4px_rgba(0,0,0,0.02)] space-y-6">
+                
+                <!-- Stimulus Bacaan -->
+                <div class="p-4 sm:p-5 rounded-xl bg-slate-50/80 border border-slate-200/70 text-slate-700 text-sm sm:text-base leading-relaxed space-y-3 font-normal">
+                    <p>
+                        Pada masa pemerintahan Hindia Belanda, sistem Tanam Paksa (<em class="italic">Cultuurstelsel</em>) yang diberlakukan oleh Johannes van den Bosch pada tahun 1830 memberikan dampak yang luar biasa, baik bagi Belanda maupun bagi rakyat Indonesia.
+                    </p>
+                    <p>
+                        Meski banyak memakan korban jiwa dan menyebabkan penderitaan yang luar biasa akibat eksploitasi, ada beberapa dampak tidak langsung yang memengaruhi sosial-ekonomi masyarakat lokal di kemudian hari.
+                    </p>
+                </div>
+
+                <!-- Pertanyaan Inti -->
+                <div class="text-slate-900 text-base sm:text-lg font-bold leading-snug">
+                    Dampak positif yang secara tidak langsung dirasakan oleh bangsa Indonesia dari sistem Tanam Paksa tersebut adalah...
+                </div>
+
+                <!-- Opsi Jawaban dalam Status Review -->
+                <div class="space-y-3 pt-2">
+                    
+                    <!-- Opsi A (Neutral / Salah & Tidak Dipilih) -->
+                    <div class="flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200 bg-slate-50/50 opacity-60">
+                        <div class="shrink-0 w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center font-bold text-xs text-slate-400">
+                            A
+                        </div>
+                        <div class="flex-1 text-sm sm:text-base text-slate-500 font-medium leading-relaxed pt-0.5">
+                            Meningkatnya taraf kesejahteraan petani berkat pembagian hasil panen yang adil dan transparan dari pemerintah kolonial.
+                        </div>
+                    </div>
+
+                    <!-- Opsi B (KUNCI JAWABAN BENAR) -->
+                    <div class="relative flex items-start gap-3.5 p-4 sm:p-4.5 rounded-2xl border-2 border-brand-600 bg-brand-50/40 shadow-sm">
+                        <!-- Top-Right Badge -->
+                        <div class="absolute -top-3 right-4 bg-brand-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-white shadow-sm flex items-center gap-1">
+                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Kunci Jawaban Benar
+                        </div>
+                        <div class="shrink-0 w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="flex-1 text-sm sm:text-base text-slate-900 font-bold leading-relaxed pt-0.5">
+                            Rakyat Indonesia mulai mengenal berbagai jenis tanaman komoditas ekspor bernilai tinggi di pasar internasional.
+                        </div>
+                    </div>
+
+                    <!-- Opsi C (Neutral / Salah & Tidak Dipilih) -->
+                    <div class="flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200 bg-slate-50/50 opacity-60">
+                        <div class="shrink-0 w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center font-bold text-xs text-slate-400">
+                            C
+                        </div>
+                        <div class="flex-1 text-sm sm:text-base text-slate-500 font-medium leading-relaxed pt-0.5">
+                            Berakhirnya sistem feodalisme daerah dan perbudakan di seluruh wilayah Nusantara secara serentak.
+                        </div>
+                    </div>
+
+                    <!-- Opsi D (JAWABAN SISWA - SALAH) -->
+                    <div class="relative flex items-start gap-3.5 p-4 sm:p-4.5 rounded-2xl border-2 border-rose-500 bg-rose-50/40 shadow-sm">
+                        <!-- Top-Right Badge -->
+                        <div class="absolute -top-3 right-4 bg-rose-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-white shadow-sm flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            Jawaban Anda (Salah)
+                        </div>
+                        <div class="shrink-0 w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </div>
+                        <div class="flex-1 text-sm sm:text-base text-slate-900 font-semibold leading-relaxed pt-0.5">
+                            Lahirnya golongan cendekiawan baru yang langsung mendirikan partai politik pergerakan nasional di pelosok desa.
+                        </div>
+                    </div>
+
+                    <!-- Opsi E (Neutral) -->
+                    <div class="flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200 bg-slate-50/50 opacity-60">
+                        <div class="shrink-0 w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center font-bold text-xs text-slate-400">
+                            E
+                        </div>
+                        <div class="flex-1 text-sm sm:text-base text-slate-500 font-medium leading-relaxed pt-0.5">
+                            Pemerintah Hindia Belanda menghapuskan seluruh sistem sewa tanah bagi para bangsawan pribumi.
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Comprehensive Explanation Box -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-7 shadow-[0_2px_4px_rgba(0,0,0,0.02)] space-y-5">
+                
+                <div class="flex items-center gap-2.5 border-b border-slate-100 pb-4">
+                    <div class="w-8 h-8 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-700">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base text-slate-900">Pembahasan & Analisis Solusi</h3>
+                        <p class="text-xs text-slate-400">Dipandu oleh Tim Akademik ADZKIA</p>
+                    </div>
+                </div>
+
+                <!-- Step 1: Inti Konsep -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-brand-700 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-600"></span>
+                        Konsep Kunci
+                    </h4>
+                    <p class="text-sm text-slate-700 leading-relaxed">
+                        Sistem Tanam Paksa (<em class="italic">Cultuurstelsel</em>, 1830) mewajibkan para petani pribumi untuk menyisihkan 20% lahannya guna menanam komoditas ekspor global seperti kopi, teh, tebu, tembakau, dan nila (indigo).
+                    </p>
+                </div>
+
+                <!-- Step 2: Mengapa Pilihan B Benar & D Salah -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-brand-700 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-600"></span>
+                        Analisis Kesalahan (Opsi D vs B)
+                    </h4>
+                    <p class="text-sm text-slate-700 leading-relaxed">
+                        Pilihan <strong class="text-slate-900">D keliru</strong> karena lahirnya golongan terpelajar/cendekiawan pergerakan nasional merupakan dampak dari <em>Politik Etis</em> (khususnya program edukasi tahun 1901), bukan dampak Tanam Paksa tahun 1830. 
+                    </p>
+                    <p class="text-sm text-slate-700 leading-relaxed">
+                        Dampak tidak langsung nyata dari Tanam Paksa adalah rakyat pedesaan mengenal teknik budidaya tanaman komoditas baru dan pengenalan ekonomi uang di pedalaman Jawa (Pilihan <strong class="text-brand-700">B benar</strong>).
+                    </p>
+                </div>
+
+                <!-- Tip Ujian Singkat -->
+                <div class="p-4 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs sm:text-sm flex items-start gap-3">
+                    <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <strong class="font-bold block text-amber-950">Tips UTBK Cepat:</strong>
+                        Perhatikan kronologi waktu. Cultuurstelsel (1830) tidak berkaitan langsung dengan kemunculan organisasi modern yang baru marak di awal abad ke-20 (1908 ke atas).
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Navigation Bar (Prev / Next Question) -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-[0_2px_4px_rgba(0,0,0,0.02)] flex items-center justify-between gap-3">
+                <button class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 spring-ease">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                    <span>Soal No. 2 (Benar)</span>
+                </button>
+
+                <div class="text-xs font-bold font-mono px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600">
+                    3 / 20 Butir
+                </div>
+
+                <button class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold spring-ease shadow-sm">
+                    <span>Soal No. 4 (Benar)</span>
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
+
+        </section>
+
+        <!-- ================= RIGHT: QUESTION MATRIX (REVIEW MODE) ================= -->
+        <aside class="hidden lg:block lg:col-span-4 sticky top-24 space-y-5">
+            
+            <div class="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-[0_2px_4px_rgba(0,0,0,0.02)] space-y-5">
+                
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        Kisi Hasil Ujian
+                    </h3>
+                    <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                        20 Soal
+                    </span>
+                </div>
+
+                <!-- Legend -->
+                <div class="grid grid-cols-3 gap-2 text-[11px] font-semibold text-slate-500">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span>Benar (14)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+                        <span>Salah (5)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+                        <span>Ragu (1)</span>
+                    </div>
+                </div>
+
+                <!-- 20 Question Results Grid -->
+                <div class="grid grid-cols-5 gap-2 pt-1">
+                    <!-- 1: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">1</button>
+                    <!-- 2: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">2</button>
+                    <!-- 3: Active (Salah) -->
+                    <button class="h-10 rounded-xl bg-rose-500 text-white font-mono font-extrabold text-xs flex items-center justify-center ring-2 ring-rose-300 ring-offset-2 spring-ease shadow-sm">3</button>
+                    <!-- 4: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">4</button>
+                    <!-- 5: Salah -->
+                    <button class="h-10 rounded-xl bg-rose-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">5</button>
+                    <!-- 6: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">6</button>
+                    <!-- 7: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">7</button>
+                    <!-- 8: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">8</button>
+                    <!-- 9: Salah -->
+                    <button class="h-10 rounded-xl bg-rose-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">9</button>
+                    <!-- 10: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">10</button>
+                    <!-- 11: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">11</button>
+                    <!-- 12: Salah -->
+                    <button class="h-10 rounded-xl bg-rose-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">12</button>
+                    <!-- 13: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">13</button>
+                    <!-- 14: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">14</button>
+                    <!-- 15: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">15</button>
+                    <!-- 16: Salah -->
+                    <button class="h-10 rounded-xl bg-rose-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">16</button>
+                    <!-- 17: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">17</button>
+                    <!-- 18: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">18</button>
+                    <!-- 19: Ragu -->
+                    <button class="h-10 rounded-xl bg-amber-400 text-amber-950 font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">19</button>
+                    <!-- 20: Benar -->
+                    <button class="h-10 rounded-xl bg-emerald-500 text-white font-mono font-bold text-xs flex items-center justify-center hover:opacity-90 spring-ease shadow-sm">20</button>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <!-- Action to School Hub -->
+                <div class="space-y-2">
+                    <a href="prototype-sekolah.html" class="w-full group py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 spring-ease">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        <span>Kembali ke Beranda Sekolah</span>
+                    </a>
+                </div>
+
+            </div>
+
+        </aside>
+
+    </main>
+
+</body>
+</html>

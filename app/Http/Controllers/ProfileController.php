@@ -25,11 +25,15 @@ class ProfileController extends Controller
         $isStudent = (! $isTeacher && ! $isAdmin);
         $tenant = $user->currentTenant ?? $user->tenants()->first();
 
-        // Redirect murid/siswa ke halaman profil tenant tempat dia belajar (domain pribadi / subdomain tenant)
-        if ($isStudent) {
-            $targetTenant = $tenant ?? Tenant::first();
-            if ($targetTenant) {
-                return redirect()->to($targetTenant->getStudentProfileUrl($user->username));
+        // B2B2C Rule: Redirect non-owner (murid, guru, admin) ke domain pribadi / subdomain tenant tempat dia bernaung
+        if (! $user->isSuperUser() && $tenant) {
+            $targetHost = $tenant->getPrimaryHost();
+            if ($targetHost && request()->getHost() !== $targetHost) {
+                if ($isStudent) {
+                    return redirect()->to($tenant->getStudentProfileUrl($user->username));
+                }
+
+                return redirect()->to(rtrim($tenant->getPortalUrl(), '/').'/profile');
             }
         }
 
