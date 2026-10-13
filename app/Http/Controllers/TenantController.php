@@ -85,13 +85,29 @@ class TenantController extends Controller
         $proGroups = $tenant->getProGroups();
         $themePalette = $tenant->getThemePalette();
 
-        $catalogDataset = $this->buildCatalogDataset($rawAssessments);
+        $studentTargetGrade = null;
+        if (auth()->check()) {
+            $currentUser = auth()->user();
+            if ($currentUser->isStudent()) {
+                $targetConfig = $currentUser->getBiolinkTarget();
+                $cat = $targetConfig['category'] ?? null;
+                if ($cat && (in_array((string) $cat, ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'], true) || preg_match('/^(?:kelas_)?([1-9]|1[0-2])$/', (string) $cat, $m))) {
+                    $gradeNum = is_numeric($cat) ? (int) $cat : (int) ($m[1] ?? 0);
+                    if ($gradeNum >= 1 && $gradeNum <= 12) {
+                        $studentTargetGrade = $gradeNum;
+                    }
+                }
+            }
+        }
+
+        $catalogDataset = $this->buildCatalogDataset($rawAssessments, $studentTargetGrade);
         $proCardsData = $this->buildProCards($rawAssessments, $proGroups);
 
         return view('tenants.public', [
             'tenant' => $tenant,
             'schoolGrade' => $schoolGrade,
             'schoolGrades' => $schoolGrades,
+            'studentTargetGrade' => $studentTargetGrade,
             'proGroups' => $proGroups,
             'themePalette' => $themePalette,
             'catalogDataset' => $catalogDataset,
@@ -126,7 +142,7 @@ class TenantController extends Controller
     /**
      * Susun dataset katalog mata pelajaran per jenjang dan kelas dengan data asesmen riil.
      */
-    protected function buildCatalogDataset($assessments): array
+    protected function buildCatalogDataset($assessments, ?int $studentTargetGrade = null): array
     {
         $dataset = [
             'sma' => [
@@ -164,6 +180,8 @@ class TenantController extends Controller
                 'count' => "{$soal} Soal • {$durasi} Mnt",
                 'url' => route('exam.gate.show', ['assessment' => $a->token ?: $a->id]),
                 'token' => $a->token,
+                'price_type' => $a->price_type ?? 'free',
+                'price' => $a->price ?? 0,
             ];
         };
 
@@ -257,8 +275,39 @@ class TenantController extends Controller
 
         foreach ($dataset as $jenjang => $grades) {
             foreach ($grades as $gradeNum => $items) {
+                if ($studentTargetGrade !== null) {
+                    $allowedJenjang = match (true) {
+                        $studentTargetGrade >= 10 && $studentTargetGrade <= 12 => 'sma',
+                        $studentTargetGrade >= 7 && $studentTargetGrade <= 9 => 'smp',
+                        default => 'sd',
+                    };
+                    if ($jenjang !== $allowedJenjang || (string) $gradeNum !== (string) $studentTargetGrade) {
+                        continue;
+                    }
+                }
                 if (empty($items) && isset($standardFallback[$jenjang][$gradeNum])) {
                     $dataset[$jenjang][$gradeNum] = $standardFallback[$jenjang][$gradeNum];
+                }
+            }
+        }
+
+        if ($studentTargetGrade !== null) {
+            $allowedJenjang = match (true) {
+                $studentTargetGrade >= 10 && $studentTargetGrade <= 12 => 'sma',
+                $studentTargetGrade >= 7 && $studentTargetGrade <= 9 => 'smp',
+                default => 'sd',
+            };
+            $targetGradeStr = (string) $studentTargetGrade;
+
+            foreach ($dataset as $jenjang => $grades) {
+                if ($jenjang !== $allowedJenjang) {
+                    $dataset[$jenjang] = [];
+                } else {
+                    foreach (array_keys($grades) as $gradeNum) {
+                        if ((string) $gradeNum !== $targetGradeStr) {
+                            $dataset[$jenjang][$gradeNum] = [];
+                        }
+                    }
                 }
             }
         }
@@ -287,6 +336,8 @@ class TenantController extends Controller
                 'url' => route('exam.gate.show', ['assessment' => $a->token ?: $a->id]),
                 'token' => $a->token,
                 'badge' => $badge,
+                'price_type' => $a->price_type ?? 'free',
+                'price' => $a->price ?? 0,
             ];
         };
 
@@ -322,8 +373,8 @@ class TenantController extends Controller
         $presetMetadata = [
             'PRO' => [
                 'tag' => 'PRO',
-                'title' => 'Asesmen Unggulan Pilihan PRO',
-                'badge' => 'Pengayaan Tingkat Lanjut',
+                'title' => 'Soal Asli dan Prediksi untuk PROFESIONAL',
+                'badge' => '',
                 'filter' => ['PRO'],
                 'defaults' => [
                     ['name' => 'Simulasi Skolastik Lanjut', 'desc' => 'Penalaran Analitis & Pemecahan Masalah', 'badge' => 'TPS'],
@@ -331,10 +382,32 @@ class TenantController extends Controller
                     ['name' => 'Literasi Analisis Komprehensif', 'desc' => 'Interpretasi Teks & Data Statistik', 'badge' => 'LIT'],
                 ],
             ],
+            'UTBK' => [
+                'tag' => 'UTBK SNBT',
+                'title' => 'Soal ASLI dan PEMBAHASAN Sejak 2019',
+                'badge' => '',
+                'filter' => ['UTBK', 'SNBT'],
+                'defaults' => [
+                    ['name' => 'Penalaran Umum (PU)', 'desc' => 'Silogisme, Induktif & Penalaran Analitis', 'badge' => 'PU'],
+                    ['name' => 'Pengetahuan Kuantitatif', 'desc' => 'Aljabar, Bilangan, Geometri & Peluang', 'badge' => 'PK'],
+                    ['name' => 'Literasi B. Indonesia & Inggris', 'desc' => 'Pemahaman Bacaan Kritis & Literasi Analitis', 'badge' => 'LIT'],
+                ],
+            ],
+            'SKD' => [
+                'tag' => 'SKD KEDINASAN & CPNS',
+                'title' => 'Soal ASLI dan PREDIKSI dilengkapi PEMBAHASAN',
+                'badge' => '',
+                'filter' => ['SKD', 'CPNS'],
+                'defaults' => [
+                    ['name' => 'Tes Wawasan Kebangsaan (TWK)', 'desc' => 'Pancasila, UUD 1945, NKRI & Bhinneka Tunggal Ika', 'badge' => 'TWK'],
+                    ['name' => 'Tes Inteligensi Umum (TIU)', 'desc' => 'Kemampuan Verbal, Numerik & Figural Sistem CAT', 'badge' => 'TIU'],
+                    ['name' => 'Tes Karakteristik Pribadi (TKP)', 'desc' => 'Pelayanan Publik, Jejaring Kerja & Profesionalisme', 'badge' => 'TKP'],
+                ],
+            ],
             'TKASD' => [
                 'tag' => 'TKA SD',
                 'title' => 'Tes Kemampuan Akademik (TKA) SD',
-                'badge' => 'Fase A, B & C Pengayaan',
+                'badge' => '',
                 'filter' => ['TKASD', 'TKA SD'],
                 'defaults' => [
                     ['name' => 'Olimpiade Sains Kuark SD', 'desc' => 'Eksperimen & Konsep Alam Sekitar', 'badge' => 'IPA'],
@@ -345,7 +418,7 @@ class TenantController extends Controller
             'TKASMP' => [
                 'tag' => 'TKA SMP',
                 'title' => 'Tes Kemampuan Akademik (TKA) SMP',
-                'badge' => 'Fase D Tingkat Lanjut',
+                'badge' => '',
                 'filter' => ['TKASMP', 'TKA SMP'],
                 'defaults' => [
                     ['name' => 'Matematika Olimpiade SMP', 'desc' => 'Teori Bilangan & Kombinatorika', 'badge' => 'MTK'],
@@ -356,34 +429,12 @@ class TenantController extends Controller
             'TKASMA' => [
                 'tag' => 'TKA SMA',
                 'title' => 'Tes Kemampuan Akademik (TKA) SMA',
-                'badge' => 'Fase E & F Pengayaan',
+                'badge' => '',
                 'filter' => ['TKASMA', 'TKA SMA'],
                 'defaults' => [
                     ['name' => 'Fisika Modern & Termodinamika', 'desc' => 'Mekanika Kuantum & Fluida Bergerak', 'badge' => 'FIS'],
                     ['name' => 'Kimia Larutan & Organik', 'desc' => 'Termokimia, Laju & Kesetimbangan', 'badge' => 'KIM'],
                     ['name' => 'Kalkulus Terapan & Aljabar', 'desc' => 'Limit Fungsi, Turunan & Integral', 'badge' => 'MTK'],
-                ],
-            ],
-            'UTBK' => [
-                'tag' => 'UTBK SNBT',
-                'title' => 'Simulasi Akbar UTBK SNBT',
-                'badge' => 'Seleksi Nasional Masuk PTN',
-                'filter' => ['UTBK', 'SNBT'],
-                'defaults' => [
-                    ['name' => 'Penalaran Umum (PU)', 'desc' => 'Silogisme, Induktif & Penalaran Analitis', 'badge' => 'PU'],
-                    ['name' => 'Pengetahuan Kuantitatif', 'desc' => 'Aljabar, Bilangan, Geometri & Peluang', 'badge' => 'PK'],
-                    ['name' => 'Literasi B. Indonesia & Inggris', 'desc' => 'Pemahaman Bacaan Kritis & Literasi Analitis', 'badge' => 'LIT'],
-                ],
-            ],
-            'SKD' => [
-                'tag' => 'SKD KEDINASAN',
-                'title' => 'Kedinasan & Seleksi CPNS',
-                'badge' => 'Target IPDN, STAN, Akpol & ASN',
-                'filter' => ['SKD', 'CPNS'],
-                'defaults' => [
-                    ['name' => 'Tes Wawasan Kebangsaan (TWK)', 'desc' => 'Pancasila, UUD 1945, NKRI & Bhinneka Tunggal Ika', 'badge' => 'TWK'],
-                    ['name' => 'Tes Inteligensi Umum (TIU)', 'desc' => 'Kemampuan Verbal, Numerik & Figural Sistem CAT', 'badge' => 'TIU'],
-                    ['name' => 'Tes Karakteristik Pribadi (TKP)', 'desc' => 'Pelayanan Publik, Jejaring Kerja & Profesionalisme', 'badge' => 'TKP'],
                 ],
             ],
         ];
@@ -422,9 +473,9 @@ class TenantController extends Controller
                 continue;
             }
 
-            $tag = $gl ? strtoupper($gl->name) : ($preset['tag'] ?? strtoupper($normKey));
+            $tag = $preset['tag'] ?? ($gl ? strtoupper($gl->name) : strtoupper($normKey));
             $title = $preset['title'] ?? ($gl ? "Paket Ujian {$gl->name}" : "Simulasi {$normKey}");
-            $badge = $gl ? ($gl->group ?: 'Program PRO') : ($preset['badge'] ?? 'Program Pilihan');
+            $badge = $preset['badge'] ?? ($gl ? ($gl->group ?: 'Program PRO') : 'Program Pilihan');
             $filterKeywords = $preset['filter'] ?? [$normKey, $gl?->value, $gl?->name];
 
             $matchedAssessments = $byGrade(array_filter($filterKeywords));

@@ -35,14 +35,13 @@ class TenantSchoolPortalTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('SMA Negeri 1 Nusantara');
         $response->assertSee('Sekolah Unggul Berkarakter dan Berdaya Saing Global');
-        $response->assertSee('Pilihan Tema Sekolah');
+        $response->assertDontSee('Pilihan Tema Sekolah');
+        $response->assertSee('--theme-hex: #4c6ef5', false);
         $response->assertSee('PRO');
         $response->assertSee('Katalog Mata Pelajaran');
         $response->assertSee('Fase E');
         $response->assertSee('Ruang Guru & Pengajar', false);
         $response->assertSee('Ruang Murid & CBT', false);
-        $response->assertSee('bg-[#1c7ed6]', false);
-        $response->assertSee('hover:bg-[#1864ab]', false);
     }
 
     /**
@@ -226,6 +225,12 @@ class TenantSchoolPortalTest extends TestCase
         $this->assertEquals('smp', $tenant->getSchoolGrade());
         $this->assertCount(4, $tenant->getProGroups());
         $this->assertTrue(in_array('PRO', $tenant->getProGroups(), true));
+
+        // Verifikasi tema grape diterapkan secara penuh di portal profil tenant tanpa opsi ganti tema
+        $portalResponse = $this->get("http://{$tenant->subdomain}.localhost/");
+        $portalResponse->assertStatus(200);
+        $portalResponse->assertDontSee('Pilihan Tema Sekolah');
+        $portalResponse->assertSee('--theme-hex: #be4bdb', false);
     }
 
     /**

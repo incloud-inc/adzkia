@@ -36,7 +36,7 @@ class StudentDashboardAndProfileTest extends TestCase
             'subject_id' => $subject->id,
             'created_by' => $user->id,
             'title' => 'Simulasi UTBK CBT',
-            'type' => 'tka',
+            'type' => 'pts',
             'grade_level' => '12 SMA',
             'duration_minutes' => 60,
             'status' => 'published',
@@ -127,6 +127,42 @@ class StudentDashboardAndProfileTest extends TestCase
         $user->refresh();
         $this->assertEquals('siswa.pintar-2026_id', $user->username);
         $this->assertEquals('Siswa Baru Update', $user->name);
+    }
+
+    public function test_user_can_save_biolink_social_links(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Siswa Medsos',
+            'username' => 'siswa_medsos',
+        ]);
+
+        $response = $this->actingAs($user)->put(route('profile.update'), [
+            'name' => 'Siswa Medsos',
+            'username' => 'siswa_medsos',
+            'social_links' => [
+                'instagram' => 'https://instagram.com/siswa_keren',
+                'tiktok' => 'https://tiktok.com/@siswa_keren',
+                'whatsapp' => 'https://wa.me/6281234567890',
+                'youtube' => 'https://youtube.com/@siswabelajar',
+                'twitter' => '',
+            ],
+        ]);
+
+        $response->assertRedirect(route('profile.edit'));
+        $user->refresh();
+
+        $socials = $user->getBiolinkSocials();
+        $this->assertEquals('https://instagram.com/siswa_keren', $socials['instagram']);
+        $this->assertEquals('https://tiktok.com/@siswa_keren', $socials['tiktok']);
+        $this->assertEquals('https://wa.me/6281234567890', $socials['whatsapp']);
+        $this->assertEquals('https://youtube.com/@siswabelajar', $socials['youtube']);
+        $this->assertArrayNotHasKey('twitter', $socials);
+
+        // Akses halaman profile.edit dan pastikan media sosial dirender
+        $pageResponse = $this->actingAs($user)->get(route('profile.edit'));
+        $pageResponse->assertStatus(200);
+        $pageResponse->assertSee('Media Sosial Biolink');
+        $pageResponse->assertSee('social-icons-grid');
     }
 
     public function test_user_can_change_password_with_valid_current_password(): void
@@ -504,7 +540,7 @@ class StudentDashboardAndProfileTest extends TestCase
             'subject_id' => $subject->id,
             'created_by' => $student->id,
             'title' => 'Simulasi Kimia Analitik',
-            'type' => 'tka',
+            'type' => 'pts',
             'grade_level' => '12 SMA',
             'duration_minutes' => 60,
             'status' => 'published',
@@ -711,17 +747,25 @@ class StudentDashboardAndProfileTest extends TestCase
         $this->assertEquals('completed', $session->status);
     }
 
-    public function test_profile_groups_multiple_attempts_under_same_assessment(): void
+    public function test_profile_renders_biolink_page_with_real_stats_and_theme(): void
     {
         $student = User::factory()->create([
             'username' => 'test_group_student',
+            'biolink_settings' => [
+                'theme' => 'blue',
+                'target' => [
+                    'category' => 'utbk',
+                    'field_1' => 'Pendidikan Dokter',
+                    'field_2' => 'Universitas Indonesia',
+                    'field_3' => '740',
+                ],
+            ],
         ]);
         $assessment = Assessment::factory()->create([
             'status' => 'published',
             'title' => 'Try Out Fisika Kuantum',
         ]);
 
-        // Create 2 completed attempts and 1 in-progress attempt for this same assessment
         ExamSession::create([
             'uuid' => (string) Str::uuid(),
             'user_id' => $student->id,
@@ -745,24 +789,29 @@ class StudentDashboardAndProfileTest extends TestCase
         $response = $this->actingAs($student)->get('/@'.$student->username);
 
         $response->assertOk();
+        $response->assertSee('Biolink Profil Siswa');
         $response->assertSee('Try Out Fisika Kuantum');
-        $response->assertSee('2x Percobaan');
-        $response->assertSee('⭐ Skor Terbaik: 95.0');
+        $response->assertSee('95');
+        $response->assertSee('Rapor Kilat &amp; Pencapaian', false);
+        $response->assertSee('Pendidikan Dokter');
+        $response->assertSee('Universitas Indonesia');
+        $response->assertSee("themeKey: 'blue'", false);
     }
 
-    public function test_guest_does_not_see_student_bottom_nav_and_history_is_private(): void
+    public function test_guest_can_view_student_biolink_profile(): void
     {
         $student = User::factory()->create([
             'username' => 'tatag_private',
+            'name' => 'Tatag Permana',
         ]);
 
         $response = $this->get('/@'.$student->username);
 
         $response->assertOk();
-        // Bottom navigation tidak muncul untuk tamu
-        $response->assertDontSee("activeTab = 'history'");
-        // Riwayat ujian berstatus rahasia pribadi
-        $response->assertSee('Riwayat Ujian Rahasia Pribadi');
+        $response->assertSee('Tatag Permana');
+        $response->assertSee('Bagikan');
+        $response->assertSee('Hasil Ujian');
+        $response->assertSee('Rapor Kilat &amp; Pencapaian', false);
     }
 
     public function test_student_can_upload_and_edit_cover_photo(): void
@@ -792,13 +841,12 @@ class StudentDashboardAndProfileTest extends TestCase
         Storage::disk($disk)->assertExists($student->cover_photo_path);
     }
 
-    public function test_history_tab_shows_load_more_button_when_more_than_5_assessments(): void
+    public function test_history_tab_shows_all_sessions_in_biolink(): void
     {
         $student = User::factory()->create([
             'username' => 'tatag_multi_history',
         ]);
 
-        // Buat 6 sesi asesmen berbeda
         for ($i = 1; $i <= 6; $i++) {
             $asm = Assessment::factory()->create([
                 'title' => "Ujian Variasi Ke-{$i}",
@@ -818,6 +866,175 @@ class StudentDashboardAndProfileTest extends TestCase
         $response = $this->actingAs($student)->get('/@'.$student->username);
 
         $response->assertOk();
-        $response->assertSee('Muat Lebih Banyak Riwayat Asesmen');
+        $response->assertSee('Ujian Variasi Ke-1');
+        $response->assertSee('Ujian Variasi Ke-6');
+    }
+
+    public function test_student_can_update_biolink_theme_and_target_settings(): void
+    {
+        $student = User::factory()->create([
+            'username' => 'siswa_target_test',
+        ]);
+
+        $response = $this->actingAs($student)->put(route('profile.update'), [
+            'name' => 'Siswa Target Test',
+            'username' => 'siswa_target_test',
+            'biolink_theme' => 'grape',
+            'target_category' => 'skd',
+            'target_field_1' => 'Auditor Ahli Pertama',
+            'target_field_2' => 'Badan Pemeriksa Keuangan',
+            'target_field_3' => '450',
+            'target_label_1' => 'Jabatan / Formasi',
+            'target_label_2' => 'Instansi',
+            'target_label_3' => 'Target Nilai SKD',
+        ]);
+
+        $response->assertRedirect(route('profile.edit'));
+        $student->refresh();
+
+        $this->assertEquals('grape', $student->getBiolinkTheme());
+        $target = $student->getBiolinkTarget();
+        $this->assertEquals('skd', $target['category']);
+        $this->assertEquals('Auditor Ahli Pertama', $target['field_1']);
+        $this->assertEquals('Badan Pemeriksa Keuangan', $target['field_2']);
+        $this->assertEquals('450', $target['field_3']);
+
+        $viewResponse = $this->actingAs($student)->get('/@'.$student->username);
+        $viewResponse->assertOk();
+        $viewResponse->assertSee("themeKey: 'grape'", false);
+        $viewResponse->assertSee('Auditor Ahli Pertama');
+        $viewResponse->assertSee('Badan Pemeriksa Keuangan');
+    }
+
+    public function test_biolink_renders_certificate_with_tenant_name_and_theme(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMA Prestasi Prima', 'subdomain' => 'smaprestasi']);
+        $student = User::factory()->create([
+            'name' => 'Budi Santoso',
+            'username' => 'budisantoso',
+            'current_tenant_id' => $tenant->id,
+            'biolink_settings' => [
+                'theme' => 'teal',
+            ],
+        ]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $response = $this->get("http://{$tenant->subdomain}.localhost/@{$student->username}");
+
+        $response->assertOk();
+        $response->assertSee('Sertifikat Kelulusan Evaluasi CBT Siswa SMA Prestasi Prima');
+        $response->assertDontSee('Murid SMA Prestasi Prima');
+        $response->assertDontSee('Dewan Evaluasi SMA Prestasi Prima');
+        $response->assertDontSee('LEMBAGA EVALUASI &amp; ASESMEN AKADEMIK RESMI', false);
+        $response->assertSee('certBgStyle', false);
+    }
+
+    public function test_student_profile_update_sets_passing_target_100_when_regular_grade_selected(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMP Cendekia', 'subdomain' => 'smpcendekia']);
+        $student = User::factory()->create([
+            'name' => 'Ahmad Siswa',
+            'username' => 'ahmad_siswa',
+            'current_tenant_id' => $tenant->id,
+        ]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $response = $this->actingAs($student)->from(route('profile.edit'))->put(route('profile.update'), [
+            'name' => 'Ahmad Siswa',
+            'username' => 'ahmad_siswa',
+            'target_category' => '8', // Kelas 8 SMP
+            'target_field_1' => 'Kelas 8 Unggulan',
+            'target_field_2' => 'Matematika dan IPA',
+            'target_field_3' => '85', // Murid input 85, tapi sistem harus otomatis set 100
+        ]);
+
+        $response->assertRedirect(route('profile.edit'));
+        $student->refresh();
+
+        $target = $student->getBiolinkTarget();
+        $this->assertEquals('8', $target['category']);
+        $this->assertEquals('100', $target['field_3'], 'Passing target must automatically be 100 for regular grades 1-12');
+
+        // Check Biolink site title: Nama - Nama Tenant
+        $biolinkResponse = $this->actingAs($student)->get("http://{$tenant->subdomain}.localhost/@{$student->username}");
+        $biolinkResponse->assertOk();
+        $biolinkResponse->assertSee('<title>Ahmad Siswa - SMP Cendekia</title>', false);
+        $biolinkResponse->assertSee('Target Kelas 8');
+        $biolinkResponse->assertSee('100');
+    }
+
+    public function test_tenant_portal_filters_catalog_when_student_has_regular_grade_target(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'Sekolah Karakter', 'subdomain' => 'sekolahkarakter']);
+        $settings = $tenant->settings ?? [];
+        $settings['school_grades'] = ['sd', 'smp', 'sma'];
+        $tenant->update(['settings' => $settings]);
+
+        // Assessment for Kelas 2
+        $subject = Subject::create(['name' => 'Tematik SD']);
+        Assessment::create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subject->id,
+            'created_by' => $tenant->users()->first()?->id ?? User::factory()->create()->id,
+            'title' => 'Asesmen Harian Tematik 2',
+            'type' => 'pts',
+            'grade_level' => '2',
+            'duration_minutes' => 45,
+            'status' => 'published',
+            'price_type' => 'free',
+        ]);
+
+        // Assessment for Kelas 7
+        Assessment::create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subject->id,
+            'created_by' => $tenant->users()->first()?->id ?? User::factory()->create()->id,
+            'title' => 'Asesmen Harian Matematika 7',
+            'type' => 'pts',
+            'grade_level' => '7',
+            'duration_minutes' => 60,
+            'status' => 'published',
+            'price_type' => 'paid',
+            'price' => 50000,
+        ]);
+
+        // Student with target Kelas 2
+        $student = User::factory()->create([
+            'name' => 'Bintang Kelas',
+            'username' => 'bintang_sd',
+            'current_tenant_id' => $tenant->id,
+            'biolink_settings' => [
+                'target' => [
+                    'category' => '2',
+                    'field_1' => 'Kelas 2 SD',
+                    'field_2' => 'Tematik',
+                    'field_3' => '100',
+                ],
+            ],
+        ]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $portalResponse = $this->actingAs($student)->get("http://{$tenant->subdomain}.localhost/");
+        $portalResponse->assertOk();
+        $portalResponse->assertSee('<title>Portal Asesmen Sekolah Karakter</title>', false);
+        $portalResponse->assertSee('Asesmen Harian Tematik 2');
+        $portalResponse->assertDontSee('Asesmen Harian Matematika 7');
+
+        // Now test student with PRO group target (e.g. UTBK)
+        $student->update([
+            'biolink_settings' => [
+                'target' => [
+                    'category' => 'utbk',
+                    'field_1' => 'Kedokteran',
+                    'field_2' => 'UI',
+                    'field_3' => '750',
+                ],
+            ],
+        ]);
+
+        $proPortalResponse = $this->actingAs($student->fresh())->get("http://{$tenant->subdomain}.localhost/");
+        $proPortalResponse->assertOk();
+        $proPortalResponse->assertSee('Asesmen Harian Tematik 2');
+        $proPortalResponse->assertSee('Asesmen Harian Matematika 7');
     }
 }

@@ -7,11 +7,13 @@
         $isEnterprise = $tenant->isEnterprise();
         $tenantTitle = $isEnterprise ? $tenant->name : "{$tenant->name} - ADZKIA";
         $currentThemePalette = $themePalette ?? $tenant->getThemePalette();
+        $palettesList = \App\Http\Controllers\TenantBrandingController::getThemePalettes();
+        $activePaletteConfig = $palettesList[$currentThemePalette] ?? $palettesList['light'];
         $activeGrade = $schoolGrade ?? $tenant->getSchoolGrade();
         $activeProGroups = $proGroups ?? $tenant->getProGroups();
         $loginBtnColor = ($isEnterprise && !empty($tenant->theme_color)) ? $tenant->theme_color : '#16a34a';
     @endphp
-    <title>Portal Pembelajaran & CBT Sekolah - {{ $tenantTitle }}</title>
+    <title>Portal Asesmen {{ $tenant->name }}</title>
     
     @if($tenant->favicon_path)
         <link rel="icon" href="{{ $tenant->favicon_url }}">
@@ -88,6 +90,16 @@
     </script>
     
     <style>
+        :root {
+            --theme-bg: {{ $activePaletteConfig['bg'] }};
+            --theme-card-bg: {{ $activePaletteConfig['card_bg'] }};
+            --theme-inner-bg: {{ $activePaletteConfig['is_dark'] ? ($activePaletteConfig['card_bg'] === '#212529' ? '#2b3035' : $activePaletteConfig['card_bg']) : '#f8f9fa' }};
+            --theme-border: {{ $activePaletteConfig['border'] }};
+            --theme-text: {{ $activePaletteConfig['text'] }};
+            --theme-subtext: {{ $activePaletteConfig['subtext'] }};
+            --theme-primary: {{ $activePaletteConfig['primary'] }};
+            --theme-hex: {{ $activePaletteConfig['hex'] }};
+        }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: var(--theme-bg, #f1f3f5);
@@ -153,6 +165,18 @@
     </style>
 </head>
 <body x-data="schoolApp()"
+      style="
+          --theme-bg: {{ $activePaletteConfig['bg'] }};
+          --theme-card-bg: {{ $activePaletteConfig['card_bg'] }};
+          --theme-inner-bg: {{ $activePaletteConfig['is_dark'] ? ($activePaletteConfig['card_bg'] === '#212529' ? '#2b3035' : $activePaletteConfig['card_bg']) : '#f8f9fa' }};
+          --theme-border: {{ $activePaletteConfig['border'] }};
+          --theme-text: {{ $activePaletteConfig['text'] }};
+          --theme-subtext: {{ $activePaletteConfig['subtext'] }};
+          --theme-primary: {{ $activePaletteConfig['primary'] }};
+          --theme-hex: {{ $activePaletteConfig['hex'] }};
+          background-color: {{ $activePaletteConfig['bg'] }};
+          color: {{ $activePaletteConfig['text'] }};
+      "
       :style="{
           '--theme-bg': currentTheme.bg,
           '--theme-card-bg': currentTheme.cardBg,
@@ -188,47 +212,8 @@
                     <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#ffffff_1.2px,transparent_1.2px)] [background-size:18px_18px]"></div>
                 </div>
 
-                <!-- TOP CONTROLS DI ATAS COVER: PILIHAN TEMA + TOMBOL LOGIN/DASHBOARD (Kanan) -->
+                <!-- TOP CONTROLS DI ATAS COVER: TOMBOL LOGIN/DASHBOARD (Kanan) -->
                 <div class="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-2">
-                    <!-- Dropdown Tema Warna (14 Open Color) -->
-                    <div class="relative">
-                        <button @click="openPalette = !openPalette"
-                                class="px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md bg-black/45 hover:bg-black/65 text-white border border-white/20 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
-                                :title="'Pilih Tema: ' + currentTheme.name">
-                            <span class="w-3.5 h-3.5 rounded-full border border-white/60 shadow-xs shrink-0 transition-colors duration-300" :style="{ backgroundColor: currentTheme.hex }"></span>
-                            <span class="text-xs font-semibold hidden sm:inline" x-text="currentTheme.name"></span>
-                            <svg class="w-3 h-3 opacity-80 transition-transform duration-200" :class="openPalette ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-
-                        <!-- DROPDOWN 14 PALET WARNA (OPEN COLOR) -->
-                        <div x-show="openPalette" @click.outside="openPalette = false" x-cloak
-                             x-transition:enter="transition ease-out duration-200"
-                             x-transition:enter-start="opacity-0 translate-y-1 scale-95"
-                             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                             x-transition:leave="transition ease-in duration-100"
-                             x-transition:leave-start="opacity-100"
-                             x-transition:leave-end="opacity-0"
-                             class="absolute right-0 mt-2 w-72 p-3 rounded-2xl shadow-2xl border text-xs z-50 backdrop-blur-xl bg-slate-900/95 border-slate-700/80 text-white">
-                            
-                            <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
-                                <span class="font-bold text-[11px] uppercase tracking-wider opacity-80">Pilihan Tema Sekolah</span>
-                                <span class="text-[10px] font-mono opacity-50">14 Open Color</span>
-                            </div>
-
-                            <!-- Grid 14 Warna (2 Kolom x 7 Baris) -->
-                            <div class="grid grid-cols-2 gap-1.5 max-h-80 overflow-y-auto no-scrollbar pr-0.5">
-                                <template x-for="(thm, key) in themes" :key="key">
-                                    <button @click="setTheme(key); openPalette = false" 
-                                            class="w-full text-left px-2.5 py-1.5 rounded-xl flex items-center gap-2 transition-all hover:scale-[1.02] border"
-                                            :style="{ borderColor: themeKey === key ? thm.primary : 'transparent', backgroundColor: themeKey === key ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.03)' }">
-                                        <span class="w-3.5 h-3.5 rounded-full shrink-0 border border-white/30 shadow-xs" :style="{ backgroundColor: thm.hex }"></span>
-                                        <span class="truncate text-xs font-medium" x-text="thm.name"></span>
-                                    </button>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Tombol Login / Masuk Dashboard -->
                     @auth
                         <a href="{{ route('dashboard') }}" 
@@ -387,10 +372,65 @@
                 
                 @php
                     $availableProCards = [
+                        'PRO' => [
+                            'tag' => 'PRO',
+                            'title' => 'Soal Asli dan Prediksi untuk PROFESIONAL',
+                            'badge' => '',
+                            'ready' => '3 Paket Siap',
+                            'items' => [
+                                ['name' => 'Simulasi Skolastik Lanjut', 'desc' => 'Penalaran Analitis & Pemecahan Masalah', 'badge' => 'TPS'],
+                                ['name' => 'Drill Logika & Numerasi Cepat', 'desc' => 'Trik Algoritma & Aritmetika Praktis', 'badge' => 'NUM'],
+                                ['name' => 'Literasi Analisis Komprehensif', 'desc' => 'Interpretasi Teks & Data Statistik', 'badge' => 'LIT'],
+                            ]
+                        ],
+                        'UTBK' => [
+                            'tag' => 'UTBK SNBT',
+                            'title' => 'Soal ASLI dan PEMBAHASAN Sejak 2019',
+                            'badge' => '',
+                            'ready' => '4 Paket Siap',
+                            'items' => [
+                                ['name' => 'Penalaran Umum (PU)', 'desc' => 'Silogisme, Induktif & Penalaran Analitis', 'badge' => 'PU'],
+                                ['name' => 'Pengetahuan Kuantitatif', 'desc' => 'Aljabar, Bilangan, Geometri & Peluang', 'badge' => 'PK'],
+                                ['name' => 'Literasi B. Indonesia & Inggris', 'desc' => 'Pemahaman Bacaan Kritis & Literasi Analitis', 'badge' => 'LIT'],
+                            ]
+                        ],
+                        'SKD' => [
+                            'tag' => 'SKD KEDINASAN & CPNS',
+                            'title' => 'Soal ASLI dan PREDIKSI dilengkapi PEMBAHASAN',
+                            'badge' => '',
+                            'ready' => '3 Paket Siap',
+                            'items' => [
+                                ['name' => 'Tes Wawasan Kebangsaan (TWK)', 'desc' => 'Pancasila, UUD 1945, NKRI & Bhinneka Tunggal Ika', 'badge' => 'TWK'],
+                                ['name' => 'Tes Inteligensi Umum (TIU)', 'desc' => 'Kemampuan Verbal, Numerik & Figural Sistem CAT', 'badge' => 'TIU'],
+                                ['name' => 'Tes Karakteristik Pribadi (TKP)', 'desc' => 'Pelayanan Publik, Jejaring Kerja & Profesionalisme', 'badge' => 'TKP'],
+                            ]
+                        ],
+                        'pro_utbk' => [
+                            'tag' => 'UTBK SNBT',
+                            'title' => 'Soal ASLI dan PEMBAHASAN Sejak 2019',
+                            'badge' => '',
+                            'ready' => '4 Paket Siap',
+                            'items' => [
+                                ['name' => 'Penalaran Umum (PU)', 'desc' => 'Silogisme & Penalaran Analitis', 'badge' => 'PU'],
+                                ['name' => 'Pengetahuan Kuantitatif', 'desc' => 'Aljabar, Aritmetika & Geometri', 'badge' => 'PK'],
+                                ['name' => 'Literasi B. Inggris', 'desc' => 'Reading & Context Analysis', 'badge' => 'ENG'],
+                            ]
+                        ],
+                        'pro_kedinasan' => [
+                            'tag' => 'SKD KEDINASAN & CPNS',
+                            'title' => 'Soal ASLI dan PREDIKSI dilengkapi PEMBAHASAN',
+                            'badge' => '',
+                            'ready' => '3 Paket Siap',
+                            'items' => [
+                                ['name' => 'Simulasi SKD Kedinasan', 'desc' => 'TWK, TIU, TKP Sistem CAT', 'badge' => 'SKD'],
+                                ['name' => 'TKA Saintek & Soshum', 'desc' => 'Pendalaman Soal Analitis Lanjut', 'badge' => 'TKA'],
+                                ['name' => 'Drill Penalaran MTK', 'desc' => 'Trik Cepat & Pembahasan Video', 'badge' => 'NUM'],
+                            ]
+                        ],
                         'pro_kelas_10' => [
                             'tag' => 'KELAS 10',
                             'title' => 'Asesmen Pilihan Kelas X',
-                            'badge' => 'Kurikulum Fase E',
+                            'badge' => '',
                             'ready' => '3 Paket Siap',
                             'items' => [
                                 ['name' => 'Simulasi TPS Skolastik', 'desc' => 'Penalaran Umum & Skolastik', 'badge' => 'TPS'],
@@ -401,7 +441,7 @@
                         'pro_kelas_11' => [
                             'tag' => 'KELAS 11',
                             'title' => 'Asesmen Pilihan Kelas XI',
-                            'badge' => 'Kurikulum Fase F',
+                            'badge' => '',
                             'ready' => '3 Paket Siap',
                             'items' => [
                                 ['name' => 'Kimia: Laju Reaksi', 'desc' => 'Termokimia & Kesetimbangan', 'badge' => 'KIM'],
@@ -420,32 +460,10 @@
                                 ['name' => 'Biologi: Genetika', 'desc' => 'Hereditas & Sintesis Protein', 'badge' => 'BIO'],
                             ]
                         ],
-                        'pro_kedinasan' => [
-                            'tag' => 'KEDINASAN',
-                            'title' => 'Kedinasan & Seleksi PTN',
-                            'badge' => 'Target IPDN, STAN, Akpol',
-                            'ready' => '3 Paket Siap',
-                            'items' => [
-                                ['name' => 'Simulasi SKD Kedinasan', 'desc' => 'TWK, TIU, TKP Sistem CAT', 'badge' => 'SKD'],
-                                ['name' => 'TKA Saintek & Soshum', 'desc' => 'Pendalaman Soal Analitis Lanjut', 'badge' => 'TKA'],
-                                ['name' => 'Drill Penalaran MTK', 'desc' => 'Trik Cepat & Pembahasan Video', 'badge' => 'NUM'],
-                            ]
-                        ],
-                        'pro_utbk' => [
-                            'tag' => 'UTBK SNBT',
-                            'title' => 'Simulasi Akbar UTBK SNBT',
-                            'badge' => 'Seleksi Nasional 2026',
-                            'ready' => '4 Paket Siap',
-                            'items' => [
-                                ['name' => 'Penalaran Umum (PU)', 'desc' => 'Silogisme & Penalaran Analitis', 'badge' => 'PU'],
-                                ['name' => 'Pengetahuan Kuantitatif', 'desc' => 'Aljabar, Aritmetika & Geometri', 'badge' => 'PK'],
-                                ['name' => 'Literasi B. Inggris', 'desc' => 'Reading & Context Analysis', 'badge' => 'ENG'],
-                            ]
-                        ],
                         'pro_tka' => [
                             'tag' => 'TKA AKADEMIK',
                             'title' => 'Tes Kemampuan Akademik',
-                            'badge' => 'Pengayaan Tingkat Lanjut',
+                            'badge' => '',
                             'ready' => '3 Paket Siap',
                             'items' => [
                                 ['name' => 'Fisika Modern & Optik', 'desc' => 'Kuantum, Atom & Gelombang', 'badge' => 'FIS'],
@@ -456,7 +474,7 @@
                         'pro_smp_unggul' => [
                             'tag' => 'SMP PRO',
                             'title' => 'SMP Akselerasi Favorit',
-                            'badge' => 'Fase D Tingkat Lanjut',
+                            'badge' => '',
                             'ready' => '3 Paket Siap',
                             'items' => [
                                 ['name' => 'Matematika Olimpiade SMP', 'desc' => 'Teori Bilangan & Kombinatorika', 'badge' => 'MTK'],
@@ -467,7 +485,7 @@
                         'pro_sd_olimpiade' => [
                             'tag' => 'SD PRO',
                             'title' => 'SD Berprestasi & AKM',
-                            'badge' => 'Fase A, B & C Pengayaan',
+                            'badge' => '',
                             'ready' => '3 Paket Siap',
                             'items' => [
                                 ['name' => 'Olimpiade Sains Kuark SD', 'desc' => 'Eksperimen & Alam Sekitar', 'badge' => 'IPA'],
@@ -489,13 +507,19 @@
                             <div>
                                 <span class="text-[11px] font-extrabold uppercase tracking-widest theme-subtext block">{{ $card['tag'] }}</span>
                                 <h3 class="text-lg sm:text-2xl font-black theme-heading tracking-tight leading-tight mt-0.5">{{ $card['title'] }}</h3>
+                                @if(!empty($card['badge']))
+                                    <p class="text-[11px] sm:text-xs text-amber-500 font-semibold mt-1 line-clamp-1">{{ $card['badge'] }}</p>
+                                @endif
                             </div>
 
                             <div class="space-y-3 my-auto">
                                 @foreach($card['items'] as $item)
+                                    @php
+                                        $isPaidItem = ($item['price_type'] ?? '') === 'paid';
+                                    @endphp
                                     <div class="flex items-center justify-between gap-3 group/item">
                                         <div class="flex items-center gap-3 min-w-0">
-                                            <div class="w-10 h-10 aspect-square rounded-xl theme-inner border theme-border flex items-center justify-center font-mono font-bold text-xs theme-heading shrink-0 group-hover/item:scale-105 spring-ease">
+                                            <div class="w-10 h-10 aspect-square rounded-xl {{ $isPaidItem ? 'bg-[#ffd43b] text-[#e67700] border border-[#fcc419]' : 'theme-inner border theme-border text-current' }} flex items-center justify-center font-mono font-bold text-xs shrink-0 group-hover/item:scale-105 spring-ease shadow-xs">
                                                 {{ $item['badge'] ?? strtoupper(substr($item['name'] ?? 'PRO', 0, 3)) }}
                                             </div>
                                             <div class="min-w-0">
@@ -503,7 +527,7 @@
                                                 <p class="text-[11px] sm:text-xs theme-subtext truncate mt-0.5">{{ $item['desc'] }}</p>
                                             </div>
                                         </div>
-                                        <a href="{{ $item['url'] ?? route('login', ['tenant' => $tenant->subdomain]) }}" class="px-3.5 sm:px-4 py-1.5 rounded-full theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                                        <a href="{{ $item['url'] ?? route('login', ['tenant' => $tenant->subdomain]) }}" class="px-3.5 sm:px-4 py-1.5 rounded-full {{ $isPaidItem ? 'bg-[#ffd43b] text-[#e67700] hover:bg-[#fcc419] border-[#fcc419]' : 'bg-[#a5d8ff] text-[#071524] hover:bg-[#74c0fc] border-[#74c0fc]/60' }} font-extrabold text-xs spring-ease shrink-0 shadow-xs border">
                                             Mulai
                                         </a>
                                     </div>
@@ -511,8 +535,8 @@
                             </div>
 
                             <div class="pt-2 border-t theme-border flex items-center justify-between text-[11px] theme-subtext">
-                                <span>{{ $card['badge'] }}</span>
-                                <span class="font-mono font-bold theme-heading">{{ $card['ready'] }}</span>
+                                <span class="truncate max-w-[220px]">{{ $card['badge'] ?: $card['tag'] }}</span>
+                                <span class="font-mono font-bold theme-heading shrink-0">{{ $card['ready'] }}</span>
                             </div>
                         </div>
                     @endif
@@ -543,9 +567,19 @@
                 </div>
             </div>
 
-            <!-- TAMPILKAN SEMUA JENJANG SEKOLAH SECARA LANGSUNG TANPA TAB SWITCHER -->
+            @if($studentTargetGrade)
+                <div class="px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs theme-heading mb-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span>Asesmen terfilter otomatis sesuai target kelas profil Anda: <strong>Kelas {{ $studentTargetGrade }}</strong></span>
+                    </div>
+                    <a href="{{ route('profile.edit') }}" class="text-[11px] font-bold text-amber-600 hover:underline shrink-0">Ubah Jenjang</a>
+                </div>
+            @endif
+
+            <!-- TAMPILKAN JENJANG SEKOLAH SESUAI FILTER ATAU PILIHAN ADMIN TENANT -->
             <div class="space-y-8">
-                @if(in_array('sma', $schoolGrades))
+                @if(in_array('sma', $schoolGrades) && (!$studentTargetGrade || ($studentTargetGrade >= 10 && $studentTargetGrade <= 12)))
                     <!-- ---------------- A. KATALOG SMA (OPEN COLOR: GRAY) ---------------- -->
                     <div class="space-y-3.5">
                         <div class="flex flex-wrap items-center justify-between gap-2.5">
@@ -553,20 +587,26 @@
                                 <span class="px-2.5 py-0.5 rounded-md bg-oc-gray-8 text-white font-mono font-bold text-xs uppercase">
                                     SMA
                                 </span>
-                                <span class="text-sm sm:text-base font-extrabold theme-heading">Fase E & F</span>
+                                <span class="text-sm sm:text-base font-extrabold theme-heading">Fase E &amp; F</span>
                             </div>
 
                             <!-- Tab Switcher Kelas SMA: GRAY | Font & Border: #212529 | Body: #ced4da -->
                             <div class="inline-flex p-1 rounded-xl bg-[#ced4da] border border-[#212529]">
-                                <button onclick="switchSmaGrade('10')" id="tabBtnSma10" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#212529] border border-[#212529] shadow-xs spring-ease">
-                                    <span class="hidden sm:inline">Kelas </span>10
-                                </button>
-                                <button onclick="switchSmaGrade('11')" id="tabBtnSma11" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#212529]/75 hover:text-[#212529] spring-ease border border-transparent">
-                                    <span class="hidden sm:inline">Kelas </span>11
-                                </button>
-                                <button onclick="switchSmaGrade('12')" id="tabBtnSma12" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#212529]/75 hover:text-[#212529] spring-ease border border-transparent">
-                                    <span class="hidden sm:inline">Kelas </span>12
-                                </button>
+                                @if($studentTargetGrade && $studentTargetGrade >= 10 && $studentTargetGrade <= 12)
+                                    <button onclick="switchSmaGrade('{{ $studentTargetGrade }}')" id="tabBtnSma{{ $studentTargetGrade }}" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#212529] border border-[#212529] shadow-xs spring-ease">
+                                        <span class="hidden sm:inline">Kelas </span>{{ $studentTargetGrade }}
+                                    </button>
+                                @else
+                                    <button onclick="switchSmaGrade('10')" id="tabBtnSma10" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#212529] border border-[#212529] shadow-xs spring-ease">
+                                        <span class="hidden sm:inline">Kelas </span>10
+                                    </button>
+                                    <button onclick="switchSmaGrade('11')" id="tabBtnSma11" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#212529]/75 hover:text-[#212529] spring-ease border border-transparent">
+                                        <span class="hidden sm:inline">Kelas </span>11
+                                    </button>
+                                    <button onclick="switchSmaGrade('12')" id="tabBtnSma12" class="tab-sma px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#212529]/75 hover:text-[#212529] spring-ease border border-transparent">
+                                        <span class="hidden sm:inline">Kelas </span>12
+                                    </button>
+                                @endif
                             </div>
                         </div>
 
@@ -577,7 +617,7 @@
                     </div>
                 @endif
 
-                @if(in_array('smp', $schoolGrades))
+                @if(in_array('smp', $schoolGrades) && (!$studentTargetGrade || ($studentTargetGrade >= 7 && $studentTargetGrade <= 9)))
                     <!-- ---------------- B. KATALOG SMP (OPEN COLOR: BLUE) ---------------- -->
                     <div class="space-y-3.5">
                         <div class="flex flex-wrap items-center justify-between gap-2.5">
@@ -590,15 +630,21 @@
 
                             <!-- Tab Switcher Kelas SMP: BLUE | Font & Border: #1864ab | Body: #a5d8ff -->
                             <div class="inline-flex p-1 rounded-xl bg-[#a5d8ff] border border-[#1864ab]">
-                                <button onclick="switchSmpGrade('7')" id="tabBtnSmp7" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#1864ab] border border-[#1864ab] shadow-xs spring-ease">
-                                    <span class="hidden sm:inline">Kelas </span>7
-                                </button>
-                                <button onclick="switchSmpGrade('8')" id="tabBtnSmp8" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#1864ab]/75 hover:text-[#1864ab] spring-ease border border-transparent">
-                                    <span class="hidden sm:inline">Kelas </span>8
-                                </button>
-                                <button onclick="switchSmpGrade('9')" id="tabBtnSmp9" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#1864ab]/75 hover:text-[#1864ab] spring-ease border border-transparent">
-                                    <span class="hidden sm:inline">Kelas </span>9
-                                </button>
+                                @if($studentTargetGrade && $studentTargetGrade >= 7 && $studentTargetGrade <= 9)
+                                    <button onclick="switchSmpGrade('{{ $studentTargetGrade }}')" id="tabBtnSmp{{ $studentTargetGrade }}" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#1864ab] border border-[#1864ab] shadow-xs spring-ease">
+                                        <span class="hidden sm:inline">Kelas </span>{{ $studentTargetGrade }}
+                                    </button>
+                                @else
+                                    <button onclick="switchSmpGrade('7')" id="tabBtnSmp7" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-bold bg-white text-[#1864ab] border border-[#1864ab] shadow-xs spring-ease">
+                                        <span class="hidden sm:inline">Kelas </span>7
+                                    </button>
+                                    <button onclick="switchSmpGrade('8')" id="tabBtnSmp8" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#1864ab]/75 hover:text-[#1864ab] spring-ease border border-transparent">
+                                        <span class="hidden sm:inline">Kelas </span>8
+                                    </button>
+                                    <button onclick="switchSmpGrade('9')" id="tabBtnSmp9" class="tab-smp px-3 sm:px-4 py-1 rounded-lg text-xs font-semibold text-[#1864ab]/75 hover:text-[#1864ab] spring-ease border border-transparent">
+                                        <span class="hidden sm:inline">Kelas </span>9
+                                    </button>
+                                @endif
                             </div>
                         </div>
 
@@ -609,7 +655,7 @@
                     </div>
                 @endif
 
-                @if(in_array('sd', $schoolGrades))
+                @if(in_array('sd', $schoolGrades) && (!$studentTargetGrade || ($studentTargetGrade >= 1 && $studentTargetGrade <= 6)))
                     <!-- ---------------- C. KATALOG SD (OPEN COLOR: RED) ---------------- -->
                     <div class="space-y-3.5">
                         <div class="flex flex-wrap items-center justify-between gap-2.5">
@@ -617,29 +663,35 @@
                                 <span class="px-2.5 py-0.5 rounded-md bg-oc-red-6 text-white font-mono font-bold text-xs uppercase">
                                     SD
                                 </span>
-                                <span class="text-sm sm:text-base font-extrabold theme-heading">Fase A, B & C</span>
+                                <span class="text-sm sm:text-base font-extrabold theme-heading">Fase A, B &amp; C</span>
                             </div>
 
                             <!-- Tab Switcher Kelas SD: RED | Font & Border: #c92a2a | Body: #ffc9c9 -->
                             <div class="inline-flex p-1 rounded-xl bg-[#ffc9c9] border border-[#c92a2a] overflow-x-auto max-w-full">
-                                <button onclick="switchSdGrade('1')" id="tabBtnSd1" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold bg-white text-[#c92a2a] border border-[#c92a2a] shadow-xs spring-ease shrink-0">
-                                    <span class="hidden sm:inline">Kelas </span>1
-                                </button>
-                                <button onclick="switchSdGrade('2')" id="tabBtnSd2" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
-                                    <span class="hidden sm:inline">Kelas </span>2
-                                </button>
-                                <button onclick="switchSdGrade('3')" id="tabBtnSd3" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
-                                    <span class="hidden sm:inline">Kelas </span>3
-                                </button>
-                                <button onclick="switchSdGrade('4')" id="tabBtnSd4" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
-                                    <span class="hidden sm:inline">Kelas </span>4
-                                </button>
-                                <button onclick="switchSdGrade('5')" id="tabBtnSd5" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
-                                    <span class="hidden sm:inline">Kelas </span>5
-                                </button>
-                                <button onclick="switchSdGrade('6')" id="tabBtnSd6" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
-                                    <span class="hidden sm:inline">Kelas </span>6
-                                </button>
+                                @if($studentTargetGrade && $studentTargetGrade <= 6)
+                                    <button onclick="switchSdGrade('{{ $studentTargetGrade }}')" id="tabBtnSd{{ $studentTargetGrade }}" class="tab-sd px-3 py-1 rounded-lg text-xs font-bold bg-white text-[#c92a2a] border border-[#c92a2a] shadow-xs spring-ease shrink-0">
+                                        <span class="hidden sm:inline">Kelas </span>{{ $studentTargetGrade }}
+                                    </button>
+                                @else
+                                    <button onclick="switchSdGrade('1')" id="tabBtnSd1" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold bg-white text-[#c92a2a] border border-[#c92a2a] shadow-xs spring-ease shrink-0">
+                                        <span class="hidden sm:inline">Kelas </span>1
+                                    </button>
+                                    <button onclick="switchSdGrade('2')" id="tabBtnSd2" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                                        <span class="hidden sm:inline">Kelas </span>2
+                                    </button>
+                                    <button onclick="switchSdGrade('3')" id="tabBtnSd3" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                                        <span class="hidden sm:inline">Kelas </span>3
+                                    </button>
+                                    <button onclick="switchSdGrade('4')" id="tabBtnSd4" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                                        <span class="hidden sm:inline">Kelas </span>4
+                                    </button>
+                                    <button onclick="switchSdGrade('5')" id="tabBtnSd5" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                                        <span class="hidden sm:inline">Kelas </span>5
+                                    </button>
+                                    <button onclick="switchSdGrade('6')" id="tabBtnSd6" class="tab-sd px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold text-[#c92a2a]/75 hover:text-[#c92a2a] spring-ease shrink-0 border border-transparent">
+                                        <span class="hidden sm:inline">Kelas </span>6
+                                    </button>
+                                @endif
                             </div>
                         </div>
 
@@ -798,10 +850,20 @@
         // Template Card Render
         function createSubjectCard(item, colorClass = 'oc-gray') {
             const itemUrl = item.url && item.url !== '#' ? item.url : targetLoginUrl;
+            const isPaid = item.price_type === 'paid';
+            
+            const badgeClass = isPaid
+                ? 'w-10 h-10 aspect-square rounded-xl bg-[#ffd43b] text-[#e67700] border border-[#fcc419] flex items-center justify-center font-mono font-bold text-xs shrink-0 group-hover:scale-105 spring-ease shadow-xs'
+                : 'w-10 h-10 aspect-square rounded-xl theme-inner border theme-border flex items-center justify-center font-mono font-bold text-xs theme-heading shrink-0 group-hover:scale-105 spring-ease';
+
+            const buttonClass = isPaid
+                ? 'px-3.5 py-1.5 rounded-xl bg-[#ffd43b] text-[#e67700] hover:bg-[#fcc419] font-extrabold text-xs spring-ease shrink-0 shadow-xs border border-[#fcc419]'
+                : 'px-3.5 py-1.5 rounded-xl bg-[#a5d8ff] text-[#071524] hover:bg-[#74c0fc] font-extrabold text-xs spring-ease shrink-0 shadow-xs border border-[#74c0fc]/60';
+
             return `
                 <div class="catalog-item theme-card p-3.5 sm:p-4 rounded-2xl border theme-border shadow-2xs hover:shadow-sm spring-ease flex items-center justify-between gap-3 group">
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 aspect-square rounded-xl theme-inner border theme-border flex items-center justify-center font-mono font-bold text-xs theme-heading shrink-0 group-hover:scale-105 spring-ease">
+                        <div class="${badgeClass}">
                             ${item.badge}
                         </div>
                         <div class="min-w-0">
@@ -813,7 +875,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="${itemUrl}" class="px-3 py-1.5 rounded-xl theme-inner hover:bg-oc-blue-1 text-oc-blue-6 font-bold text-xs spring-ease shrink-0">
+                    <a href="${itemUrl}" class="${buttonClass}">
                         Mulai
                     </a>
                 </div>
@@ -890,15 +952,18 @@
             });
         }
 
-        // 7. Alpine.js School App Theme State
+        // 7. Alpine.js School App Theme State (Diterapkan dari Pengaturan Branding)
         function schoolApp() {
-            const defaultTheme = @json($currentThemePalette);
+            const currentThemeKey = @json($currentThemePalette) || 'light';
             const tenantId = @json($tenant->id);
-            const savedTheme = localStorage.getItem('adzkia_school_theme_' + tenantId);
+
+            // Bersihkan data lama jika ada di localStorage browser pengunjung
+            try {
+                localStorage.removeItem('adzkia_school_theme_' + tenantId);
+            } catch (e) {}
 
             return {
-                openPalette: false,
-                themeKey: savedTheme || defaultTheme || 'light',
+                themeKey: currentThemeKey,
                 activeJenjang: @json($activeGrade ?? ($schoolGrades[0] ?? 'sma')),
                 
                 themes: {
@@ -1088,21 +1153,25 @@
 
                 get currentTheme() {
                     return this.themes[this.themeKey] || this.themes['light'];
-                },
-
-                setTheme(key) {
-                    this.themeKey = key;
-                    try {
-                        localStorage.setItem('adzkia_school_theme_' + tenantId, key);
-                    } catch (e) {}
                 }
             };
         }
 
-        // Inisialisasi awal jenjang aktif
-        if (catalogDataset.sma) switchSmaGrade('10');
-        if (catalogDataset.smp) switchSmpGrade('7');
-        if (catalogDataset.sd) switchSdGrade('1');
+        // Inisialisasi awal jenjang aktif (otomatis ke kelas target murid jika ada)
+        const studentTargetGrade = @json($studentTargetGrade ?? null);
+        if (studentTargetGrade) {
+            if (studentTargetGrade >= 10 && studentTargetGrade <= 12) {
+                if (catalogDataset.sma) switchSmaGrade(String(studentTargetGrade));
+            } else if (studentTargetGrade >= 7 && studentTargetGrade <= 9) {
+                if (catalogDataset.smp) switchSmpGrade(String(studentTargetGrade));
+            } else if (studentTargetGrade >= 1 && studentTargetGrade <= 6) {
+                if (catalogDataset.sd) switchSdGrade(String(studentTargetGrade));
+            }
+        } else {
+            if (catalogDataset.sma) switchSmaGrade('10');
+            if (catalogDataset.smp) switchSmpGrade('7');
+            if (catalogDataset.sd) switchSdGrade('1');
+        }
     </script>
 </body>
 </html>

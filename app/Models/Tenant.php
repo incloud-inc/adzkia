@@ -476,7 +476,7 @@ class Tenant extends Model
     {
         $groups = $this->settings['pro_groups'] ?? [];
         if (! is_array($groups) || count($groups) < 3) {
-            return ['PRO', 'TKASD', 'TKASMP', 'TKASMA', 'UTBK', 'SKD'];
+            return ['PRO', 'UTBK', 'SKD', 'TKASD', 'TKASMP', 'TKASMA'];
         }
 
         // Jika tersimpan format lama bertipe pro_kelas_*, petakan ke master kelas
@@ -489,7 +489,7 @@ class Tenant extends Model
         }
 
         if ($hasLegacyKey) {
-            return ['PRO', 'TKASD', 'TKASMP', 'TKASMA', 'UTBK', 'SKD'];
+            return ['PRO', 'UTBK', 'SKD', 'TKASD', 'TKASMP', 'TKASMA'];
         }
 
         return $groups;

@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 #[Fillable([
     'name', 'email', 'email_verified_at', 'password', 'must_change_password', 'current_tenant_id',
     'username', 'whatsapp_number', 'whatsapp_verified_at',
-    'postal_code', 'address', 'profile_photo_path', 'cover_photo_path', 'bio',
+    'postal_code', 'address', 'profile_photo_path', 'cover_photo_path', 'bio', 'biolink_settings',
     'google_id', 'avatar_url',
 ])]
 #[Hidden(['password', 'remember_token'])]
@@ -46,6 +46,7 @@ class User extends Authenticatable
             'whatsapp_verified_at' => 'datetime',
             'password' => 'hashed',
             'must_change_password' => 'boolean',
+            'biolink_settings' => 'array',
         ];
     }
 
@@ -297,5 +298,53 @@ class User extends Authenticatable
             ->where('assessment_id', $assessmentId)
             ->where('status', 'settled')
             ->exists();
+    }
+
+    /**
+     * Dapatkan tema aktif biolink siswa (14 palet Open Color).
+     */
+    public function getBiolinkTheme(): string
+    {
+        return $this->biolink_settings['theme'] ?? 'teal';
+    }
+
+    /**
+     * Dapatkan konfigurasi tab target siswa (UTBK / SKD / Lainnya).
+     *
+     * @return array{category: string, field_1: string, field_2: string, field_3: string, label_1: string, label_2: string, label_3: string}
+     */
+    public function getBiolinkTarget(): array
+    {
+        $target = $this->biolink_settings['target'] ?? [];
+
+        return [
+            'category' => $target['category'] ?? 'utbk',
+            'field_1' => $target['field_1'] ?? ($target['major'] ?? ''),
+            'field_2' => $target['field_2'] ?? ($target['institution'] ?? ''),
+            'field_3' => $target['field_3'] ?? ($target['target_score'] ?? ''),
+            'label_1' => $target['label_1'] ?? 'Jurusan / Bidang',
+            'label_2' => $target['label_2'] ?? 'PTN / Instansi',
+            'label_3' => $target['label_3'] ?? 'Target Nilai',
+        ];
+    }
+
+    /**
+     * Dapatkan daftar tautan & aktivitas rekomendasi kustom siswa.
+     *
+     * @return array<int, array{icon: string, title: string, url: string, subtitle?: string, badge?: string}>
+     */
+    public function getBiolinkLinks(): array
+    {
+        return $this->biolink_settings['links'] ?? [];
+    }
+
+    /**
+     * Dapatkan daftar media sosial siswa.
+     *
+     * @return array<string, string>
+     */
+    public function getBiolinkSocials(): array
+    {
+        return $this->biolink_settings['social_links'] ?? [];
     }
 }

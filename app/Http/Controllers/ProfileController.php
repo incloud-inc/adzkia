@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assessment;
+use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -28,12 +30,19 @@ class ProfileController extends Controller
         // B2B2C Rule: Redirect non-owner (murid, guru, admin) ke domain pribadi / subdomain tenant tempat dia bernaung
         if (! $user->isSuperUser() && $tenant) {
             $targetHost = $tenant->getPrimaryHost();
-            if ($targetHost && request()->getHost() !== $targetHost) {
-                if ($isStudent) {
-                    return redirect()->to($tenant->getStudentProfileUrl($user->username));
-                }
+            $currentHost = request()->getHost();
 
-                return redirect()->to(rtrim($tenant->getPortalUrl(), '/').'/profile');
+            if ($targetHost && $currentHost !== $targetHost) {
+                // Di local dev, jangan paksa redirect ke *.localhost jika sedang diakses dari localhost (mencegah kegagalan DNS loopback di Windows)
+                $isLocalSubdomainRedirect = in_array($currentHost, ['localhost', '127.0.0.1'], true) && str_ends_with($targetHost, '.localhost');
+
+                if (! $isLocalSubdomainRedirect) {
+                    if ($isStudent) {
+                        return redirect()->to($tenant->getStudentProfileUrl($user->username));
+                    }
+
+                    return redirect()->to(rtrim($tenant->getPortalUrl(), '/').'/profile');
+                }
             }
         }
 
@@ -55,6 +64,11 @@ class ProfileController extends Controller
             'showGradeTkaSma' => $tenant ? $tenant->showGrade('tka_sma') : true,
             'showGradeUtbk' => $tenant ? $tenant->showGrade('utbk') : true,
             'showGradeSkd' => $tenant ? $tenant->showGrade('skd') : true,
+            'biolinkTheme' => $user->getBiolinkTheme(),
+            'targetConfig' => $user->getBiolinkTarget(),
+            'customLinks' => $user->getBiolinkLinks(),
+            'socialLinks' => $user->getBiolinkSocials(),
+            'themes' => TenantBrandingController::getThemePalettes(),
         ]);
     }
 
@@ -133,6 +147,61 @@ class ProfileController extends Controller
             } elseif ($request->has('mock_unverify_wa')) {
                 $validated['whatsapp_verified_at'] = null;
             }
+        }
+
+        // Simpan konfigurasi tema, tab target, dan tautan rekomendasi biolink
+        $currentSettings = $user->biolink_settings ?? [];
+
+        if ($request->filled('biolink_theme')) {
+            $currentSettings['theme'] = (string) $request->input('biolink_theme');
+        }
+
+        if ($request->has('target_category')) {
+            $cat = (string) $request->input('target_category', 'utbk');
+            $f3 = (string) $request->input('target_field_3', '');
+
+            // Jika murid memilih kelas 1 sampai 12, maka Passing Target otomatis 100
+            if (in_array($cat, ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'], true) || preg_match('/^(?:kelas_)?([1-9]|1[0-2])$/', $cat)) {
+                $f3 = '100';
+            }
+
+            $currentSettings['target'] = [
+                'category' => $cat,
+                'field_1' => (string) $request->input('target_field_1', ''),
+                'field_2' => (string) $request->input('target_field_2', ''),
+                'field_3' => $f3,
+                'label_1' => (string) $request->input('target_label_1', $cat === 'utbk' ? 'Nama Jurusan' : ($cat === 'skd' ? 'Jabatan / Jurusan' : 'Kolom 1')),
+                'label_2' => (string) $request->input('target_label_2', $cat === 'utbk' ? 'Nama PTN' : ($cat === 'skd' ? 'Instansi' : 'Kolom 2')),
+                'label_3' => (string) $request->input('target_label_3', $cat === 'utbk' ? 'Target Nilai UTBK' : ($cat === 'skd' ? 'Target Nilai SKD' : 'Target Nilai')),
+            ];
+        }
+
+        if ($request->has('custom_links')) {
+            $processedLinks = [];
+            foreach ((array) $request->input('custom_links', []) as $link) {
+                if (! empty($link['title']) && ! empty($link['url'])) {
+                    $processedLinks[] = [
+                        'icon' => (string) ($link['icon'] ?? 'link'),
+                        'title' => trim((string) $link['title']),
+                        'url' => trim((string) $link['url']),
+                        'subtitle' => trim((string) ($link['subtitle'] ?? '')),
+                        'badge' => trim((string) ($link['badge'] ?? '')),
+                    ];
+                }
+            }
+            $currentSettings['links'] = $processedLinks;
+        }
+
+        if ($request->has('social_links')) {
+            $filteredSocials = array_filter(
+                (array) $request->input('social_links', []),
+                fn ($val) => is_string($val) && trim($val) !== ''
+            );
+            $currentSettings['social_links'] = $filteredSocials;
+        }
+
+        if (! empty($currentSettings)) {
+            $validated['biolink_settings'] = $currentSettings;
         }
 
         $user->update($validated);
@@ -329,7 +398,12 @@ class ProfileController extends Controller
             $host = $request->getHost();
 
             if ($targetHost && $host !== $targetHost) {
-                return redirect()->to($tenant->getStudentProfileUrl($user->username));
+                // Di local dev, jangan paksa redirect ke *.localhost jika sedang diakses dari localhost (mencegah kegagalan DNS loopback di Windows)
+                $isLocalSubdomainRedirect = in_array($host, ['localhost', '127.0.0.1'], true) && str_ends_with($targetHost, '.localhost');
+
+                if (! $isLocalSubdomainRedirect) {
+                    return redirect()->to($tenant->getStudentProfileUrl($user->username));
+                }
             }
         }
 
@@ -410,6 +484,68 @@ class ProfileController extends Controller
         $showGradeUtbk = $tenant ? $tenant->showGrade('utbk') : true;
         $showGradeSkd = $tenant ? $tenant->showGrade('skd') : true;
 
+        // Metrik Riil Siswa untuk Biolink Bento Brag Sheet
+        $completedSessions = ExamSession::where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->when($tenant, fn ($q) => $q->where('tenant_id', $tenant->id))
+            ->get();
+
+        $avgScore = $completedSessions->count() > 0 ? round((float) $completedSessions->avg('score'), 1) : 0;
+        $highestScore = $completedSessions->count() > 0 ? round((float) $completedSessions->max('score'), 1) : 0;
+
+        // Study Streak (Runtun hari ujian aktif)
+        $streak = 0;
+        $dates = ExamSession::where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->whereNotNull('completed_at')
+            ->when($tenant, fn ($q) => $q->where('tenant_id', $tenant->id))
+            ->selectRaw('DATE(completed_at) as exam_date')
+            ->groupBy('exam_date')
+            ->orderBy('exam_date', 'desc')
+            ->pluck('exam_date');
+
+        if ($dates->isNotEmpty()) {
+            $firstDate = Carbon::parse($dates->first());
+            if ($firstDate->isToday() || $firstDate->isYesterday()) {
+                $checkDate = $firstDate;
+                foreach ($dates as $d) {
+                    $date = Carbon::parse($d);
+                    if ($date->isSameDay($checkDate)) {
+                        $streak++;
+                        $checkDate = $checkDate->copy()->subDay();
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Akurasi Soal CBT Riil
+        $completedSessionIds = $completedSessions->pluck('id');
+        $totalAnswered = ExamAnswer::whereIn('exam_session_id', $completedSessionIds)->count();
+        $totalCorrect = ExamAnswer::whereIn('exam_session_id', $completedSessionIds)->where('is_correct', true)->count();
+        $accuracy = $totalAnswered > 0 ? round(($totalCorrect / $totalAnswered) * 100, 1) : 0;
+
+        // Total Siswa untuk konteks ranking
+        $totalStudents = $tenant ? $tenant->users()->count() : User::count();
+
+        // Distribusi Kekuatan Mata Pelajaran (Tab Mapel)
+        $subjectStats = DB::table('exam_sessions')
+            ->join('assessments', 'exam_sessions.assessment_id', '=', 'assessments.id')
+            ->leftJoin('subjects', 'assessments.subject_id', '=', 'subjects.id')
+            ->where('exam_sessions.user_id', $user->id)
+            ->where('exam_sessions.status', 'completed')
+            ->when($tenant, fn ($q) => $q->where('exam_sessions.tenant_id', $tenant->id))
+            ->select(
+                DB::raw("COALESCE(subjects.name, 'Umum') as subject_name"),
+                DB::raw('ROUND(AVG(exam_sessions.score), 1) as avg_score'),
+                DB::raw('COUNT(exam_sessions.id) as sessions_count')
+            )
+            ->groupBy('subject_name')
+            ->orderBy('avg_score', 'desc')
+            ->take(6)
+            ->get();
+
         return view('profile.public', [
             'user' => $user,
             'tenant' => $tenant,
@@ -436,6 +572,18 @@ class ProfileController extends Controller
             'tkaSmaAssessments' => $assessmentGroups['tka_sma'],
             'utbkAssessments' => $assessmentGroups['utbk'],
             'skdAssessments' => $assessmentGroups['skd'],
+            'avgScore' => $avgScore,
+            'highestScore' => $highestScore,
+            'studyStreak' => $streak,
+            'accuracy' => $accuracy,
+            'totalAnswered' => $totalAnswered,
+            'totalCorrect' => $totalCorrect,
+            'totalStudents' => $totalStudents,
+            'subjectStats' => $subjectStats,
+            'biolinkTheme' => $user->getBiolinkTheme(),
+            'targetConfig' => $user->getBiolinkTarget(),
+            'customLinks' => $user->getBiolinkLinks(),
+            'socialLinks' => $user->getBiolinkSocials(),
         ]);
     }
 

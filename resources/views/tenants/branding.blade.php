@@ -595,6 +595,17 @@
                 <!-- Area Cover Banner -->
                 <div class="profile-cover">
                     <img :src="coverPreview || '{{ $tenant->cover_photo_url }}'" alt="Cover {{ $tenant->name }}">
+
+                    <!-- Overlay Tint Mengikuti Tema Terpilih Realtime -->
+                    <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.35)); pointer-events: none;"></div>
+                    <div style="position: absolute; inset: 0; opacity: 0.25; transition: background-color 0.4s ease; pointer-events: none;"
+                         :style="{ backgroundColor: (palettesData[selectedTheme] ? palettesData[selectedTheme].hex : '#0284c7') }"></div>
+
+                    <!-- Badge Indikator Tema Aktif di Cover Pratinjau -->
+                    <div style="position: absolute; top: 12px; left: 12px; z-index: 5; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #ffffff; background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25);">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #ffffff;" :style="{ backgroundColor: (palettesData[selectedTheme] ? palettesData[selectedTheme].hex : '#0284c7') }"></span>
+                        <span>Tema: <strong x-text="palettesData[selectedTheme] ? palettesData[selectedTheme].name : 'Light'"></strong></span>
+                    </div>
                     
 
 
@@ -743,7 +754,7 @@
                     </span>
                 </div>
                 <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 14px; line-height: 1.45;">
-                    Pilih skema warna utama portal publik sekolah Anda. Kotak tema langsung menggunakan latar dan aksen warna aslinya.
+                    Pilih skema warna utama portal publik sekolah Anda. Tema yang dipilih di sini akan diterapkan secara penuh dan konsisten pada halaman profil dan portal publik sekolah.
                 </p>
 
                 @php
@@ -783,7 +794,7 @@
                                :style="selectedTheme === '{{ $pKey }}'
                                     ? 'background-color: {{ $themeBgColor }} !important; border: 3px solid {{ $themeNameColor }} !important; padding: 10px 12px !important; box-shadow: 0 6px 16px -4px {{ $themeNameColor }}45 !important;'
                                     : 'background-color: {{ $themeBgColor }} !important; border: 1px solid {{ $themeBorderColor }} !important; padding: 12px 14px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;'">
-                            <input type="radio" name="theme_palette" value="{{ $pKey }}" x-model="selectedTheme" style="display: none;">
+                            <input type="radio" name="theme_palette" value="{{ $pKey }}" x-model="selectedTheme" {{ $tenant->getThemePalette() === $pKey ? 'checked' : '' }} :checked="selectedTheme === '{{ $pKey }}'" style="display: none;">
                             
                             <!-- Baris Atas: Dot Swatch + Kode Warna Tema (Transparan & Font 9px) -->
                             <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 6px;">

@@ -3,19 +3,40 @@
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <div class="flex items-center gap-2.5">
+                <div class="flex flex-wrap items-center gap-2.5">
                     <h1 class="font-display font-bold text-2xl text-gray-12 tracking-tight">{{ $tenant->name }}</h1>
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-3 text-green-11 border border-green-6/50 uppercase">
                         {{ $tenant->plan ?? 'Gratis' }}
                     </span>
+                    @php
+                        $palettes = \App\Http\Controllers\TenantBrandingController::getThemePalettes();
+                        $activePal = $palettes[$tenant->getThemePalette()] ?? $palettes['light'];
+                    @endphp
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border"
+                          style="background-color: {{ $activePal['bg'] }}; border-color: {{ $activePal['border'] }}; color: {{ $activePal['text'] }};">
+                        <span class="w-2 h-2 rounded-full shrink-0" style="background-color: {{ $activePal['primary'] }};"></span>
+                        <span>Tema: {{ $activePal['name'] }}</span>
+                    </span>
                 </div>
-                <p class="text-sm text-gray-11 font-mono mt-1">https://{{ $tenant->subdomain }}.{{ config('app.url_base_domain', 'localhost') }}</p>
+                <div class="flex flex-wrap items-center gap-2 mt-1">
+                    <p class="text-sm text-gray-11 font-mono">https://{{ $tenant->subdomain }}.{{ config('app.url_base_domain', 'localhost') }}</p>
+                    <a href="{{ route('tenant.portal.direct', $tenant->subdomain) }}" target="_blank"
+                       class="text-xs font-semibold text-blue-11 hover:underline inline-flex items-center gap-1">
+                        <span>Lihat Portal Publik</span>
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </a>
+                </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{{ route('tenants.index') }}" 
                    class="px-3.5 py-2 rounded-xl border border-gray-7 bg-white hover:bg-gray-3 text-xs font-semibold text-gray-12 transition-colors cursor-pointer">
                     Kembali
+                </a>
+                <a href="{{ route('tenant.portal.direct', $tenant->subdomain) }}" target="_blank"
+                   class="px-3.5 py-2 rounded-xl border border-gray-7 bg-white hover:bg-gray-3 text-xs font-semibold text-gray-12 transition-colors cursor-pointer flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-gray-11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    <span>Portal Publik</span>
                 </a>
 
                 @can('update', $tenant)

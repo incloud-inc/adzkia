@@ -360,7 +360,7 @@ class AssessmentWizardController extends Controller
                 'description' => $validated['description'] ?? null,
                 'duration_minutes' => $validated['duration_minutes'] ?? 90,
                 'scoring_type' => $validated['scoring_type'] ?? 'standard',
-                'status' => $validated['status'] ?? 'draft',
+                'status' => $validated['status'] ?? 'published',
                 'settings' => array_merge([
                     'randomize_questions' => true,
                     'randomize_options' => true,

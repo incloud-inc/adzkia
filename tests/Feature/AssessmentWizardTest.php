@@ -293,6 +293,8 @@ class AssessmentWizardTest extends TestCase
         $assessmentA = Assessment::factory()->create([
             'tenant_id' => $tenantA->id,
             'title' => 'Ujian Rahasia SMAN 8',
+            'type' => 'ph',
+            'grade_level' => '10 SMA',
             'is_mandatory' => false,
             'is_global' => false,
         ]);

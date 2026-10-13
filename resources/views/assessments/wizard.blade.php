@@ -103,7 +103,7 @@
                     duration_minutes: 90,
                     description: '',
                     scoring_type: 'standard',
-                    status: 'draft',
+                    status: 'published',
                     price_type: 'free',
                     price: 0,
                     max_attempts: null,
@@ -815,6 +815,9 @@
 
                 nextStep() {
                     if (this.validateStep(this.currentStep)) {
+                        if (this.currentStep === 7) {
+                            this.form.status = 'published';
+                        }
                         this.currentStep++;
                     }
                 },
@@ -1254,6 +1257,7 @@
                     if (!this.form.settings.proctoring_mode) {
                         this.form.settings.proctoring_mode = 'unproctored';
                     }
+                    this.form.status = 'published';
 
                     fetch('{{ route("assessments.store") }}', {
                         method: 'POST',
@@ -3085,15 +3089,17 @@
             <!-- ============================================== -->
             <div x-show="currentStep === 7" x-transition.opacity class="space-y-6">
                 <div class="border-b border-gray-5 pb-4">
-                    <h2 class="font-display font-bold text-lg text-gray-12">Langkah 7: Finalisasi, Monetisasi & Publikasi</h2>
-                    <p class="text-xs text-gray-11">Atur akses asesmen (gratis/berbayar), batas percobaan, paket harga fleksibel, dan status publikasi.</p>
+                    <h2 class="font-display font-bold text-lg text-gray-12">Langkah 7: Finalisasi &amp; Monetisasi</h2>
+                    <p class="text-xs text-gray-11">Atur akses asesmen (gratis/berbayar), batas percobaan, dan paket harga fleksibel.</p>
                 </div>
 
                 <!-- 1. MONETISASI, BATAS PERCOBAAN & PAKET HARGA (SINGLE UNIFIED CARD) -->
                 <div class="p-5 rounded-2xl border border-gray-6 bg-gray-2/30 space-y-4">
                     <div class="flex items-center justify-between border-b border-gray-5 pb-3">
                         <div class="flex items-center gap-2.5">
-                            <span class="w-7 h-7 rounded-lg bg-green-9 text-white flex items-center justify-center font-bold text-xs">1</span>
+                            <span class="w-7 h-7 rounded-lg bg-green-9 text-white flex items-center justify-center font-bold text-xs">
+                                <x-radix-icon name="tokens" class="w-4 h-4" />
+                            </span>
                             <div>
                                 <h3 class="font-display font-bold text-sm text-gray-12">Monetisasi &amp; Paket Penjualan Fleksibel</h3>
                                 <p class="text-xs text-gray-11">Atur asesmen ini gratis atau berbayar, serta batas percobaan untuk siswa.</p>
@@ -3297,37 +3303,6 @@
                                     <span class="text-purple-11 font-extrabold">ADZKIA 25% : Tenant 75%</span>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. STATUS PUBLIKASI -->
-                <div class="p-5 rounded-2xl border border-gray-6 bg-gray-2/30 space-y-4">
-                    <div class="flex items-center justify-between border-b border-gray-5 pb-3">
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-7 h-7 rounded-lg bg-green-9 text-white flex items-center justify-center font-bold text-xs">2</span>
-                            <div>
-                                <h3 class="font-display font-bold text-sm text-gray-12">Status Publikasi</h3>
-                                <p class="text-xs text-gray-11">Pilih apakah ujian langsung diterbitkan atau disimpan sebagai draf untuk diedit kembali nanti.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div @click="form.status = 'draft'"
-                             :class="form.status === 'draft' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 hover:border-gray-7 bg-white'"
-                             class="p-5 rounded-2xl border transition-all cursor-pointer space-y-2">
-                            <span class="px-2.5 py-0.5 rounded-md bg-gray-3 text-gray-11 font-bold text-xs uppercase">Draf</span>
-                            <h3 class="font-display font-bold text-sm text-gray-12">Simpan Sebagai Draf</h3>
-                            <p class="text-xs text-gray-11">Asesmen disimpan tetapi belum dapat diakses atau dikerjakan oleh siswa.</p>
-                        </div>
-
-                        <div @click="form.status = 'published'"
-                             :class="form.status === 'published' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 hover:border-gray-7 bg-white'"
-                             class="p-5 rounded-2xl border transition-all cursor-pointer space-y-2">
-                            <span class="px-2.5 py-0.5 rounded-md bg-green-3 text-green-11 font-bold text-xs uppercase">Siap / Published</span>
-                            <h3 class="font-display font-bold text-sm text-gray-12">Terbitkan Asesmen</h3>
-                            <p class="text-xs text-gray-11">Asesmen siap dijadwalkan dan ditugaskan ke kelas serta peserta ujian.</p>
                         </div>
                     </div>
                 </div>

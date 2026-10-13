@@ -154,7 +154,7 @@ class TenantManagementTest extends TestCase
         // Admin Tenant (Sidebar: Only Dashboard & Bank Soal)
         $admin = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $admin->tenants()->attach($tenant->id, ['role' => 'A']);
-        $responseA = $this->actingAs($admin)->get(route('dashboard'));
+        $responseA = $this->actingAs($admin)->get("http://{$tenant->subdomain}.localhost/dashboard");
         $responseA->assertStatus(200);
         $responseA->assertSee('Alamat Portal Publik:');
         $responseA->assertSee('Dewan Guru');
@@ -165,7 +165,7 @@ class TenantManagementTest extends TestCase
         // Teacher
         $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
-        $responseT = $this->actingAs($teacher)->get(route('dashboard'));
+        $responseT = $this->actingAs($teacher)->get("http://{$tenant->subdomain}.localhost/dashboard");
         $responseT->assertStatus(200);
         $responseT->assertSee('Dashboard Guru');
         $responseT->assertSee('Bank Soal', false);
@@ -175,7 +175,7 @@ class TenantManagementTest extends TestCase
         // Student
         $student = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $student->tenants()->attach($tenant->id, ['role' => 'U']);
-        $responseU = $this->actingAs($student)->get(route('dashboard'));
+        $responseU = $this->actingAs($student)->get("http://{$tenant->subdomain}.localhost/dashboard");
         $responseU->assertStatus(200);
         $responseU->assertSee('Dashboard Siswa');
         $responseU->assertSee('Ujian Aktif / CBT');
