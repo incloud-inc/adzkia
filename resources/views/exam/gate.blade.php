@@ -14,6 +14,11 @@
     <link rel="icon" type="image/png" href="{{ $examFavicon }}">
     <link rel="apple-touch-icon" href="{{ $examFavicon }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- KaTeX untuk formula matematika di deskripsi ujian --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
         html, body {
             background-color: #a5d8ff !important;
@@ -134,7 +139,9 @@
                 </div>
                 <h2 class="text-2xl font-bold leading-snug text-slate-900">{{ $assessment->title }}</h2>
                 @if($assessment->description)
-                    <p class="mt-2 text-sm text-slate-600 leading-relaxed">{{ Str::limit(strip_tags($assessment->description), 180) }}</p>
+                    <div class="mt-3.5 rounded-xl bg-slate-50 border border-slate-200/90 p-4 text-sm text-slate-700 leading-relaxed prose prose-slate prose-sm sm:prose-base max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-a:text-blue-600 prose-img:rounded-xl shadow-2xs" id="assessment-description-view">
+                        {!! Str::markdown($assessment->description) !!}
+                    </div>
                 @endif
 
                 <div class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -337,6 +344,21 @@
             const span = btn.querySelector('span') || btn;
             if (span !== btn) span.textContent = 'Menyiapkan…';
             else btn.textContent = 'Menyiapkan…';
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const descEl = document.getElementById('assessment-description-view');
+        if (descEl && typeof renderMathInElement === 'function') {
+            renderMathInElement(descEl, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false
+            });
         }
     });
 })();

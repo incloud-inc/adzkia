@@ -8,7 +8,7 @@
         $canCreate = $user && ($user->isSuperUser() || ($currentTenant && $currentTenant->canCreateAssessments()));
     @endphp
 
-    <div class="max-w-6xl mx-auto space-y-6 pb-12">
+    <div x-data class="max-w-6xl mx-auto space-y-6 pb-12">
         <!-- Flash Messages -->
         @if(session('success'))
             <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-semibold flex items-center gap-3 shadow-xs">
@@ -506,6 +506,15 @@
                                                                         options: @js($childQ->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct])->values()),
                                                                         short_answer: @js($childQ->type === 'short_answer' ? ($childQ->options->first()?->option_text ?? '') : '')
                                                                     })"
+                                                                    onclick="window.openEditQuestionModal && window.openEditQuestionModal({
+                                                                        id: {{ $childQ->id }},
+                                                                        prompt: @js($childQ->prompt),
+                                                                        points: {{ (float) $childQ->points }},
+                                                                        type: @js($childQ->type),
+                                                                        explanation: @js($childQ->explanation ?? ''),
+                                                                        options: @js($childQ->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct])->values()),
+                                                                        short_answer: @js($childQ->type === 'short_answer' ? ($childQ->options->first()?->option_text ?? '') : '')
+                                                                    })"
                                                                     class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 text-[11px] font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
                                                                     title="Edit Butir Soal Ini">
                                                                 <x-radix-icon name="pencil-1" class="w-3.5 h-3.5 text-sky-700" />
@@ -542,6 +551,15 @@
                                             @if($canManage)
                                                 <button type="button"
                                                         @click="$dispatch('open-edit-question-modal', {
+                                                            id: {{ $question->id }},
+                                                            prompt: @js($question->prompt),
+                                                            points: {{ (float) $question->points }},
+                                                            type: @js($question->type),
+                                                            explanation: @js($question->explanation ?? ''),
+                                                            options: @js($question->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct])->values()),
+                                                            short_answer: @js($question->type === 'short_answer' ? ($question->options->first()?->option_text ?? '') : '')
+                                                        })"
+                                                        onclick="window.openEditQuestionModal && window.openEditQuestionModal({
                                                             id: {{ $question->id }},
                                                             prompt: @js($question->prompt),
                                                             points: {{ (float) $question->points }},

@@ -193,7 +193,7 @@ class Tenant extends Model
 
         // Cek filter jenjang dari checklist branding tenant
         $grade = strtoupper(trim((string) $assessment->grade_level));
-        $isUmum = empty($grade) || str_contains($grade, 'UMUM') || $assessment->type === 'custom' || $assessment->type === 'umum';
+        $isUmum = empty($grade) || str_contains($grade, 'UMUM') || str_contains($grade, 'PRO') || $assessment->type === 'custom' || $assessment->type === 'umum';
 
         if (! $isUmum) {
             $isSd = str_contains($grade, 'SD') || str_contains($grade, 'MI') || in_array($grade, ['1', '2', '3', '4', '5', '6']);
@@ -430,14 +430,87 @@ class Tenant extends Model
     }
 
     /**
+     * Dapatkan palet tema warna Open Color tenant (default 'light').
+     */
+    public function getThemePalette(): string
+    {
+        return $this->settings['theme_palette'] ?? 'light';
+    }
+
+    /**
+     * Dapatkan daftar jenjang resmi sekolah tenant (minimal 1, default checklist semua: ['sma', 'smp', 'sd']).
+     *
+     * @return array<int, string>
+     */
+    public function getSchoolGrades(): array
+    {
+        $grades = $this->settings['school_grades'] ?? null;
+        if (is_array($grades) && ! empty($grades)) {
+            return array_values($grades);
+        }
+
+        if (! empty($this->settings['school_grade'])) {
+            return [(string) $this->settings['school_grade']];
+        }
+
+        // Default: checklist semua jenjang aktif
+        return ['sma', 'smp', 'sd'];
+    }
+
+    /**
+     * Helper kompatibilitas untuk jenjang pertama/aktif utama ('sma', 'smp', 'sd').
+     */
+    public function getSchoolGrade(): string
+    {
+        $grades = $this->getSchoolGrades();
+
+        return $grades[0] ?? 'sma';
+    }
+
+    /**
+     * Dapatkan daftar grup PRO aktif tenant (minimal 3 item).
+     *
+     * @return array<int, string>
+     */
+    public function getProGroups(): array
+    {
+        $groups = $this->settings['pro_groups'] ?? [];
+        if (! is_array($groups) || count($groups) < 3) {
+            return ['PRO', 'TKASD', 'TKASMP', 'TKASMA', 'UTBK', 'SKD'];
+        }
+
+        // Jika tersimpan format lama bertipe pro_kelas_*, petakan ke master kelas
+        $hasLegacyKey = false;
+        foreach ($groups as $g) {
+            if (str_starts_with($g, 'pro_')) {
+                $hasLegacyKey = true;
+                break;
+            }
+        }
+
+        if ($hasLegacyKey) {
+            return ['PRO', 'TKASD', 'TKASMP', 'TKASMA', 'UTBK', 'SKD'];
+        }
+
+        return $groups;
+    }
+
+    /**
      * Check whether an assessment grade group (SD, SMP, SMA) is enabled.
      */
     public function showGrade(string $grade): bool
     {
         $settings = $this->settings ?? [];
-        $key = 'show_grade_'.strtolower($grade);
+        $lower = strtolower($grade);
+        $key = 'show_grade_'.$lower;
 
-        return isset($settings[$key]) ? (bool) $settings[$key] : true;
+        if (isset($settings[$key])) {
+            return (bool) $settings[$key];
+        }
+
+        $activeGrades = $this->getSchoolGrades();
+
+        return in_array($lower, $activeGrades, true);
     }
 
     /**

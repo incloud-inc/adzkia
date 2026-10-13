@@ -14,7 +14,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             SubjectSeeder::class,
             GradeAndPresetSeeder::class,
-            BahasaIndonesiaGrade1Semester1Seeder::class,
         ]);
     }
 }

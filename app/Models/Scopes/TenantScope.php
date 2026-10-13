@@ -70,10 +70,11 @@ class TenantScope implements Scope
                         $builder->where(function ($q) use ($model, $showSd, $showSmp, $showSma, $showTkaSd, $showTkaSmp, $showTkaSma, $showUtbk, $showSkd) {
                             $gradeCol = $model->getTable().'.grade_level';
 
-                            // Tampilkan jika grade kosong (UMUM) atau Umum / Custom
+                            // Tampilkan jika grade kosong (UMUM/PRO) atau Umum / Custom / PRO
                             $q->whereNull($gradeCol)
                                 ->orWhere($gradeCol, '')
-                                ->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%umum%']);
+                                ->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%umum%'])
+                                ->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%pro%']);
 
                             if ($showSd) {
                                 $q->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%sd%'])

@@ -1,231 +1,249 @@
-    isOpen: false,
-    loading: false,
-    uploadingImage: false,
-    r2PickerOpen: false,
-    loadingR2: false,
-    r2Search: '',
-    r2Filter: 'all',
-    r2Files: [],
-    questionId: null,
-    type: 'mcq_single',
-    prompt: '',
-    points: 1,
-    explanation: '',
-    options: [],
-    shortAnswer: '',
-    correctOptionIndex: 0,
-    errorMessage: '',
-    successMessage: '',
+<script>
+    function editQuestionModal() {
+        return {
+            isOpen: false,
+            loading: false,
+            uploadingImage: false,
+            r2PickerOpen: false,
+            loadingR2: false,
+            r2Search: '',
+            r2Filter: 'all',
+            r2Files: [],
+            questionId: null,
+            type: 'mcq_single',
+            prompt: '',
+            points: 1,
+            explanation: '',
+            options: [],
+            shortAnswer: '',
+            correctOptionIndex: 0,
+            errorMessage: '',
+            successMessage: '',
 
-    async openR2Picker() {
-        this.r2PickerOpen = true;
-        if (this.r2Files.length === 0) {
-            await this.loadR2Files();
-        }
-    },
+            async openR2Picker() {
+                this.r2PickerOpen = true;
+                if (this.r2Files.length === 0) {
+                    await this.loadR2Files();
+                }
+            },
 
-    async loadR2Files() {
-        this.loadingR2 = true;
-        try {
-            const res = await fetch('{{ route('media.gallery.files') }}');
-            const data = await res.json();
-            this.r2Files = data.files || [];
-        } catch (e) {
-            console.error('Failed to load R2 files', e);
-        } finally {
-            this.loadingR2 = false;
-        }
-    },
+            async loadR2Files() {
+                this.loadingR2 = true;
+                try {
+                    const res = await fetch('{{ route('media.gallery.files') }}');
+                    const data = await res.json();
+                    this.r2Files = data.files || [];
+                } catch (e) {
+                    console.error('Failed to load R2 files', e);
+                } finally {
+                    this.loadingR2 = false;
+                }
+            },
 
-    get filteredR2Files() {
-        return this.r2Files.filter(f => {
-            const matchesSearch = !this.r2Search || f.name.toLowerCase().includes(this.r2Search.toLowerCase());
-            const matchesType = this.r2Filter === 'all' || 
-                (this.r2Filter === 'image' && f.is_image) ||
-                (this.r2Filter === 'audio' && f.is_audio) ||
-                (this.r2Filter === 'video' && f.is_video);
-            return matchesSearch && matchesType;
-        });
-    },
+            get filteredR2Files() {
+                return this.r2Files.filter(f => {
+                    const matchesSearch = !this.r2Search || f.name.toLowerCase().includes(this.r2Search.toLowerCase());
+                    const matchesType = this.r2Filter === 'all' || 
+                        (this.r2Filter === 'image' && f.is_image) ||
+                        (this.r2Filter === 'audio' && f.is_audio) ||
+                        (this.r2Filter === 'video' && f.is_video);
+                    return matchesSearch && matchesType;
+                });
+            },
 
-    insertR2Item(item) {
-        if (item.is_image) {
-            this.prompt += `\n![${item.name}](${item.url})\n`;
-        } else if (item.is_audio) {
-            this.prompt += `\n<audio controls src="${item.url}"></audio>\n`;
-        } else {
-            this.prompt += `\n[${item.name}](${item.url})\n`;
-        }
-        this.r2PickerOpen = false;
-    },
+            insertR2Item(item) {
+                if (item.is_image) {
+                    this.prompt += `\n![${item.name}](${item.url})\n`;
+                } else if (item.is_audio) {
+                    this.prompt += `\n<audio controls src="${item.url}"></audio>\n`;
+                } else {
+                    this.prompt += `\n[${item.name}](${item.url})\n`;
+                }
+                this.r2PickerOpen = false;
+            },
 
+            openEditModal(data) {
+                this.questionId = data.id;
+                this.type = data.type || 'mcq_single';
+                this.prompt = data.prompt || '';
+                this.points = data.points || 1;
+                this.explanation = data.explanation || '';
+                this.shortAnswer = data.short_answer || '';
+                this.errorMessage = '';
+                this.successMessage = '';
 
-    openEditModal(data) {
-        this.questionId = data.id;
-        this.type = data.type || 'mcq_single';
-        this.prompt = data.prompt || '';
-        this.points = data.points || 1;
-        this.explanation = data.explanation || '';
-        this.shortAnswer = data.short_answer || '';
-        this.errorMessage = '';
-        this.successMessage = '';
+                if (Array.isArray(data.options) && data.options.length > 0) {
+                    this.options = data.options.map((opt, i) => ({
+                        id: opt.id || null,
+                        label: opt.label || String.fromCharCode(65 + i),
+                        option_text: opt.option_text || '',
+                        is_correct: !!opt.is_correct
+                    }));
+                    const correctIdx = this.options.findIndex(o => o.is_correct);
+                    this.correctOptionIndex = correctIdx !== -1 ? correctIdx : 0;
+                } else {
+                    this.options = [
+                        { id: null, label: 'A', option_text: '', is_correct: true },
+                        { id: null, label: 'B', option_text: '', is_correct: false },
+                        { id: null, label: 'C', option_text: '', is_correct: false },
+                    ];
+                    this.correctOptionIndex = 0;
+                }
 
-        if (Array.isArray(data.options) && data.options.length > 0) {
-            this.options = data.options.map((opt, i) => ({
-                id: opt.id || null,
-                label: opt.label || String.fromCharCode(65 + i),
-                option_text: opt.option_text || '',
-                is_correct: !!opt.is_correct
-            }));
-            const correctIdx = this.options.findIndex(o => o.is_correct);
-            this.correctOptionIndex = correctIdx !== -1 ? correctIdx : 0;
-        } else {
-            this.options = [
-                { id: null, label: 'A', option_text: '', is_correct: true },
-                { id: null, label: 'B', option_text: '', is_correct: false },
-                { id: null, label: 'C', option_text: '', is_correct: false },
-            ];
-            this.correctOptionIndex = 0;
-        }
+                this.isOpen = true;
+            },
 
-        this.isOpen = true;
-    },
+            closeModal() {
+                this.isOpen = false;
+                this.errorMessage = '';
+                this.successMessage = '';
+            },
 
-    closeModal() {
-        this.isOpen = false;
-        this.errorMessage = '';
-        this.successMessage = '';
-    },
+            addOption() {
+                const nextLetter = String.fromCharCode(65 + this.options.length);
+                this.options.push({
+                    id: null,
+                    label: nextLetter,
+                    option_text: '',
+                    is_correct: false
+                });
+            },
 
-    addOption() {
-        const nextLetter = String.fromCharCode(65 + this.options.length);
-        this.options.push({
-            id: null,
-            label: nextLetter,
-            option_text: '',
-            is_correct: false
-        });
-    },
+            removeOption(index) {
+                if (this.options.length <= 2) {
+                    alert('Minimal harus memiliki 2 pilihan jawaban.');
+                    return;
+                }
+                this.options.splice(index, 1);
+                this.options.forEach((opt, idx) => {
+                    opt.label = String.fromCharCode(65 + idx);
+                });
+                if (this.correctOptionIndex >= this.options.length) {
+                    this.correctOptionIndex = 0;
+                }
+            },
 
-    removeOption(index) {
-        if (this.options.length <= 2) {
-            alert('Minimal harus memiliki 2 pilihan jawaban.');
-            return;
-        }
-        this.options.splice(index, 1);
-        this.options.forEach((opt, idx) => {
-            opt.label = String.fromCharCode(65 + idx);
-        });
-        if (this.correctOptionIndex >= this.options.length) {
-            this.correctOptionIndex = 0;
-        }
-    },
+            insertImagePlaceholder() {
+                const template = '\n[Keterangan Gambar: Ilustrasi gambar benda/hewan di sini]\n';
+                this.prompt += template;
+            },
 
-    insertImagePlaceholder() {
-        const template = '\n[Keterangan Gambar: Ilustrasi gambar benda/hewan di sini]\n';
-        this.prompt += template;
-    },
+            async handleUploadImage(event) {
+                const file = event.target.files[0];
+                if (!file) return;
 
-    async handleUploadImage(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+                this.uploadingImage = true;
+                this.errorMessage = '';
 
-        this.uploadingImage = true;
-        this.errorMessage = '';
+                const formData = new FormData();
+                formData.append('media', file);
+                formData.append('_token', '{{ csrf_token() }}');
 
-        const formData = new FormData();
-        formData.append('media', file);
-        formData.append('_token', '{{ csrf_token() }}');
+                try {
+                    const res = await fetch('{{ route('assessments.upload-media') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: formData
+                    });
 
-        try {
-            const res = await fetch('{{ route('assessments.upload-media') }}', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: formData
-            });
+                    const data = await res.json();
+                    if (res.ok && data.url) {
+                        const imgMarkdown = `\n![Gambar Soal](${data.url})\n`;
+                        this.prompt += imgMarkdown;
+                    } else {
+                        this.errorMessage = data.message || 'Gagal mengunggah berkas gambar.';
+                    }
+                } catch (err) {
+                    this.errorMessage = 'Terjadi kesalahan saat mengunggah gambar: ' + err.message;
+                } finally {
+                    this.uploadingImage = false;
+                    event.target.value = '';
+                }
+            },
 
-            const data = await res.json();
-            if (res.ok && data.url) {
-                const imgMarkdown = `\n![Gambar Soal](${data.url})\n`;
-                this.prompt += imgMarkdown;
-            } else {
-                this.errorMessage = data.message || 'Gagal mengunggah berkas gambar.';
+            async saveQuestion() {
+                if (!this.prompt.trim()) {
+                    this.errorMessage = 'Teks pertanyaan (prompt) tidak boleh kosong.';
+                    return;
+                }
+
+                this.loading = true;
+                this.errorMessage = '';
+                this.successMessage = '';
+
+                const payload = {
+                    prompt: this.prompt,
+                    points: parseFloat(this.points) || 1,
+                    explanation: this.explanation,
+                    type: this.type,
+                    _token: '{{ csrf_token() }}',
+                    _method: 'PUT'
+                };
+
+                if (this.type === 'short_answer') {
+                    payload.short_answer = this.shortAnswer;
+                } else if (['mcq_single', 'mcq_multiple', 'mcq_weighted'].includes(this.type)) {
+                    payload.options = this.options.map((opt, idx) => ({
+                        id: opt.id,
+                        label: opt.label,
+                        option_text: opt.option_text,
+                        is_correct: this.type === 'mcq_single' ? (idx === parseInt(this.correctOptionIndex)) : opt.is_correct
+                    }));
+                    payload.correct_option = this.correctOptionIndex;
+                }
+
+                try {
+                    const res = await fetch(`/questions/${this.questionId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok && data.success) {
+                        this.successMessage = 'Butir soal berhasil diperbarui!';
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 700);
+                    } else {
+                        this.errorMessage = data.message || 'Gagal menyimpan perubahan soal.';
+                    }
+                } catch (err) {
+                    this.errorMessage = 'Gagal menyimpan butir soal: ' + err.message;
+                } finally {
+                    this.loading = false;
+                }
             }
-        } catch (err) {
-            this.errorMessage = 'Terjadi kesalahan saat mengunggah gambar: ' + err.message;
-        } finally {
-            this.uploadingImage = false;
-            event.target.value = '';
-        }
-    },
-
-    async saveQuestion() {
-        if (!this.prompt.trim()) {
-            this.errorMessage = 'Teks pertanyaan (prompt) tidak boleh kosong.';
-            return;
-        }
-
-        this.loading = true;
-        this.errorMessage = '';
-        this.successMessage = '';
-
-        const payload = {
-            prompt: this.prompt,
-            points: parseFloat(this.points) || 1,
-            explanation: this.explanation,
-            type: this.type,
-            _token: '{{ csrf_token() }}',
-            _method: 'PUT'
         };
-
-        if (this.type === 'short_answer') {
-            payload.short_answer = this.shortAnswer;
-        } else if (['mcq_single', 'mcq_multiple', 'mcq_weighted'].includes(this.type)) {
-            payload.options = this.options.map((opt, idx) => ({
-                id: opt.id,
-                label: opt.label,
-                option_text: opt.option_text,
-                is_correct: this.type === 'mcq_single' ? (idx === parseInt(this.correctOptionIndex)) : opt.is_correct
-            }));
-            payload.correct_option = this.correctOptionIndex;
-        }
-
-        try {
-            const res = await fetch(`/questions/${this.questionId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await res.json();
-
-            if (res.ok && data.success) {
-                this.successMessage = 'Butir soal berhasil diperbarui!';
-                setTimeout(() => {
-                    window.location.reload();
-                }, 700);
-            } else {
-                this.errorMessage = data.message || 'Gagal menyimpan perubahan soal.';
-            }
-        } catch (err) {
-            this.errorMessage = 'Gagal menyimpan butir soal: ' + err.message;
-        } finally {
-            this.loading = false;
-        }
     }
-}"
-@open-edit-question-modal.window="openEditModal($event.detail)"
-x-show="isOpen"
-x-cloak
-class="fixed inset-0 z-50 overflow-y-auto"
-aria-labelledby="modal-title" role="dialog" aria-modal="true">
+
+    window.openEditQuestionModal = function(data) {
+        window.dispatchEvent(new CustomEvent('open-edit-question-modal', { detail: data }));
+    };
+
+    if (window.Alpine) {
+        window.Alpine.data('editQuestionModal', editQuestionModal);
+    } else {
+        document.addEventListener('alpine:init', () => {
+            window.Alpine.data('editQuestionModal', editQuestionModal);
+        });
+    }
+</script>
+
+<div x-data="editQuestionModal()"
+     @open-edit-question-modal.window="openEditModal($event.detail)"
+     x-show="isOpen"
+     x-cloak
+     class="fixed inset-0 z-50 overflow-y-auto"
+     aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <!-- Backdrop -->
     <div x-show="isOpen"
          x-transition:enter="ease-out duration-300"
@@ -469,7 +487,7 @@ aria-labelledby="modal-title" role="dialog" aria-modal="true">
                         <button type="button" @click="r2Filter = 'image'" :class="r2Filter === 'image' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'" class="px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors">Gambar</button>
                         <button type="button" @click="r2Filter = 'audio'" :class="r2Filter === 'audio' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'" class="px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors">Audio</button>
                         <button type="button" @click="loadR2Files()" class="p-1.5 rounded-lg bg-white hover:bg-gray-100 border border-gray-300 text-gray-600 cursor-pointer transition-colors ml-1" title="Muat Ulang Berkas">
-                            <x-radix-icon name="reload" class="w-3.5 h-3.5" :class="loadingR2 ? 'animate-spin' : ''" />
+                            <x-radix-icon name="reload" class="w-3.5 h-3.5" ::class="loadingR2 ? 'animate-spin' : ''" />
                         </button>
                     </div>
                 </div>

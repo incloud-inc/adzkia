@@ -365,6 +365,29 @@
             gap: 8px;
         }
 
+        /* MINI THEME CARDS (OPEN COLOR PALETTES) */
+        .theme-mini-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+            position: relative;
+            user-select: none;
+            min-height: 66px;
+            box-sizing: border-box;
+        }
+
+        .theme-mini-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .theme-mini-card.is-active {
+            transform: translateY(-2px);
+        }
+
         /* MOCKUP TAB BROWSER UNTUK FAVICON */
         .browser-mockup-wrapper {
             border: 1px solid #cbd5e1;
@@ -704,131 +727,256 @@
                 </div>
             </div>
 
+            <!-- ========================================================== -->
+            <!-- CARD: TEMA WARNA PORTAL SEKOLAH (14 PALET OPEN COLOR)     -->
+            <!-- ========================================================== -->
+            <div class="content-card">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <h3>
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; background: #e0e7ff; color: #4338ca;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2Z"></path></svg>
+                        </span>
+                        Tema Warna Portal Sekolah
+                    </h3>
+                    <span style="font-size: 11px; font-weight: 700; background: #f1f5f9; color: #475569; padding: 3px 9px; border-radius: 20px; border: 1px solid #cbd5e1;">
+                        14 Palet Open Color
+                    </span>
+                </div>
+                <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 14px; line-height: 1.45;">
+                    Pilih skema warna utama portal publik sekolah Anda. Kotak tema langsung menggunakan latar dan aksen warna aslinya.
+                </p>
 
+                @php
+                    $themeColorMap = [
+                        'light'  => ['color' => '#1864ab', 'bg' => '#f8f9fa', 'border' => '#a5d8ff'],
+                        'gray'   => ['color' => '#212529', 'bg' => '#f1f3f5', 'border' => '#ced4da'],
+                        'blue'   => ['color' => '#1864ab', 'bg' => '#e7f5ff', 'border' => '#4dabf7'],
+                        'indigo' => ['color' => '#364fc7', 'bg' => '#edf2ff', 'border' => '#748ffc'],
+                        'teal'   => ['color' => '#087f5b', 'bg' => '#e6fcf5', 'border' => '#38d9a9'],
+                        'cyan'   => ['color' => '#0b7285', 'bg' => '#e3fafc', 'border' => '#3bc9db'],
+                        'green'  => ['color' => '#2b8a3e', 'bg' => '#ebfbee', 'border' => '#69db7c'],
+                        'lime'   => ['color' => '#5c940d', 'bg' => '#f4fce3', 'border' => '#a9e34b'],
+                        'yellow' => ['color' => '#b45309', 'bg' => '#fff9db', 'border' => '#fcc419'],
+                        'orange' => ['color' => '#d9480f', 'bg' => '#fff4e6', 'border' => '#ff922b'],
+                        'red'    => ['color' => '#c92a2a', 'bg' => '#fff5f5', 'border' => '#ff6b6b'],
+                        'pink'   => ['color' => '#a61e4d', 'bg' => '#fff0f6', 'border' => '#f783ac'],
+                        'grape'  => ['color' => '#862e9c', 'bg' => '#f8f0fc', 'border' => '#da77f2'],
+                        'violet' => ['color' => '#5f3dc4', 'bg' => '#f3f0ff', 'border' => '#9775fa'],
+                    ];
+                @endphp
+
+                <!-- Grid Card-Card Kecil Tema Warna (Taste & Modern Web Guidance) -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 8px;">
+                    @foreach($palettes as $pKey => $pVal)
+                        @php
+                            $cCfg = $themeColorMap[$pKey] ?? ['color' => $pVal['primary'], 'bg' => $pVal['primary'].'15', 'border' => $pVal['primary'].'55'];
+                            $themeNameColor = $cCfg['color'];
+                            $themeBgColor = $cCfg['bg'];
+                            $themeBorderColor = $cCfg['border'];
+                            $themeHexCode = strtoupper($pKey === 'light' ? ($pVal['primary'] ?? '#1c7ed6') : ($pVal['hex'] ?? $pVal['primary']));
+                            $primaryDot = $themeHexCode;
+                        @endphp
+                        <label class="theme-mini-card"
+                               @click="selectedTheme = '{{ $pKey }}'"
+                               :class="{ 'is-active': selectedTheme === '{{ $pKey }}' }"
+                               style="background-color: {{ $themeBgColor }} !important;"
+                               :style="selectedTheme === '{{ $pKey }}'
+                                    ? 'background-color: {{ $themeBgColor }} !important; border: 3px solid {{ $themeNameColor }} !important; padding: 10px 12px !important; box-shadow: 0 6px 16px -4px {{ $themeNameColor }}45 !important;'
+                                    : 'background-color: {{ $themeBgColor }} !important; border: 1px solid {{ $themeBorderColor }} !important; padding: 12px 14px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;'">
+                            <input type="radio" name="theme_palette" value="{{ $pKey }}" x-model="selectedTheme" style="display: none;">
+                            
+                            <!-- Baris Atas: Dot Swatch + Kode Warna Tema (Transparan & Font 9px) -->
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 6px;">
+                                <span style="display: inline-block; width: 13px; height: 13px; border-radius: 50%; background-color: {{ $primaryDot }}; border: 2px solid #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); flex-shrink: 0;"></span>
+                                
+                                <span style="font-family: monospace; font-size: 9px; font-weight: 700; color: {{ $themeNameColor }} !important; letter-spacing: 0.03em; background: transparent !important; line-height: 1;">
+                                    {{ $themeHexCode }}
+                                </span>
+                            </div>
+
+                            <!-- Baris Bawah: Nama Tema Berwarna -->
+                            <div>
+                                <span style="display: block; font-size: 13px; font-weight: 800; color: {{ $themeNameColor }} !important; letter-spacing: -0.015em; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Outfit', sans-serif;">
+                                    {{ $pVal['name'] }}
+                                </span>
+                            </div>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
 
             <!-- ========================================================== -->
-            <!-- CARD: PENGATURAN KARTU ASESMEN PROFIL (JENJANG SD, SMP, SMA) -->
+            <!-- CARD: PENGELOMPOKAN KELAS (SEKOLAH & PRO DARI MASTER DATA)-->
             <!-- ========================================================== -->
             <div class="content-card">
                 <h3>
                     <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; background: #fef3c7; color: #d97706;">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                     </span>
-                    Pengaturan Kartu Asesmen Profil Siswa & Guru
+                    Pengelompokan Kelas: Sekolah & PRO
                 </h3>
-                <p style="font-size: 13px; color: #64748b; margin-bottom: 14px;">
-                    Aktifkan atau sembunyikan katalog asesmen per jenjang sekolah di halaman profil publik siswa dan guru institusi Anda.
+                <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 16px; line-height: 1.45;">
+                    Sesuaikan katalog resmi sekolah serta pilih grup kelas PRO yang ditampilkan pada slider di bawah cover profil sekolah.
                 </p>
 
                 <input type="hidden" name="grade_settings_submitted" value="1">
 
-                <div>
-                    <!-- Card 2: Asesmen Umum (WAJIB) -->
-                    <div class="list-item-dashed">
+                <!-- ------------------------------------------------------ -->
+                <!-- SUB-BAGIAN 1: SEKOLAH (WAJIB PILIH MINIMAL 1 JENJANG)   -->
+                <!-- ------------------------------------------------------ -->
+                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 14px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                         <div>
-                            <span class="detail-label">Card 2: Asesmen Umum</span>
-                            <div class="detail-value">Katalog Asesmen Umum & Try Out Terbuka</div>
-                            <div style="font-size: 11.5px; color: #16a34a; margin-top: 2px;">Wajib aktif (Default sistem).</div>
+                            <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #0284c7;">
+                                Bagian 1 • Halaman Resmi Sekolah
+                            </span>
+                            <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 1px;">
+                                Jenjang Sekolah (Wajib Pilih Minimal 1)
+                            </div>
                         </div>
-                        <span style="font-size: 11px; font-weight: 700; background: #ecfdf5; color: #059669; padding: 4px 10px; border-radius: 20px; border: 1px solid #a7f3d0;">
-                            WAJIB AKTIF
+                        <span style="font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 20px; border: 1px solid;"
+                              :style="schoolGradeCount >= 1 ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : 'background: #fff1f2; color: #e11d48; border-color: #fecdd3;'"
+                              x-text="schoolGradeCount + ' Jenjang Dipilih'">
+                        </span>
+                    </div>
+                    <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+                        Pilih satu atau lebih jenjang pendidikan yang diselenggarakan sekolah. Bisa dipilih semua oleh sekolah (default: checklist semua):
+                    </p>
+
+                    <!-- Peringatan jika < 1 -->
+                    <div x-show="schoolGradeCount < 1" style="background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; padding: 8px 12px; border-radius: 10px; font-size: 11.5px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <span>Wajib memilih minimal 1 jenjang sekolah agar katalog mata pelajaran aktif.</span>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Opsi SMA -->
+                        <label @click="toggleGrade('sma')"
+                               style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 1.5px solid;"
+                               :style="isGradeSelected('sma') ? 'border-color: #0284c7; background: #f0f9ff; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.08);' : 'border-color: #e2e8f0; background: #f8fafc;'">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" name="school_grades[]" value="sma"
+                                       :checked="isGradeSelected('sma')"
+                                       @click.stop="toggleGrade('sma')"
+                                       style="accent-color: #0284c7; width: 18px; height: 18px; cursor: pointer;">
+                                <div>
+                                    <div style="font-size: 13px; font-weight: 700; color: #0f172a;">SMA / MA / SMK</div>
+                                    <div style="font-size: 11px; color: #64748b;">Fase E & F • Kelas 10, 11, dan 12</div>
+                                </div>
+                            </div>
+                            <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #343a40; color: #ffffff;">Fase E & F</span>
+                        </label>
+
+                        <!-- Opsi SMP -->
+                        <label @click="toggleGrade('smp')"
+                               style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 1.5px solid;"
+                               :style="isGradeSelected('smp') ? 'border-color: #0284c7; background: #f0f9ff; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.08);' : 'border-color: #e2e8f0; background: #f8fafc;'">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" name="school_grades[]" value="smp"
+                                       :checked="isGradeSelected('smp')"
+                                       @click.stop="toggleGrade('smp')"
+                                       style="accent-color: #0284c7; width: 18px; height: 18px; cursor: pointer;">
+                                <div>
+                                    <div style="font-size: 13px; font-weight: 700; color: #0f172a;">SMP / MTs</div>
+                                    <div style="font-size: 11px; color: #64748b;">Fase D • Kelas 7, 8, dan 9</div>
+                                </div>
+                            </div>
+                            <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #228be6; color: #ffffff;">Fase D</span>
+                        </label>
+
+                        <!-- Opsi SD -->
+                        <label @click="toggleGrade('sd')"
+                               style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 1.5px solid;"
+                               :style="isGradeSelected('sd') ? 'border-color: #0284c7; background: #f0f9ff; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.08);' : 'border-color: #e2e8f0; background: #f8fafc;'">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" name="school_grades[]" value="sd"
+                                       :checked="isGradeSelected('sd')"
+                                       @click.stop="toggleGrade('sd')"
+                                       style="accent-color: #0284c7; width: 18px; height: 18px; cursor: pointer;">
+                                <div>
+                                    <div style="font-size: 13px; font-weight: 700; color: #0f172a;">SD / MI</div>
+                                    <div style="font-size: 11px; color: #64748b;">Fase A, B & C • Kelas 1 s/d 6</div>
+                                </div>
+                            </div>
+                            <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #fa5252; color: #ffffff;">Fase A-C</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- ------------------------------------------------------ -->
+                <!-- SUB-BAGIAN 2: PRO DARI DATA MASTER KELAS (MINIMAL 3)    -->
+                <!-- ------------------------------------------------------ -->
+                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 14px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <div>
+                            <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #7c3aed;">
+                                Bagian 2 • Slider Eksklusif PRO (Master Kelas)
+                            </span>
+                            <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 1px;">
+                                Grup Kelas PRO (Wajib Pilih Minimal 3)
+                            </div>
+                        </div>
+                        <span style="font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px; border: 1px solid;"
+                              :style="proCount >= 3 ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : 'background: #fff1f2; color: #e11d48; border-color: #fecdd3;'"
+                              x-text="proCount + ' / Min. 3 Dipilih'">
                         </span>
                     </div>
 
-                    <!-- Card 3: Asesmen SD (ON/OFF) -->
-                    <div class="list-item-dashed">
-                        <div>
-                            <span class="detail-label">Card 3: Asesmen Jenjang SD / MI</span>
-                            <div class="detail-value">Daftar evaluasi & ujian tingkat Sekolah Dasar</div>
-                        </div>
-                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" name="show_grade_sd" value="1" {{ $tenant->showGrade('sd') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
-                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
-                        </label>
+                    <p style="font-size: 12px; color: #64748b; margin-bottom: 10px; line-height: 1.45;">
+                        Pilih minimal 3 kartu grup kelas PRO agar slider horizontal di bawah cover profil dapat digeser (*swipeable*) oleh siswa dan pengunjung.
+                    </p>
+
+                    <!-- Peringatan jika < 3 -->
+                    <div x-show="proCount < 3" style="background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; padding: 8px 12px; border-radius: 10px; font-size: 11.5px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <span>Pilih minimal 3 grup kelas PRO agar tombol panah dan geser slider aktif.</span>
                     </div>
 
-                    <!-- Card 4: Asesmen SMP (ON/OFF) -->
-                    <div class="list-item-dashed">
-                        <div>
-                            <span class="detail-label">Card 4: Asesmen Jenjang SMP / MTs</span>
-                            <div class="detail-value">Daftar evaluasi & ujian tingkat Sekolah Menengah Pertama</div>
-                        </div>
-                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" name="show_grade_smp" value="1" {{ $tenant->showGrade('smp') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
-                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
-                        </label>
+                    <!-- Checklist Opsi PRO Diambil Langsung dari Master Kelas -->
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+                        @forelse($proGradeLevels as $gl)
+                            @php
+                                $itemValue = $gl->value;
+                                $itemTitle = $gl->name;
+                                $itemGroup = $gl->group ?? 'PRO';
+                            @endphp
+                            <label @click="togglePro('{{ $itemValue }}')"
+                                   style="display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 1.5px solid;"
+                                   :style="isProSelected('{{ $itemValue }}') ? 'border-color: #7c3aed; background: #faf5ff; box-shadow: 0 2px 6px rgba(124, 58, 237, 0.08);' : 'border-color: #e2e8f0; background: #f8fafc;'">
+                                <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+                                    <input type="checkbox" name="pro_groups[]" value="{{ $itemValue }}"
+                                           :checked="isProSelected('{{ $itemValue }}')"
+                                           @click.stop="togglePro('{{ $itemValue }}')"
+                                           style="accent-color: #7c3aed; width: 18px; height: 18px; flex-shrink: 0; cursor: pointer;">
+                                    <div style="min-width: 0;">
+                                        <div style="font-size: 13.5px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                                            <span>{{ $itemTitle }}</span>
+                                            <span style="font-size: 10px; font-family: monospace; font-weight: 700; color: #64748b; background: #e2e8f0; padding: 1px 6px; border-radius: 4px;">{{ $itemValue }}</span>
+                                        </div>
+                                        <div style="font-size: 11px; color: #64748b; margin-top: 1px;">
+                                            Kelompok {{ $itemGroup }} &bull; Terhubung otomatis ke kartu slider asesmen riil
+                                        </div>
+                                    </div>
+                                </div>
+                                <span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #f1f5f9; color: #475569; flex-shrink: 0; margin-left: 8px;">
+                                    {{ $itemGroup }}
+                                </span>
+                            </label>
+                        @empty
+                            <div style="padding: 14px; text-align: center; color: #64748b; font-size: 12px;">
+                                Belum ada data master kelas kategori PRO. Silakan tambahkan di Master Kelas.
+                            </div>
+                        @endforelse
                     </div>
 
-                    <!-- Card 5: Asesmen SMA (ON/OFF) -->
-                    <div class="list-item-dashed">
-                        <div>
-                            <span class="detail-label">Card 5: Asesmen Jenjang SMA / MA / SMK</span>
-                            <div class="detail-value">Daftar evaluasi & ujian tingkat Menengah Atas / Kejuruan / UTBK</div>
+                    <!-- Tautan Cepat ke Master Kelas untuk Menambah TOEIC, DLL -->
+                    <div style="margin-top: 14px; padding: 10px 14px; border-radius: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <div style="font-size: 11.5px; color: #166534; line-height: 1.45;">
+                            <strong>Data Dinamis Master Kelas:</strong> Ingin menambahkan asesmen baru seperti <strong>TOEIC</strong>, <strong>IELTS</strong>, atau sertifikasi lainnya? Cukup tambahkan di Master Kelas dan otomatis muncul di sini.
                         </div>
-                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" name="show_grade_sma" value="1" {{ $tenant->showGrade('sma') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
-                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
-                        </label>
-                    </div>
-
-                    <!-- TKA SD -->
-                    <div class="list-item-dashed">
-                        <div>
-                            <span class="detail-label">Card TKA SD / MI</span>
-                            <div class="detail-value">Tes kompetensi akademik tingkat SD</div>
-                        </div>
-                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" name="show_grade_tka_sd" value="1" {{ $tenant->showGrade('tka_sd') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
-                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
-                        </label>
-                    </div>
-
-                    <!-- TKA SMP -->
-                    <div class="list-item-dashed">
-                        <div>
-                            <span class="detail-label">Card TKA SMP / MTs</span>
-                            <div class="detail-value">Tes kompetensi akademik tingkat SMP</div>
-                        </div>
-                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" name="show_grade_tka_smp" value="1" {{ $tenant->showGrade('tka_smp') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
-                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
-                        </label>
-                    </div>
-
-                    <!-- TKA SMA -->
-                    <div class="list-item-dashed">
-                        <div>
-                            <span class="detail-label">Card TKA SMA / MA</span>
-                            <div class="detail-value">Tes kompetensi akademik tingkat SMA</div>
-                        </div>
-                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" name="show_grade_tka_sma" value="1" {{ $tenant->showGrade('tka_sma') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
-                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
-                        </label>
-                    </div>
-
-                    <!-- UTBK -->
-                    <div class="list-item-dashed">
-                        <div>
-                            <span class="detail-label">Card UTBK SNBT</span>
-                            <div class="detail-value">Ujian masuk perguruan tinggi</div>
-                        </div>
-                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" name="show_grade_utbk" value="1" {{ $tenant->showGrade('utbk') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
-                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
-                        </label>
-                    </div>
-
-                    <!-- SKD -->
-                    <div class="list-item-dashed">
-                        <div>
-                            <span class="detail-label">Card SKD Kedinasan & CPNS</span>
-                            <div class="detail-value">Persiapan ujian kedinasan dan CASN</div>
-                        </div>
-                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" name="show_grade_skd" value="1" {{ $tenant->showGrade('skd') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;">
-                            <span style="font-size: 13px; font-weight: 600; color: #334155;">Aktif</span>
-                        </label>
+                        <a href="{{ route('grade-levels.index') }}" target="_blank" style="font-size: 11.5px; font-weight: 800; color: #15803d; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                            Buka Master Kelas &rarr;
+                        </a>
                     </div>
                 </div>
             </div>
@@ -1134,8 +1282,38 @@
                 logoPreview: null,
                 faviconPreview: null,
                 taglineText: @json($tenant->tagline ?? 'Mewujudkan generasi cerdas, berkarakter, dan berdaya saing global.'),
+                selectedTheme: @json($tenant->getThemePalette()),
+                selectedGrades: @json($tenant->getSchoolGrades()),
+                selectedPro: @json($tenant->getProGroups()),
+                palettesData: @json($palettes),
                 copied: false,
                 
+                get schoolGradeCount() {
+                    return this.selectedGrades.length;
+                },
+                toggleGrade(grade) {
+                    if (this.selectedGrades.includes(grade)) {
+                        this.selectedGrades = this.selectedGrades.filter(g => g !== grade);
+                    } else {
+                        this.selectedGrades.push(grade);
+                    }
+                },
+                isGradeSelected(grade) {
+                    return this.selectedGrades.includes(grade);
+                },
+                get proCount() {
+                    return this.selectedPro.length;
+                },
+                togglePro(key) {
+                    if (this.selectedPro.includes(key)) {
+                        this.selectedPro = this.selectedPro.filter(k => k !== key);
+                    } else {
+                        this.selectedPro.push(key);
+                    }
+                },
+                isProSelected(key) {
+                    return this.selectedPro.includes(key);
+                },
                 previewCover(event) {
                     const file = event.target.files[0];
                     if (file) {

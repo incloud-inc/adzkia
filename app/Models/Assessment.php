@@ -261,12 +261,13 @@ class Assessment extends Model
             ];
         };
 
-        // 1. Asesmen UMUM & Try Out Terbuka (semua kelompok PRO + umum + tryout)
+        // 1. Asesmen PRO & Try Out Terbuka (semua kelompok PRO + umum + tryout)
         $umum = $all->filter(function ($item) {
             $grade = trim((string) $item->grade_level);
 
             return empty($grade)
                 || stripos($grade, 'umum') !== false
+                || stripos($grade, 'pro') !== false
                 || in_array($item->type, ['custom', 'umum', 'tryout', 'to', 'tka', 'utbk', 'skd'])
                 || stripos($grade, 'TKA SD') !== false
                 || stripos($grade, 'TKA SMP') !== false
