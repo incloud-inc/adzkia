@@ -116,9 +116,25 @@ class ExamGradingService
             $scorePenalty = (float) data_get($session->meta, 'score_penalty', 0);
             [$finalScore, $computedMaxScore] = self::calculateFinalScores($assessment, $questions, $answers, $scorePenalty);
 
+            $hasEssay = $questions->contains(fn ($q) => $q->type === 'essay');
+            $meta = (array) ($session->meta ?? []);
+            $isScoreReleased = (bool) data_get($meta, 'is_score_released', false);
+
+            if ($hasEssay && ! $isScoreReleased) {
+                $gradingStatus = 'pending_manual';
+                $meta['is_score_released'] = false;
+            } else {
+                $gradingStatus = 'completed';
+                if (! $hasEssay) {
+                    $meta['is_score_released'] = true;
+                }
+            }
+
             $session->forceFill([
                 'score' => $finalScore,
                 'max_score' => $computedMaxScore > 0 ? $computedMaxScore : $session->max_score,
+                'grading_status' => $gradingStatus,
+                'meta' => $meta,
             ])->save();
         });
     }
@@ -185,8 +201,22 @@ class ExamGradingService
         $scorePenalty = (float) data_get($session->meta, 'score_penalty', 0);
         [$finalScore, $computedMaxScore] = self::calculateFinalScores($assessment, $questionMap, $answers, $scorePenalty);
 
+        $hasEssay = $questionMap->contains(fn ($q) => $q->type === 'essay');
+        $meta = (array) ($session->meta ?? []);
+        $isScoreReleased = (bool) data_get($meta, 'is_score_released', false);
+
+        if ($hasEssay && ! $isScoreReleased) {
+            $gradingStatus = 'pending_manual';
+            $meta['is_score_released'] = false;
+        } else {
+            $gradingStatus = 'completed';
+            if (! $hasEssay) {
+                $meta['is_score_released'] = true;
+            }
+        }
+
         // 3. Simpan Jawaban Menggunakan Bulk Upsert (1 Single SQL Query!)
-        DB::transaction(function () use ($bulkUpsertRows, $session, $finalScore, $computedMaxScore, $now) {
+        DB::transaction(function () use ($bulkUpsertRows, $session, $finalScore, $computedMaxScore, $gradingStatus, $meta, $now) {
             if (! empty($bulkUpsertRows)) {
                 ExamAnswer::query()->upsert(
                     $bulkUpsertRows,
@@ -198,8 +228,9 @@ class ExamGradingService
             $session->forceFill([
                 'score' => $finalScore,
                 'max_score' => $computedMaxScore > 0 ? $computedMaxScore : $session->max_score,
-                'grading_status' => 'completed',
+                'grading_status' => $gradingStatus,
                 'graded_at' => $now,
+                'meta' => $meta,
             ])->save();
         });
     }

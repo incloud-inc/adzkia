@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Exam;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\GradeExamSessionJob;
+use App\Models\Assessment;
 use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
@@ -89,14 +90,14 @@ class ExamResultController extends Controller
             }
         }
 
-        // Auto-grade langsung jika belum completed (menjamin hasil langsung siap tanpa stuck di pending saat queue belum jalan)
-        if ($session->grading_status !== 'completed') {
+        // Auto-grade langsung jika masih pending/processing (menjamin hasil langsung siap tanpa stuck di pending saat queue belum jalan)
+        if ($session->grading_status === 'pending' || $session->grading_status === 'processing') {
             $this->gradingService->autoGradeSessionOptimized($session);
             $session->refresh();
         }
 
         // Eager load data asesmen dan relasi pendukung
-        $assessment = $session->assessment()
+        $assessment = Assessment::withoutGlobalScopes()
             ->with([
                 'subject',
                 'sections' => fn ($q) => $q->orderBy('order')->orderBy('id'),
@@ -105,7 +106,7 @@ class ExamResultController extends Controller
                 'sections.questions.options',
                 'sections.questions.questionGroup',
             ])
-            ->firstOrFail();
+            ->findOrFail($session->assessment_id);
 
         $answers = $session->answers()->get()->keyBy('question_id');
 
@@ -463,7 +464,7 @@ class ExamResultController extends Controller
             $session->refresh();
         }
 
-        $assessment = $session->assessment()
+        $assessment = Assessment::withoutGlobalScopes()
             ->with([
                 'subject',
                 'sections' => fn ($q) => $q->orderBy('order')->orderBy('id'),
@@ -472,7 +473,7 @@ class ExamResultController extends Controller
                 'sections.questions.options',
                 'sections.questions.questionGroup',
             ])
-            ->firstOrFail();
+            ->findOrFail($session->assessment_id);
 
         $answers = $session->answers()->get()->keyBy('question_id');
 

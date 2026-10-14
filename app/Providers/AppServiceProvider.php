@@ -55,32 +55,17 @@ class AppServiceProvider extends ServiceProvider
         View::composer('components.sidebar', function ($view) {
             $user = Auth::user();
             $pendingGradingCount = 0;
+            $activeExamCount = 0;
             if ($user && ($user->isTeacher() || $user->isAdmin() || $user->isSuperUser())) {
                 $tenantId = $user->current_tenant_id ?? $user->currentTenant?->id ?? $user->tenants()->first()?->id;
-
-                $query = ExamSession::where('status', 'completed')
-                    ->whereHas('answers', function ($q) {
-                        $q->whereNull('points_awarded')
-                            ->whereHas('question', function ($q2) {
-                                $q2->where('type', 'essay');
-                            });
-                    });
-
-                if (! $user->isSuperUser()) {
-                    if ($tenantId) {
-                        $query->where(function ($q) use ($tenantId) {
-                            $q->where('tenant_id', $tenantId)
-                                ->orWhereHas('user.tenants', fn ($t) => $t->where('tenants.id', $tenantId));
-                        });
-                    } else {
-                        $query->whereRaw('1 = 0');
-                    }
-                }
-
-                $pendingGradingCount = $query->count();
+                $pendingGradingCount = ExamSession::pendingManualGradingQuery($tenantId, $user)->count();
+                $activeExamCount = ExamSession::activeExamQuery($tenantId, $user)->count();
             }
 
-            $view->with('pendingGradingCount', $pendingGradingCount);
+            $view->with([
+                'pendingGradingCount' => $pendingGradingCount,
+                'activeExamCount' => $activeExamCount,
+            ]);
         });
     }
 }

@@ -183,6 +183,10 @@ class ExamSession extends Model
      */
     public function lock(string $reason = 'Koneksi terputus / pergantian perangkat'): void
     {
+        if ($this->isCompleted() || $this->status === 'completed' || $this->completed_at !== null) {
+            return;
+        }
+
         $this->update([
             'status' => 'interrupted_locked',
             'lock_reason' => $reason,
@@ -202,5 +206,78 @@ class ExamSession extends Model
                         ->orWhereHas('tenants', fn (Builder $tq) => $tq->where('tenants.id', $tenantId));
                 });
         });
+    }
+
+    /**
+     * Query builder terpusat untuk mendeteksi seluruh sesi siswa yang sedang aktif ujian.
+     * Mencakup status 'in_progress' dan 'interrupted_locked' yang belum selesai dikerjakan.
+     */
+    public static function activeExamQuery(?int $tenantId = null, ?User $user = null): Builder
+    {
+        $query = static::query()
+            ->whereIn('status', ['in_progress', 'interrupted_locked'])
+            ->whereNull('completed_at')
+            ->where(function ($q) {
+                $q->whereNull('meta->finalize_reason');
+            });
+
+        if ($user && ! $user->isSuperUser()) {
+            if ($tenantId) {
+                $query->where(function ($q) use ($tenantId) {
+                    $q->where('tenant_id', $tenantId)
+                        ->orWhereHas('user.tenants', fn ($t) => $t->where('tenants.id', $tenantId));
+                });
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * Query builder terpusat untuk mendeteksi seluruh sesi ujian yang membutuhkan koreksi / review guru.
+     * Mencakup:
+     * 1. Status grading 'pending_manual'
+     * 2. Jawaban essay yang belum dinilai (points_awarded IS NULL)
+     * 3. Asesmen yang memiliki butir soal essay namun nilainya belum dirilis (is_score_released != true)
+     */
+    public static function pendingManualGradingQuery(?int $tenantId = null, ?User $user = null): Builder
+    {
+        $query = static::query()
+            ->where(function ($sq) {
+                $sq->where('status', 'completed')
+                    ->orWhereNotNull('completed_at')
+                    ->orWhereNotNull('meta->finalize_reason');
+            })
+            ->where(function ($sub) {
+                $sub->where('grading_status', 'pending_manual')
+                    ->orWhereHas('answers', function ($q) {
+                        $q->whereNull('points_awarded')
+                            ->whereHas('question', fn ($q2) => $q2->where('type', 'essay'));
+                    })
+                    ->orWhere(function ($q3) {
+                        $q3->whereHas('assessment', function ($aq) {
+                            $aq->whereHas('sections.questions', fn ($qq) => $qq->where('type', 'essay'))
+                                ->orWhereHas('sections.questionGroups.questions', fn ($qq) => $qq->where('type', 'essay'));
+                        })->where(function ($q4) {
+                            $q4->whereNull('meta->is_score_released')
+                                ->orWhere('meta->is_score_released', false);
+                        });
+                    });
+            });
+
+        if ($user && ! $user->isSuperUser()) {
+            if ($tenantId) {
+                $query->where(function ($q) use ($tenantId) {
+                    $q->where('tenant_id', $tenantId)
+                        ->orWhereHas('user.tenants', fn ($t) => $t->where('tenants.id', $tenantId));
+                });
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        return $query;
     }
 }

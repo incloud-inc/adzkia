@@ -156,15 +156,47 @@
             <!-- Right: Skor Ringkas -->
             <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <div class="flex items-center gap-1.5 bg-white/15 px-2.5 sm:px-3 py-1.5 rounded-xl border border-white/20 text-xs text-white">
-                    <span class="text-blue-100 font-medium hidden sm:inline text-[11px]">Nilai:</span>
-                    <strong class="font-display font-extrabold text-xs sm:text-sm text-white">{{ $summary['final_score'] }}</strong>
-                    <span class="text-[10px] text-white/70">/ 100</span>
+                    @if($summary['teacher_review_required'])
+                        <span class="inline-flex items-center gap-1 text-amber-200 font-bold text-xs" title="Menunggu koreksi guru untuk butir soal uraian/essay">
+                            <span>⏳</span>
+                            <span class="hidden sm:inline">Menunggu Koreksi Guru</span>
+                            <span class="sm:hidden">Menunggu Koreksi</span>
+                        </span>
+                    @else
+                        <span class="text-blue-100 font-medium hidden sm:inline text-[11px]">Nilai:</span>
+                        <strong class="font-display font-extrabold text-xs sm:text-sm text-white">{{ $summary['final_score'] }}</strong>
+                        <span class="text-[10px] text-white/70">/ 100</span>
+                    @endif
                 </div>
             </div>
         </header>
 
         <!-- AREA SOAL & PEMBAHASAN -->
         <section class="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
+
+            @if($summary['teacher_review_required'])
+                <!-- Banner: Menunggu Pemeriksaan Guru -->
+                <div class="rounded-2xl border-2 border-amber-300 bg-amber-50/90 p-5 md:p-6 space-y-3 shadow-xs">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="rounded bg-amber-500 text-white px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider font-display shadow-2xs">
+                                Sedang Dikoreksi Guru
+                            </span>
+                            <span class="text-xs md:text-sm font-bold text-amber-950">Status: Menunggu Pemeriksaan Guru</span>
+                        </div>
+                        <span class="px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-extrabold font-display">
+                            📝 Soal Uraian / Essay ({{ $summary['total_essay'] }} Butir)
+                        </span>
+                    </div>
+                    <p class="text-xs md:text-sm text-amber-900 leading-relaxed font-sans">
+                        Ujian ini memuat butir soal <strong>Essay / Uraian Bebas</strong> yang membutuhkan koreksi dan penilaian manual dari guru/pengampu. Nilai resmi Anda akan diperbarui dan dirilis setelah guru selesai memeriksa seluruh lembar jawaban.
+                    </p>
+                    <div class="flex flex-wrap items-center gap-4 text-xs font-semibold text-amber-800 pt-1 border-t border-amber-200/60">
+                        <span>• Nilai Objektif Sementara: <strong class="text-amber-950">{{ $summary['final_score'] }} / 100</strong> (belum termasuk nilai essay)</span>
+                        <span>• Jawaban Anda telah tersimpan aman di server</span>
+                    </div>
+                </div>
+            @endif
 
             <template x-if="!questions || questions.length === 0">
                 <div class="rounded-2xl border border-[#ced4da] bg-white p-8 text-center text-[#212529]">

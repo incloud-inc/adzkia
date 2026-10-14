@@ -29,12 +29,14 @@ class TeacherGradingController extends Controller
 
         $currentTenant = $user->currentTenant;
 
-        // Ambil semua soal untuk mendeteksi keberadaan soal essay
-        $questions = Question::query()
-            ->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $assessment->id))
-            ->get();
-
-        $essayCount = $questions->where('type', 'essay')->count();
+        // Deteksi keberadaan dan jumlah butir soal essay pada asesmen
+        $essayCount = Question::query()
+            ->where(function ($query) use ($assessment) {
+                $query->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $assessment->id))
+                    ->orWhereHas('questionGroup.assessmentSection', fn ($q) => $q->where('assessment_id', $assessment->id));
+            })
+            ->where('type', 'essay')
+            ->count();
         $hasEssay = $essayCount > 0;
 
         // Ambil semua sesi ujian untuk asesmen ini
@@ -64,20 +66,36 @@ class TeacherGradingController extends Controller
 
         $mappedSessions = $allSessions->map(function (ExamSession $session) use ($hasEssay, $kkm, $kkmEnabled) {
             $isScoreReleased = (bool) data_get($session->meta, 'is_score_released', ! $hasEssay);
+            $isFinalized = $session->isCompleted() || $session->completed_at !== null || data_get($session->meta, 'finalize_reason') !== null;
 
-            // Periksa apakah ada jawaban essay yang belum dinilai
+            // Periksa apakah ada butir essay yang belum dinilai
             $hasUngradedEssay = false;
-            if ($hasEssay && $session->isCompleted()) {
-                $hasUngradedEssay = $session->answers
+            if ($hasEssay && $isFinalized) {
+                $essayQuestionIds = Question::query()
+                    ->where(function ($query) use ($session) {
+                        $query->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $session->assessment_id))
+                            ->orWhereHas('questionGroup.assessmentSection', fn ($q) => $q->where('assessment_id', $session->assessment_id));
+                    })
+                    ->where('type', 'essay')
+                    ->pluck('id');
+
+                $hasUngradedAnswer = $session->answers
                     ->whereNull('points_awarded')
-                    ->whereIn('question_id', Question::whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $session->assessment_id))->where('type', 'essay')->pluck('id'))
+                    ->whereIn('question_id', $essayQuestionIds)
                     ->isNotEmpty();
+
+                $gradedCount = $session->answers
+                    ->whereNotNull('points_awarded')
+                    ->whereIn('question_id', $essayQuestionIds)
+                    ->count();
+
+                $hasUngradedEssay = $hasUngradedAnswer || ($gradedCount < $essayQuestionIds->count());
             }
 
             $category = match (true) {
-                $session->isInProgress() || $session->isLocked() => 'in_progress',
-                $session->isCompleted() && ($hasUngradedEssay || ! $isScoreReleased) => 'needs_review',
-                default => 'final_released',
+                $isFinalized && ($hasUngradedEssay || ! $isScoreReleased) => 'needs_review',
+                $isFinalized => 'final_released',
+                default => 'in_progress',
             };
 
             $scorePct = 0;
@@ -306,6 +324,9 @@ class TeacherGradingController extends Controller
                 $meta['score_released_at'] = now()->toIso8601String();
                 $meta['graded_by'] = $user->id;
                 $meta['graded_by_name'] = $user->name;
+                $gradingStatus = 'completed';
+            } else {
+                $gradingStatus = 'pending_manual';
             }
 
             $scorePenalty = (float) data_get($meta, 'score_penalty', 0);
@@ -314,6 +335,8 @@ class TeacherGradingController extends Controller
             $session->forceFill([
                 'score' => $finalScore,
                 'max_score' => $computedMaxScore > 0 ? $computedMaxScore : $session->max_score,
+                'grading_status' => $gradingStatus,
+                'graded_at' => now(),
                 'meta' => $meta,
             ])->save();
         });

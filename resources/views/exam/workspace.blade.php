@@ -692,6 +692,7 @@
             timeUpModal: false,
             timeUpCountdown: 3,
             submitting: false,
+            isFinished: false,
             warningBanner: false,
             warningMessage: '',
 
@@ -1356,6 +1357,7 @@
                 const isProctored = this.payload.assessment?.proctoring_mode === 'proctored';
 
                 document.addEventListener('visibilitychange', () => {
+                    if (this.submitting || this.isFinished) return;
                     const type = document.hidden ? 'tab_hidden' : 'tab_visible';
                     if (document.hidden) {
                         if (isProctored) {
@@ -1368,15 +1370,20 @@
                 });
 
                 window.addEventListener('blur', () => {
+                    if (this.submitting || this.isFinished) return;
                     if (isProctored) {
                         this.triggerViolatedLock('Fokus jendela beralih keluar');
                     }
                     this.logEvent('window_blur');
                 });
 
-                window.addEventListener('focus', () => this.logEvent('window_focus'));
+                window.addEventListener('focus', () => {
+                    if (this.submitting || this.isFinished) return;
+                    this.logEvent('window_focus');
+                });
 
                 document.addEventListener('fullscreenchange', () => {
+                    if (this.submitting || this.isFinished) return;
                     if (!document.fullscreenElement) {
                         if (isProctored) {
                             this.triggerViolatedLock('Keluar dari mode layar penuh (fullscreen)');
@@ -1390,27 +1397,36 @@
                 });
 
                 window.addEventListener('offline', () => {
+                    if (this.submitting || this.isFinished) return;
                     this.online = false;
                     this.warn('⚡ Koneksi internet terputus. Jawaban tersimpan di perangkat Anda.');
                     this.logEvent('offline');
                 });
 
                 window.addEventListener('online', () => {
+                    if (this.submitting || this.isFinished) return;
                     this.online = true;
                     this.warningBanner = false;
                     this.logEvent('online');
                 });
 
-                document.addEventListener('copy', () => this.logEvent('copy'));
-                document.addEventListener('contextmenu', (e) => { e.preventDefault(); this.logEvent('contextmenu'); });
+                document.addEventListener('copy', () => {
+                    if (this.submitting || this.isFinished) return;
+                    this.logEvent('copy');
+                });
+                document.addEventListener('contextmenu', (e) => {
+                    if (this.submitting || this.isFinished) return;
+                    e.preventDefault();
+                    this.logEvent('contextmenu');
+                });
 
                 window.addEventListener('pagehide', () => {
-                    if (!this.submitting) {
+                    if (!this.submitting && !this.isFinished) {
                         this.logEvent('page_exit');
                     }
                 });
                 window.addEventListener('beforeunload', () => {
-                    if (!this.submitting) {
+                    if (!this.submitting && !this.isFinished) {
                         this.logEvent('page_exit');
                     }
                 });
@@ -1608,6 +1624,7 @@
             },
 
             async logEvent(type, extra = {}) {
+                if (this.submitting || this.isFinished) return;
                 try {
                     const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
                     const body = JSON.stringify({ event_type: type, payload: extra, occurred_at: new Date().toISOString() });
@@ -1645,6 +1662,7 @@
                 this.timeUpModal = true;
                 this.timeUpCountdown = 3;
                 this.submitting = true;
+                this.isFinished = true;
                 this.showSubmitModal = false;
 
                 // Flush sisa timer autosave lokal
@@ -1689,8 +1707,9 @@
             },
 
             async doSubmit() {
-                if (this.submitting) return;
+                if (this.submitting || this.isFinished) return;
                 this.submitting = true;
+                this.isFinished = true;
 
                 // 1. Flush sisa timer auto-save jawaban lokal
                 const flushPromises = Object.keys(this._saveTimers).map(qid => {
@@ -1726,6 +1745,7 @@
 
                     if (!res.ok) {
                         this.submitting = false;
+                        this.isFinished = false;
                         this.showSubmitModal = false;
                         const errMsg = data?.message || ('Gagal mengirim ujian (HTTP ' + res.status + '). Silakan coba lagi atau hubungi pengawas.');
                         this.warn(errMsg);
@@ -1740,6 +1760,7 @@
                     }
                 } catch (err) {
                     this.submitting = false;
+                    this.isFinished = false;
                     this.showSubmitModal = false;
                     this.warn('Koneksi terputus saat mengumpulkan ujian. Silakan periksa jaringan Anda lalu coba lagi.');
                 }

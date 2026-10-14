@@ -59,4 +59,57 @@ class ExamWorkspaceTest extends TestCase
                 'is_ready' => true,
             ]);
     }
+
+    public function test_completed_session_cannot_be_locked_by_event(): void
+    {
+        $user = User::factory()->create();
+        $session = ExamSession::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'completed',
+            'completed_at' => now(),
+            'grading_status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('exam.session.event', ['session' => $session->uuid]), [
+            'event_type' => 'tab_hidden',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'ok' => true,
+                'status' => 'completed',
+                'is_locked' => false,
+            ]);
+
+        $this->assertEquals('completed', $session->fresh()->status);
+        $this->assertNull($session->fresh()->lock_reason);
+    }
+
+    public function test_active_exam_query_scopes(): void
+    {
+        $user = User::factory()->create();
+        $sessionActive = ExamSession::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'in_progress',
+            'completed_at' => null,
+        ]);
+
+        $sessionLocked = ExamSession::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'interrupted_locked',
+            'completed_at' => null,
+        ]);
+
+        $sessionDone = ExamSession::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+
+        $activeSessions = ExamSession::activeExamQuery()->pluck('id');
+
+        $this->assertTrue($activeSessions->contains($sessionActive->id));
+        $this->assertTrue($activeSessions->contains($sessionLocked->id));
+        $this->assertFalse($activeSessions->contains($sessionDone->id));
+    }
 }

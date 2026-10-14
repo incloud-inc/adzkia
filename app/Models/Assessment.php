@@ -349,4 +349,18 @@ class Assessment extends Model
             'skd' => $skd->map($formatItem)->values(),
         ];
     }
+
+    /**
+     * Cek apakah asesmen ini memiliki butir soal bertipe essay / uraian.
+     */
+    public function hasEssayQuestions(): bool
+    {
+        return Question::query()
+            ->where(function ($query) {
+                $query->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $this->id))
+                    ->orWhereHas('questionGroup.assessmentSection', fn ($q) => $q->where('assessment_id', $this->id));
+            })
+            ->where('type', 'essay')
+            ->exists();
+    }
 }

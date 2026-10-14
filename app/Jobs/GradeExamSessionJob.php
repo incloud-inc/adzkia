@@ -49,13 +49,14 @@ class GradeExamSessionJob implements ShouldBeUnique, ShouldQueue
             ExamGradingService::autoGradeSessionOptimized($session);
 
             // Update status dan invalidasi cache status polling
+            $freshSession = $session->fresh();
             Cache::put("exam_session:grading_status:{$session->id}", [
-                'status' => 'completed',
+                'status' => $freshSession->grading_status ?? 'completed',
                 'is_ready' => true,
-                'score' => $session->fresh()->score,
+                'score' => $freshSession->score,
             ], 600);
 
-            Log::channel('exam')->info("Grading completed for session ID: {$session->id}");
+            Log::channel('exam')->info("Grading completed for session ID: {$session->id} with status: {$freshSession->grading_status}");
         } catch (\Throwable $e) {
             $session->update([
                 'grading_status' => 'failed',

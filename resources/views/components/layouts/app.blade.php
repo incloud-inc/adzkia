@@ -71,8 +71,26 @@
         });
     </script>
 </head>
-<body class="font-sans antialiased bg-gray-2 text-gray-12 overflow-hidden" x-data="{ sidebarOpen: true }">
-    <div class="h-screen flex overflow-hidden w-full">
+<body class="font-sans antialiased bg-gray-2 text-gray-12 overflow-hidden" 
+      x-data="{ 
+          sidebarOpen: window.innerWidth >= 1024, 
+          isMobile: window.innerWidth < 1024 
+      }" 
+      @resize.window="isMobile = window.innerWidth < 1024; if (isMobile && sidebarOpen) sidebarOpen = false;">
+    <div class="h-screen flex overflow-hidden w-full relative">
+        <!-- Backdrop Overlay untuk Mobile View saat Sidebar Terbuka -->
+        <div x-show="sidebarOpen && isMobile" 
+             @click="sidebarOpen = false" 
+             x-transition:enter="transition-opacity ease-linear duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity ease-linear duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-black/40 backdrop-blur-xs z-30 lg:hidden" 
+             x-cloak>
+        </div>
+
         <!-- Sidebar -->
         <x-sidebar />
 
@@ -82,7 +100,7 @@
             <x-header />
 
             <!-- Page Content (Workspace) -->
-            <main class="flex-1 overflow-y-auto p-6">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6">
                 {{ $slot }}
             </main>
         </div>

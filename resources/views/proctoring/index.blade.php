@@ -1,213 +1,11 @@
 <x-layouts.app>
-    <div class="space-y-6" x-data="{
-        toastMsg: '',
-        showToast: false,
-        toastType: 'success',
-        pins: @json($sessions->filter(fn($s) => filled(data_get($s->meta, 'unlock_pin')))->mapWithKeys(fn($s) => [$s->id => (string) data_get($s->meta, 'unlock_pin')])),
-        triggerToast(msg, type = 'success') {
-            this.toastMsg = msg;
-            this.toastType = type;
-            this.showToast = true;
-            setTimeout(() => { this.showToast = false; }, 5000);
-        },
-        async generatePin(sessionId, studentName) {
-            try {
-                const response = await fetch(`/proctoring/sessions/${sessionId}/generate-pin`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                if (response.ok && data.success && data.pin) {
-                    this.pins[sessionId] = data.pin;
-                    this.triggerToast(`PIN untuk ${studentName}: ${data.pin} (Berikan ke siswa)`, 'success');
-                } else {
-                    this.triggerToast(data.message || 'Gagal men-generate PIN', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.triggerToast('Terjadi kesalahan jaringan', 'error');
-            }
-        },
-        async cutTime(sessionId, studentName) {
-            const minutes = prompt(`[TIME] Masukkan jumlah MENIT waktu ujian yang ingin dipotong untuk ${studentName}:`, '5');
-            if (!minutes || isNaN(minutes) || Number(minutes) <= 0) return;
-            try {
-                const response = await fetch(`/proctoring/sessions/${sessionId}/cut-time`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ minutes: parseInt(minutes, 10) })
-                });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    this.triggerToast(data.message, 'success');
-                    setTimeout(() => window.location.reload(), 1200);
-                } else {
-                    this.triggerToast(data.message || 'Gagal memotong waktu', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.triggerToast('Terjadi kesalahan jaringan', 'error');
-            }
-        },
-        async cutPoint(sessionId, studentName) {
-            const points = prompt(`[POINT] Masukkan jumlah POIN nilai yang ingin dipotong untuk ${studentName}:`, '5');
-            if (!points || isNaN(points) || Number(points) <= 0) return;
-            try {
-                const response = await fetch(`/proctoring/sessions/${sessionId}/cut-point`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ points: parseFloat(points) })
-                });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    this.triggerToast(data.message, 'success');
-                    setTimeout(() => window.location.reload(), 1200);
-                } else {
-                    this.triggerToast(data.message || 'Gagal memotong poin nilai', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.triggerToast('Terjadi kesalahan jaringan', 'error');
-            }
-        },
-        async resetQuestions(sessionId, studentName) {
-            const ok = confirm(`[RESET] PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SELURUH JAWABAN ${studentName} dan melempar kembali ke nomor 1?\n\nWaktu ujian tetap berlanjut.`);
-            if (!ok) return;
-            try {
-                const response = await fetch(`/proctoring/sessions/${sessionId}/reset-questions`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    this.triggerToast(data.message, 'success');
-                    setTimeout(() => window.location.reload(), 1200);
-                } else {
-                    this.triggerToast(data.message || 'Gagal mereset soal', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.triggerToast('Terjadi kesalahan jaringan', 'error');
-            }
-        },
-        async cancelSession(sessionId, studentName) {
-            const ok = confirm(`[CANCEL] PERINGATAN: Hentikan sesi ujian ${studentName} sekarang dan lempar kembali ke GERBANG UJIAN?`);
-            if (!ok) return;
-            try {
-                const response = await fetch(`/proctoring/sessions/${sessionId}/cancel`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    this.triggerToast(data.message, 'success');
-                    setTimeout(() => window.location.reload(), 1200);
-                } else {
-                    this.triggerToast(data.message || 'Gagal menghentikan sesi', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.triggerToast('Terjadi kesalahan jaringan', 'error');
-            }
-        },
-        async verifySession(sessionId, studentName) {
-            try {
-                const response = await fetch(`/proctoring/sessions/${sessionId}/verify`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    this.triggerToast(data.message, 'success');
-                    setTimeout(() => window.location.reload(), 1200);
-                } else {
-                    this.triggerToast(data.message || 'Gagal memverifikasi sesi', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.triggerToast('Terjadi kesalahan jaringan', 'error');
-            }
-        },
-        async unlockSession(sessionId, studentName) {
-            try {
-                const response = await fetch(`/proctoring/sessions/${sessionId}/unlock`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    this.triggerToast(data.message, 'success');
-                    setTimeout(() => window.location.reload(), 1200);
-                } else {
-                    this.triggerToast(data.message || 'Gagal membuka sesi ujian', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.triggerToast('Terjadi kesalahan jaringan', 'error');
-            }
-        },
-        autoRefresh: true,
-        init() {
-            setInterval(() => {
-                if (this.autoRefresh && !this.showToast) {
-                    window.location.reload();
-                }
-            }, 15000);
-        },
-        async lockSession(sessionId, studentName) {
-            const reason = prompt(`Masukkan alasan mengunci sesi ${studentName}:`, 'Koneksi terputus / pergantian perangkat');
-            if (!reason) return;
-            try {
-                const response = await fetch(`/proctoring/sessions/${sessionId}/lock`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ reason: reason })
-                });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    this.triggerToast(data.message, 'success');
-                    setTimeout(() => window.location.reload(), 1200);
-                } else {
-                    this.triggerToast(data.message || 'Gagal mengunci sesi ujian', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.triggerToast('Terjadi kesalahan jaringan', 'error');
-            }
-        }
-    }">
+    @php
+        $initialPins = $sessions->filter(fn($s) => filled(data_get($s->meta, 'unlock_pin')))
+            ->mapWithKeys(fn($s) => [(string) $s->id => (string) data_get($s->meta, 'unlock_pin')])
+            ->all();
+    @endphp
+
+    <div class="space-y-6" x-data="proctoringManager(@js($initialPins))">
         <!-- Floating Toast -->
         <div x-show="showToast" 
              x-transition
@@ -586,4 +384,228 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('proctoringManager', (initialPins = {}) => ({
+                toastMsg: '',
+                showToast: false,
+                toastType: 'success',
+                pins: initialPins || {},
+                autoRefresh: true,
+
+                triggerToast(msg, type = 'success') {
+                    this.toastMsg = msg;
+                    this.toastType = type;
+                    this.showToast = true;
+                    setTimeout(() => { this.showToast = false; }, 5000);
+                },
+
+                init() {
+                    setInterval(() => {
+                        if (this.autoRefresh && !this.showToast) {
+                            window.location.reload();
+                        }
+                    }, 15000);
+                },
+
+                async generatePin(sessionId, studentName) {
+                    try {
+                        const response = await fetch(`/proctoring/sessions/${sessionId}/generate-pin`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success && data.pin) {
+                            this.pins[sessionId] = data.pin;
+                            this.triggerToast(`PIN untuk ${studentName}: ${data.pin} (Berikan ke siswa)`, 'success');
+                        } else {
+                            this.triggerToast(data.message || 'Gagal men-generate PIN', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        this.triggerToast('Terjadi kesalahan jaringan', 'error');
+                    }
+                },
+
+                async cutTime(sessionId, studentName) {
+                    const minutes = prompt(`[TIME] Masukkan jumlah MENIT waktu ujian yang ingin dipotong untuk ${studentName}:`, '5');
+                    if (!minutes || isNaN(minutes) || Number(minutes) <= 0) return;
+                    try {
+                        const response = await fetch(`/proctoring/sessions/${sessionId}/cut-time`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ minutes: parseInt(minutes, 10) })
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            this.triggerToast(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1200);
+                        } else {
+                            this.triggerToast(data.message || 'Gagal memotong waktu', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        this.triggerToast('Terjadi kesalahan jaringan', 'error');
+                    }
+                },
+
+                async cutPoint(sessionId, studentName) {
+                    const points = prompt(`[POINT] Masukkan jumlah POIN nilai yang ingin dipotong untuk ${studentName}:`, '5');
+                    if (!points || isNaN(points) || Number(points) <= 0) return;
+                    try {
+                        const response = await fetch(`/proctoring/sessions/${sessionId}/cut-point`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ points: parseFloat(points) })
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            this.triggerToast(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1200);
+                        } else {
+                            this.triggerToast(data.message || 'Gagal memotong poin nilai', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        this.triggerToast('Terjadi kesalahan jaringan', 'error');
+                    }
+                },
+
+                async resetQuestions(sessionId, studentName) {
+                    const ok = confirm(`[RESET] PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SELURUH JAWABAN ${studentName} dan melempar kembali ke nomor 1?\n\nWaktu ujian tetap berlanjut.`);
+                    if (!ok) return;
+                    try {
+                        const response = await fetch(`/proctoring/sessions/${sessionId}/reset-questions`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            this.triggerToast(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1200);
+                        } else {
+                            this.triggerToast(data.message || 'Gagal mereset soal', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        this.triggerToast('Terjadi kesalahan jaringan', 'error');
+                    }
+                },
+
+                async cancelSession(sessionId, studentName) {
+                    const ok = confirm(`[CANCEL] PERINGATAN: Hentikan sesi ujian ${studentName} sekarang dan lempar kembali ke GERBANG UJIAN?`);
+                    if (!ok) return;
+                    try {
+                        const response = await fetch(`/proctoring/sessions/${sessionId}/cancel`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            this.triggerToast(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1200);
+                        } else {
+                            this.triggerToast(data.message || 'Gagal menghentikan sesi', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        this.triggerToast('Terjadi kesalahan jaringan', 'error');
+                    }
+                },
+
+                async verifySession(sessionId, studentName) {
+                    try {
+                        const response = await fetch(`/proctoring/sessions/${sessionId}/verify`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            this.triggerToast(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1200);
+                        } else {
+                            this.triggerToast(data.message || 'Gagal memverifikasi sesi', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        this.triggerToast('Terjadi kesalahan jaringan', 'error');
+                    }
+                },
+
+                async unlockSession(sessionId, studentName) {
+                    try {
+                        const response = await fetch(`/proctoring/sessions/${sessionId}/unlock`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            this.triggerToast(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1200);
+                        } else {
+                            this.triggerToast(data.message || 'Gagal membuka sesi ujian', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        this.triggerToast('Terjadi kesalahan jaringan', 'error');
+                    }
+                },
+
+                async lockSession(sessionId, studentName) {
+                    const reason = prompt(`Masukkan alasan mengunci sesi ${studentName}:`, 'Koneksi terputus / pergantian perangkat');
+                    if (!reason) return;
+                    try {
+                        const response = await fetch(`/proctoring/sessions/${sessionId}/lock`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ reason: reason })
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            this.triggerToast(data.message, 'success');
+                            setTimeout(() => window.location.reload(), 1200);
+                        } else {
+                            this.triggerToast(data.message || 'Gagal mengunci sesi ujian', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        this.triggerToast('Terjadi kesalahan jaringan', 'error');
+                    }
+                }
+            }));
+        });
+    </script>
 </x-layouts.app>

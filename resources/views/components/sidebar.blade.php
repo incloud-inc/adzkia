@@ -1,5 +1,5 @@
 <aside 
-    class="bg-white border-r border-gray-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col transition-all duration-300 ease-in-out shrink-0 h-full z-20 absolute lg:relative"
+    class="bg-white border-r border-gray-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col transition-all duration-300 ease-in-out shrink-0 h-full z-40 fixed lg:relative inset-y-0 left-0"
     :class="sidebarOpen ? 'w-72 translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-[84px]'"
 >
     @php
@@ -31,7 +31,7 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 overflow-y-auto hide-scrollbar py-5 px-3.5 space-y-2">
+    <nav class="flex-1 overflow-y-auto hide-scrollbar py-5 px-3.5 space-y-2" @click="if (window.innerWidth < 1024 && $event.target.closest('a')) sidebarOpen = false;">
         @if(auth()->check() && auth()->user()->isSuperUser())
             <!-- ============================================== -->
             <!--            SUPER USER (OWNER) MENU             -->
@@ -69,16 +69,27 @@
                 <div class="relative shrink-0">
                     <x-radix-icon name="file-text" class="w-6 h-6" />
                     @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
-                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-600 rounded-full border border-white" :class="sidebarOpen ? 'hidden' : 'block'"></span>
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-600 rounded-full border border-white" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $pendingGradingCount }} perlu dikoreksi"></span>
+                    @endif
+                    @if(isset($activeExamCount) && $activeExamCount > 0)
+                        <span class="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white animate-pulse" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $activeExamCount }} siswa sedang ujian"></span>
                     @endif
                 </div>
-                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center gap-1.5" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
                     <span>Bank Soal Global</span>
-                    @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
-                        <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-rose-600 rounded-full shadow-2xs font-mono">
-                            {{ $pendingGradingCount }}
-                        </span>
-                    @endif
+                    <div class="flex items-center gap-1.5 ml-auto">
+                        @if(isset($activeExamCount) && $activeExamCount > 0)
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold leading-none text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-full shadow-2xs font-mono" title="{{ $activeExamCount }} siswa sedang ujian">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                {{ $activeExamCount }}
+                            </span>
+                        @endif
+                        @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
+                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-rose-600 rounded-full shadow-2xs font-mono" title="{{ $pendingGradingCount }} perlu dikoreksi">
+                                {{ $pendingGradingCount }}
+                            </span>
+                        @endif
+                    </div>
                 </span>
             </a>
 
@@ -169,16 +180,27 @@
                 <div class="relative shrink-0">
                     <x-radix-icon name="file-text" class="w-6 h-6" />
                     @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
-                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-600 rounded-full border border-white" :class="sidebarOpen ? 'hidden' : 'block'"></span>
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-600 rounded-full border border-white" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $pendingGradingCount }} perlu dikoreksi"></span>
+                    @endif
+                    @if(isset($activeExamCount) && $activeExamCount > 0)
+                        <span class="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white animate-pulse" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $activeExamCount }} siswa sedang ujian"></span>
                     @endif
                 </div>
-                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center gap-1.5" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
                     <span>Bank Soal</span>
-                    @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
-                        <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-rose-600 rounded-full shadow-2xs font-mono">
-                            {{ $pendingGradingCount }}
-                        </span>
-                    @endif
+                    <div class="flex items-center gap-1.5 ml-auto">
+                        @if(isset($activeExamCount) && $activeExamCount > 0)
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold leading-none text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-full shadow-2xs font-mono" title="{{ $activeExamCount }} siswa sedang ujian">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                {{ $activeExamCount }}
+                            </span>
+                        @endif
+                        @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
+                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-rose-600 rounded-full shadow-2xs font-mono" title="{{ $pendingGradingCount }} perlu dikoreksi">
+                                {{ $pendingGradingCount }}
+                            </span>
+                        @endif
+                    </div>
                 </span>
             </a>
 
@@ -252,16 +274,27 @@
                 <div class="relative shrink-0">
                     <x-radix-icon name="file-text" class="w-6 h-6" />
                     @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
-                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-600 rounded-full border border-white" :class="sidebarOpen ? 'hidden' : 'block'"></span>
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-600 rounded-full border border-white" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $pendingGradingCount }} perlu dikoreksi"></span>
+                    @endif
+                    @if(isset($activeExamCount) && $activeExamCount > 0)
+                        <span class="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white animate-pulse" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $activeExamCount }} siswa sedang ujian"></span>
                     @endif
                 </div>
-                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center gap-1.5" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
                     <span>Bank Soal</span>
-                    @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
-                        <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-rose-600 rounded-full shadow-2xs font-mono">
-                            {{ $pendingGradingCount }}
-                        </span>
-                    @endif
+                    <div class="flex items-center gap-1.5 ml-auto">
+                        @if(isset($activeExamCount) && $activeExamCount > 0)
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold leading-none text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-full shadow-2xs font-mono" title="{{ $activeExamCount }} siswa sedang ujian">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                {{ $activeExamCount }}
+                            </span>
+                        @endif
+                        @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
+                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-rose-600 rounded-full shadow-2xs font-mono" title="{{ $pendingGradingCount }} perlu dikoreksi">
+                                {{ $pendingGradingCount }}
+                            </span>
+                        @endif
+                    </div>
                 </span>
             </a>
 

@@ -138,6 +138,17 @@ class ExamWorkspaceController extends Controller
     {
         $this->authorizeSession($request, $session);
 
+        // Jika sesi sudah berstatus final / selesai dikerjakan, abaikan seluruh event tambahan (mencegah lock terpicu saat redirect)
+        if ($session->isCompleted() || $session->status === 'completed' || $session->completed_at !== null) {
+            return response()->json([
+                'ok' => true,
+                'status' => 'completed',
+                'is_locked' => false,
+                'remaining_seconds' => 0,
+                'server_time' => now()->toIso8601String(),
+            ]);
+        }
+
         $data = $request->validate([
             'event_type' => ['required', 'string', 'in:tab_hidden,tab_visible,window_blur,window_focus,fullscreen_exit,fullscreen_enter,offline,online,copy,contextmenu,key_combo,heartbeat,resume,suspend,section_expired,page_exit'],
             'payload' => ['nullable', 'array'],
@@ -567,7 +578,16 @@ class ExamWorkspaceController extends Controller
 
     private function fastFinalizeSession(ExamSession $session, string $reason, ?string $ip = null): void
     {
-        DB::transaction(function () use ($session, $reason, $ip) {
+        $assessment = $session->assessment;
+        $hasEssay = $assessment ? $assessment->hasEssayQuestions() : false;
+        $sessionMeta = (array) ($session->meta ?? []);
+        if ($hasEssay) {
+            $sessionMeta['is_score_released'] = false;
+        }
+        $sessionMeta['is_violated_locked'] = false;
+        $sessionMeta['proctor_action'] = null;
+
+        DB::transaction(function () use ($session, $reason, $ip, $sessionMeta) {
             $affected = ExamSession::query()
                 ->where('id', $session->id)
                 ->where('status', '!=', 'completed')
@@ -575,8 +595,9 @@ class ExamWorkspaceController extends Controller
                     'status' => 'completed',
                     'grading_status' => 'pending',
                     'completed_at' => now(),
+                    'lock_reason' => null,
                     'submitted_ip' => $ip ?? $session->ip_address,
-                    'meta' => array_merge((array) $session->meta, [
+                    'meta' => array_merge($sessionMeta, [
                         'finalize_reason' => $reason,
                         'finalized_at' => now()->toIso8601String(),
                     ]),
@@ -637,15 +658,17 @@ class ExamWorkspaceController extends Controller
 
         $fresh = ExamSession::query()->select(['id', 'grading_status', 'score', 'max_score'])->find($session->id);
 
-        if ($fresh && $fresh->grading_status !== 'completed') {
+        if ($fresh && $fresh->grading_status !== 'completed' && $fresh->grading_status !== 'pending_manual') {
             app(ExamGradingService::class)->autoGradeSessionOptimized($session);
             $fresh = ExamSession::query()->select(['id', 'grading_status', 'score', 'max_score'])->find($session->id);
             Cache::forget("exam_session:grading_status:{$session->id}");
         }
 
+        $isReady = $fresh && in_array($fresh->grading_status, ['completed', 'pending_manual'], true);
+
         $statusData = [
             'status' => $fresh->grading_status ?? 'completed',
-            'is_ready' => ($fresh->grading_status === 'completed'),
+            'is_ready' => $isReady,
             'score' => $fresh->score ?? 0,
         ];
 

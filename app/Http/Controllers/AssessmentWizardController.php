@@ -123,27 +123,9 @@ class AssessmentWizardController extends Controller
             if (! empty($assessmentIds)) {
                 $tenantId = $user->current_tenant_id ?? $currentTenant?->id ?? $user->tenants()->first()?->id;
 
-                $pQuery = ExamSession::where('status', 'completed')
+                $pendingGradingPerAssessment = ExamSession::pendingManualGradingQuery($tenantId, $user)
                     ->whereIn('assessment_id', $assessmentIds)
-                    ->whereHas('answers', function ($q) {
-                        $q->whereNull('points_awarded')
-                            ->whereHas('question', function ($q2) {
-                                $q2->where('type', 'essay');
-                            });
-                    });
-
-                if (! $user->isSuperUser()) {
-                    if ($tenantId) {
-                        $pQuery->where(function ($q) use ($tenantId) {
-                            $q->where('tenant_id', $tenantId)
-                                ->orWhereHas('user.tenants', fn ($t) => $t->where('tenants.id', $tenantId));
-                        });
-                    } else {
-                        $pQuery->whereRaw('1 = 0');
-                    }
-                }
-
-                $pendingGradingPerAssessment = $pQuery->selectRaw('assessment_id, count(*) as total')
+                    ->selectRaw('assessment_id, count(*) as total')
                     ->groupBy('assessment_id')
                     ->pluck('total', 'assessment_id')
                     ->all();

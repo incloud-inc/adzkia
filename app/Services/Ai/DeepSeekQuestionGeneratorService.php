@@ -35,6 +35,7 @@ class DeepSeekQuestionGeneratorService
                         ['role' => 'system', 'content' => $systemPrompt],
                         ['role' => 'user', 'content' => $userPrompt],
                     ],
+                    'max_tokens' => 8192,
                 ];
 
                 // deepseek-chat supports temperature and response_format
@@ -123,6 +124,21 @@ ATURAN STRUKTURAL KETAT:
    - Salin wacana pertama (index 1) ke field `stimulus` berupa objek: { "title": "...", "content": "..." }.
    - Butir-butir soal yang menaungi stimulus harus menguji pemahaman atau penalaran terhadap wacana masing-masing (misal: 'Berdasarkan wacana di atas, ...').
    - Jika tanpa stimulus sama sekali, isi field `stimulus` dengan null dan `stimuli` dengan array kosong [].
+11. KHUSUS ISIAN SINGKAT (short_answer):
+   - Tipe soal WAJIB "short_answer".
+   - Field `options` WAJIB HANYA berisi 1 elemen sebagai kunci jawaban presisi:
+     [
+       { "label": "Kunci", "option_text": "kata kunci atau nilai jawaban pasti", "is_correct": true, "score": 1.5, "match_key": null }
+     ]
+   - DILARANG menyertakan pilihan A, B, C, D untuk tipe isian singkat!
+12. KHUSUS URAIAN / ESAI (essay):
+   - Tipe soal WAJIB "essay".
+   - Field `options` WAJIB berupa array kosong: `[]`.
+   - Kriteria penilaian, rubrik skor, dan kata kunci jawaban esai WAJIB ditulis secara komprehensif pada field `explanation`.
+   - DILARANG menyertakan pilihan opsi A, B, C, D untuk tipe soal uraian/esai!
+13. KHUSUS PILIHAN GANDA BIASA (mcq_single):
+   - Tipe soal WAJIB "mcq_single".
+   - Field `options` berisi 4 atau 5 pilihan jawaban (A, B, C, D, atau E) dengan TEPAT SATU opsi bernilai benar (`is_correct: true`).
 
 FORMAT JSON OUTPUT HARUS MENGIKUTI STRUKTUR INI:
 {
@@ -144,15 +160,37 @@ FORMAT JSON OUTPUT HARUS MENGIKUTI STRUKTUR INI:
   "items": [
     {
       "number": 1,
-      "stimulus_index": 1,
-      "type": "mcq_single|mcq_weighted|mcq_multiple|binary_matrix|matching|ordering|short_answer|essay",
-      "prompt": "Teks pertanyaan soal...",
-      "points": 2.5,
+      "stimulus_index": null,
+      "type": "mcq_single",
+      "prompt": "Pertanyaan pilihan ganda tunggal...",
+      "points": 2.0,
       "options": [
-        { "label": "A", "option_text": "Teks opsi A", "is_correct": true, "score": 2.5, "match_key": null },
-        { "label": "B", "option_text": "Teks opsi B", "is_correct": false, "score": 0.0, "match_key": null }
+        { "label": "A", "option_text": "Opsi jawaban benar", "is_correct": true, "score": 2.0, "match_key": null },
+        { "label": "B", "option_text": "Opsi pengecoh 1", "is_correct": false, "score": 0.0, "match_key": null },
+        { "label": "C", "option_text": "Opsi pengecoh 2", "is_correct": false, "score": 0.0, "match_key": null },
+        { "label": "D", "option_text": "Opsi pengecoh 3", "is_correct": false, "score": 0.0, "match_key": null }
       ],
-      "explanation": "Pembahasan ilmiah dan alasan jawaban benar..."
+      "explanation": "Pembahasan ilmiah mengapa opsi A benar..."
+    },
+    {
+      "number": 2,
+      "stimulus_index": null,
+      "type": "short_answer",
+      "prompt": "Pertanyaan isian singkat yang membutuhkan jawaban kata kunci atau angka pasti...",
+      "points": 1.5,
+      "options": [
+        { "label": "Kunci", "option_text": "kata kunci atau nilai pasti", "is_correct": true, "score": 1.5, "match_key": null }
+      ],
+      "explanation": "Penjelasan konsep dan asal usul nilai jawaban kunci..."
+    },
+    {
+      "number": 3,
+      "stimulus_index": null,
+      "type": "essay",
+      "prompt": "Pertanyaan esai analitis atau studi kasus mendalam...",
+      "points": 4.0,
+      "options": [],
+      "explanation": "Rubrik Penilaian: Skor 4 jika memenuhi argumen A, B, C secara runtut. Skor 2 jika parsial..."
     }
   ]
 }
@@ -183,16 +221,27 @@ PROMPT;
                 $subtotal = $sa + ($sc * $sq);
                 if ($subtotal > 0) {
                     $totalCount += $subtotal;
-                    $line = "- Tipe {$t}: {$sa} butir soal mandiri";
+                    $typeName = match ($t) {
+                        'mcq_single' => 'Pilihan Ganda Biasa (mcq_single)',
+                        'mcq_multiple' => 'Pilihan Ganda Kompleks (mcq_multiple)',
+                        'binary_matrix' => 'Benar / Salah (binary_matrix)',
+                        'matching' => 'Menjodohkan (matching)',
+                        'ordering' => 'Mengurutkan (ordering)',
+                        'short_answer' => 'Isian Singkat (short_answer)',
+                        'essay' => 'Uraian / Esai Bebas (essay)',
+                        'mcq_weighted' => 'Pilihan Berbobot / TKP (mcq_weighted)',
+                        default => $t,
+                    };
+                    $line = "- {$typeName}: {$sa} butir soal mandiri (wajib type: \"{$t}\")";
                     if ($sc > 0 && $sq > 0) {
-                        $line .= ", {$sc} teks stimulus (masing-masing menaungi {$sq} butir soal anak)";
+                        $line .= ", {$sc} teks stimulus (masing-masing menaungi {$sq} butir soal anak ber-type: \"{$t}\")";
                     }
                     $distLines[] = $line;
                 }
             }
 
             if (! empty($distLines)) {
-                $details[] = "KOMPOSISI TIPE SOAL & DISTRIBUSI:\n".implode("\n", $distLines);
+                $details[] = "KOMPOSISI TIPE SOAL & DISTRIBUSI (SANGAT PENTING: Hasilkan PERSIS sesuai tipe yang diminta di bawah ini. DILARANG KERAS mengubah soal Isian Singkat atau Uraian/Esai menjadi Pilihan Ganda!):\n".implode("\n", $distLines);
                 $details[] = "TOTAL KESELURUHAN BUTIR SOAL: {$totalCount} butir";
             }
         } else {
@@ -599,7 +648,19 @@ PROMPT;
             }
 
             $currentNum = $itemNumber++;
-            $type = $it['type'] ?? ($params['question_type'] ?? 'mcq_single');
+            $rawType = $it['type'] ?? ($params['question_type'] ?? 'mcq_single');
+            $type = match (strtolower(trim((string) $rawType))) {
+                'mcq_single', 'pilihan_ganda', 'pg', 'single_choice', 'multiple_choice' => 'mcq_single',
+                'mcq_multiple', 'pilihan_ganda_kompleks', 'multiple_select' => 'mcq_multiple',
+                'mcq_weighted', 'tkp', 'weighted_choice' => 'mcq_weighted',
+                'binary_matrix', 'boolean_matrix', 'benar_salah', 'true_false' => 'binary_matrix',
+                'matching', 'menjodohkan' => 'matching',
+                'ordering', 'mengurutkan', 'reorder' => 'ordering',
+                'short_answer', 'isian', 'isian_singkat', 'fill_blank' => 'short_answer',
+                'essay', 'uraian', 'esai' => 'essay',
+                default => 'mcq_single',
+            };
+
             $prompt = trim((string) ($it['prompt'] ?? ($it['question'] ?? ($it['pertanyaan'] ?? ''))));
             $points = (float) ($it['points'] ?? ($it['score'] ?? 1.0));
             $explanation = trim((string) ($it['explanation'] ?? ($it['pembahasan'] ?? '')));
@@ -639,7 +700,46 @@ PROMPT;
                 }
             }
 
-            if ($type === 'mcq_single' && count($options) > 1) {
+            // Question Type Specific Option Transformations
+            if ($type === 'essay') {
+                $options = [];
+            } elseif ($type === 'short_answer') {
+                $targetText = '';
+                foreach ($options as $opt) {
+                    if (! empty($opt['is_correct']) && filled($opt['option_text'])) {
+                        $targetText = $opt['option_text'];
+                        break;
+                    }
+                }
+                if ($targetText === '' && ! empty($options)) {
+                    $targetText = $options[0]['option_text'] ?? '';
+                }
+                if ($targetText === '') {
+                    $targetText = trim((string) ($it['answer'] ?? ($it['kunci'] ?? ($it['key'] ?? ''))));
+                }
+                $options = [
+                    [
+                        'label' => 'Kunci',
+                        'option_text' => $targetText !== '' ? $targetText : 'Kunci Jawaban',
+                        'is_correct' => true,
+                        'score' => $points > 0 ? $points : 1.5,
+                        'match_key' => null,
+                    ],
+                ];
+            } elseif ($type === 'mcq_single' && count($options) > 1) {
+                // Ensure at least one option is marked correct
+                $hasCorrect = false;
+                foreach ($options as $opt) {
+                    if (! empty($opt['is_correct'])) {
+                        $hasCorrect = true;
+                        break;
+                    }
+                }
+                if (! $hasCorrect) {
+                    $options[0]['is_correct'] = true;
+                    $options[0]['score'] = $points;
+                }
+
                 shuffle($options);
                 $labels = ['A', 'B', 'C', 'D', 'E', 'F'];
                 foreach ($options as $oIdx => &$optItem) {
@@ -1213,6 +1313,10 @@ PROMPT;
             'pendidikan_pancasila' => $this->generatePancasilaQuestion($type, $number, $stimulusNote, $subIdx, $params),
             default => $this->generateDefaultSchoolQuestion($type, $number, $stimulusNote, $subIdx, $params),
         };
+
+        if (($item['type'] ?? '') !== $type) {
+            $item = $this->generateDefaultSchoolQuestion($type, $number, $stimulusNote, $subIdx, $params);
+        }
 
         $item['stimulus_index'] = $isStimulusChild ? $stimulusIdx : null;
 
@@ -2282,24 +2386,240 @@ PROMPT;
     }
 
     /**
-     * Default School fallback question
+     * Default School fallback question supporting all types and varied templates.
      */
     protected function generateDefaultSchoolQuestion(string $type, int $number, string $stimulusNote, int $index, array $params): array
     {
         $subjectTitle = ucwords(str_replace('_', ' ', $params['subject'] ?? 'Pelajaran'));
+        if (trim($subjectTitle) === '' || strtolower($subjectTitle) === 'umum') {
+            $subjectTitle = 'Pengetahuan Umum & Literasi Terapan';
+        }
+
+        $vIdx = abs(($index > 0 ? $index - 1 : $number) % 5);
+
+        if ($type === 'short_answer') {
+            $shortAnswerVariants = [
+                [
+                    'prompt' => $stimulusNote."Dalam lingkup pembelajaran {$subjectTitle}, sebutkan istilah konsep dasar yang menyatakan keteraturan relasi tetap antara dua variabel yang telah teruji secara ilmiah!",
+                    'answer' => 'Hukum ilmiah',
+                    'explanation' => "Hukum ilmiah (scientific law) atau prinsip kausalitas merupakan pernyataan keteraturan relasi antarvariabel yang telah terverifikasi secara berulang dalam {$subjectTitle}.",
+                ],
+                [
+                    'prompt' => $stimulusNote."Tuliskan tahapan awal yang paling esensial dalam metode saintifik sebelum perumusan hipotesis pada kajian {$subjectTitle}!",
+                    'answer' => 'Observasi',
+                    'explanation' => "Observasi atau pengamatan fenomena/identifikasi masalah merupakan langkah perdana yang menjadi landasan perumusan hipotesis penelitian {$subjectTitle}.",
+                ],
+                [
+                    'prompt' => $stimulusNote."Sebutkan sifat utama dari suatu hipotesis yang baik dalam studi analitis {$subjectTitle} yang memungkinkan hipotesis tersebut diuji dan dibuktikan kebenarannya!",
+                    'answer' => 'Falsifiabilitas',
+                    'explanation' => "Falsifiabilitas (kemampuan untuk diuji dan berpeluang dibuktikan salah/benarnya secara empiris) adalah syarat mutlak hipotesis ilmiah dalam {$subjectTitle}.",
+                ],
+                [
+                    'prompt' => $stimulusNote."Dalam analisis evaluasi data {$subjectTitle}, ukuran pemusatan statistik data yang paling tahan (resisten) terhadap pengaruh nilai ekstrem (outlier) adalah ...",
+                    'answer' => 'Median',
+                    'explanation' => "Median (nilai tengah data terurut) bersifat resisten dan tidak terpengaruh oleh pencilan/nilai ekstrem dalam distribusi data {$subjectTitle}.",
+                ],
+                [
+                    'prompt' => $stimulusNote."Tuliskan jenis variabel dalam eksperimen atau pengujian konsep {$subjectTitle} yang nilainya sengaja diubah atau dimanipulasi oleh peneliti untuk mengamati dampaknya!",
+                    'answer' => 'Variabel bebas',
+                    'explanation' => 'Variabel bebas (independent variable) merupakan variabel perlakuan yang dimanipulasi secara terukur untuk menguji pengaruhnya terhadap variabel terikat.',
+                ],
+            ];
+
+            $selected = $shortAnswerVariants[$vIdx];
+
+            return [
+                'number' => $number,
+                'type' => 'short_answer',
+                'prompt' => $selected['prompt'],
+                'points' => 1.5,
+                'options' => [
+                    ['label' => 'Kunci', 'option_text' => $selected['answer'], 'is_correct' => true, 'score' => 1.5, 'match_key' => null],
+                ],
+                'explanation' => $selected['explanation'],
+            ];
+        }
+
+        if ($type === 'essay') {
+            $essayVariants = [
+                [
+                    'prompt' => $stimulusNote."Jelaskan secara komprehensif bagaimana prinsip inti materi {$subjectTitle} dapat diaplikasikan untuk menyelesaikan tantangan nyata di era modern, serta berikan satu contoh kasus nyata beserta analisis solusinya!",
+                    'explanation' => "Rubrik Penilaian: Skor 4 jika mampu menjabarkan 2 prinsip inti {$subjectTitle} secara tepat, mengaitkannya dengan persoalan kontemporer, dan menyajikan contoh kasus nyata dengan penalaran logis yang mendalam. Skor 2 jika uraian bersifat normatif umum tanpa contoh kasus terukur.",
+                ],
+                [
+                    'prompt' => $stimulusNote."Bandingkanlah secara kritis dua pendekatan atau perspektif yang berbeda dalam memahami dinamika {$subjectTitle}. Uraikan kelebihan, keterbatasan, serta kondisi ideal penerapan masing-masing pendekatan tersebut!",
+                    'explanation' => "Rubrik Penilaian: Skor 4 jika memuat perbandingan parameter yang seimbang antara kedua perspektif {$subjectTitle}, mengidentifikasi minimal 2 kelebihan dan 2 kelemahan spesifik, serta menarik kesimpulan sintesis yang objektif. Skor 2 jika hanya menjabarkan satu perspektif secara parsial.",
+                ],
+                [
+                    'prompt' => $stimulusNote."Rancanglah sebuah kerangka strategi pemecahan masalah (framework) berbasis konsep {$subjectTitle} yang dapat digunakan untuk menganalisis dan memitigasi kegagalan pada suatu sistem kerja atau fenomena terapan!",
+                    'explanation' => "Rubrik Penilaian: Skor 4 jika kerangka memuat alur sistematis (diagnosis, perumusan intervensi, eksekusi, indikator keberhasilan evaluasi) dengan landasan teori {$subjectTitle} yang kokoh. Skor 2 jika alur tidak runtut atau terputus.",
+                ],
+                [
+                    'prompt' => $stimulusNote."Analisis dampak etis, sosial, atau teknologi dari perkembangan terbaru di bidang {$subjectTitle}. Menurut argumentasi kritis Anda, bagaimana regulasi atau sikap profesional yang harus dibangun untuk menghadapi dampak tersebut?",
+                    'explanation' => "Rubrik Penilaian: Skor 4 jika menyajikan analisis multisektoral yang tajam, didukung premis logis yang kuat, serta menghasilkan rekomendasi tindakan/kebijakan yang adaptif dan aplikatif di bidang {$subjectTitle}. Skor 2 jika argumentasi dangkal.",
+                ],
+                [
+                    'prompt' => $stimulusNote."Evaluasilah sebuah skenario di mana prinsip dasar {$subjectTitle} gagal menghasilkan keluaran yang diharapkan karena adanya anomali lingkungan atau variabel perancu (confounding variable). Jelaskan langkah mitigasi ilmiah yang harus ditempuh!",
+                    'explanation' => "Rubrik Penilaian: Skor 4 jika mampu mengisolasi variabel perancu, menjelaskan mekanisme penyebab kegagalan sistem pada {$subjectTitle}, dan memberikan prosedur perbaikan kalibrasi yang presisi. Skor 2 jika analisis hanya mendeskripsikan gejala tanpa menemukan akar masalah.",
+                ],
+            ];
+
+            $selected = $essayVariants[$vIdx];
+
+            return [
+                'number' => $number,
+                'type' => 'essay',
+                'prompt' => $selected['prompt'],
+                'points' => 4.0,
+                'options' => [],
+                'explanation' => $selected['explanation'],
+            ];
+        }
+
+        if ($type === 'mcq_multiple') {
+            return [
+                'number' => $number,
+                'type' => 'mcq_multiple',
+                'prompt' => $stimulusNote."Manakah di antara pernyataan-pernyataan berikut yang mencerminkan kaidah dan prinsip analisis ilmiah yang benar dalam materi {$subjectTitle}? (Pilihlah minimal 2 jawaban yang tepat)",
+                'points' => 2.0,
+                'options' => [
+                    ['label' => 'A', 'option_text' => "Kesimpulan harus didasarkan pada bukti empiris yang dapat diverifikasi dan diuji ulang dalam konteks {$subjectTitle}.", 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Identifikasi variabel harus memisahkan antara faktor penyebab utama dan variabel perancu.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Mengabaikan anomali data lapangan demi menjaga konsistensi dengan teori lama.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Menyusun argumen dengan struktur kausalitas yang koheren dan bebas dari falasi logika.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                ],
+                'explanation' => "Analisis ilmiah pada {$subjectTitle} mensyaratkan verifikasi empiris, ketelitian variabel, dan penalaran kausal yang koheren tanpa mengabaikan anomali data.",
+            ];
+        }
+
+        if ($type === 'binary_matrix') {
+            return [
+                'number' => $number,
+                'type' => 'binary_matrix',
+                'prompt' => $stimulusNote."Tentukan nilai kebenaran dari masing-masing pernyataan berikut berdasarkan konsep ilmu {$subjectTitle}:",
+                'points' => 2.0,
+                'settings' => ['labels' => ['Benar', 'Salah']],
+                'options' => [
+                    ['label' => '1', 'option_text' => "Teori ilmiah dalam {$subjectTitle} dapat diperbaiki atau disempurnakan apabila ditemukan bukti baru yang lebih akurat.", 'is_correct' => true, 'score' => 1.0, 'match_key' => 'Benar'],
+                    ['label' => '2', 'option_text' => 'Korelasi antara dua variabel secara otomatis membuktikan adanya hubungan sebab-akibat (kausalitas) mutlak.', 'is_correct' => true, 'score' => 1.0, 'match_key' => 'Salah'],
+                    ['label' => '3', 'option_text' => 'Penerapan metode terstruktur memperkecil probabilitas terjadinya galat sistematis.', 'is_correct' => true, 'score' => 1.0, 'match_key' => 'Benar'],
+                ],
+                'explanation' => 'Pernyataan 1 Benar (sifat sains dinamis). Pernyataan 2 Salah (korelasi belum tentu kausalitas). Pernyataan 3 Benar (metodologi mengurangi bias dan eror).',
+            ];
+        }
+
+        if ($type === 'matching') {
+            return [
+                'number' => $number,
+                'type' => 'matching',
+                'prompt' => $stimulusNote."Pasangkanlah elemen konsep pada kolom kiri dengan fungsi atau deskripsi yang bersesuaian pada kolom kanan terkait kajian {$subjectTitle}:",
+                'points' => 2.0,
+                'options' => [
+                    ['label' => '1', 'option_text' => 'Kerangka Teoretis', 'is_correct' => true, 'score' => 0.5, 'match_key' => 'Landasan konseptual yang memetakan keterkaitan antarvariabel'],
+                    ['label' => '2', 'option_text' => 'Data Empiris', 'is_correct' => true, 'score' => 0.5, 'match_key' => 'Fakta mentah hasil observasi atau pengukuran lapangan'],
+                    ['label' => '3', 'option_text' => 'Instrumen Valid', 'is_correct' => true, 'score' => 0.5, 'match_key' => 'Alat ukur yang secara tepat mengukur apa yang hendak diukur'],
+                    ['label' => '4', 'option_text' => 'Sintesis Kritis', 'is_correct' => true, 'score' => 0.5, 'match_key' => 'Penggabungan temuan berbagai sumber menjadi kesimpulan utuh'],
+                ],
+                'explanation' => "Pasangan konsep epistemologi dan metodologi kajian {$subjectTitle}.",
+            ];
+        }
+
+        if ($type === 'ordering') {
+            return [
+                'number' => $number,
+                'type' => 'ordering',
+                'prompt' => $stimulusNote."Urutkan tahapan analisis sistematis berikut dalam pemecahan masalah {$subjectTitle} dari tahap awal hingga akhir:",
+                'points' => 2.0,
+                'options' => [
+                    ['label' => '1', 'option_text' => 'Mendefinisikan ruang lingkup masalah dan batasan kondisi sistem', 'is_correct' => true, 'score' => 0.5, 'order' => 1],
+                    ['label' => '2', 'option_text' => 'Mengumpulkan data relevan dan memverifikasi keabsahan fakta', 'is_correct' => true, 'score' => 0.5, 'order' => 2],
+                    ['label' => '3', 'option_text' => 'Mengevaluasi alternatif opsi solusi menggunakan parameter terukur', 'is_correct' => true, 'score' => 0.5, 'order' => 3],
+                    ['label' => '4', 'option_text' => 'Memilih solusi optimal dan merancang rencana implementasi terukur', 'is_correct' => true, 'score' => 0.5, 'order' => 4],
+                ],
+                'explanation' => 'Siklus pemecahan masalah rasional dan terstruktur.',
+            ];
+        }
+
+        if ($type === 'mcq_weighted') {
+            return [
+                'number' => $number,
+                'type' => 'mcq_weighted',
+                'prompt' => $stimulusNote."Ketika Anda memimpin sebuah tim dan menghadapi kebuntuan dalam penyelesaian proyek {$subjectTitle} karena perbedaan persepsi antaranggotanya, langkah paling tepat yang Anda ambil adalah ...",
+                'points' => 5.0,
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Memfasilitasi forum diskusi terarah untuk membedah data objektif, mendengarkan argumen setiap pihak, dan menetapkan solusi konsensus yang dapat diukur.', 'score' => 5.0, 'is_correct' => true, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Mengambil keputusan sepihak dengan cepat agar jadwal proyek tidak terganggu sama sekali.', 'score' => 3.0, 'is_correct' => true, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Menyerahkan keputusan kepada anggota yang paling senior tanpa evaluasi bersama.', 'score' => 2.0, 'is_correct' => true, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Meminta pertimbangan ahli eksternal sambil tetap mengapresiasi masukan internal anggota tim.', 'score' => 4.0, 'is_correct' => true, 'match_key' => null],
+                    ['label' => 'E', 'option_text' => 'Menunda pengerjaan proyek sampai situasi internal mereda secara alami.', 'score' => 1.0, 'is_correct' => true, 'match_key' => null],
+                ],
+                'explanation' => 'Opsi A bernilai 5 karena mencerminkan kepemimpinan demokratis berbasis data, komunikasi terbuka, dan akuntabilitas hasil.',
+            ];
+        }
+
+        // mcq_single: 5 distinct templates based on $vIdx
+        $mcqVariants = [
+            [
+                'prompt' => $stimulusNote."Terkait materi {$subjectTitle}, manakah di antara prinsip berikut yang paling fundamental dalam pengkajian konsep intinya?",
+                'options' => [
+                    ['label' => 'A', 'option_text' => "Pemahaman prinsip dasar dan keterkaitannya dengan aplikasi nyata dalam bidang {$subjectTitle}.", 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Menghafal definisi tanpa memahami hubungan kausalitas antarvariabel.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Mengabaikan fakta empiris dan berpedoman hanya pada asumsi teoritis semata.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Menggunakan rumus atau aturan tanpa memperhatikan syarat batas berlakunya.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => "Penguasaan mata pelajaran {$subjectTitle} bertumpu pada pemahaman konsep inti dan penerapannya secara kontekstual.",
+            ],
+            [
+                'prompt' => $stimulusNote."Dalam penerapan konsep {$subjectTitle}, faktor utama yang paling menentukan keberhasilan analisis pemecahan masalah adalah ...",
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Identifikasi variabel kunci, perumusan relasi logis, dan verifikasi hasil secara sistematis.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Meniru langkah penyelesaian terdahulu tanpa menyesuaikan konteks permasalahan baru.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Mengabaikan premis awal dan langsung mengambil kesimpulan intuitif subjektif.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Membatasi tinjauan hanya pada satu sudut pandang teoritis tertutup.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => "Analisis pemecahan masalah dalam {$subjectTitle} memerlukan identifikasi variabel secara tepat dan pembuktian logis yang sistematis.",
+            ],
+            [
+                'prompt' => $stimulusNote."Berdasarkan tinjauan kritis dalam bidang {$subjectTitle}, indikator yang membedakan argumen ilmiah yang sahih dari kesimpulan spekulatif adalah ...",
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Dukungan data empiris yang teruji, metodologi yang sahih, serta koherensi penalaran logis.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Popularitas pandangan di kalangan umum tanpa pengujian metodologis independen.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Kesesuaian dengan dugaan awal meskipun bertentangan dengan bukti observasi faktual.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Banyaknya asumsi penyederhanaan yang tidak dapat dibuktikan validitasnya di lapangan.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => "Validitas ilmiah dalam {$subjectTitle} bersandar pada pembuktian empiris, metodologi yang valid, dan konsistensi penalaran logis.",
+            ],
+            [
+                'prompt' => $stimulusNote."Ketika mengkaji fenomena atau kasus terapan dalam {$subjectTitle}, strategi evaluasi yang paling efektif untuk meminimalkan bias adalah ...",
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Melakukan triangulasi sumber informasi, pengujian komparatif, dan telaah multi-perspektif.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Menggunakan satu sumber rujukan utama yang dianggap paling otoritatif tanpa pembanding.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Mengeliminasi data yang menyimpang dari tren umum tanpa penyelidikan lebih lanjut.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Mendasarkan simpulan pada preferensi subjektif pengamat.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => "Triangulasi dan telaah multi-perspektif meminimalkan subjektivitas serta memperkuat keabsahan temuan dalam kajian {$subjectTitle}.",
+            ],
+            [
+                'prompt' => $stimulusNote."Dampak jangka panjang dari penguasaan konsep integratif dalam pembelajaran {$subjectTitle} terhadap kemampuan berpikir kritis adalah ...",
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Meningkatkan kemampuan transfer ilmu untuk memecahkan persoalan baru yang kompleks dan dinamis.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Mempercepat waktu menghafal rumus atau istilah baku tanpa pemahaman esensial.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Membatasi ruang inovasi karena terikat oleh prosedur konseptual yang kaku.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Mengurangi kebutuhan untuk berkolaborasi lintas disiplin keilmuan.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => "Pemahaman konseptual yang mendalam memfasilitasi 'transfer of learning' pada situasi nyata yang dinamis dalam materi {$subjectTitle}.",
+            ],
+        ];
+
+        $selectedMcq = $mcqVariants[$vIdx];
 
         return [
             'number' => $number,
             'type' => 'mcq_single',
-            'prompt' => $stimulusNote."Terkait pokok materi {$subjectTitle}, manakah di antara prinsip berikut yang paling fundamental dalam pengkajian konsep intinya?",
+            'prompt' => $selectedMcq['prompt'],
             'points' => 2.0,
-            'options' => [
-                ['label' => 'A', 'option_text' => "Pemahaman prinsip dasar dan keterkaitannya dengan aplikasi nyata dalam bidang {$subjectTitle}.", 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
-                ['label' => 'B', 'option_text' => 'Menghafal definisi tanpa memahami hubungan kausalitas antarvariabel.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                ['label' => 'C', 'option_text' => 'Mengabaikan fakta empiris dan berpedoman hanya pada asumsi teoritis.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                ['label' => 'D', 'option_text' => 'Menggunakan rumus atau aturan tanpa memperhatikan syarat batas berlakunya.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-            ],
-            'explanation' => "Penguasaan mata pelajaran {$subjectTitle} bertumpu pada pemahaman konsep inti dan penerapannya secara kontekstual.",
+            'options' => $selectedMcq['options'],
+            'explanation' => $selectedMcq['explanation'],
         ];
     }
 

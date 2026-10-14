@@ -155,7 +155,18 @@
                                         @endif
                                     </td>
                                     <td class="py-4 px-4 text-center whitespace-nowrap">
-                                        @if($session->isCompleted() || $session->isExpired())
+                                        @php
+                                            $sessHasEssay = $session->assessment?->hasEssayQuestions() ?? false;
+                                            $sessScoreReleased = (bool) data_get($session->meta, 'is_score_released', ! $sessHasEssay);
+                                            $needsTeacherReview = $sessHasEssay && ! $sessScoreReleased;
+                                        @endphp
+                                        @if($needsTeacherReview)
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Ujian memiliki butir soal uraian/essay yang sedang menunggu koreksi guru">
+                                                <span>⏳</span>
+                                                <span>Menunggu Koreksi</span>
+                                            </span>
+                                            <div class="text-[10px] text-amber-800/80 font-medium mt-0.5">Soal Uraian / Essay</div>
+                                        @elseif($session->isCompleted() || $session->isExpired())
                                             <div class="font-display font-bold text-base text-gray-12">
                                                 {{ $session->score !== null ? number_format($session->score, 1) : '-' }}
                                             </div>
