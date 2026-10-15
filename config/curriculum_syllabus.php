@@ -131,6 +131,17 @@ return [
                     ['id' => 'm3_6', 'semester' => 2, 'title' => 'Bab 6: Unsur-Unsur Bangun Datar dan Penyajian Data Sederhana'],
                 ],
             ],
+            'ipas' => [
+                'name' => 'Ilmu Pengetahuan Alam & Sosial (IPAS)',
+                'chapters' => [
+                    ['id' => 'ipas3_1', 'semester' => 1, 'title' => 'Bab 1: Mari Kenali Hewan di Sekitar Kita (Ciri, Bentuk & Habitat Hewan)'],
+                    ['id' => 'ipas3_2', 'semester' => 1, 'title' => 'Bab 2: Ayo Mengenal Siklus Hidup Makhluk Hidup (Metamorfosis Hewan)'],
+                    ['id' => 'ipas3_3', 'semester' => 1, 'title' => 'Bab 3: Hidup Bersama Alam (Ekosistem, Komponen Hayati & Non-Hayati)'],
+                    ['id' => 'ipas3_4', 'semester' => 2, 'title' => 'Bab 4: Berkenalan dengan Energi (Bentuk Energi & Perubahannya)'],
+                    ['id' => 'ipas3_5', 'semester' => 2, 'title' => 'Bab 5: Denah dan Kenampakan Alam Lingkungan Tempat Tinggal'],
+                    ['id' => 'ipas3_6', 'semester' => 2, 'title' => 'Bab 6: Tradisi Keluarga dan Masyarakat Sekitarku'],
+                ],
+            ],
             'ipa' => [
                 'name' => 'Ilmu Pengetahuan Alam & Sosial (IPAS)',
                 'chapters' => [
@@ -186,6 +197,19 @@ return [
                     ['id' => 'm4_4', 'semester' => 2, 'title' => 'Bab 4: Pengukuran Luas dan Volume dengan Satuan Baku'],
                     ['id' => 'm4_5', 'semester' => 2, 'title' => 'Bab 5: Bangun Datar (Ciri Segi Banyak, Segitiga, Segiempat, Sudut)'],
                     ['id' => 'm4_6', 'semester' => 2, 'title' => 'Bab 6: Piktogram dan Diagram Batang (Penyajian & Interpretasi Data)'],
+                ],
+            ],
+            'ipas' => [
+                'name' => 'Ilmu Pengetahuan Alam & Sosial (IPAS)',
+                'chapters' => [
+                    ['id' => 'ipas4_1', 'semester' => 1, 'title' => 'Bab 1: Tumbuhan, Sumber Kehidupan di Bumi (Fotosintesis & Bagian Tumbuhan)'],
+                    ['id' => 'ipas4_2', 'semester' => 1, 'title' => 'Bab 2: Wujud Zat dan Perubahannya (Padat, Cair, Gas & Perubahan Fisika)'],
+                    ['id' => 'ipas4_3', 'semester' => 1, 'title' => 'Bab 3: Gaya di Sekitar Kita (Gaya Otot, Gesek, Magnet, Pegas, Gravitasi)'],
+                    ['id' => 'ipas4_4', 'semester' => 1, 'title' => 'Bab 4: Mengubah Bentuk Energi (Kekekalan Energi & Transformasi Energi)'],
+                    ['id' => 'ipas4_5', 'semester' => 2, 'title' => 'Bab 5: Cerita Tentang Daerahku (Sejarah Kerajaan & Peninggalan Lokal)'],
+                    ['id' => 'ipas4_6', 'semester' => 2, 'title' => 'Bab 6: Indonesiaku Kaya Budaya (Kearifan Lokal & Keragaman Suku)'],
+                    ['id' => 'ipas4_7', 'semester' => 2, 'title' => 'Bab 7: Bagaimana Mendapatkan Semua Keperluan Kita? (Kegiatan Ekonomi)'],
+                    ['id' => 'ipas4_8', 'semester' => 2, 'title' => 'Bab 8: Membangun Masyarakat yang Beradab (Norma & Adat Istiadat)'],
                 ],
             ],
             'ipa' => [
@@ -247,6 +271,19 @@ return [
                     ['id' => 'm5_6', 'semester' => 2, 'title' => 'Bab 6: Data dan Statistik (Diagram Garis, Rata-Rata, Modus, Median)'],
                 ],
             ],
+            'ipas' => [
+                'name' => 'Ilmu Pengetahuan Alam & Sosial (IPAS)',
+                'chapters' => [
+                    ['id' => 'ipas5_1', 'semester' => 1, 'title' => 'Bab 1: Melihat karena Cahaya, Mendengar karena Bunyi (Sifat Gelombang)'],
+                    ['id' => 'ipas5_2', 'semester' => 1, 'title' => 'Bab 2: Harmoni dalam Ekosistem (Rantai Makanan & Jaring-Jaring Kehidupan)'],
+                    ['id' => 'ipas5_3', 'semester' => 1, 'title' => 'Bab 3: Magnet, Listrik, dan Teknologi untuk Kehidupan'],
+                    ['id' => 'ipas5_4', 'semester' => 1, 'title' => 'Bab 4: Berkenalan dengan Bumi Kita (Lapisan Litosfer, Hidrosfer, Atmosfer)'],
+                    ['id' => 'ipas5_5', 'semester' => 2, 'title' => 'Bab 5: Bagaimana Kita Hidup dan Bertumbuh? (Sistem Pernapasan & Pencernaan)'],
+                    ['id' => 'ipas5_6', 'semester' => 2, 'title' => 'Bab 6: Indonesiaku Kaya Hayati (Flora, Fauna & Pelestarian Alam)'],
+                    ['id' => 'ipas5_7', 'semester' => 2, 'title' => 'Bab 7: Warisan Budaya Indonesia yang Mendunia'],
+                    ['id' => 'ipas5_8', 'semester' => 2, 'title' => 'Bab 8: Bumiku Sayang, Bumiku Malang (Pemanasan Global & Solusinya)'],
+                ],
+            ],
             'ipa' => [
                 'name' => 'Ilmu Pengetahuan Alam & Sosial (IPAS)',
                 'chapters' => [
@@ -303,6 +340,19 @@ return [
                     ['id' => 'm6_3', 'semester' => 1, 'title' => 'Bab 3: Luas Bangun Datar Gabungan dan Lingkaran (Jari-jari, Diameter, Luas)'],
                     ['id' => 'm6_4', 'semester' => 2, 'title' => 'Bab 4: Bangun Ruang (Volume & Luas Permukaan Prisma, Tabung, Kerucut, Bola)'],
                     ['id' => 'm6_5', 'semester' => 2, 'title' => 'Bab 5: Peluang dan Statistik Lanjutan (Penyajian Diagram & Interpretasi Rata-rata)'],
+                ],
+            ],
+            'ipas' => [
+                'name' => 'Ilmu Pengetahuan Alam & Sosial (IPAS)',
+                'chapters' => [
+                    ['id' => 'ipas6_1', 'semester' => 1, 'title' => 'Bab 1: Bagaimana Tubuh Kita Bergerak? (Sistem Rangka, Otot & Saraf)'],
+                    ['id' => 'ipas6_2', 'semester' => 1, 'title' => 'Bab 2: Cerita Masa Lalu Indonesia (Perjuangan Kemerdekaan & Tokoh Pahlawan)'],
+                    ['id' => 'ipas6_3', 'semester' => 1, 'title' => 'Bab 3: Pelesir Keliling Dunia (Enam Benua & Karakteristik Geografisnya)'],
+                    ['id' => 'ipas6_4', 'semester' => 1, 'title' => 'Bab 4: Indonesia dan Hubungan Internasional (Peran di ASEAN & PBB)'],
+                    ['id' => 'ipas6_5', 'semester' => 2, 'title' => 'Bab 5: Menjelajahi Bumi dan Antariksa (Sistem Tata Surya, Gerhana, Rotasi)'],
+                    ['id' => 'ipas6_6', 'semester' => 2, 'title' => 'Bab 6: Gawat! Benarkah Energi di Bumi Akan Habis? (Energi Terbarukan)'],
+                    ['id' => 'ipas6_7', 'semester' => 2, 'title' => 'Bab 7: Bumi Kita Terancam Bahaya (Bencana Alam & Mitigasi Kebencanaan)'],
+                    ['id' => 'ipas6_8', 'semester' => 2, 'title' => 'Bab 8: Proyek Akhir IPAS: Menjadi Agen Perubahan Lingkungan'],
                 ],
             ],
             'ipa' => [

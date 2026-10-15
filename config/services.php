@@ -55,4 +55,12 @@ return [
         'auto_on_create' => (bool) env('DEEPSEEK_AUTO_ON_CREATE', true),
     ],
 
+    'gemini' => [
+        'enabled' => (bool) env('GEMINI_ENABLED', true),
+        'api_key' => env('GEMINI_API_KEY'),
+        'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'timeout' => (int) env('GEMINI_TIMEOUT', 120),
+    ],
+
 ];

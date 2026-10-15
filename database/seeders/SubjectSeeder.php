@@ -20,6 +20,7 @@ class SubjectSeeder extends Seeder
             ['name' => 'Pendidikan Agama & Budi Pekerti', 'code' => 'PABP', 'description' => 'Pendidikan nilai-nilai spiritual, akhlak, dan keagamaan.'],
             ['name' => 'Ilmu Pengetahuan Alam (IPA)', 'code' => 'IPA', 'description' => 'Sains terpadu: biologi, fisika, dan kimia dasar untuk jenjang SD & SMP.'],
             ['name' => 'Ilmu Pengetahuan Sosial (IPS)', 'code' => 'IPS', 'description' => 'Ilmu sosial terpadu: sejarah, geografi, dan ekonomi untuk jenjang SD & SMP.'],
+            ['name' => 'Ilmu Pengetahuan Alam & Sosial (IPAS)', 'code' => 'IPAS', 'description' => 'Mata pelajaran IPAS Kurikulum Merdeka jenjang SD.'],
             ['name' => 'Informatika', 'code' => 'INF', 'description' => 'Literasi digital, computational thinking, dan dasar pemrograman.'],
             ['name' => 'Fisika', 'code' => 'FIS', 'description' => 'Mata pelajaran peminatan sains: mekanika, termodinamika, dan optik.'],
             ['name' => 'Kimia', 'code' => 'KIM', 'description' => 'Mata pelajaran peminatan sains: struktur atom, stoikiometri, dan ikatan kimia.'],

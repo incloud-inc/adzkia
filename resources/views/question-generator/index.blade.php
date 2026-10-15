@@ -143,6 +143,7 @@
                                     <option value="matematika">Matematika</option>
                                     <option value="bahasa_indonesia">Bahasa Indonesia</option>
                                     <option value="bahasa_inggris">Bahasa Inggris</option>
+                                    <option value="ipas">Ilmu Pengetahuan Alam & Sosial (IPAS - SD)</option>
                                     <option value="ipa">Ilmu Pengetahuan Alam (IPA)</option>
                                     <option value="ips">Ilmu Pengetahuan Sosial (IPS)</option>
                                     <option value="fisika">Fisika</option>
@@ -176,7 +177,7 @@
                                 </div>
                             </div>
 
-                            <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                            <div class="space-y-1.5">
                                 <template x-for="(ch, idx) in availableChapters" :key="ch.id || ch.title || idx">
                                     <label class="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-gray-6/70 text-xs text-gray-12 hover:bg-blue-2/20 cursor-pointer transition-colors">
                                         <input type="checkbox" :value="ch.title" x-model="selectedChapters" class="mt-0.5 text-blue-9 focus:ring-0 rounded">
@@ -452,24 +453,55 @@
                         </div>
                     </div>
 
-                    <!-- Plain Textarea Kisi-Kisi / Pesan Khusus -->
+                    <!-- Plain Textarea Kisi-Kisi / Pesan Khusus (Auto-Resize Tampil Semua Tanpa Scroll) -->
                     <div>
                         <label class="block text-xs font-bold text-gray-11 mb-1">Pesan Khusus / Kisi-Kisi untuk Model AI (Opsional):</label>
-                        <textarea x-model="custom_prompt" rows="3" placeholder="Tuliskan petunjuk khusus di sini, misalnya: 'Sertakan studi kasus pelayanan kantor dinas yang ambigu', 'Gunakan rumus kuadrat LaTeX $$ax^2+bx+c$$', 'Fokuskan pada perangkap sinonim kata'..."
-                                  class="w-full px-3 py-2.5 bg-gray-2 border border-gray-6 rounded-xl text-xs font-medium text-gray-12 focus:bg-white focus:border-indigo-9 focus:ring-2 focus:ring-indigo-9/20 transition-all"></textarea>
+                        <textarea x-model="custom_prompt"
+                                  x-ref="customPromptInput"
+                                  rows="3"
+                                  @input="$el.style.height = 'auto'; $el.style.height = Math.max($el.scrollHeight, 80) + 'px'"
+                                  x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max($el.scrollHeight, 80) + 'px'; })"
+                                  placeholder="Tuliskan petunjuk khusus di sini, misalnya: 'Sertakan studi kasus pelayanan kantor dinas yang ambigu', 'Gunakan rumus kuadrat LaTeX $$ax^2+bx+c$$', 'Fokuskan pada perangkap sinonim kata'..."
+                                  class="w-full px-3 py-2.5 bg-gray-2 border border-gray-6 rounded-xl text-xs font-medium text-gray-12 focus:bg-white focus:border-indigo-9 focus:ring-2 focus:ring-indigo-9/20 transition-all resize-none overflow-hidden [field-sizing:content]"></textarea>
                     </div>
 
-                    <!-- Model Selector DeepSeek -->
-                    <div class="space-y-2">
-                        <label class="block text-xs font-bold text-gray-11">Pilih Model DeepSeek AI Engine:</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Model Selector (DeepSeek AI & Google Gemini) -->
+                    <div class="space-y-3 pt-1">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-gray-11">Pilih Mesin & Model AI:</label>
+                            <span class="text-[11px] text-gray-10">Pilih provider & varian model</span>
+                        </div>
+
+                        <!-- Provider Tabs -->
+                        <div class="grid grid-cols-2 gap-2 p-1 bg-gray-3 rounded-xl border border-gray-6">
+                            <button type="button" @click="setProvider('deepseek')"
+                                    :class="ai_provider === 'deepseek' ? 'bg-white shadow-xs text-indigo-11 font-bold' : 'text-gray-11 hover:text-gray-12 font-medium'"
+                                    class="py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 transition-all cursor-pointer">
+                                <span>🧠 DeepSeek AI</span>
+                                @if($isDeepSeekConfigured)
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-100 text-emerald-800 font-bold">API Ready</span>
+                                @endif
+                            </button>
+                            <button type="button" @click="setProvider('gemini')"
+                                    :class="ai_provider === 'gemini' ? 'bg-white shadow-xs text-blue-11 font-bold' : 'text-gray-11 hover:text-gray-12 font-medium'"
+                                    class="py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 transition-all cursor-pointer">
+                                <span>✨ Google Gemini</span>
+                                @if($isGeminiConfigured)
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-100 text-emerald-800 font-bold">API Ready</span>
+                                @endif
+                            </button>
+                        </div>
+
+                        <!-- DEEPSEEK MODELS GRID -->
+                        <div x-show="ai_provider === 'deepseek'" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <label :class="ai_model === 'deepseek-reasoner' ? 'border-indigo-9 bg-indigo-2/40 text-indigo-11 ring-2 ring-indigo-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('deepseek-reasoner')"
                                    class="p-3.5 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-3">
                                 <input type="radio" value="deepseek-reasoner" x-model="ai_model" class="mt-1 text-indigo-9 focus:ring-0">
                                 <div>
                                     <div class="flex items-center gap-1.5 font-bold">
                                         <span>🧠 DeepSeek R1 (Reasoner)</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-indigo-9 text-white">Sangat Direkomendasikan</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-indigo-9 text-white">CoT Reasoning</span>
                                     </div>
                                     <p class="text-[11px] text-gray-11 font-normal mt-1 leading-relaxed">
                                         Dilengkapi <em>Chain-of-Thought</em> (CoT). Sangat akurat untuk hitungan matematika, soal HOTS, analisis logika TKP/TIU, dan zero-hallucination.
@@ -478,6 +510,7 @@
                             </label>
 
                             <label :class="ai_model === 'deepseek-chat' ? 'border-indigo-9 bg-indigo-2/40 text-indigo-11 ring-2 ring-indigo-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('deepseek-chat')"
                                    class="p-3.5 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-3">
                                 <input type="radio" value="deepseek-chat" x-model="ai_model" class="mt-1 text-indigo-9 focus:ring-0">
                                 <div>
@@ -491,6 +524,137 @@
                                 </div>
                             </label>
                         </div>
+
+                        <!-- GEMINI MODELS GRID -->
+                        <div x-show="ai_provider === 'gemini'" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
+                            <!-- Gemini 2.5 Flash -->
+                            <label :class="ai_model === 'gemini-2.5-flash' ? 'border-blue-9 bg-blue-2/40 text-blue-11 ring-2 ring-blue-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('gemini-2.5-flash')"
+                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
+                                <input type="radio" value="gemini-2.5-flash" x-model="ai_model" class="mt-1 text-blue-9 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <span>✨ Gemini 2.5 Flash</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-9 text-white">Rekomendasi Utama</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
+                                        Generasi 2.5 mutakhir: sangat cepat, efisien, dengan penalaran bawaan seimbang untuk semua mapel.
+                                    </p>
+                                </div>
+                            </label>
+
+                            <!-- Gemini 2.5 Pro -->
+                            <label :class="ai_model === 'gemini-2.5-pro' ? 'border-purple-9 bg-purple-2/40 text-purple-11 ring-2 ring-purple-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('gemini-2.5-pro')"
+                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
+                                <input type="radio" value="gemini-2.5-pro" x-model="ai_model" class="mt-1 text-purple-9 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <span>💎 Gemini 2.5 Pro</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-purple-9 text-white">Flagship Reasoning</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
+                                        Model flagship tercerdas Google untuk penalaran rumit, wacana bacaan kaya, dan akurasi tinggi.
+                                    </p>
+                                </div>
+                            </label>
+
+                            <!-- Gemini 2.0 Flash -->
+                            <label :class="ai_model === 'gemini-2.0-flash' ? 'border-teal-9 bg-teal-2/40 text-teal-11 ring-2 ring-teal-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('gemini-2.0-flash')"
+                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
+                                <input type="radio" value="gemini-2.0-flash" x-model="ai_model" class="mt-1 text-teal-9 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <span>⚡ Gemini 2.0 Flash</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-teal-9 text-white">Next-Gen Speed</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
+                                        Generasi 2.0 standar yang ultra cepat, latensi sangat rendah, dan pemahaman instruksi kurikulum presisi.
+                                    </p>
+                                </div>
+                            </label>
+
+                            <!-- Gemini 2.0 Flash Thinking -->
+                            <label :class="ai_model === 'gemini-2.0-flash-thinking-exp-01-21' ? 'border-amber-9 bg-amber-2/40 text-amber-11 ring-2 ring-amber-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('gemini-2.0-flash-thinking-exp-01-21')"
+                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
+                                <input type="radio" value="gemini-2.0-flash-thinking-exp-01-21" x-model="ai_model" class="mt-1 text-amber-9 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <span>🧠 Gemini 2.0 Thinking</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-9 text-white">CoT Thinking</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
+                                        Model penalaran eksplisit (thinking) khusus pemecahan masalah matematika rumit, logika, dan olimpiade.
+                                    </p>
+                                </div>
+                            </label>
+
+                            <!-- Gemini 2.0 Flash-Lite -->
+                            <label :class="ai_model === 'gemini-2.0-flash-lite' ? 'border-blue-9 bg-blue-2/40 text-blue-11 ring-2 ring-blue-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('gemini-2.0-flash-lite')"
+                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
+                                <input type="radio" value="gemini-2.0-flash-lite" x-model="ai_model" class="mt-1 text-blue-9 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <span>🪶 Gemini 2.0 Flash-Lite</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-gray-4 text-gray-11">Super Ringan</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
+                                        Model ultra ringan dengan kuota hemat dan kecepatan tinggi untuk draf naskah soal masif.
+                                    </p>
+                                </div>
+                            </label>
+
+                            <!-- Gemini 1.5 Pro -->
+                            <label :class="ai_model === 'gemini-1.5-pro' ? 'border-purple-9 bg-purple-2/40 text-purple-11 ring-2 ring-purple-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('gemini-1.5-pro')"
+                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
+                                <input type="radio" value="gemini-1.5-pro" x-model="ai_model" class="mt-1 text-purple-9 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <span>📚 Gemini 1.5 Pro</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-purple-8 text-white">Konteks Panjang</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
+                                        Kapasitas konteks masif untuk analisis dokumen panjang, wacana literasi kompleks, dan artikel ilmiah.
+                                    </p>
+                                </div>
+                            </label>
+
+                            <!-- Gemini 1.5 Flash -->
+                            <label :class="ai_model === 'gemini-1.5-flash' ? 'border-blue-9 bg-blue-2/40 text-blue-11 ring-2 ring-blue-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('gemini-1.5-flash')"
+                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
+                                <input type="radio" value="gemini-1.5-flash" x-model="ai_model" class="mt-1 text-blue-9 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <span>🎯 Gemini 1.5 Flash</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-8 text-white">Serbaguna</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
+                                        Model serbaguna cepat dan stabil untuk soal-soal kurikulum reguler sekolah.
+                                    </p>
+                                </div>
+                            </label>
+
+                            <!-- Gemini Argon / Custom Proxy -->
+                            <label :class="ai_model === 'gemini-argon' ? 'border-emerald-9 bg-emerald-2/40 text-emerald-11 ring-2 ring-emerald-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
+                                   @click="selectModel('gemini-argon')"
+                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
+                                <input type="radio" value="gemini-argon" x-model="ai_model" class="mt-1 text-emerald-9 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <span>🛡️ Gemini Argon</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-9 text-white">Custom Gateway</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
+                                        Pilihan gateway khusus / custom proxy endpoint model Gemini Argon yang kompatibel dengan API Gemini.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
                     <!-- TOMBOL GENERATE UTAMA -->
@@ -500,7 +664,7 @@
                             <template x-if="!generating">
                                 <span class="flex items-center gap-2">
                                     <x-radix-icon name="magic-wand" class="w-4 h-4" />
-                                    <span>✨ Generate Butir Soal dengan DeepSeek AI</span>
+                                    <span>✨ Generate Butir Soal dengan <span x-text="getSelectedModelLabel()"></span></span>
                                 </span>
                             </template>
                             <template x-if="generating">
@@ -569,7 +733,7 @@
                                 <div class="w-12 h-12 rounded-full border-4 border-emerald-3 border-t-emerald-9 animate-spin"></div>
                                 <div>
                                     <h4 class="font-bold text-sm text-gray-12" x-text="generatingText"></h4>
-                                    <p class="text-xs text-gray-11 mt-1">DeepSeek sedang menyusun butir soal, formula LaTeX, dan kunci jawaban terverifikasi...</p>
+                                    <p class="text-xs text-gray-11 mt-1">AI Engine sedang menyusun butir soal, formula LaTeX, dan kunci jawaban terverifikasi...</p>
                                 </div>
                             </div>
                         </template>
@@ -1002,11 +1166,42 @@
                 include_visuals: false,
 
                 custom_prompt: '',
-                ai_model: 'deepseek-reasoner',
+                ai_provider: '{{ str_starts_with($defaultModel ?? '', 'gemini') ? 'gemini' : 'deepseek' }}',
+                ai_model: '{{ $defaultModel ?? 'deepseek-reasoner' }}',
+
+                setProvider(p) {
+                    this.ai_provider = p;
+                    if (p === 'gemini' && !this.ai_model.startsWith('gemini')) {
+                        this.ai_model = 'gemini-2.5-flash';
+                    } else if (p === 'deepseek' && !this.ai_model.startsWith('deepseek')) {
+                        this.ai_model = 'deepseek-reasoner';
+                    }
+                },
+
+                selectModel(m) {
+                    this.ai_model = m;
+                    this.ai_provider = m.startsWith('gemini') ? 'gemini' : 'deepseek';
+                },
+
+                getSelectedModelLabel() {
+                    const labels = {
+                        'deepseek-reasoner': 'DeepSeek R1 Reasoner',
+                        'deepseek-chat': 'DeepSeek V3 Chat',
+                        'gemini-2.5-pro': 'Gemini 2.5 Pro',
+                        'gemini-2.5-flash': 'Gemini 2.5 Flash',
+                        'gemini-2.0-flash': 'Gemini 2.0 Flash',
+                        'gemini-2.0-flash-lite': 'Gemini 2.0 Flash-Lite',
+                        'gemini-2.0-flash-thinking-exp-01-21': 'Gemini 2.0 Flash Thinking',
+                        'gemini-1.5-pro': 'Gemini 1.5 Pro',
+                        'gemini-1.5-flash': 'Gemini 1.5 Flash',
+                        'gemini-argon': 'Gemini Argon'
+                    };
+                    return labels[this.ai_model] || this.ai_model;
+                },
 
                 // Async & Output States
                 generating: false,
-                generatingText: 'Menghubungkan ke DeepSeek AI...',
+                generatingText: 'Menghubungi AI Engine...',
                 resultPackage: null,
                 wordText: '',
                 resultTab: 'print',
@@ -1151,7 +1346,13 @@
                     if (this.category === 'school') {
                         const curData = this.syllabus[this.curriculum] || {};
                         const gradeData = curData[this.grade_level] || {};
-                        const subData = gradeData[this.subject] || {};
+                        let subData = gradeData[this.subject] || {};
+
+                        // Dukungan otomatis untuk mapel IPAS vs IPA/IPS jenjang SD
+                        if ((!subData || !subData.chapters) && (this.subject === 'ipas' || this.subject === 'ipa' || this.subject === 'ips')) {
+                            subData = gradeData['ipas'] || gradeData['ipa'] || gradeData['ips'] || {};
+                        }
+
                         let chapters = subData.chapters || [];
 
                         // Fallback dinamis jika kombinasi tertentu belum didefinisikan secara statis
@@ -1171,7 +1372,7 @@
                         this.selectedChapters = this.availableChapters.slice(0, 2).map(c => c.title);
 
                         // Auto-aktifkan diagram visual untuk mapel eksakta
-                        const exactSubjects = ['matematika', 'matematika_tingkat_lanjut', 'fisika', 'kimia', 'biologi', 'ekonomi', 'geografi'];
+                        const exactSubjects = ['matematika', 'matematika_tingkat_lanjut', 'fisika', 'kimia', 'biologi', 'ekonomi', 'geografi', 'ipas', 'ipa'];
                         if (exactSubjects.includes(this.subject)) {
                             this.include_visuals = true;
                         } else {
@@ -1218,7 +1419,7 @@
                     }
 
                     this.generating = true;
-                    this.generatingText = 'Menghubungi DeepSeek Engine (' + (this.ai_model === 'deepseek-reasoner' ? 'Deep Reasoning R1' : 'V3 Chat') + ')...';
+                    this.generatingText = 'Menghubungi AI Engine (' + this.getSelectedModelLabel() + ')...';
 
                     const primaryType = activeTypes[0].key;
                     const hasStimulus = this.getTotalStimulusTexts() > 0;

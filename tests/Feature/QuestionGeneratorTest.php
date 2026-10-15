@@ -6,7 +6,10 @@ use App\Models\QuestionGroup;
 use App\Models\Subject;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Ai\DeepSeekQuestionGeneratorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class QuestionGeneratorTest extends TestCase
@@ -40,6 +43,11 @@ class QuestionGeneratorTest extends TestCase
         $this->subject = Subject::create([
             'name' => 'Matematika Wajib',
             'code' => 'MAT-W',
+        ]);
+
+        config([
+            'services.deepseek.api_key' => '',
+            'services.gemini.api_key' => '',
         ]);
     }
 
@@ -189,29 +197,31 @@ class QuestionGeneratorTest extends TestCase
 
     public function test_sidebar_shows_studio_ai_for_authorized_roles_and_hides_for_students(): void
     {
+        $tenantUrl = 'http://'.$this->tenant->getPrimaryHost().'/dashboard';
+
         // Teacher
-        $responseT = $this->actingAs($this->user)->get(route('dashboard'));
+        $responseT = $this->actingAs($this->user)->get($tenantUrl);
         $responseT->assertStatus(200);
         $responseT->assertSee('Studio AI');
 
         // Super User
         $superUser = User::factory()->create(['current_tenant_id' => $this->tenant->id]);
         $superUser->tenants()->attach($this->tenant->id, ['role' => 'S']);
-        $responseS = $this->actingAs($superUser)->get(route('dashboard'));
+        $responseS = $this->actingAs($superUser)->get($tenantUrl);
         $responseS->assertStatus(200);
         $responseS->assertSee('Studio AI');
 
         // Admin
         $admin = User::factory()->create(['current_tenant_id' => $this->tenant->id]);
         $admin->tenants()->attach($this->tenant->id, ['role' => 'A']);
-        $responseA = $this->actingAs($admin)->get(route('dashboard'));
+        $responseA = $this->actingAs($admin)->get($tenantUrl);
         $responseA->assertStatus(200);
         $responseA->assertSee('Studio AI');
 
         // Student
         $student = User::factory()->create(['current_tenant_id' => $this->tenant->id]);
         $student->tenants()->attach($this->tenant->id, ['role' => 'U']);
-        $responseU = $this->actingAs($student)->get(route('dashboard'));
+        $responseU = $this->actingAs($student)->get($tenantUrl);
         $responseU->assertStatus(200);
         $responseU->assertDontSee('Studio AI');
     }
@@ -789,5 +799,446 @@ class QuestionGeneratorTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    }
+
+    public function test_ipas_syllabus_chapters_available_for_grades_4_5_6_sd_merdeka(): void
+    {
+        $syllabus = config('curriculum_syllabus.merdeka');
+
+        $this->assertArrayHasKey('4', $syllabus);
+        $this->assertArrayHasKey('ipas', $syllabus['4']);
+        $this->assertEquals('Ilmu Pengetahuan Alam & Sosial (IPAS)', $syllabus['4']['ipas']['name']);
+        $this->assertCount(8, $syllabus['4']['ipas']['chapters']);
+
+        $this->assertArrayHasKey('5', $syllabus);
+        $this->assertArrayHasKey('ipas', $syllabus['5']);
+        $this->assertEquals('Ilmu Pengetahuan Alam & Sosial (IPAS)', $syllabus['5']['ipas']['name']);
+        $this->assertCount(8, $syllabus['5']['ipas']['chapters']);
+
+        $this->assertArrayHasKey('6', $syllabus);
+        $this->assertArrayHasKey('ipas', $syllabus['6']);
+        $this->assertEquals('Ilmu Pengetahuan Alam & Sosial (IPAS)', $syllabus['6']['ipas']['name']);
+        $this->assertCount(8, $syllabus['6']['ipas']['chapters']);
+    }
+
+    public function test_question_generator_can_generate_ipas_questions_for_sd(): void
+    {
+        $payload = [
+            'category' => 'school',
+            'curriculum' => 'merdeka',
+            'grade_level' => '5',
+            'subject' => 'ipas',
+            'chapters' => ['Bab 2: Harmoni dalam Ekosistem (Rantai Makanan & Jaring-Jaring Kehidupan)'],
+            'difficulty' => 'mudah',
+            'cognitive_level' => 'C1-C2 (LOTS)',
+            'stimulus_mode' => 'standalone',
+            'question_type' => 'mcq_single',
+            'question_count' => 2,
+            'ai_model' => 'deepseek-reasoner',
+        ];
+
+        $response = $this->actingAs($this->user)->postJson(route('question-generator.generate'), $payload);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+        ]);
+
+        $data = $response->json();
+        $this->assertNotEmpty($data['package']['items']);
+        $this->assertEquals('ipas', $data['package']['subject'] ?? $payload['subject']);
+    }
+
+    public function test_explanation_sanitization_removes_rigid_prefix_and_aligns_key_letter(): void
+    {
+        $aiService = app(DeepSeekQuestionGeneratorService::class);
+
+        $options = [
+            ['label' => 'A', 'option_text' => 'Karbondioksida', 'is_correct' => false],
+            ['label' => 'B', 'option_text' => 'Air tanah', 'is_correct' => false],
+            ['label' => 'C', 'option_text' => 'Klorofil pada daun', 'is_correct' => true],
+            ['label' => 'D', 'option_text' => 'Oksigen bebas', 'is_correct' => false],
+        ];
+
+        // Case 1: Explanation has rigid "KUNCI: A." prefix and ends with contradictory "jadi jawaban yang benar adalah A"
+        $rawExplanation = 'KUNCI: A. Daun merupakan organ fotosintesis karena mengandung klorofil untuk menangkap cahaya. Jadi jawaban yang benar adalah A';
+        $sanitized = $aiService->sanitizeExplanation($rawExplanation, $options, 'mcq_single');
+
+        // Verify "KUNCI: A." is removed and concluding sentence is corrected to C
+        $this->assertStringStartsNotWith('KUNCI:', $sanitized);
+        $this->assertStringContainsString('jawaban yang benar adalah C (Klorofil pada daun)', $sanitized);
+
+        // Case 2: Natural explanation without rigid templates is preserved and unaltered
+        $cleanExplanation = 'Klorofil berfungsi mengonversi energi foton matahari menjadi energi kimia dalam reaksi terang fotosintesis.';
+        $cleanResult = $aiService->sanitizeExplanation($cleanExplanation, $options, 'mcq_single');
+        $this->assertEquals($cleanExplanation, $cleanResult);
+    }
+
+    public function test_gemini_models_are_recognized_and_supported_by_generator(): void
+    {
+        $supportedModels = DeepSeekQuestionGeneratorService::getSupportedModels();
+        $this->assertArrayHasKey('gemini-2.5-pro', $supportedModels);
+        $this->assertArrayHasKey('gemini-2.5-flash', $supportedModels);
+        $this->assertArrayHasKey('gemini-2.0-flash', $supportedModels);
+        $this->assertArrayHasKey('gemini-2.0-flash-lite', $supportedModels);
+        $this->assertArrayHasKey('gemini-2.0-flash-thinking-exp-01-21', $supportedModels);
+        $this->assertArrayHasKey('gemini-1.5-pro', $supportedModels);
+        $this->assertArrayHasKey('gemini-1.5-flash', $supportedModels);
+        $this->assertArrayHasKey('gemini-argon', $supportedModels);
+
+        $modelsByProvider = DeepSeekQuestionGeneratorService::getModelsByProvider();
+        $this->assertArrayHasKey('deepseek', $modelsByProvider);
+        $this->assertArrayHasKey('gemini', $modelsByProvider);
+        $this->assertCount(2, $modelsByProvider['deepseek']);
+        $this->assertCount(8, $modelsByProvider['gemini']);
+
+        $aiService = app(DeepSeekQuestionGeneratorService::class);
+        $this->assertTrue($aiService->isGeminiModel('gemini-2.5-flash'));
+        $this->assertTrue($aiService->isGeminiModel('gemini-argon'));
+        $this->assertFalse($aiService->isGeminiModel('deepseek-reasoner'));
+    }
+
+    public function test_question_generator_can_generate_with_gemini_model(): void
+    {
+        $this->actingAs($this->user);
+
+        $payload = [
+            'category' => 'school',
+            'curriculum' => 'merdeka',
+            'grade_level' => '5',
+            'subject' => 'ipas',
+            'difficulty' => 'sedang',
+            'cognitive_level' => 'C3-C4 (MOTS)',
+            'question_type' => 'mcq_single',
+            'question_count' => 3,
+            'ai_model' => 'gemini-2.5-flash',
+            'type_distributions' => [
+                [
+                    'type' => 'mcq_single',
+                    'standalone_count' => 3,
+                    'stimulus_count' => 0,
+                    'stimulus_questions' => 0,
+                ],
+            ],
+        ];
+
+        $response = $this->postJson(route('question-generator.generate'), $payload);
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+        ]);
+
+        $data = $response->json();
+        $this->assertNotEmpty($data['package']['items']);
+        $this->assertEquals('gemini-2.5-flash', $data['package']['model_used']);
+    }
+
+    public function test_question_generator_can_generate_with_gemini_argon(): void
+    {
+        $this->actingAs($this->user);
+
+        $payload = [
+            'category' => 'school',
+            'curriculum' => 'merdeka',
+            'grade_level' => '4',
+            'subject' => 'ipas',
+            'difficulty' => 'mudah',
+            'cognitive_level' => 'C1-C2 (LOTS)',
+            'question_type' => 'mcq_single',
+            'question_count' => 2,
+            'ai_model' => 'gemini-argon',
+            'type_distributions' => [
+                [
+                    'type' => 'mcq_single',
+                    'standalone_count' => 2,
+                    'stimulus_count' => 0,
+                    'stimulus_questions' => 0,
+                ],
+            ],
+        ];
+
+        $response = $this->postJson(route('question-generator.generate'), $payload);
+        $response->assertStatus(200);
+        $this->assertEquals('gemini-argon', $response->json('package.model_used'));
+    }
+
+    public function test_gemini_live_api_call_is_handled_when_api_key_configured(): void
+    {
+        config(['services.gemini.api_key' => 'test-gemini-key-123']);
+
+        $mockGeminiResponse = [
+            'candidates' => [
+                [
+                    'content' => [
+                        'parts' => [
+                            [
+                                'text' => json_encode([
+                                    'assessment_title' => 'Asesmen IPAS Kelas 5 SD - Ekosistem',
+                                    'category' => 'school',
+                                    'difficulty' => 'sedang',
+                                    'cognitive_level' => 'C3-C4 (MOTS)',
+                                    'stimuli' => [],
+                                    'stimulus' => null,
+                                    'items' => [
+                                        [
+                                            'number' => 1,
+                                            'type' => 'mcq_single',
+                                            'prompt' => 'Dalam suatu ekosistem sawah, peran katak adalah sebagai...',
+                                            'points' => 2.0,
+                                            'options' => [
+                                                ['label' => 'A', 'option_text' => 'Produsen pertama', 'is_correct' => false, 'score' => 0.0],
+                                                ['label' => 'B', 'option_text' => 'Konsumen tingkat II', 'is_correct' => true, 'score' => 2.0],
+                                                ['label' => 'C', 'option_text' => 'Pengurai utama', 'is_correct' => false, 'score' => 0.0],
+                                                ['label' => 'D', 'option_text' => 'Konsumen puncak', 'is_correct' => false, 'score' => 0.0],
+                                            ],
+                                            'explanation' => 'Katak memakan serangga herbivora (konsumen I), sehingga katak berkedudukan sebagai konsumen tingkat II (sekunder) dalam rantai makanan.',
+                                        ],
+                                    ],
+                                ]),
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response($mockGeminiResponse, 200),
+        ]);
+
+        $aiService = app(DeepSeekQuestionGeneratorService::class);
+        $result = $aiService->generate([
+            'category' => 'school',
+            'subject' => 'ipas',
+            'grade_level' => '5',
+            'ai_model' => 'gemini-2.5-flash',
+        ]);
+
+        $this->assertEquals('gemini-2.5-flash', $result['model_used']);
+        $this->assertEquals('google-gemini', $result['provider']);
+        $this->assertCount(1, $result['items']);
+        $this->assertEquals('Dalam suatu ekosistem sawah, peran katak adalah sebagai...', $result['items'][0]['prompt']);
+        $this->assertTrue($result['items'][0]['options'][1]['is_correct']);
+    }
+
+    public function test_gemini_prompting_strictly_enforces_teacher_kisi_kisi_and_custom_prompt(): void
+    {
+        config(['services.gemini.api_key' => 'test-gemini-key-123']);
+
+        $mockGeminiResponse = [
+            'candidates' => [
+                [
+                    'content' => [
+                        'parts' => [
+                            [
+                                'text' => json_encode([
+                                    'assessment_title' => 'Asesmen Siklus Nitrogen - Petani Sukamaju',
+                                    'category' => 'school',
+                                    'difficulty' => 'sedang',
+                                    'cognitive_level' => 'C3-C4 (MOTS)',
+                                    'stimuli' => [],
+                                    'stimulus' => null,
+                                    'items' => [
+                                        [
+                                            'number' => 1,
+                                            'type' => 'mcq_single',
+                                            'prompt' => 'Berdasarkan studi kasus petani Desa Sukamaju, bakteri yang berperan penting dalam mengikat nitrogen bebas di udara adalah ...',
+                                            'points' => 2.0,
+                                            'options' => [
+                                                ['label' => 'A', 'option_text' => 'Rhizobium yang bersimbiosis dengan akar tanaman polong', 'is_correct' => true, 'score' => 2.0],
+                                                ['label' => 'B', 'option_text' => 'Lactobacillus bulgaricus', 'is_correct' => false, 'score' => 0.0],
+                                                ['label' => 'C', 'option_text' => 'Escherichia coli usus', 'is_correct' => false, 'score' => 0.0],
+                                                ['label' => 'D', 'option_text' => 'Streptomyces griceus', 'is_correct' => false, 'score' => 0.0],
+                                            ],
+                                            'explanation' => 'Bakteri Rhizobium mengikat nitrogen bebas dari atmosfer menjadi senyawa nitrat yang menyuburkan tanah pertanian.',
+                                        ],
+                                    ],
+                                ]),
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response($mockGeminiResponse, 200),
+        ]);
+
+        $customKisiKisi = 'Fokuskan pada siklus nitrogen tanah dan studi kasus petani Desa Sukamaju';
+
+        $aiService = app(DeepSeekQuestionGeneratorService::class);
+        $result = $aiService->generate([
+            'category' => 'school',
+            'subject' => 'ipas',
+            'grade_level' => '5',
+            'custom_prompt' => $customKisiKisi,
+            'ai_model' => 'gemini-2.5-flash',
+        ]);
+
+        $this->assertEquals('gemini-2.5-flash', $result['model_used']);
+
+        Http::assertSent(function (Request $request) use ($customKisiKisi) {
+            $systemText = data_get($request->data(), 'systemInstruction.parts.0.text', '');
+            $userText = data_get($request->data(), 'contents.0.parts.0.text', '');
+
+            return str_contains($systemText, 'INSTRUKSI PRIORITAS TERTINGGI (KISI-KISI / PESAN KHUSUS DARI GURU)')
+                && str_contains($systemText, $customKisiKisi)
+                && str_contains($userText, 'PERINTAH UTAMA: KISI-KISI & PESAN KHUSUS DARI GURU')
+                && str_contains($userText, $customKisiKisi);
+        });
+    }
+
+    public function test_bahasa_indonesia_grade_1_generates_distinct_child_friendly_questions_without_duplicates(): void
+    {
+        $aiService = app(DeepSeekQuestionGeneratorService::class);
+        $result = $aiService->generate([
+            'category' => 'school',
+            'curriculum' => 'merdeka',
+            'grade_level' => '1',
+            'subject' => 'bahasa_indonesia',
+            'question_type' => 'mcq_single',
+            'question_count' => 10,
+        ]);
+
+        $this->assertNotEmpty($result['items']);
+        $items = $result['items'];
+        $this->assertCount(10, $items);
+
+        $prompts = array_map(fn ($item) => $item['prompt'], $items);
+        $uniquePrompts = array_unique($prompts);
+        $this->assertCount(10, $uniquePrompts, 'Semua 10 butir soal harus unik dan tidak boleh ada duplikasi teks!');
+
+        $wordText = $aiService->formatAsWordDocxText($result);
+        $this->assertStringNotContainsString('disrupsi global', $wordText);
+        $this->assertStringNotContainsString('falsifiabilitas', $wordText);
+        $this->assertStringNotContainsString('hukum ilmiah', $wordText);
+
+        $keys = [];
+        foreach ($items as $item) {
+            foreach ($item['options'] as $opt) {
+                if ($opt['is_correct']) {
+                    $keys[] = $opt['label'];
+                }
+            }
+        }
+        $uniqueKeys = array_unique($keys);
+        $this->assertGreaterThan(1, count($uniqueKeys), 'Kunci jawaban tidak boleh seragam satu huruf melainkan bervariasi A, B, C, D.');
+    }
+
+    public function test_grade_1_short_answer_and_essay_are_calibrated_for_children(): void
+    {
+        $aiService = app(DeepSeekQuestionGeneratorService::class);
+
+        // Test Short Answer for Grade 1
+        $shortResult = $aiService->generate([
+            'category' => 'school',
+            'curriculum' => 'merdeka',
+            'grade_level' => '1',
+            'subject' => 'bahasa_indonesia',
+            'question_type' => 'short_answer',
+            'question_count' => 3,
+        ]);
+
+        $shortItems = $shortResult['items'];
+        $this->assertCount(3, $shortItems);
+        foreach ($shortItems as $item) {
+            $this->assertStringNotContainsString('Hukum ilmiah', $item['short_answer_key'] ?? '');
+            $this->assertStringNotContainsString('Falsifiabilitas', $item['short_answer_key'] ?? '');
+            $this->assertStringNotContainsString('Observasi', $item['short_answer_key'] ?? '');
+        }
+
+        // Test Essay for Grade 1
+        $essayResult = $aiService->generate([
+            'category' => 'school',
+            'curriculum' => 'merdeka',
+            'grade_level' => '1',
+            'subject' => 'bahasa_indonesia',
+            'question_type' => 'essay',
+            'question_count' => 2,
+        ]);
+
+        $essayItems = $essayResult['items'];
+        $this->assertCount(2, $essayItems);
+        foreach ($essayItems as $item) {
+            $this->assertStringNotContainsString('perspektif yang berbeda dalam memahami dinamika Bahasa Indonesia', $item['prompt']);
+            $this->assertStringNotContainsString('komprehensif', $item['prompt']);
+        }
+    }
+
+    public function test_truncated_json_repair_recovers_items_and_complements_package(): void
+    {
+        config(['services.deepseek.api_key' => 'fake-key']);
+
+        // Incomplete/cut-off JSON where 2 questions are complete and the 3rd is sliced in the middle
+        $truncatedApiResponse = '{
+            "package_title": "Asesmen Bahasa Indonesia Kelas 1 SD",
+            "items": [
+                {
+                    "number": 1,
+                    "type": "mcq_single",
+                    "prompt": "Huruf pertama pada kata \\"bola\\" adalah huruf ...",
+                    "points": 2.0,
+                    "options": [
+                        {"label": "A", "option_text": "b", "is_correct": true, "score": 2.0},
+                        {"label": "B", "option_text": "d", "is_correct": false, "score": 0.0},
+                        {"label": "C", "option_text": "p", "is_correct": false, "score": 0.0},
+                        {"label": "D", "option_text": "m", "is_correct": false, "score": 0.0}
+                    ],
+                    "explanation": "Kata bola diawali dengan huruf b."
+                },
+                {
+                    "number": 2,
+                    "type": "mcq_single",
+                    "prompt": "Suku kata untuk kata \\"buku\\" adalah ...",
+                    "points": 2.0,
+                    "options": [
+                        {"label": "A", "option_text": "bu - ku", "is_correct": true, "score": 2.0},
+                        {"label": "B", "option_text": "buk - u", "is_correct": false, "score": 0.0},
+                        {"label": "C", "option_text": "b - uku", "is_correct": false, "score": 0.0},
+                        {"label": "D", "option_text": "buku - a", "is_correct": false, "score": 0.0}
+                    ],
+                    "explanation": "Buku tersusun dari suku kata bu dan ku."
+                },
+                {
+                    "number": 3,
+                    "type": "mcq_single",
+                    "prompt": "Sebelum makan kita harus mencuci tangan dengan ...",
+                    "points": 2.0,
+                    "options": [
+                        {"label": "A", "option_text": "sabun", "is_correct": true';
+
+        Http::fake([
+            'https://api.deepseek.com/*' => Http::response([
+                'choices' => [
+                    [
+                        'message' => [
+                            'content' => $truncatedApiResponse,
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $aiService = app(DeepSeekQuestionGeneratorService::class);
+        $result = $aiService->generate([
+            'category' => 'school',
+            'curriculum' => 'merdeka',
+            'grade_level' => '1',
+            'subject' => 'bahasa_indonesia',
+            'question_type' => 'mcq_single',
+            'question_count' => 4,
+            'ai_model' => 'deepseek-reasoner',
+        ]);
+
+        $this->assertEquals('deepseek-reasoner', $result['model_used']);
+        $items = $result['items'];
+
+        // Should recover items 1 and 2, and complement items 3 and 4 to fulfill the 4 requested items
+        $this->assertCount(4, $items);
+        $this->assertEquals('Huruf pertama pada kata "bola" adalah huruf ...', $items[0]['prompt']);
+        $this->assertEquals('Suku kata untuk kata "buku" adalah ...', $items[1]['prompt']);
+        $this->assertNotEmpty($items[2]['prompt']);
+        $this->assertNotEmpty($items[3]['prompt']);
     }
 }

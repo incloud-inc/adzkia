@@ -8,78 +8,309 @@ use Illuminate\Support\Facades\Log;
 class DeepSeekQuestionGeneratorService
 {
     /**
-     * Generate structured questions using DeepSeek AI Engine (V3 Chat or R1 Reasoner).
+     * Supported models across providers.
+     *
+     * @var array<string, array{provider: string, name: string, badge: string, badge_color: string, desc: string}>
+     */
+    public const SUPPORTED_MODELS = [
+        'deepseek-reasoner' => [
+            'provider' => 'deepseek',
+            'name' => 'DeepSeek R1 (Reasoner)',
+            'badge' => 'CoT Reasoning',
+            'badge_color' => 'bg-indigo-9 text-white',
+            'desc' => 'Dilengkapi Chain-of-Thought (CoT). Sangat akurat untuk hitungan matematika, sains analitis, HOTS, dan logika bebas halusinasi.',
+        ],
+        'deepseek-chat' => [
+            'provider' => 'deepseek',
+            'name' => 'DeepSeek V3 (Chat)',
+            'badge' => 'Cepat & Ringan',
+            'badge_color' => 'bg-gray-4 text-gray-11',
+            'desc' => 'Generasi ultra cepat dalam hitungan detik. Cocok untuk soal hafalan, definisi, literasi dasar, dan pembuatan draft naskah cepat.',
+        ],
+        'gemini-2.5-pro' => [
+            'provider' => 'gemini',
+            'name' => 'Gemini 2.5 Pro',
+            'badge' => 'Flagship Reasoning',
+            'badge_color' => 'bg-purple-9 text-white',
+            'desc' => 'Model flagship Google paling cerdas dengan penalaran tingkat lanjut, wacana bacaan kaya, dan akurasi tinggi.',
+        ],
+        'gemini-2.5-flash' => [
+            'provider' => 'gemini',
+            'name' => 'Gemini 2.5 Flash',
+            'badge' => 'Rekomendasi Utama',
+            'badge_color' => 'bg-blue-9 text-white',
+            'desc' => 'Generasi 2.5 mutakhir Google: sangat cepat, efisien, dengan kapabilitas penalaran bawaan untuk seluruh mata pelajaran.',
+        ],
+        'gemini-2.0-flash' => [
+            'provider' => 'gemini',
+            'name' => 'Gemini 2.0 Flash',
+            'badge' => 'Next-Gen Speed',
+            'badge_color' => 'bg-teal-9 text-white',
+            'desc' => 'Model generasi 2.0 standar yang ultra cepat, latensi rendah, dan pemahaman instruksi kurikulum yang presisi.',
+        ],
+        'gemini-2.0-flash-lite' => [
+            'provider' => 'gemini',
+            'name' => 'Gemini 2.0 Flash-Lite',
+            'badge' => 'Super Ringan & Hemat',
+            'badge_color' => 'bg-gray-4 text-gray-11',
+            'desc' => 'Model ultra ringan dengan kuota hemat dan kecepatan tinggi untuk pembuatan draf naskah soal masif.',
+        ],
+        'gemini-2.0-flash-thinking-exp-01-21' => [
+            'provider' => 'gemini',
+            'name' => 'Gemini 2.0 Flash Thinking',
+            'badge' => 'CoT Thinking',
+            'badge_color' => 'bg-amber-9 text-white',
+            'desc' => 'Model penalaran eksplisit (thinking) khusus untuk pemecahan masalah matematika rumit, logika, dan olimpiade.',
+        ],
+        'gemini-1.5-pro' => [
+            'provider' => 'gemini',
+            'name' => 'Gemini 1.5 Pro',
+            'badge' => 'Konteks Panjang',
+            'badge_color' => 'bg-purple-8 text-white',
+            'desc' => 'Kapasitas konteks masif untuk analisis bacaan wacana panjang, artikel ilmiah, dan wacana literasi kompleks.',
+        ],
+        'gemini-1.5-flash' => [
+            'provider' => 'gemini',
+            'name' => 'Gemini 1.5 Flash',
+            'badge' => 'Serbaguna & Stabil',
+            'badge_color' => 'bg-blue-8 text-white',
+            'desc' => 'Model serbaguna cepat dan stabil untuk soal-soal kurikulum reguler sekolah.',
+        ],
+        'gemini-argon' => [
+            'provider' => 'gemini',
+            'name' => 'Gemini Argon / Custom Proxy',
+            'badge' => 'Custom Gateway',
+            'badge_color' => 'bg-emerald-9 text-white',
+            'desc' => 'Pilihan gateway kustom / proxy endpoint model Gemini Argon yang kompatibel dengan API Gemini.',
+        ],
+    ];
+
+    /**
+     * Get all supported models.
+     *
+     * @return array<string, array{provider: string, name: string, badge: string, badge_color: string, desc: string}>
+     */
+    public static function getSupportedModels(): array
+    {
+        return self::SUPPORTED_MODELS;
+    }
+
+    /**
+     * Get models grouped by provider (deepseek, gemini).
+     *
+     * @return array<string, array<string, array{provider: string, name: string, badge: string, badge_color: string, desc: string}>>
+     */
+    public static function getModelsByProvider(): array
+    {
+        $grouped = [];
+        foreach (self::SUPPORTED_MODELS as $key => $meta) {
+            $provider = $meta['provider'] ?? 'other';
+            $grouped[$provider][$key] = $meta;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Check if a model belongs to the Gemini family.
+     */
+    public function isGeminiModel(string $model): bool
+    {
+        return str_starts_with(strtolower($model), 'gemini');
+    }
+
+    /**
+     * Generate structured questions using DeepSeek or Google Gemini AI Engine.
      *
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
     public function generate(array $params): array
     {
-        $apiKey = config('services.deepseek.api_key') ?: env('DEEPSEEK_API_KEY');
-        $model = $params['ai_model'] ?? config('services.deepseek.model', 'deepseek-reasoner');
-        if (! in_array($model, ['deepseek-chat', 'deepseek-reasoner'], true)) {
-            $model = 'deepseek-reasoner';
+        $rawModel = (string) ($params['ai_model'] ?? '');
+        if (array_key_exists($rawModel, self::SUPPORTED_MODELS)) {
+            $model = $rawModel;
+        } elseif ($this->isGeminiModel($rawModel)) {
+            $model = $rawModel;
+        } else {
+            $model = config('services.deepseek.model', 'deepseek-reasoner');
+            if (! in_array($model, ['deepseek-chat', 'deepseek-reasoner'], true)) {
+                $model = 'deepseek-reasoner';
+            }
         }
 
         $systemPrompt = $this->buildSystemPrompt($params);
         $userPrompt = $this->buildUserPrompt($params);
 
-        // If DeepSeek API key is configured, invoke the live DeepSeek API
-        if (filled($apiKey)) {
-            try {
-                $baseUrl = rtrim((string) (config('services.deepseek.base_url') ?: env('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')), '/');
+        if ($this->isGeminiModel($model)) {
+            $geminiApiKey = config('services.gemini.api_key');
+            if (filled($geminiApiKey)) {
+                try {
+                    $baseUrl = rtrim((string) config('services.gemini.base_url', 'https://generativelanguage.googleapis.com/v1beta'), '/');
+                    $timeout = (int) config('services.gemini.timeout', 120);
 
-                $payload = [
-                    'model' => $model,
-                    'messages' => [
-                        ['role' => 'system', 'content' => $systemPrompt],
-                        ['role' => 'user', 'content' => $userPrompt],
-                    ],
-                    'max_tokens' => 8192,
-                ];
+                    // If model is gemini-argon, allow mapping to custom model name or default to gemini-2.0-flash
+                    $apiModel = $model === 'gemini-argon'
+                        ? (string) config('services.gemini.argon_target', 'gemini-2.0-flash')
+                        : $model;
 
-                // deepseek-chat supports temperature and response_format
-                // deepseek-reasoner DOES NOT allow temperature or response_format
-                if ($model === 'deepseek-chat') {
-                    $payload['temperature'] = 0.7;
-                    $payload['response_format'] = ['type' => 'json_object'];
-                }
+                    $endpoint = "{$baseUrl}/models/{$apiModel}:generateContent?key={$geminiApiKey}";
 
-                $timeout = (int) (config('services.deepseek.timeout') ?: env('DEEPSEEK_TIMEOUT', 180));
+                    $customPrompt = trim((string) ($params['custom_prompt'] ?? ''));
 
-                $response = Http::withHeaders([
-                    'Authorization' => "Bearer {$apiKey}",
-                    'Content-Type' => 'application/json',
-                ])
-                    ->timeout($timeout)
-                    ->post("{$baseUrl}/chat/completions", $payload);
+                    $geminiSystemInstruction = $systemPrompt;
+                    if ($customPrompt !== '') {
+                        $geminiSystemInstruction .= "\n\n"
+                            ."================================================================================\n"
+                            ."⚠️ INSTRUKSI PRIORITAS TERTINGGI (KISI-KISI / PESAN KHUSUS DARI GURU):\n"
+                            ."Guru telah menetapkan instruksi khusus dan kisi-kisi berikut yang WAJIB MENJADI RUJUKAN UTAMA pembuatan soal:\n"
+                            ."\"\"\"\n{$customPrompt}\n\"\"\"\n"
+                            ."Anda WAJIB memastikan 100% butir soal, wacana stimulus, opsi pilihan, dan pembahasan mengimplementasikan kisi-kisi khusus ini secara mendalam!\n"
+                            .'================================================================================';
+                    }
 
-                if ($response->successful()) {
-                    $rawContent = $response->json('choices.0.message.content', '');
-                    $reasoningContent = $response->json('choices.0.message.reasoning_content', '');
+                    $geminiPayload = [
+                        'contents' => [
+                            [
+                                'role' => 'user',
+                                'parts' => [
+                                    ['text' => $userPrompt],
+                                ],
+                            ],
+                        ],
+                        'systemInstruction' => [
+                            'parts' => [
+                                ['text' => $geminiSystemInstruction],
+                            ],
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.6,
+                            'maxOutputTokens' => 8192,
+                            'responseMimeType' => 'application/json',
+                        ],
+                    ];
 
-                    $cleanJson = $this->extractJson($rawContent);
-                    $decoded = json_decode($cleanJson, true);
+                    if (str_contains($apiModel, 'thinking')) {
+                        unset($geminiPayload['generationConfig']['responseMimeType']);
+                    }
 
-                    if (is_array($decoded)) {
-                        $normalized = $this->normalizePackage($decoded, $params);
-                        if (! empty($normalized['items'])) {
-                            $normalized['model_used'] = $model;
-                            $normalized['reasoning_notes'] = $reasoningContent ?: ($normalized['reasoning_notes'] ?? '');
+                    $response = Http::withHeaders([
+                        'Content-Type' => 'application/json',
+                        'x-goog-api-key' => $geminiApiKey,
+                    ])
+                        ->timeout($timeout)
+                        ->post($endpoint, $geminiPayload);
 
-                            return $normalized;
+                    // Fallback retry if systemInstruction is rejected by experimental model
+                    if ($response->status() === 400 && str_contains($response->body(), 'system_instruction')) {
+                        $geminiPayload['contents'][0]['parts'][0]['text'] = "PETUNJUK SISTEM:\n{$geminiSystemInstruction}\n\nPERMINTAAN SOAL:\n{$userPrompt}";
+                        unset($geminiPayload['systemInstruction']);
+                        $response = Http::withHeaders([
+                            'Content-Type' => 'application/json',
+                            'x-goog-api-key' => $geminiApiKey,
+                        ])
+                            ->timeout($timeout)
+                            ->post($endpoint, $geminiPayload);
+                    }
+
+                    if ($response->successful()) {
+                        $rawContent = $response->json('candidates.0.content.parts.0.text', '');
+                        $cleanJson = $this->extractJson($rawContent);
+                        $decoded = json_decode($cleanJson, true);
+
+                        if (is_array($decoded)) {
+                            $normalized = $this->normalizePackage($decoded, $params);
+                            $normalized = $this->ensureExpectedItemCount($normalized, $params);
+                            if (! empty($normalized['items'])) {
+                                $normalized['model_used'] = $model;
+                                $normalized['provider'] = 'google-gemini';
+                                $normalized['reasoning_notes'] = "Dihasilkan secara cerdas oleh Google Gemini ({$model}) CBT Engine.";
+
+                                return $normalized;
+                            }
                         }
                     }
-                }
 
-                Log::warning('DeepSeek Question Generator live call returned non-JSON, falling back to heuristic engine.', [
-                    'status' => $response->status(),
-                    'body' => substr($response->body(), 0, 500),
-                ]);
-            } catch (\Throwable $e) {
-                Log::error('DeepSeek Question Generator exception: '.$e->getMessage(), [
-                    'trace' => $e->getTraceAsString(),
-                ]);
+                    Log::warning('Gemini Question Generator live call returned non-JSON or error, falling back to heuristic engine.', [
+                        'status' => $response->status(),
+                        'body' => substr($response->body(), 0, 500),
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::error('Gemini Question Generator exception: '.$e->getMessage(), [
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
+            }
+        } else {
+            $apiKey = config('services.deepseek.api_key');
+            if (filled($apiKey)) {
+                try {
+                    $baseUrl = rtrim((string) config('services.deepseek.base_url', 'https://api.deepseek.com'), '/');
+
+                    $customPrompt = trim((string) ($params['custom_prompt'] ?? ''));
+                    $deepseekSystemPrompt = $systemPrompt;
+                    if ($customPrompt !== '') {
+                        $deepseekSystemPrompt .= "\n\n"
+                            ."================================================================================\n"
+                            ."⚠️ INSTRUKSI PRIORITAS TERTINGGI (KISI-KISI / PESAN KHUSUS DARI GURU):\n"
+                            ."Guru telah menetapkan instruksi khusus dan kisi-kisi berikut yang WAJIB MENJADI RUJUKAN UTAMA pembuatan soal:\n"
+                            ."\"\"\"\n{$customPrompt}\n\"\"\"\n"
+                            ."Anda WAJIB memastikan 100% butir soal, wacana stimulus, opsi pilihan, dan pembahasan mengimplementasikan kisi-kisi khusus ini secara mendalam!\n"
+                            .'================================================================================';
+                    }
+
+                    $payload = [
+                        'model' => $model,
+                        'messages' => [
+                            ['role' => 'system', 'content' => $deepseekSystemPrompt],
+                            ['role' => 'user', 'content' => $userPrompt],
+                        ],
+                        'max_tokens' => 8192,
+                    ];
+
+                    if ($model === 'deepseek-chat') {
+                        $payload['temperature'] = 0.7;
+                        $payload['response_format'] = ['type' => 'json_object'];
+                    }
+
+                    $timeout = (int) config('services.deepseek.timeout', 120);
+
+                    $response = Http::withHeaders([
+                        'Authorization' => "Bearer {$apiKey}",
+                        'Content-Type' => 'application/json',
+                    ])
+                        ->timeout($timeout)
+                        ->post("{$baseUrl}/chat/completions", $payload);
+
+                    if ($response->successful()) {
+                        $rawContent = $response->json('choices.0.message.content', '');
+                        $reasoningContent = $response->json('choices.0.message.reasoning_content', '');
+
+                        $cleanJson = $this->extractJson($rawContent);
+                        $decoded = json_decode($cleanJson, true);
+
+                        if (is_array($decoded)) {
+                            $normalized = $this->normalizePackage($decoded, $params);
+                            $normalized = $this->ensureExpectedItemCount($normalized, $params);
+                            if (! empty($normalized['items'])) {
+                                $normalized['model_used'] = $model;
+                                $normalized['provider'] = 'deepseek';
+                                $normalized['reasoning_notes'] = $reasoningContent ?: ($normalized['reasoning_notes'] ?? '');
+
+                                return $normalized;
+                            }
+                        }
+                    }
+
+                    Log::warning('DeepSeek Question Generator live call returned non-JSON, falling back to heuristic engine.', [
+                        'status' => $response->status(),
+                        'body' => substr($response->body(), 0, 500),
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::error('DeepSeek Question Generator exception: '.$e->getMessage(), [
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
             }
         }
 
@@ -100,19 +331,28 @@ ATURAN STRUKTURAL KETAT:
 1. OUTPUT WAJIB BERUPA VALID JSON MURNI TANPA PEMBUKA/PENUTUP MARKDOWN ATAU PENJELASAN DI LUAR JSON.
 2. Setiap butir soal harus memiliki kunci jawaban yang valid, bobot soal (points), dan pembahasan terperinci.
 3. Rumus matematika dan simbol sains WAJIB menggunakan format LaTeX dengan delimiter ganda $$...$$, contoh: $$2x^2 - 7x + 3 = 0$$ atau $$\frac{-b \pm \sqrt{D}}{2a}$$.
-4. KHUSUS SOAL TKP (Tes Karakteristik Pribadi):
+4. DISTRIBUSI KUNCI JAWABAN PILIHAN GANDA (mcq_single):
+   - Posisi opsi yang bernilai benar (`is_correct: true`) WAJIB bervariasi dan terdistribusi secara acak dan seimbang di antara huruf A, B, C, D, atau E.
+   - DILARANG KERAS menempatkan kunci jawaban selalu pada pilihan A! Pastikan pada paket soal yang dihasilkan, kunci jawaban tersebar merata.
+5. KHUSUS SOAL TKP (Tes Karakteristik Pribadi):
    - Wajib memiliki 5 pilihan opsi (A, B, C, D, E) bernilai terbobot dari 5, 4, 3, 2, sampai 1.
    - Opsi jawaban A-E masing-masing memiliki field `score` dari 1.0 hingga 5.0 (nilai 5 untuk sikap paling profesional/berintegritas).
-5. KHUSUS PILIHAN GANDA KOMPLEKS (mcq_multiple):
+6. KHUSUS PILIHAN GANDA KOMPLEKS (mcq_multiple):
    - Kunci jawaban benar lebih dari satu (minimal 2 opsi bernilai benar / is_correct = true).
-6. KHUSUS TABEL DIKOTOMI (binary_matrix):
+7. KHUSUS TABEL DIKOTOMI (binary_matrix):
    - Opsi berisi pernyataan dengan match_key 'Benar' atau 'Salah'.
-7. KHUSUS MENJODOHKAN (matching):
+8. KHUSUS MENJODOHKAN (matching):
    - Opsi berisi premis kiri (option_text) dan pasangan kanan (match_key).
-8. KHUSUS MENGURUTKAN (ordering):
+9. KHUSUS MENGURUTKAN (ordering):
    - Opsi berisi tahapan berurutan secara logis dari order 1 sampai n.
-9. PEMBAHASAN: Tuliskan langkah ilmiah, konsep kunci, atau trik cepat cara kerja yang mendidik.
-10. KHUSUS SOAL BERSTIMULUS NARASI / WACANA LITERASI:
+10. ATURAN PENULISAN PEMBAHASAN (EXPLANATION) — SANGAT KRUSIAL:
+   - Pembahasan HARUS bernilai edukatif, mendalam, dan mengalir secara alami sesuai konteks materi soal.
+   - Uraikan fakta ilmiah, langkah analisis, atau rumus perhitungan matematis yang membuktikan mengapa jawaban tersebut benar dan mengapa opsi pengecoh lainnya salah/kurang tepat.
+   - DILARANG KERAS mengawali pembahasan dengan label kaku atau template seperti 'KUNCI: A', 'Kunci: A', 'Kunci Jawaban: A', atau awalan sejenis!
+   - DILARANG KERAS mengakhiri pembahasan dengan kalimat template kaku seperti 'jadi jawaban yang benar adalah A', 'maka opsi yang tepat adalah A', atau sejenisnya, TERUTAMA jika opsi yang benar bukan A!
+   - Pembahasan harus menjelaskan substansi konsep mengapa jawaban tersebut benar. Jika merujuk ke pilihan jawaban, sebutkan substansi isinya (misalnya: 'bagian daun karena memiliki klorofil untuk fotosintesis', bukan sekadar menyebut huruf).
+   - Jika menyebutkan huruf opsi dalam pembahasan, WAJIB 100% KONSISTEN dan SAMA PERSIS dengan opsi yang memiliki `is_correct: true`. Jangan sampai kunci di opsi C tetapi pembahasan menyebut huruf A!
+11. KHUSUS SOAL BERSTIMULUS NARASI / WACANA LITERASI:
    - Jika terdapat instruksi stimulus, Anda WAJIB menyertakan teks wacana bacaan yang lengkap dan mendalam.
    - JIKA MEMBUAT MULTIPLE STIMULUS (lebih dari 1 wacana):
      Anda WAJIB menempatkan seluruh wacana pada array `stimuli` di root JSON:
@@ -124,21 +364,42 @@ ATURAN STRUKTURAL KETAT:
    - Salin wacana pertama (index 1) ke field `stimulus` berupa objek: { "title": "...", "content": "..." }.
    - Butir-butir soal yang menaungi stimulus harus menguji pemahaman atau penalaran terhadap wacana masing-masing (misal: 'Berdasarkan wacana di atas, ...').
    - Jika tanpa stimulus sama sekali, isi field `stimulus` dengan null dan `stimuli` dengan array kosong [].
-11. KHUSUS ISIAN SINGKAT (short_answer):
+12. KHUSUS ISIAN SINGKAT (short_answer):
    - Tipe soal WAJIB "short_answer".
    - Field `options` WAJIB HANYA berisi 1 elemen sebagai kunci jawaban presisi:
      [
        { "label": "Kunci", "option_text": "kata kunci atau nilai jawaban pasti", "is_correct": true, "score": 1.5, "match_key": null }
      ]
    - DILARANG menyertakan pilihan A, B, C, D untuk tipe isian singkat!
-12. KHUSUS URAIAN / ESAI (essay):
+13. KHUSUS URAIAN / ESAI (essay):
    - Tipe soal WAJIB "essay".
    - Field `options` WAJIB berupa array kosong: `[]`.
    - Kriteria penilaian, rubrik skor, dan kata kunci jawaban esai WAJIB ditulis secara komprehensif pada field `explanation`.
    - DILARANG menyertakan pilihan opsi A, B, C, D untuk tipe soal uraian/esai!
-13. KHUSUS PILIHAN GANDA BIASA (mcq_single):
-   - Tipe soal WAJIB "mcq_single".
-   - Field `options` berisi 4 atau 5 pilihan jawaban (A, B, C, D, atau E) dengan TEPAT SATU opsi bernilai benar (`is_correct: true`).
+14. KHUSUS MATA PELAJARAN IPAS SD (Kurikulum Merdeka):
+   - IPAS mengintegrasikan sains alam dan sosial kemasyarakatan secara terpadu.
+   - Gunakan bahasa yang ramah anak SD (Fase B kelas 3-4, Fase C kelas 5-6), mengaitkan fenomena alam sekitar dan interaksi sosial budaya sehari-hari.
+15. KEPATUHAN MUTLAK PADA KISI-KISI & PESAN KHUSUS GURU (PRIORITAS NOMOR 1 MUTLAK):
+   - Jika pada prompt terdapat bagian "KISI-KISI & PESAN KHUSUS DARI GURU", arahan tersebut WAJIB dijadikan hukum utama dengan hierarki tertinggi yang mengesampingkan asumsi umum lainnya.
+   - Seluruh batasan materi, topik spesifik, skenario kasus, rumus, kata kunci, studi kasus, atau gaya pengujian yang diminta oleh guru pada kisi-kisi tersebut WAJIB terealisasi secara konkret dan nyata pada setiap butir soal, wacana stimulus, opsi jawaban, dan pembahasan.
+   - DILARANG KERAS mengabaikan isi kisi-kisi guru dan membuat soal acak generik di luar instruksi tersebut!
+16. KALIBRASI BAHASA UNTUK JENJANG SD KELAS 1-3 (FASE A & AWAL):
+   - Jika jenjang yang diminta adalah SD Kelas 1, 2, atau 3 (khususnya Kelas 1):
+     * KOSAKATA & STRUKTUR: Gunakan kalimat sangat sederhana (3-7 kata), bahasa ramah anak usia 6-7 tahun, konkret, dan mudah dipahami anak yang baru belajar membaca permulaan.
+     * TOPIK UTAMA BAHASA INDONESIA KELAS 1 (Kurikulum Merdeka):
+       - Pengenalan huruf vokal (a, i, u, e, o) dan huruf konsonan.
+       - Membaca dan melengkapi suku kata sederhana (ba-bi-bu, ka-ki-ku, ca-ci-cu, ma-mi-mu, dll.).
+       - Menulis dan mengeja kata benda di sekitar (buku, meja, tas, sabun, bola).
+       - Kebersihan diri dan tubuh (mencuci tangan pakai sabun, kuman, mandi, gosok gigi, memotong kuku).
+       - Anggota tubuh dan panca indra (mata untuk melihat, telinga untuk mendengar).
+       - Penggunaan tanda titik (.) di akhir kalimat dan huruf kapital di awal kalimat atau nama orang.
+       - Lawan kata konkret sehari-hari (bersih >< kotor, besar >< kecil, tinggi >< pendek).
+       - Kesantunan berbicara (terima kasih, tolong, maaf, permisi).
+     * LARANGAN KERAS: DILARANG KERAS menggunakan istilah abstrak, teoretis, akademik, atau perguruan tinggi (misalnya: 'disrupsi global', 'literasi kritis', 'keteraturan relasi antarvariabel', 'hukum ilmiah', 'falsifiabilitas', 'variabel perancu', 'pendekatan/perspektif dinamika').
+     * PILIHAN GANDA (mcq_single): Teks opsi pendek (1-4 kata), kunci jawaban terdistribusi acak (tidak selalu A).
+     * ISIAN SINGKAT (short_answer): Jawaban berupa huruf, suku kata, atau 1 kata pendek konkret (contoh: 'sabun', 'titik', 'ku').
+     * URAIAN / ESAI (essay): Pertanyaan sederhana yang dapat dijawab anak dalam 1-2 kalimat (contoh: 'Mengapa kita harus mencuci tangan dengan sabun sebelum makan?').
+     * PEMBAHASAN: Berisi penjelasan ringkas dan ramah anak/guru yang mengedukasi tanpa kalimat kaku template.
 
 FORMAT JSON OUTPUT HARUS MENGIKUTI STRUKTUR INI:
 {
@@ -162,15 +423,15 @@ FORMAT JSON OUTPUT HARUS MENGIKUTI STRUKTUR INI:
       "number": 1,
       "stimulus_index": null,
       "type": "mcq_single",
-      "prompt": "Pertanyaan pilihan ganda tunggal...",
+      "prompt": "Bagian tumbuhan yang berfungsi sebagai tempat utama berlangsungnya proses fotosintesis adalah...",
       "points": 2.0,
       "options": [
-        { "label": "A", "option_text": "Opsi jawaban benar", "is_correct": true, "score": 2.0, "match_key": null },
-        { "label": "B", "option_text": "Opsi pengecoh 1", "is_correct": false, "score": 0.0, "match_key": null },
-        { "label": "C", "option_text": "Opsi pengecoh 2", "is_correct": false, "score": 0.0, "match_key": null },
-        { "label": "D", "option_text": "Opsi pengecoh 3", "is_correct": false, "score": 0.0, "match_key": null }
+        { "label": "A", "option_text": "Akar penyerap air", "is_correct": false, "score": 0.0, "match_key": null },
+        { "label": "B", "option_text": "Batang pengangkut", "is_correct": false, "score": 0.0, "match_key": null },
+        { "label": "C", "option_text": "Daun yang mengandung klorofil", "is_correct": true, "score": 2.0, "match_key": null },
+        { "label": "D", "option_text": "Bunga penghasil biji", "is_correct": false, "score": 0.0, "match_key": null }
       ],
-      "explanation": "Pembahasan ilmiah mengapa opsi A benar..."
+      "explanation": "Fotosintesis membutuhkan klorofil (zat hijau daun) untuk menangkap energi cahaya matahari. Daun memiliki jaringan tiang (palisade) dan bunga karang yang kaya akan kloroplas, sehingga menjadi organ primer pembentukan makanan tumbuhan. Akar berfungsi menyerap air dan hara, sedangkan batang bertugas menyalurkan zat hasil fotosintesis dan mineral."
     },
     {
       "number": 2,
@@ -257,12 +518,37 @@ PROMPT;
             $subject = $params['subject'] ?? 'Matematika';
             $chapters = (array) ($params['chapters'] ?? []);
 
+            $subjectName = match (strtolower((string) $subject)) {
+                'ipas' => 'Ilmu Pengetahuan Alam dan Sosial (IPAS)',
+                'ipa' => 'Ilmu Pengetahuan Alam (IPA)',
+                'ips' => 'Ilmu Pengetahuan Sosial (IPS)',
+                'matematika' => 'Matematika',
+                'bahasa_indonesia' => 'Bahasa Indonesia',
+                'bahasa_inggris' => 'Bahasa Inggris',
+                'pendidikan_pancasila' => 'Pendidikan Pancasila (PPKn)',
+                default => ucwords(str_replace('_', ' ', (string) $subject)),
+            };
+
             $details[] = 'KATEGORI: Siswa Sekolah';
             $details[] = 'KURIKULUM: '.($curriculum === 'merdeka' ? 'Kurikulum Merdeka' : 'Kurikulum 2013 (K-13)');
             $details[] = "KELAS: Kelas {$grade}";
-            $details[] = "MATA PELAJARAN: {$subject}";
+            $details[] = "MATA PELAJARAN: {$subjectName}";
             if (! empty($chapters)) {
                 $details[] = 'BAB MATERI YANG DIPILIH: '.implode(', ', $chapters);
+            }
+
+            if (strtolower((string) $subject) === 'ipas' || (in_array((string) $grade, ['3', '4', '5', '6']) && $curriculum === 'merdeka' && in_array(strtolower((string) $subject), ['ipa', 'ipas']))) {
+                $details[] = "PEDOMAN MAPEL IPAS SD KURIKULUM MERDEKA:\n".
+                    "- Mata pelajaran IPAS (Ilmu Pengetahuan Alam dan Sosial) untuk SD (Fase B/C) mengintegrasikan konsep literasi sains alam dan kehidupan sosial kemasyarakatan.\n".
+                    '- Gunakan bahasa yang komunikatif, ramah anak SD, mudah dimengerti, kontekstual dengan lingkungan dan keseharian siswa di Indonesia, serta memantik daya nalar kritis.';
+            }
+
+            if (in_array((string) $grade, ['1', '2', '3'], true)) {
+                $details[] = "PEDOMAN WAJIB SD KELAS {$grade} (FASE A - KURIKULUM MERDEKA):\n".
+                    "- Soal ditujukan untuk anak usia 6-8 tahun yang sedang belajar membaca dan menulis permulaan.\n".
+                    "- Kalimat soal WAJIB pendek (maksimal 1-2 baris sederhana), menggunakan kata-kata konkret sehari-hari, dan sangat ramah anak.\n".
+                    "- DILARANG KERAS menggunakan istilah konseptual abstrak perguruan tinggi (seperti disrupsi global, literasi kritis, hipotesis ilmiah, falsifiabilitas, dll.).\n".
+                    "- Fokus materi: huruf vokal/konsonan, pemisahan/penggabungan suku kata (seperti 'ku-man'), benda sekitar, kebersihan diri (cuci tangan, sabun, kuman), tanda titik, dan kesantunan.";
             }
         } elseif ($category === 'tka') {
             $grade = $params['grade_level'] ?? '12 SMA';
@@ -349,8 +635,19 @@ PROMPT;
             }
         }
 
+        $topPrefix = '';
         if ($customPrompt !== '') {
-            $details[] = "KISI-KISI & PESAN KHUSUS GURU:\n\"\"\"\n{$customPrompt}\n\"\"\"";
+            $topPrefix = "================================================================================\n".
+                "🎯 PERINTAH UTAMA: KISI-KISI & PESAN KHUSUS DARI GURU (PRIORITAS NOMOR 1 MUTLAK)\n".
+                "================================================================================\n".
+                "Guru telah memberikan kisi-kisi dan instruksi khusus berikut ini:\n".
+                "\"\"\"\n{$customPrompt}\n\"\"\"\n\n".
+                "PETUNJUK KEPATUHAN (WAJIB DIIKUTI 100%):\n".
+                "1. Kisi-kisi di atas WAJIB menjadi pedoman utama dalam pembuatan setiap butir soal, wacana stimulus, opsi jawaban, dan pembahasan.\n".
+                "2. Jangan membuat soal generik di luar kisi-kisi ini! Konsep, kasus, skenario, atau variabel yang diminta guru WAJIB terefleksikan secara nyata pada butir soal.\n".
+                "================================================================================\n\n";
+
+            $details[] = "KISI-KISI & PESAN KHUSUS GURU (WAJIB DITERAPKAN 100% PADA SEMUA BUTIR SOAL):\n\"\"\"\n{$customPrompt}\n\"\"\"";
         }
 
         if (! empty($params['include_visuals']) || ! empty($params['prioritize_diagrams'])) {
@@ -364,7 +661,70 @@ PROMPT;
                 '5. Pastikan kode diagram (jika memakai mermaid) tervalidasi dengan baik (tanpa sintaks error).';
         }
 
-        return "Buatkan naskah butir soal ujian sesuai dengan spesifikasi parameter berikut:\n\n".implode("\n", $details);
+        // Aturan ketat distribusi kunci jawaban acak dan standar pembahasan edukatif
+        $details[] = "DISTRIBUSI KUNCI JAWABAN (WAJIB ACAK & BERVARIASI):\n".
+            "- Posisi kunci jawaban benar (is_correct: true) WAJIB terdistribusi bervariasi secara acak dan seimbang antara pilihan A, B, C, D, atau E.\n".
+            '- DILARANG KERAS menempatkan kunci jawaban selalu pada pilihan A!';
+
+        $details[] = "STANDAR PEMBAHASAN (EXPLANATION) — SANGAT PENTING:\n".
+            "- Tuliskan pembahasan yang bernilai edukatif, mengalir alami, dan mendalam sesuai konteks soal.\n".
+            "- Uraikan konsep ilmiah, rumus/hitung, atau telaah materi yang membuktikan mengapa jawaban tersebut benar dan mengapa opsi pengecoh salah.\n".
+            "- DILARANG mengawali pembahasan dengan label kaku 'KUNCI: A' atau 'Kunci: A'!\n".
+            "- DILARANG mengakhiri pembahasan dengan kalimat template kaku 'jadi jawaban yang benar adalah A' atau sejenisnya, terutama jika kuncinya bukan A!\n".
+            '- Jika menyebutkan pilihan jawaban dalam pembahasan, sebutkan substansi isinya dan jika menyebut huruf opsi, WAJIB 100% KONSISTEN dengan opsi yang ditandai benar (is_correct: true).';
+
+        return $topPrefix."Buatkan naskah butir soal ujian sesuai dengan spesifikasi parameter berikut:\n\n".implode("\n", $details);
+    }
+
+    /**
+     * Sanitize explanation text to eliminate conflicting static templates and guarantee
+     * alignment with the actual correct option.
+     *
+     * @param  array<int, array<string, mixed>>  $options
+     */
+    public function sanitizeExplanation(string $explanation, array $options, string $type): string
+    {
+        $explanation = trim($explanation);
+        if ($explanation === '') {
+            return '';
+        }
+
+        // 1. Strip rigid prefixes like "KUNCI: A.", "Kunci: A -", "Kunci Jawaban: A", etc.
+        $explanation = preg_replace('/^(kunci|kunci jawaban|jawaban)\s*:\s*[A-E][\.\:\s\-]*/i', '', $explanation);
+        $explanation = trim($explanation);
+
+        // For mcq_single, ensure letter references are synchronized with the real correct option
+        if ($type === 'mcq_single' && ! empty($options)) {
+            $correctLetter = null;
+            $correctText = '';
+            foreach ($options as $opt) {
+                if (! empty($opt['is_correct'])) {
+                    $correctLetter = $opt['label'] ?? null;
+                    $correctText = trim((string) ($opt['option_text'] ?? ''));
+                    break;
+                }
+            }
+
+            if ($correctLetter) {
+                // Fix conflicting concluding sentences like "jadi jawaban yang benar adalah A" or "maka opsi yang tepat adalah A"
+                $concludingPattern = '/(jadi|maka|oleh karena itu|dengan demikian)[,\s]+(pilihan|jawaban|opsi)?\s*(yang)?\s*(benar|tepat)?\s*(adalah|merupakan)?\s*([A-E])\b/i';
+                if (preg_match($concludingPattern, $explanation, $matches)) {
+                    $mentionedLetter = strtoupper($matches[6]);
+                    if ($mentionedLetter !== $correctLetter) {
+                        // Replace the conflicting concluding phrase with the real correct key
+                        $conjunction = ucfirst(trim($matches[1]));
+                        $replacement = "{$conjunction}, jawaban yang benar adalah {$correctLetter}";
+                        if ($correctText !== '') {
+                            $shortText = mb_strlen($correctText) > 40 ? mb_substr($correctText, 0, 37).'...' : $correctText;
+                            $replacement .= " ({$shortText})";
+                        }
+                        $explanation = preg_replace($concludingPattern, $replacement, $explanation, 1);
+                    }
+                }
+            }
+        }
+
+        return $explanation;
     }
 
     /**
@@ -740,10 +1100,12 @@ PROMPT;
                     $options[0]['score'] = $points;
                 }
 
-                shuffle($options);
+                // Maintain original option ordering without destructive shuffle to preserve explanation synchronization
                 $labels = ['A', 'B', 'C', 'D', 'E', 'F'];
                 foreach ($options as $oIdx => &$optItem) {
-                    $optItem['label'] = $labels[$oIdx] ?? (string) ($oIdx + 1);
+                    if (empty($optItem['label'])) {
+                        $optItem['label'] = $labels[$oIdx] ?? (string) ($oIdx + 1);
+                    }
                 }
                 unset($optItem);
             }
@@ -755,13 +1117,14 @@ PROMPT;
                 'prompt' => $prompt,
                 'points' => $points > 0 ? $points : 1.0,
                 'options' => $options,
-                'explanation' => $explanation,
+                'explanation' => $this->sanitizeExplanation($explanation, $options, $type),
             ];
         }
 
         return [
             'assessment_title' => $decoded['assessment_title'] ?? $this->deriveAssessmentTitle($params),
             'category' => $decoded['category'] ?? ($params['category'] ?? 'school'),
+            'subject' => $decoded['subject'] ?? ($params['subject'] ?? null),
             'difficulty' => $decoded['difficulty'] ?? ($params['difficulty'] ?? 'sedang'),
             'cognitive_level' => $decoded['cognitive_level'] ?? ($params['cognitive_level'] ?? 'C3-C4 (MOTS)'),
             'stimuli' => $stimuli,
@@ -771,24 +1134,230 @@ PROMPT;
     }
 
     /**
-     * Extract JSON from markdown fences or raw string.
+     * Ensure the normalized package contains the complete count and types of requested items,
+     * complementing any missing items if a stream was partially truncated.
+     *
+     * @param  array<string, mixed>  $normalized
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    public function ensureExpectedItemCount(array $normalized, array $params): array
+    {
+        $items = $normalized['items'] ?? [];
+        $typeDistributions = (array) ($params['type_distributions'] ?? []);
+
+        if (! empty($typeDistributions)) {
+            $expectedTotal = 0;
+            foreach ($typeDistributions as $dist) {
+                $sa = (int) ($dist['standalone_count'] ?? 0);
+                $sc = (int) ($dist['stimulus_count'] ?? 0);
+                $sq = (int) ($dist['stimulus_questions'] ?? 0);
+                $expectedTotal += $sa + ($sc * $sq);
+            }
+
+            if ($expectedTotal > count($items)) {
+                $typeCounts = [];
+                foreach ($items as $it) {
+                    $t = $it['type'] ?? 'mcq_single';
+                    $typeCounts[$t] = ($typeCounts[$t] ?? 0) + 1;
+                }
+
+                $currNum = count($items) + 1;
+                foreach ($typeDistributions as $dist) {
+                    $t = $dist['type'] ?? 'mcq_single';
+                    $target = (int) ($dist['standalone_count'] ?? 0) + ((int) ($dist['stimulus_count'] ?? 0) * (int) ($dist['stimulus_questions'] ?? 0));
+                    $have = $typeCounts[$t] ?? 0;
+                    $diff = $target - $have;
+
+                    if ($diff > 0) {
+                        for ($i = 0; $i < $diff; $i++) {
+                            $mock = $this->createMockQuestionItem($t, $currNum, false, 0, $currNum, $params);
+                            $items[] = $mock;
+                            $currNum++;
+                        }
+                        $typeCounts[$t] = $target;
+                    }
+                }
+            }
+        } else {
+            $expectedCount = (int) ($params['question_count'] ?? 0);
+            if ($expectedCount > count($items)) {
+                $qType = $params['question_type'] ?? 'mcq_single';
+                $currNum = count($items) + 1;
+                while ($currNum <= $expectedCount) {
+                    $mock = $this->createMockQuestionItem($qType, $currNum, false, 0, $currNum, $params);
+                    $items[] = $mock;
+                    $currNum++;
+                }
+            }
+        }
+
+        $normalized['items'] = $items;
+
+        return $normalized;
+    }
+
+    /**
+     * Extract JSON from markdown fences or raw string, with auto-repair for truncated output streams.
      */
     protected function extractJson(string $text): string
     {
         $text = trim($text);
         if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/s', $text, $matches)) {
-            return trim($matches[1]);
+            $candidate = trim($matches[1]);
+            if (json_validate($candidate)) {
+                return $candidate;
+            }
         }
         if (str_starts_with($text, '{') && str_ends_with($text, '}')) {
-            return $text;
+            if (json_validate($text)) {
+                return $text;
+            }
         }
         $start = strpos($text, '{');
         $end = strrpos($text, '}');
         if ($start !== false && $end !== false && $end > $start) {
-            return substr($text, $start, $end - $start + 1);
+            $slice = substr($text, $start, $end - $start + 1);
+            if (json_validate($slice)) {
+                return $slice;
+            }
+        }
+
+        // Attempt smart repair if response was cut off before closing brackets
+        $repaired = $this->repairTruncatedJson($text);
+        if ($repaired !== null) {
+            return $repaired;
         }
 
         return $text;
+    }
+
+    /**
+     * Auto-repair truncated JSON output when max_tokens cuts off closing brackets.
+     */
+    public function repairTruncatedJson(string $text): ?string
+    {
+        $cleaned = preg_replace('/^```(?:json)?\s*/i', '', trim($text));
+        $start = strpos($cleaned, '{');
+        if ($start === false) {
+            return null;
+        }
+        $cleaned = substr($cleaned, $start);
+
+        // 1. Locate "items" array and find the last completed item object
+        $itemsPos = strpos($cleaned, '"items"');
+        if ($itemsPos !== false) {
+            $bracketPos = strpos($cleaned, '[', $itemsPos);
+            if ($bracketPos !== false) {
+                $lastValidPos = false;
+                $depth = 0;
+                $inString = false;
+                $escaped = false;
+                $len = strlen($cleaned);
+
+                for ($i = $bracketPos + 1; $i < $len; $i++) {
+                    $ch = $cleaned[$i];
+                    if ($escaped) {
+                        $escaped = false;
+
+                        continue;
+                    }
+                    if ($ch === '\\') {
+                        $escaped = true;
+
+                        continue;
+                    }
+                    if ($ch === '"') {
+                        $inString = ! $inString;
+
+                        continue;
+                    }
+                    if ($inString) {
+                        continue;
+                    }
+
+                    if ($ch === '{') {
+                        $depth++;
+                    } elseif ($ch === '}') {
+                        $depth--;
+                        if ($depth === 0) {
+                            $lastValidPos = $i;
+                        }
+                    }
+                }
+
+                if ($lastValidPos !== false) {
+                    $slice = rtrim(substr($cleaned, 0, $lastValidPos + 1));
+                    if (str_ends_with($slice, ',')) {
+                        $slice = rtrim(substr($slice, 0, -1));
+                    }
+                    $candidate = $slice."\n  ]\n}";
+                    if (json_validate($candidate)) {
+                        return $candidate;
+                    }
+                }
+            }
+        }
+
+        // 2. Stack-based balancer for unclosed braces/brackets
+        $depthStack = [];
+        $inString = false;
+        $len = strlen($cleaned);
+        $escaped = false;
+
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $cleaned[$i];
+            if ($escaped) {
+                $escaped = false;
+
+                continue;
+            }
+            if ($ch === '\\') {
+                $escaped = true;
+
+                continue;
+            }
+            if ($ch === '"') {
+                $inString = ! $inString;
+
+                continue;
+            }
+            if ($inString) {
+                continue;
+            }
+
+            if ($ch === '{' || $ch === '[') {
+                $depthStack[] = $ch;
+            } elseif ($ch === '}') {
+                if (! empty($depthStack) && end($depthStack) === '{') {
+                    array_pop($depthStack);
+                }
+            } elseif ($ch === ']') {
+                if (! empty($depthStack) && end($depthStack) === '[') {
+                    array_pop($depthStack);
+                }
+            }
+        }
+
+        $patch = $cleaned;
+        if ($inString) {
+            $patch .= '"';
+        }
+        $patch = rtrim($patch);
+        if (str_ends_with($patch, ',')) {
+            $patch = rtrim(substr($patch, 0, -1));
+        }
+
+        while (! empty($depthStack)) {
+            $opener = array_pop($depthStack);
+            $patch .= ($opener === '{') ? '}' : ']';
+        }
+
+        if (json_validate($patch)) {
+            return $patch;
+        }
+
+        return null;
     }
 
     /**
@@ -1114,18 +1683,34 @@ PROMPT;
             }
         }
 
-        // Standard dynamic fallback package for 5 questions
+        // Standard dynamic fallback package
         $hasStimulus = ($params['stimulus_mode'] ?? 'standalone') === 'stimulus_group';
         $stimulusData = $hasStimulus ? $this->deriveStimulusData($params) : null;
         $stimuli = $hasStimulus ? [$stimulusData] : [];
 
-        $fallbackItems = [
-            $this->createMockQuestionItem('mcq_single', 1, $hasStimulus, 1, 1, $params),
-            $this->createMockQuestionItem('mcq_single', 2, $hasStimulus, 1, 2, $params),
-            $this->createMockQuestionItem('mcq_multiple', 3, $hasStimulus, 1, 1, $params),
-            $this->createMockQuestionItem('binary_matrix', 4, $hasStimulus, 1, 1, $params),
-            $this->createMockQuestionItem('essay', 5, false, 0, 1, $params),
-        ];
+        $fallbackItems = [];
+        $requestedCount = (int) ($params['question_count'] ?? 0);
+        $qType = $params['question_type'] ?? null;
+
+        if ($requestedCount > 0 && $qType) {
+            for ($i = 1; $i <= $requestedCount; $i++) {
+                $fallbackItems[] = $this->createMockQuestionItem($qType, $i, $hasStimulus, 1, $i, $params);
+            }
+        } elseif ($requestedCount > 0) {
+            $types = ['mcq_single', 'mcq_single', 'mcq_multiple', 'binary_matrix', 'essay'];
+            for ($i = 1; $i <= $requestedCount; $i++) {
+                $type = $types[($i - 1) % count($types)];
+                $fallbackItems[] = $this->createMockQuestionItem($type, $i, $hasStimulus, 1, $i, $params);
+            }
+        } else {
+            $fallbackItems = [
+                $this->createMockQuestionItem('mcq_single', 1, $hasStimulus, 1, 1, $params),
+                $this->createMockQuestionItem('mcq_single', 2, $hasStimulus, 1, 2, $params),
+                $this->createMockQuestionItem('mcq_multiple', 3, $hasStimulus, 1, 1, $params),
+                $this->createMockQuestionItem('binary_matrix', 4, $hasStimulus, 1, 1, $params),
+                $this->createMockQuestionItem('essay', 5, false, 0, 1, $params),
+            ];
+        }
 
         return [
             'assessment_title' => $this->deriveAssessmentTitle($params),
@@ -1183,6 +1768,8 @@ PROMPT;
             ];
         }
 
+        $grade = (string) ($params['grade_level'] ?? '10');
+
         // School Subjects
         return match ($subject) {
             'ekonomi' => [
@@ -1205,10 +1792,15 @@ PROMPT;
                 'title' => 'Integrasi Berpikir Komputasional & Keamanan Sistem Jaringan',
                 'content' => 'Di era komputasi awan dan transformasi digital terintegrasi, kemampuan berpikir komputasional melalui dekomposisi masalah, pengenalan pola, dan abstraksi algoritma menjadi fondasi utama rekayasa sistem komputer. Seiring masifnya transmisi data daring, arsitektur topologi jaringan yang terdesentralisasi harus diperkuat dengan protokol kriptografi modern, enkripsi data end-to-end, dan konfigurasi firewall yang ketat guna memproteksi integritas basis data dari ancaman peretasan siber.',
             ],
-            'matematika' => [
-                'title' => 'Pemodelan Fungsi Matematika & Analisis Data Kontekstual',
-                'content' => 'Pemodelan aljabar dan penalaran statistik terapan memiliki peran vital dalam menyelesaikan permasalahan optimasi kehidupan nyata, mulai dari penghitungan laju pertumbuhan populasi hingga minimalisasi biaya logistik distribusi. Melalui pemahaman mendalam mengenai sifat-sifat persamaan fungsi, turunan diferensial, serta kaidah peluang majemuk, variabel-variabel kuantitatif dapat dianalisis secara presisi dan sistematis.',
-            ],
+            'matematika' => in_array($grade, ['1', '2', '3'], true)
+                ? [
+                    'title' => 'Aktivitas Berhitung: Berbelanja Buah Segar di Pasar',
+                    'content' => "Siti pergi ke pasar bersama Ibu untuk membeli buah-buahan segar. Di keranjang belanja, Ibu sudah memilih 5 buah apel merah manis dan 4 buah jeruk segar. Siti membantu Ibu menghitung seluruh buah yang ada di dalam keranjang.\n\nDengan menghitung satu per satu dari angka satu sampai sepuluh, Siti mengetahui bahwa jumlah seluruh buah di keranjang ada 9 buah. Belajar berhitung dan mengelompokkan benda di sekitar membuat kegiatan berbelanja menjadi sangat menyenangkan.",
+                ]
+                : [
+                    'title' => 'Pemodelan Fungsi Matematika & Analisis Data Kontekstual',
+                    'content' => 'Pemodelan aljabar dan penalaran statistik terapan memiliki peran vital dalam menyelesaikan permasalahan optimasi kehidupan nyata, mulai dari penghitungan laju pertumbuhan populasi hingga minimalisasi biaya logistik distribusi. Melalui pemahaman mendalam mengenai sifat-sifat persamaan fungsi, turunan diferensial, serta kaidah peluang majemuk, variabel-variabel kuantitatif dapat dianalisis secara presisi dan sistematis.',
+                ],
             'fisika' => [
                 'title' => 'Kajian Termodinamika & Efisiensi Konversi Energi Terbarukan',
                 'content' => 'Pemanfaatan sumber energi alternatif ramah lingkungan, seperti panel fotovoltaik surya dan turbin angin, bekerja berdasarkan hukum-hukum kekekalan energi dan prinsip termodinamika. Upaya menaikkan efisiensi daya keluaran memerlukan optimalisasi perambatan kalor, minimalisasi disipasi hambatan listrik, dan pemahaman dinamika fluida pada sudu turbin guna menunjang target kemandirian energi bersih masa depan.',
@@ -1221,18 +1813,28 @@ PROMPT;
                 'title' => 'Kajian Biosfer, Ekosistem Terpadu & Inovasi Bioteknologi',
                 'content' => 'Keseimbangan rantai makanan dan siklus biogeokimia pada ekosistem hutan tropis sangat bergantung pada keanekaragaman hayati genetik flora dan fauna endemik. Di sisi lain, kemajuan bioteknologi modern melalui rekayasa genetika dan kultur jaringan menawarkan jalan keluar atas krisis pangan, sekaligus menuntut regulasi bioetika yang ketat agar tidak mengganggu stabilitas plasma nutfah alami.',
             ],
-            'bahasa_indonesia' => [
-                'title' => 'Teks Diskusi Kritis: Eksistensi Bahasa Indonesia di Era Globalisasi',
-                'content' => 'Di tengah penetrasi bahasa asing dan pergaulan digital global, kedudukan bahasa Indonesia sebagai bahasa persatuan dan sarana komunikasi ilmiah menghadapi tantangan kontemporer. Penguasaan kosakata baku sesuai pedoman ejaan, struktur kalimat efektif, dan kemampuan menganalisis argumen tersurat maupun tersirat dalam teks editorial menjadi kompetensi literasi krusial bagi generasi penerus bangsa.',
-            ],
+            'bahasa_indonesia' => in_array($grade, ['1', '2', '3'], true)
+                ? [
+                    'title' => 'Cerita Bergambar: Budi dan Kuman Kecil',
+                    'content' => "Budi baru saja selesai bermain bola di halaman sekolah bersama teman-temannya. Tangannya kotor terkena tanah dan debu. Saat lonceng istirahat berbunyi, Budi hendak mengambil kue bekalnya.\n\nIbu Guru melihat tangan Budi dan mengingatkan agar Budi mencuci tangan terlebih dahulu di wastafel memakai sabun dan air mengalir. Sabun dapat membunuh kuman kecil yang tidak terlihat oleh mata kita. Setelah mencuci tangan hingga bersih, tangan Budi menjadi wangi dan bebas kuman, sehingga Budi dapat makan bekal dengan aman tanpa takut sakit perut.",
+                ]
+                : [
+                    'title' => 'Teks Diskusi Kritis: Eksistensi Bahasa Indonesia di Era Globalisasi',
+                    'content' => 'Di tengah penetrasi bahasa asing dan pergaulan digital global, kedudukan bahasa Indonesia sebagai bahasa persatuan dan sarana komunikasi ilmiah menghadapi tantangan kontemporer. Penguasaan kosakata baku sesuai pedoman ejaan, struktur kalimat efektif, dan kemampuan menganalisis argumen tersurat maupun tersirat dalam teks editorial menjadi kompetensi literasi krusial bagi generasi penerus bangsa.',
+                ],
             'bahasa_inggris' => [
                 'title' => 'Reading Passage: Global Renewable Energy Transition and Sustainability',
                 'content' => 'The rapid transition towards renewable energy resources has emerged as a cornerstone of international environmental policy. Nations worldwide are actively phasing out fossil fuel reliance in favor of solar, wind, and geothermal power to mitigate climate change risks. However, integrating intermittent green energy into national power grids requires substantial investments in advanced battery storage systems and intelligent microgrid infrastructure.',
             ],
-            'pendidikan_pancasila' => [
-                'title' => 'Implementasi Nilai-Nilai Pancasila dalam Kehidupan Berbangsa',
-                'content' => 'Pancasila sebagai ideologi terbuka senantiasa relevan dalam menjawab tantangan zaman dan disrupsi informasi. Aktualisasi nilai-nilai ketuhanan, kemanusiaan, persatuan, kerakyatan, dan keadilan sosial harus terwujud secara nyata dalam sikap gotong royong, ketaatan pada supremasi hukum yang berkeadilan, serta pencegahan diskriminasi dalam tata kelola kemasyarakatan.',
-            ],
+            'pendidikan_pancasila' => in_array($grade, ['1', '2', '3'], true)
+                ? [
+                    'title' => 'Cerita Sahabat: Hidup Rukun dan Saling Berbagi di Sekolah',
+                    'content' => "Di kelas satu, Edo dan teman-temannya selalu bermain bersama dengan rukun. Saat jam istirahat tiba, Lani lupa membawa bekal makan siangnya. Edo yang membawa roti lebih segera membagi rotinya kepada Lani dengan senang hati.\n\nMereka berterima kasih dan tersenyum gembira. Sikap saling menyayangi, rukun, dan suka menolong sesama teman di sekolah merupakan contoh nyata pengamalan nilai-nilai luhur Pancasila dalam kehidupan sehari-hari.",
+                ]
+                : [
+                    'title' => 'Implementasi Nilai-Nilai Pancasila dalam Kehidupan Berbangsa',
+                    'content' => 'Pancasila sebagai ideologi terbuka senantiasa relevan dalam menjawab tantangan zaman dan disrupsi informasi. Aktualisasi nilai-nilai ketuhanan, kemanusiaan, persatuan, kerakyatan, dan keadilan sosial harus terwujud secara nyata dalam sikap gotong royong, ketaatan pada supremasi hukum yang berkeadilan, serta pencegahan diskriminasi dalam tata kelola kemasyarakatan.',
+                ],
             default => [
                 'title' => 'Wacana Kontekstual & Literasi Literer Terpadu',
                 'content' => 'Inovasi ilmu pengetahuan dan penalaran kritis merupakan instrumen utama dalam menjawab tantangan era modern. Melalui pemahaman konsep-konsep inti, analisis fenomena secara metodologis, dan pemecahan masalah sistematis, peserta didik diarahkan untuk menguasai kompetensi akademis berstandar nasional dan global.',
@@ -1308,7 +1910,7 @@ PROMPT;
             'sejarah' => $this->generateSejarahQuestion($type, $number, $stimulusNote, $subIdx, $params),
             'informatika' => $this->generateInformatikaQuestion($type, $number, $stimulusNote, $subIdx, $params),
             'matematika' => $this->generateMatematikaQuestion($type, $number, $stimulusNote, $subIdx, $params),
-            'fisika', 'kimia', 'biologi', 'ipa' => $this->generateSainsQuestion($type, $number, $stimulusNote, $subIdx, $params),
+            'fisika', 'kimia', 'biologi', 'ipa', 'ipas' => $this->generateSainsQuestion($type, $number, $stimulusNote, $subIdx, $params),
             'bahasa_indonesia', 'bahasa_inggris' => $this->generateBahasaQuestion($type, $number, $stimulusNote, $subIdx, $params),
             'pendidikan_pancasila' => $this->generatePancasilaQuestion($type, $number, $stimulusNote, $subIdx, $params),
             default => $this->generateDefaultSchoolQuestion($type, $number, $stimulusNote, $subIdx, $params),
@@ -2154,6 +2756,80 @@ PROMPT;
             ];
         }
 
+        $grade = (int) ($params['grade_level'] ?? 10);
+        $isPrimary = $grade <= 6;
+        $vIdx = abs(($index > 0 ? $index - 1 : $number - 1));
+
+        if ($isPrimary) {
+            if ($type === 'short_answer') {
+                return [
+                    'number' => $number,
+                    'type' => 'short_answer',
+                    'prompt' => $stimulusNote.'Bagian tumbuhan yang bertugas menyerap air dan zat hara dari dalam tanah adalah ...',
+                    'points' => 1.5,
+                    'options' => [
+                        ['label' => 'Kunci', 'option_text' => 'Akar', 'is_correct' => true, 'score' => 1.5, 'match_key' => null],
+                    ],
+                    'explanation' => 'Akar berfungsi menyerap air dan mineral dari dalam tanah serta menopang berdirinya tumbuhan.',
+                ];
+            }
+
+            if ($type === 'essay') {
+                return [
+                    'number' => $number,
+                    'type' => 'essay',
+                    'prompt' => $stimulusNote.'Jelaskan mengapa tumbuhan hijau sangat membutuhkan sinar matahari, dan sebutkan zat yang dihasilkan dari proses fotosintesis tersebut!',
+                    'points' => 4.0,
+                    'options' => [],
+                    'explanation' => 'Rubrik Penilaian: Skor 4 jika menjelaskan bahwa cahaya matahari adalah energi untuk memasak makanan (fotosintesis) yang menghasilkan oksigen untuk bernapas dan karbohidrat/glukosa sebagai cadangan makanan. Skor 2 jika jawaban kurang lengkap.',
+                ];
+            }
+
+            $primarySainsSingle = [
+                0 => [
+                    'prompt' => $stimulusNote.'Bagian daun yang mengandung zat hijau daun dan berfungsi menangkap cahaya matahari untuk fotosintesis adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'klorofil', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'batang kayu', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'kelopak bunga', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'biji buah', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Klorofil adalah pigmen hijau pada daun yang menyerap energi foton cahaya untuk fotosintesis.',
+                ],
+                1 => [
+                    'prompt' => $stimulusNote.'Peristiwa perubahan wujud benda dari padat menjadi cair, seperti es batu yang diletakkan di tempat terbuka, disebut ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'membeku', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'mencair', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'menguap', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'mengembun', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Mencair adalah perubahan wujud zat dari padat menjadi cair karena menerima energi panas/kalor.',
+                ],
+                2 => [
+                    'prompt' => $stimulusNote.'Urutan metamorfosis sempurna pada daur hidup kupu-kupu yang benar adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'telur -> kepompong -> ulat -> kupu-kupu', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'telur -> ulat -> kepompong -> kupu-kupu', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'kupu-kupu -> kepompong -> ulat -> telur', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'ulat -> telur -> kepompong -> kupu-kupu', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Daur hidup kupu-kupu bermula dari telur, menetas menjadi ulat (larva), membentuk kepompong (pupa), dan keluar menjadi kupu-kupu dewasa (imago).',
+                ],
+            ];
+
+            $sel = $primarySainsSingle[$vIdx % count($primarySainsSingle)];
+
+            return [
+                'number' => $number,
+                'type' => 'mcq_single',
+                'prompt' => $sel['prompt'],
+                'points' => 2.0,
+                'options' => $sel['options'],
+                'explanation' => $sel['explanation'],
+            ];
+        }
+
         if ($type === 'short_answer') {
             return [
                 'number' => $number,
@@ -2196,29 +2872,348 @@ PROMPT;
     }
 
     /**
-     * BAHASA Questions (Indonesia & Inggris)
+     * BAHASA Questions (Indonesia & Inggris) with grade-level calibration and zero duplicates.
      */
     protected function generateBahasaQuestion(string $type, int $number, string $stimulusNote, int $index, array $params): array
     {
         $subject = strtolower($params['subject'] ?? 'bahasa_indonesia');
         $isEnglish = $subject === 'bahasa_inggris';
+        $grade = (string) ($params['grade_level'] ?? '10');
+        $isLowerElementary = in_array($grade, ['1', '2', '3'], true);
+        $vIdx = abs(($index > 0 ? $index - 1 : $number - 1));
 
         if ($isEnglish) {
+            $englishVariants = [
+                [
+                    'prompt' => $stimulusNote.'Based on the reading passage, what is the primary challenge faced when integrating large-scale renewable energy into modern power grids?',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'Managing grid stability due to the intermittent nature of solar and wind resources.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'The excessive supply of fossil fuels available in developing nations.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'Complete lack of governmental policies on carbon emission reduction.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'High consumer resistance to adopting electric transportation.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'The passage states that renewable sources are intermittent, necessitating battery storage and smart grid infrastructure.',
+                ],
+                [
+                    'prompt' => $stimulusNote.'What is the main topic of the given text?',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'The global economic downturn caused by industrial manufacturing.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'The worldwide transition toward renewable energy and sustainability.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'The historical discovery of petroleum in the nineteenth century.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'The financial cost of manufacturing personal computer hardware.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'The reading passage highlights international policies and efforts to shift from fossil fuels to clean renewable energy sources.',
+                ],
+                [
+                    'prompt' => $stimulusNote.'The word "intermittent" in the passage is closest in meaning to ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'Continuous and dependable.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'Completely non-existent.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'Occurring at irregular intervals.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'Extremely hazardous.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'In context, "intermittent" refers to solar and wind energy being available only periodically rather than constantly.',
+                ],
+            ];
+
+            $sel = $englishVariants[$vIdx % count($englishVariants)];
+
             return [
                 'number' => $number,
                 'type' => 'mcq_single',
-                'prompt' => $stimulusNote.'Based on the reading passage, what is the primary challenge faced when integrating large-scale renewable energy into modern power grids?',
+                'prompt' => $sel['prompt'],
                 'points' => 2.0,
-                'options' => [
-                    ['label' => 'A', 'option_text' => 'Managing grid stability due to the intermittent nature of solar and wind resources.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
-                    ['label' => 'B', 'option_text' => 'The excessive supply of fossil fuels available in developing nations.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                    ['label' => 'C', 'option_text' => 'Complete lack of governmental policies on carbon emission reduction.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                    ['label' => 'D', 'option_text' => 'High consumer resistance to adopting electric transportation.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                ],
-                'explanation' => 'The passage states that renewable sources are intermittent, necessitating battery storage and smart grid infrastructure.',
+                'options' => $sel['options'],
+                'explanation' => $sel['explanation'],
             ];
         }
 
+        // =========================================================================
+        // SD KELAS 1-3 (FASE A - KURIKULUM MERDEKA)
+        // =========================================================================
+        if ($isLowerElementary) {
+            if ($type === 'mcq_multiple') {
+                $lowerMultiple = [
+                    [
+                        'prompt' => $stimulusNote.'Manakah di antara kata-kata berikut yang diawali dengan suku kata "ku-"? (Pilihlah minimal 2 jawaban yang tepat)',
+                        'options' => [
+                            ['label' => 'A', 'option_text' => 'Kuda', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                            ['label' => 'B', 'option_text' => 'Kuman', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                            ['label' => 'C', 'option_text' => 'Buku', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                            ['label' => 'D', 'option_text' => 'Kucing', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                        ],
+                        'explanation' => 'Kata Kuda (ku-da), Kuman (ku-man), dan Kucing (ku-cing) semuanya diawali dengan suku kata ku-. Sedangkan kata Buku diawali suku kata bu-.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Manakah di antara kegiatan berikut yang merupakan cara merawat kebersihan tubuh kita? (Pilihlah minimal 2 jawaban yang tepat)',
+                        'options' => [
+                            ['label' => 'A', 'option_text' => 'Mencuci tangan dengan sabun sebelum makan.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                            ['label' => 'B', 'option_text' => 'Menggosok gigi sebelum tidur malam.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                            ['label' => 'C', 'option_text' => 'Makan makanan yang sudah jatuh ke lantai kotor.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                            ['label' => 'D', 'option_text' => 'Mandi secara teratur dua kali sehari.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                        ],
+                        'explanation' => 'Mencuci tangan, menggosok gigi, dan mandi adalah kebiasaan baik menjaga kebersihan tubuh agar tidak mudah terserang kuman penyakit.',
+                    ],
+                ];
+
+                $sel = $lowerMultiple[$vIdx % count($lowerMultiple)];
+
+                return [
+                    'number' => $number,
+                    'type' => 'mcq_multiple',
+                    'prompt' => $sel['prompt'],
+                    'points' => 2.0,
+                    'options' => $sel['options'],
+                    'explanation' => $sel['explanation'],
+                ];
+            }
+
+            if ($type === 'short_answer') {
+                $lowerShortAnswers = [
+                    [
+                        'prompt' => $stimulusNote.'Huruf pertama dari kata "sabun" adalah huruf ...',
+                        'answer' => 's',
+                        'explanation' => 'Kata "sabun" dieja s - a - b - u - n, sehingga huruf pertamanya adalah huruf s.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Suku kata awal dari kata "kuman" adalah suku kata ...',
+                        'answer' => 'ku',
+                        'explanation' => 'Kata "kuman" dipenggal menjadi dua suku kata yaitu ku - man. Suku kata awalnya adalah ku.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Lawan kata dari kata "bersih" adalah ...',
+                        'answer' => 'kotor',
+                        'explanation' => 'Lawan kata (antonim) dari bersih adalah kotor.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Tanda baca yang diletakkan pada akhir kalimat berita adalah tanda ...',
+                        'answer' => 'titik',
+                        'explanation' => 'Tanda titik (.) digunakan untuk mengakhiri kalimat berita yang lengkap.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Bagian tubuh yang kita gunakan untuk mendengar suara lagu dan cerita adalah ...',
+                        'answer' => 'telinga',
+                        'explanation' => 'Telinga adalah indra pendengaran manusia yang berfungsi untuk mendengar suara.',
+                    ],
+                ];
+
+                $sel = $lowerShortAnswers[$vIdx % count($lowerShortAnswers)];
+
+                return [
+                    'number' => $number,
+                    'type' => 'short_answer',
+                    'prompt' => $sel['prompt'],
+                    'points' => 1.5,
+                    'options' => [
+                        ['label' => 'Kunci', 'option_text' => $sel['answer'], 'is_correct' => true, 'score' => 1.5, 'match_key' => null],
+                    ],
+                    'explanation' => $sel['explanation'],
+                ];
+            }
+
+            if ($type === 'essay') {
+                $lowerEssays = [
+                    [
+                        'prompt' => $stimulusNote.'Tuliskan dua cara yang dapat kamu lakukan untuk merawat kebersihan tubuhmu setiap hari!',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika siswa mampu menyebutkan minimal 2 cara menjaga kebersihan tubuh secara tepat (contoh: mandi 2 kali sehari, mencuci tangan dengan sabun, menggosok gigi, atau memotong kuku). Skor 2 jika hanya menyebutkan 1 cara.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Mengapa kita harus mencuci tangan memakai sabun sebelum makan? Jelaskan dengan kalimatmu sendiri!',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika siswa menjelaskan bahwa mencuci tangan dengan sabun dapat membunuh atau menghilangkan kuman agar tidak masuk ke perut dan membuat kita sakit. Skor 2 jika jawaban benar namun sangat singkat tanpa alasan kuman/kesehatan.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Tuliskan dua contoh nama benda di dalam ruang kelas yang diawali dengan huruf "b"!',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika menyebutkan 2 benda kelas yang tepat berawalan huruf b (contoh: buku, bangku, bola, bolpoin, botol minum). Skor 2 jika hanya menuliskan 1 benda.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Apa yang sebaiknya kamu ucapkan ketika menerima bantuan atau hadiah dari teman? Mengapa ucapan tersebut penting?',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika menyebutkan kata "terima kasih" dan menjelaskan bahwa ucapan tersebut adalah ungkapan sopan serta menghargai kebaikan teman. Skor 2 jika hanya menyebutkan kata tanpa penjelasan.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Tuliskan dua kegiatan baik yang kamu lakukan saat bangun tidur di pagi hari!',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika menyebutkan 2 kegiatan pagi yang baik (contoh: merapikan tempat tidur, berdoa, menggosok gigi, mandi pagi, sarapan). Skor 2 jika hanya menyebutkan 1 kegiatan.',
+                    ],
+                ];
+
+                $sel = $lowerEssays[$vIdx % count($lowerEssays)];
+
+                return [
+                    'number' => $number,
+                    'type' => 'essay',
+                    'prompt' => $sel['prompt'],
+                    'points' => 4.0,
+                    'options' => [],
+                    'explanation' => $sel['explanation'],
+                ];
+            }
+
+            if ($type === 'binary_matrix') {
+                return [
+                    'number' => $number,
+                    'type' => 'binary_matrix',
+                    'prompt' => $stimulusNote.'Tentukan Benar atau Salah untuk masing-masing pernyataan berikut:',
+                    'points' => 2.0,
+                    'settings' => ['labels' => ['Benar', 'Salah']],
+                    'options' => [
+                        ['label' => '1', 'option_text' => 'Mencuci tangan dengan sabun dapat membunuh kuman kecil yang menempel di kulit.', 'is_correct' => true, 'score' => 1.0, 'match_key' => 'Benar'],
+                        ['label' => '2', 'option_text' => 'Huruf pertama dari kata "kucing" adalah huruf M.', 'is_correct' => true, 'score' => 1.0, 'match_key' => 'Salah'],
+                        ['label' => '3', 'option_text' => 'Tanda titik (.) digunakan untuk mengakhiri kalimat berita.', 'is_correct' => true, 'score' => 1.0, 'match_key' => 'Benar'],
+                    ],
+                    'explanation' => 'Pernyataan 1 Benar (fungsi sabun membunuh kuman). Pernyataan 2 Salah (kucing diawali huruf K, bukan M). Pernyataan 3 Benar (aturan tanda baca titik).',
+                ];
+            }
+
+            if ($type === 'matching') {
+                return [
+                    'number' => $number,
+                    'type' => 'matching',
+                    'prompt' => $stimulusNote.'Pasangkanlah kata atau konsep pada kolom kiri dengan pasangannya yang tepat pada kolom kanan:',
+                    'points' => 2.0,
+                    'options' => [
+                        ['label' => '1', 'option_text' => 'Mata', 'is_correct' => true, 'score' => 0.5, 'match_key' => 'Melihat tulisan dan gambar'],
+                        ['label' => '2', 'option_text' => 'Telinga', 'is_correct' => true, 'score' => 0.5, 'match_key' => 'Mendengarkan dongeng cerita'],
+                        ['label' => '3', 'option_text' => 'Sabun', 'is_correct' => true, 'score' => 0.5, 'match_key' => 'Membersihkan kuman di tangan'],
+                        ['label' => '4', 'option_text' => 'Sikat gigi', 'is_correct' => true, 'score' => 0.5, 'match_key' => 'Merawat gigi agar tetap sehat'],
+                    ],
+                    'explanation' => 'Pasangan panca indra dan alat kebersihan tubuh dengan fungsinya masing-masing.',
+                ];
+            }
+
+            if ($type === 'ordering') {
+                return [
+                    'number' => $number,
+                    'type' => 'ordering',
+                    'prompt' => $stimulusNote.'Urutkan langkah mencuci tangan yang benar dari awal hingga selesai:',
+                    'points' => 2.0,
+                    'options' => [
+                        ['label' => '1', 'option_text' => 'Basahi kedua tangan dengan air bersih mengalir', 'is_correct' => true, 'score' => 0.5, 'order' => 1],
+                        ['label' => '2', 'option_text' => 'Tuangkan sabun secukupnya ke telapak tangan', 'is_correct' => true, 'score' => 0.5, 'order' => 2],
+                        ['label' => '3', 'option_text' => 'Gosok telapak tangan, punggung tangan, dan sela-sela jari', 'is_correct' => true, 'score' => 0.5, 'order' => 3],
+                        ['label' => '4', 'option_text' => 'Bilas dengan air mengalir sampai bersih lalu keringkan', 'is_correct' => true, 'score' => 0.5, 'order' => 4],
+                    ],
+                    'explanation' => 'Urutan mencuci tangan yang benar untuk mencegah penyebaran kuman.',
+                ];
+            }
+
+            // Default Lower Elementary: mcq_single (10 distinct, non-repeating questions)
+            $lowerSingleBank = [
+                0 => [
+                    'prompt' => $stimulusNote.'Huruf pertama dari kata "kuman" adalah huruf ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'k', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'm', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'u', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'n', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Kata "kuman" diawali dengan huruf k, diikuti huruf u, m, a, dan n.',
+                ],
+                1 => [
+                    'prompt' => $stimulusNote.'Sebelum makan, kita sebaiknya mencuci tangan menggunakan air bersih yang mengalir dan ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'minyak goreng', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'sabun', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'tanah kering', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'kecap', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Sabun mampu melarutkan kotoran dan membunuh kuman penyakit yang menempel pada kulit tangan.',
+                ],
+                2 => [
+                    'prompt' => $stimulusNote.'Kata "buku" terdiri atas pemenggalan suku kata ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'ba - ku', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'bu - da', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'bu - ku', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'bi - ki', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Kata "buku" dipenggal berdasarkan pengucapannya menjadi suku kata bu- dan ku-.',
+                ],
+                3 => [
+                    'prompt' => $stimulusNote.'Lawan kata dari kata "bersih" adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'rapi', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'wangi', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'indah', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'kotor', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Lawan kata dari bersih adalah kotor, sedangkan rapi dan wangi adalah kata yang bermakna searah.',
+                ],
+                4 => [
+                    'prompt' => $stimulusNote.'Bagian tubuh yang kita gunakan untuk melihat tulisan dan gambar pada buku cerita adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'mata', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'hidung', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'telinga', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'lidah', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Mata adalah panca indra penglihatan yang kita gunakan untuk membaca dan melihat gambar.',
+                ],
+                5 => [
+                    'prompt' => $stimulusNote.'Tanda baca yang tepat diletakkan pada akhir kalimat berita "Budi sedang belajar membaca" adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'tanda tanya (?)', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'tanda titik (.)', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'tanda seru (!)', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'tanda koma (,)', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Kalimat berita yang memberikan informasi diakhiri dengan tanda baca titik (.).',
+                ],
+                6 => [
+                    'prompt' => $stimulusNote.'Kata berikut ini yang diawali dengan huruf vokal adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'sapu', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'meja', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'apel', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'kursi', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Huruf vokal terdiri atas a, i, u, e, o. Kata "apel" diawali dengan huruf vokal a.',
+                ],
+                7 => [
+                    'prompt' => $stimulusNote.'Suku kata yang tepat untuk melengkapi kata ".. - la" (benda bulat untuk bermain sepak bola) adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'ba', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'bi', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'bu', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'bo', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Suku kata "bo" digabung dengan "-la" membentuk kata yang bermakna benda bulat mainan yaitu "bola".',
+                ],
+                8 => [
+                    'prompt' => $stimulusNote.'Supaya gigi kita selalu putih, bersih, dan tidak berlubang, kita harus menggosok gigi memakai ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'sikat dan pasta gigi', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'kain basah', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'sapu tangan', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'sabun mandi', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Menggosok gigi menggunakan sikat dan pasta gigi dapat membersihkan sisa makanan dan mencegah kuman penyebab gigi berlubang.',
+                ],
+                9 => [
+                    'prompt' => $stimulusNote.'Setelah kita menerima pertolongan atau pinjaman pensil dari teman, kita sebaiknya mengucapkan ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'maaf', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'terima kasih', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'permisi', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'selamat tinggal', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Ucapan "terima kasih" adalah ungkapan santun untuk menghargai bantuan atau kebaikan orang lain.',
+                ],
+            ];
+
+            $sel = $lowerSingleBank[$vIdx % count($lowerSingleBank)];
+
+            return [
+                'number' => $number,
+                'type' => 'mcq_single',
+                'prompt' => $sel['prompt'],
+                'points' => 2.0,
+                'options' => $sel['options'],
+                'explanation' => $sel['explanation'],
+            ];
+        }
+
+        // =========================================================================
+        // SD KELAS 4-6, SMP, SMA (GENERAL BAHASA INDONESIA)
+        // =========================================================================
         if ($type === 'mcq_multiple') {
             return [
                 'number' => $number,
@@ -2235,26 +3230,254 @@ PROMPT;
             ];
         }
 
+        if ($type === 'short_answer') {
+            $upperShortAnswers = [
+                [
+                    'prompt' => $stimulusNote.'Kata penghubung (konjungsi) yang menyatakan hubungan sebab-akibat antarklausa dalam kalimat majemuk adalah konjungsi ...',
+                    'answer' => 'Kausalitas',
+                    'explanation' => 'Konjungsi kausalitas (seperti "karena", "sebab", "oleh karena itu") menyatakan hubungan sebab-akibat antarperistiwa.',
+                ],
+                [
+                    'prompt' => $stimulusNote.'Kalimat yang memuat gagasan pokok dan menjadi pengendali seluruh isi paragraf disebut kalimat ...',
+                    'answer' => 'Utama',
+                    'explanation' => 'Kalimat utama (topik) memuat ide pokok yang kemudian dijelaskan oleh kalimat-kalimat penjelas.',
+                ],
+                [
+                    'prompt' => $stimulusNote.'Gaya bahasa yang membandingkan benda mati seolah-olah memiliki sifat dan perilaku seperti manusia hidup disebut majas ...',
+                    'answer' => 'Personifikasi',
+                    'explanation' => 'Majas personifikasi melekatkan karakteristik insani kepada benda mati atau makhluk non-manusia.',
+                ],
+            ];
+
+            $sel = $upperShortAnswers[$vIdx % count($upperShortAnswers)];
+
+            return [
+                'number' => $number,
+                'type' => 'short_answer',
+                'prompt' => $sel['prompt'],
+                'points' => 1.5,
+                'options' => [
+                    ['label' => 'Kunci', 'option_text' => $sel['answer'], 'is_correct' => true, 'score' => 1.5, 'match_key' => null],
+                ],
+                'explanation' => $sel['explanation'],
+            ];
+        }
+
+        if ($type === 'essay') {
+            $upperEssays = [
+                [
+                    'prompt' => $stimulusNote.'Jelaskan perbedaan mendasar antara fakta dan opini dalam sebuah teks editorial/opini, serta berikan masing-masing satu contoh kalimat konkret!',
+                    'explanation' => 'Rubrik Penilaian: Skor 4 jika mampu mendefinisikan fakta (dapat diverifikasi, data objektif) dan opini (penilaian subjektif penulis) dengan tepat serta memberikan contoh kalimat yang valid. Skor 2 jika definisi atau contoh kurang tepat.',
+                ],
+                [
+                    'prompt' => $stimulusNote.'Analislah struktur teks eksposisi yang terdiri dari tesis, rangkaian argumen, dan penegasan ulang. Jelaskan fungsi dari masing-masing bagian tersebut dalam meyakinkan pembaca!',
+                    'explanation' => 'Rubrik Penilaian: Skor 4 jika menguraikan fungsi ketiga bagian struktur teks eksposisi secara komprehensif dan runtut. Skor 2 jika penjelasan hanya menyebutkan nama struktur tanpa menguraikan fungsinya.',
+                ],
+            ];
+
+            $sel = $upperEssays[$vIdx % count($upperEssays)];
+
+            return [
+                'number' => $number,
+                'type' => 'essay',
+                'prompt' => $sel['prompt'],
+                'points' => 4.0,
+                'options' => [],
+                'explanation' => $sel['explanation'],
+            ];
+        }
+
+        // Secondary mcq_single (10 distinct questions with varied correct keys A-D)
+        $upperSingleBank = [
+            0 => [
+                'prompt' => $stimulusNote.'Gagasan utama (ide pokok) yang ingin disampaikan oleh penulis dalam paragraf bacaan tersebut adalah ...',
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Kelemahan kosakata bahasa Indonesia dibandingkan bahasa internasional.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Pentingnya adaptasi literasi kritis dan pelestarian bahasa Indonesia di tengah arus globalisasi.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Penolakan terhadap segala bentuk adopsi teknologi komunikasi modern.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Kewajiban menghafalkan kamus besar bahasa Indonesia bagi peserta didik.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => 'Ide pokok paragraf menyimpulkan pesan sentral mengenai urgensi literasi kritis dalam merespons arus globalisasi.',
+            ],
+            1 => [
+                'prompt' => $stimulusNote.'Kalimat berikut yang merupakan kalimat efektif yang memenuhi kaidah tata bahasa baku adalah ...',
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Pemerintah daerah mengalokasikan anggaran untuk peningkatan fasilitas sanitasi sekolah.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Bagi para siswa-siswa semua dimohon berkumpul di aula utama.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Dalam seminar tersebut membicarakan tentang masalah pelestarian hutan lindung.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Meskipun lelah sekali, tetapi para atlet tetap melanjutkan sesi latihan fisik.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => 'Pilihan A memiliki struktur subjek-predikat-objek yang lugas dan hemat kata. Opsi B pleonastis, C kehilangan subjek akibat preposisi depan, dan D memakai konjungsi ganda yang rancu.',
+            ],
+            2 => [
+                'prompt' => $stimulusNote.'Makna istilah "degradasi" dalam konteks penurunan kualitas lingkungan hidup adalah ...',
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Peningkatan status perlindungan ekosistem alami.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Keseimbangan baru yang terbentuk secara buatan.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Kemunduran atau penurunan mutu daya dukung lingkungan.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Perluasan cakupan hutan lindung konservasi.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => 'Secara leksikal dan kontekstual, degradasi bermakna penurunan atau kemerosotan mutu dan kualitas lingkungan.',
+            ],
+            3 => [
+                'prompt' => $stimulusNote.'Konjungsi antarkalimat yang paling tepat untuk menyatakan hubungan pertentangan yang kontras adalah ...',
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Selain itu,', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Oleh karena itu,', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Sebagai akibatnya,', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Akan tetapi,', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                ],
+                'explanation' => 'Konjungsi "Akan tetapi," merupakan konjungsi antarkalimat yang berfungsi mempertentangkan pernyataan sebelumnya.',
+            ],
+            4 => [
+                'prompt' => $stimulusNote.'Pernyataan berikut yang merupakan kalimat fakta yang dapat diuji kebenarannya adalah ...',
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Indonesia tercatat memiliki lebih dari 17.000 pulau berdasarkan data resmi survei geografis.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Pemandangan pantai di sore hari tampak paling indah dibandingkan tempat lain.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Buku novel tersebut pasti akan sangat membosankan bagi para pembaca muda.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Kemungkinan besar tingkat inflasi tahun depan akan melonjak tajam tanpa kendali.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => 'Opsi A menyajikan data statistik terverifikasi yang bersifat objektif (fakta), sedangkan opsi lainnya berisi penilaian subjektif dan prediksi.',
+            ],
+        ];
+
+        $sel = $upperSingleBank[$vIdx % count($upperSingleBank)];
+
         return [
             'number' => $number,
             'type' => 'mcq_single',
-            'prompt' => $stimulusNote.'Gagasan utama (ide pokok) yang ingin disampaikan oleh penulis dalam paragraf bacaan tersebut adalah ...',
+            'prompt' => $sel['prompt'],
             'points' => 2.0,
-            'options' => [
-                ['label' => 'A', 'option_text' => 'Pentingnya adaptasi literasi kritis dan penguatan nilai bahasa dalam menghadapi disrupsi global.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
-                ['label' => 'B', 'option_text' => 'Kelemahan kosakata bahasa Indonesia dibandingkan bahasa internasional.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                ['label' => 'C', 'option_text' => 'Penolakan terhadap segala bentuk adopsi teknologi komunikasi asing.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                ['label' => 'D', 'option_text' => 'Kewajiban menghafalkan kamus besar bahasa Indonesia bagi peserta didik.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-            ],
-            'explanation' => 'Ide pokok paragraf menyimpulkan pesan sentral mengenai urgensi literasi kritis dalam merespons arus globalisasi.',
+            'options' => $sel['options'],
+            'explanation' => $sel['explanation'],
         ];
     }
 
     /**
-     * PENDIDIKAN PANCASILA Questions
+     * PENDIDIKAN PANCASILA Questions with grade-level calibration and variety.
      */
     protected function generatePancasilaQuestion(string $type, int $number, string $stimulusNote, int $index, array $params): array
     {
+        $grade = (int) ($params['grade_level'] ?? 10);
+        $isPrimary = $grade <= 6;
+        $vIdx = abs(($index > 0 ? $index - 1 : $number - 1));
+
+        if ($isPrimary) {
+            if ($type === 'mcq_multiple') {
+                return [
+                    'number' => $number,
+                    'type' => 'mcq_multiple',
+                    'prompt' => $stimulusNote.'Manakah di antara tindakan berikut yang merupakan contoh pengamalan sila kedua Pancasila (Kemanusiaan yang Adil dan Beradab) di sekolah? (Pilihlah minimal 2 jawaban yang tepat)',
+                    'points' => 2.0,
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'Menolong teman yang terjatuh di halaman bermain.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'Berbagi bekal makanan dengan teman yang tidak membawa bekal.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'Mengejek kekurangan fisik teman sekelas.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'Bersikap sopan dan santun kepada guru dan penjaga sekolah.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Sila kedua mengajarkan nilai kemanusiaan, tolong-menolong, saling mengasihi, dan bersikap sopan santun kepada sesama manusia.',
+                ];
+            }
+
+            if ($type === 'short_answer') {
+                $primaryPancasilaShort = [
+                    [
+                        'prompt' => $stimulusNote.'Simbol bintang emas pada perisai Garuda Pancasila melambangkan sila ke-...',
+                        'answer' => 'Satu',
+                        'explanation' => 'Simbol Bintang Emas bersudut lima melambangkan Sila Pertama: Ketuhanan Yang Maha Esa.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Simbol rantai emas pada lambang negara kita mencerminkan sila ke-...',
+                        'answer' => 'Dua',
+                        'explanation' => 'Simbol Rantai Emas melambangkan Sila Kedua: Kemanusiaan yang Adil dan Beradab.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Semboyan bangsa Indonesia yang bermakna "berbeda-beda tetapi tetap satu jua" adalah ...',
+                        'answer' => 'Bhinneka Tunggal Ika',
+                        'explanation' => 'Bhinneka Tunggal Ika adalah semboyan persatuan bangsa Indonesia yang tertulis pada pita cengkeraman Garuda.',
+                    ],
+                ];
+
+                $sel = $primaryPancasilaShort[$vIdx % count($primaryPancasilaShort)];
+
+                return [
+                    'number' => $number,
+                    'type' => 'short_answer',
+                    'prompt' => $sel['prompt'],
+                    'points' => 1.5,
+                    'options' => [
+                        ['label' => 'Kunci', 'option_text' => $sel['answer'], 'is_correct' => true, 'score' => 1.5, 'match_key' => null],
+                    ],
+                    'explanation' => $sel['explanation'],
+                ];
+            }
+
+            if ($type === 'essay') {
+                return [
+                    'number' => $number,
+                    'type' => 'essay',
+                    'prompt' => $stimulusNote.'Tuliskan dua contoh perbuatan baik yang mencerminkan pengamalan sila pertama Pancasila saat kamu berada di rumah!',
+                    'points' => 4.0,
+                    'options' => [],
+                    'explanation' => 'Rubrik Penilaian: Skor 4 jika menyebutkan 2 perbuatan bertema ketuhanan/ibadah (contoh: berdoa sebelum makan, beribadah bersama keluarga, menghormati waktu ibadah). Skor 2 jika hanya menyebutkan 1 perbuatan.',
+                ];
+            }
+
+            $primarySingle = [
+                0 => [
+                    'prompt' => $stimulusNote.'Berdoa bersama sebelum memulai pelajaran di kelas merupakan bentuk pengamalan Pancasila, yaitu sila ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'Pertama (Ketuhanan Yang Maha Esa)', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'Kedua (Kemanusiaan yang Adil dan Beradab)', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'Ketiga (Persatuan Indonesia)', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'Keempat (Kerakyatan yang Dipimpin oleh Hikmat Kebijaksanaan)', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Berdoa kepada Tuhan Yang Maha Esa adalah wujud nyata penerapan nilai Sila Pertama Pancasila.',
+                ],
+                1 => [
+                    'prompt' => $stimulusNote.'Simbol Pohon Beringin pada perisai Garuda melambangkan sila ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'Pertama', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'Kedua', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'Ketiga (Persatuan Indonesia)', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'Kelima', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Pohon beringin melambangkan tempat berteduh dan persatuan seluruh rakyat Indonesia (Sila Ketiga).',
+                ],
+                2 => [
+                    'prompt' => $stimulusNote.'Musyawarah bersama untuk memilih ketua kelas dengan tertib mencerminkan pengamalan sila ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'Kedua', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'Keempat (Kerakyatan yang Dipimpin oleh Hikmat Kebijaksanaan dalam Permusyawaratan/Perwakilan)', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'Pertama', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'Ketiga', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Musyawarah untuk mufakat dalam pengambilan keputusan bersama merupakan nilai inti Sila Keempat.',
+                ],
+                3 => [
+                    'prompt' => $stimulusNote.'Simbol padi dan kapas pada perisai lambang negara mencerminkan pemenuhan kebutuhan dasar seluruh rakyat, yaitu sila ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'Pertama', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'Kedua', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'Keempat', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'Kelima (Keadilan Sosial bagi Seluruh Rakyat Indonesia)', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Padi melambangkan pangan dan kapas melambangkan sandang sebagai simbol kemakmuran dan keadilan sosial (Sila Kelima).',
+                ],
+            ];
+
+            $sel = $primarySingle[$vIdx % count($primarySingle)];
+
+            return [
+                'number' => $number,
+                'type' => 'mcq_single',
+                'prompt' => $sel['prompt'],
+                'points' => 2.0,
+                'options' => $sel['options'],
+                'explanation' => $sel['explanation'],
+            ];
+        }
+
         if ($type === 'mcq_multiple') {
             return [
                 'number' => $number,
@@ -2271,19 +3494,40 @@ PROMPT;
             ];
         }
 
+        $upperSingle = [
+            0 => [
+                'prompt' => $stimulusNote.'Penyelenggaraan musyawarah mufakat di tingkat desa untuk memutuskan alokasi pembangunan infrastruktur fasilitas umum merupakan wujud nyata penerapan nilai luhur Pancasila, khususnya Sila ...',
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Keempat: Kerakyatan yang Dipimpin oleh Hikmat Kebijaksanaan dalam Permusyawaratan/Perwakilan.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Pertama: Ketuhanan Yang Maha Esa.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Kedua: Kemanusiaan yang Adil dan Beradab.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Ketiga: Persatuan Indonesia.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'E', 'option_text' => 'Kelima: Keadilan Sosial bagi Seluruh Rakyat Indonesia semata.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => 'Musyawarah mufakat untuk mufakat dalam pengambilan keputusan bersama merupakan nilai inti Sila Keempat Pancasila.',
+            ],
+            1 => [
+                'prompt' => $stimulusNote.'Pengakuan atas persamaan derajat, hak, dan kewajiban asasi setiap manusia tanpa membeda-bedakan suku, keturunan, agama, dan jenis kelamin merupakan perwujudan Sila ...',
+                'options' => [
+                    ['label' => 'A', 'option_text' => 'Pertama', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'B', 'option_text' => 'Kedua (Kemanusiaan yang Adil dan Beradab)', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ['label' => 'C', 'option_text' => 'Ketiga', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'D', 'option_text' => 'Keempat', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ['label' => 'E', 'option_text' => 'Kelima', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                ],
+                'explanation' => 'Sila Kedua menjunjung tinggi harkat, martabat, dan hak asasi setiap manusia secara beradab dan setara.',
+            ],
+        ];
+
+        $sel = $upperSingle[$vIdx % count($upperSingle)];
+
         return [
             'number' => $number,
             'type' => 'mcq_single',
-            'prompt' => $stimulusNote.'Penyelenggaraan musyawarah mufakat di tingkat desa untuk memutuskan alokasi pembangunan infrastruktur fasilitas umum merupakan wujud nyata penerapan nilai luhur Pancasila, khususnya Sila ...',
+            'prompt' => $sel['prompt'],
             'points' => 2.0,
-            'options' => [
-                ['label' => 'A', 'option_text' => 'Keempat: Kerakyatan yang Dipimpin oleh Hikmat Kebijaksanaan dalam Permusyawaratan/Perwakilan.', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
-                ['label' => 'B', 'option_text' => 'Pertama: Ketuhanan Yang Maha Esa.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                ['label' => 'C', 'option_text' => 'Kedua: Kemanusiaan yang Adil dan Beradab.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                ['label' => 'D', 'option_text' => 'Ketiga: Persatuan Indonesia.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-                ['label' => 'E', 'option_text' => 'Kelima: Keadilan Sosial bagi Seluruh Rakyat Indonesia semata.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
-            ],
-            'explanation' => 'Musyawarah mufakat untuk mufakat dalam pengambilan keputusan bersama merupakan nilai inti Sila Keempat Pancasila.',
+            'options' => $sel['options'],
+            'explanation' => $sel['explanation'],
         ];
     }
 
@@ -2395,7 +3639,187 @@ PROMPT;
             $subjectTitle = 'Pengetahuan Umum & Literasi Terapan';
         }
 
+        $grade = (int) ($params['grade_level'] ?? 10);
+        $isPrimary = $grade <= 6;
         $vIdx = abs(($index > 0 ? $index - 1 : $number) % 5);
+
+        if ($isPrimary) {
+            if ($type === 'short_answer') {
+                $primaryShortAnswers = [
+                    [
+                        'prompt' => $stimulusNote.'Benda yang kita gunakan untuk menulis di buku tulis sekolah adalah ...',
+                        'answer' => 'Pensil',
+                        'explanation' => 'Pensil atau pulpen adalah alat utama yang digunakan siswa untuk menulis catatan di buku.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Bintang terdekat dengan bumi yang menjadi sumber panas dan cahaya utama di siang hari adalah ...',
+                        'answer' => 'Matahari',
+                        'explanation' => 'Matahari adalah bintang induk tata surya yang memancarkan energi panas dan cahaya bagi bumi.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Bagian tumbuhan yang tumbuh di dalam tanah dan berfungsi menyerap air serta mineral adalah ...',
+                        'answer' => 'Akar',
+                        'explanation' => 'Akar berfungsi menyerap air dan zat hara dari dalam tanah serta menopang tegaknya tumbuhan.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Sikap saling menghormati dan menghargai perbedaan pendapat serta latar belakang antarteman disebut sikap ...',
+                        'answer' => 'Toleransi',
+                        'explanation' => 'Toleransi adalah sikap saling menghormati keberagaman demi terciptanya kerukunan hidup.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Hewan yang hanya memakan rumput, dedaunan, atau tumbuhan disebut hewan ...',
+                        'answer' => 'Herbivora',
+                        'explanation' => 'Herbivora adalah kelompok hewan pemakan tumbuhan seperti sapi, kambing, dan kelinci.',
+                    ],
+                ];
+
+                $selected = $primaryShortAnswers[$vIdx];
+
+                return [
+                    'number' => $number,
+                    'type' => 'short_answer',
+                    'prompt' => $selected['prompt'],
+                    'points' => 1.5,
+                    'options' => [
+                        ['label' => 'Kunci', 'option_text' => $selected['answer'], 'is_correct' => true, 'score' => 1.5, 'match_key' => null],
+                    ],
+                    'explanation' => $selected['explanation'],
+                ];
+            }
+
+            if ($type === 'essay') {
+                $primaryEssays = [
+                    [
+                        'prompt' => $stimulusNote.'Tuliskan dua cara menghemat penggunaan air bersih yang dapat kamu lakukan di rumah atau di sekolah!',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika siswa mampu menuliskan 2 cara menghemat air secara tepat (contoh: mematikan keran saat tidak dipakai, menggunakan air secukupnya saat mencuci tangan/mandi). Skor 2 jika hanya menyebutkan 1 cara.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Mengapa kita harus selalu membuang sampah pada tempatnya? Jelaskan manfaatnya bagi lingkungan sekitar kita!',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika siswa menjelaskan bahwa membuang sampah pada tempatnya mencegah banjir, menjaga lingkungan tetap bersih/asri, dan mencegah timbulnya bibit penyakit. Skor 2 jika alasan sangat singkat.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Sebutkan tiga contoh kewajiban seorang murid saat berada di lingkungan sekolah!',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika menyebutkan 3 kewajiban siswa (contoh: mematuhi tata tertib, menghormati guru, menjaga kebersihan kelas, datang tepat waktu). Skor 2 jika hanya menyebutkan 1-2 kewajiban.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Jelaskan apa yang akan terjadi jika tanaman di halaman rumah kita tidak disiram air dan tidak terkena sinar matahari!',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika menjelaskan bahwa daun tanaman akan layu, menguning, kering, dan akhirnya mati karena tanaman membutuhkan air dan cahaya matahari untuk fotosintesis menghasilkan makanan. Skor 2 jika jawaban kurang lengkap.',
+                    ],
+                    [
+                        'prompt' => $stimulusNote.'Tuliskan dua contoh kegiatan gotong royong yang biasa dilakukan warga di sekitar lingkungan tempat tinggalmu!',
+                        'explanation' => 'Rubrik Penilaian: Skor 4 jika menyebutkan 2 kegiatan gotong royong konkret (contoh: kerja bakti membersihkan selokan, memperbaiki jembatan/pos ronda, mempersiapkan perayaan 17 Agustus). Skor 2 jika hanya menyebutkan 1 kegiatan.',
+                    ],
+                ];
+
+                $selected = $primaryEssays[$vIdx];
+
+                return [
+                    'number' => $number,
+                    'type' => 'essay',
+                    'prompt' => $selected['prompt'],
+                    'points' => 4.0,
+                    'options' => [],
+                    'explanation' => $selected['explanation'],
+                ];
+            }
+
+            if ($type === 'mcq_multiple') {
+                return [
+                    'number' => $number,
+                    'type' => 'mcq_multiple',
+                    'prompt' => $stimulusNote.'Manakah di antara hal berikut yang merupakan kebutuhan pokok makhluk hidup untuk dapat bertahan hidup dan tumbuh dengan sehat? (Pilihlah minimal 2 jawaban yang tepat)',
+                    'points' => 2.0,
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'Air bersih untuk minum dan metabolisme tubuh.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'Makanan bergizi seimbang sebagai sumber energi.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'Udara bersih (oksigen) untuk bernapas.', 'is_correct' => true, 'score' => 1.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'Mainan elektronik mahal setiap hari.', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Air, makanan bergizi, dan udara bersih adalah kebutuhan dasar mutlak bagi kelangsungan hidup makhluk hidup.',
+                ];
+            }
+
+            if ($type === 'binary_matrix') {
+                return [
+                    'number' => $number,
+                    'type' => 'binary_matrix',
+                    'prompt' => $stimulusNote.'Tentukan Benar atau Salah untuk masing-masing pernyataan berikut:',
+                    'points' => 2.0,
+                    'settings' => ['labels' => ['Benar', 'Salah']],
+                    'options' => [
+                        ['label' => '1', 'option_text' => 'Membuang sampah ke aliran sungai dapat memicu terjadinya bencana banjir saat musim hujan.', 'is_correct' => true, 'score' => 1.0, 'match_key' => 'Benar'],
+                        ['label' => '2', 'option_text' => 'Matahari terbit dari arah barat pada waktu pagi hari.', 'is_correct' => true, 'score' => 1.0, 'match_key' => 'Salah'],
+                        ['label' => '3', 'option_text' => 'Tumbuhan hijau membutuhkan sinar matahari untuk memasak makanan melalui proses fotosintesis.', 'is_correct' => true, 'score' => 1.0, 'match_key' => 'Benar'],
+                    ],
+                    'explanation' => 'Pernyataan 1 Benar (sampah menyumbat aliran air). Pernyataan 2 Salah (matahari terbit dari timur). Pernyataan 3 Benar (fungsi fotosintesis tumbuhan).',
+                ];
+            }
+
+            // mcq_single for Primary School
+            $primarySingle = [
+                0 => [
+                    'prompt' => $stimulusNote.'Sikap terpuji yang sebaiknya kita tunjukkan saat melihat teman kita terjatuh di halaman sekolah adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'segera mendekati dan menolongnya berdiri', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'menertawakannya bersama teman-teman lain', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'berpura-pura tidak melihat dan meninggalkannya', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'menyalahkan teman karena berlari sembarangan', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Menolong teman yang membutuhkan bantuan merupakan wujud sikap peduli dan saling mengasihi sesama.',
+                ],
+                1 => [
+                    'prompt' => $stimulusNote.'Sumber energi panas dan cahaya terbesar bagi kelangsungan hidup seluruh makhluk hidup di bumi adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'api unggun', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'matahari', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'lampu listrik', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'baterai', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Matahari adalah sumber energi primer terbesar di bumi yang menerangi dan menghangatkan planet kita.',
+                ],
+                2 => [
+                    'prompt' => $stimulusNote.'Bagian tumbuhan yang bertugas menyerap air dan unsur hara dari dalam tanah adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'bunga', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'batang', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'akar', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'daun', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Akar menyerap air dan mineral dari tanah, sedangkan daun mengolah makanan dan batang menyalurkannya.',
+                ],
+                3 => [
+                    'prompt' => $stimulusNote.'Untuk menjaga agar lingkungan sekolah tetap bersih, rapi, dan sehat, sampah harus dibuang ke ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'kolong meja kelas', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'halaman rumput', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'selokan air', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'tempat sampah', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Membuang sampah pada tempat sampah menjaga kebersihan dan mencegah bau tidak sedap serta bibit penyakit.',
+                ],
+                4 => [
+                    'prompt' => $stimulusNote.'Lambang resmi negara Kesatuan Republik Indonesia adalah ...',
+                    'options' => [
+                        ['label' => 'A', 'option_text' => 'Burung Garuda Pancasila', 'is_correct' => true, 'score' => 2.0, 'match_key' => null],
+                        ['label' => 'B', 'option_text' => 'Pohon Kelapa Hijau', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'C', 'option_text' => 'Harimau Loreng Sumatera', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                        ['label' => 'D', 'option_text' => 'Ikan Mas Koki', 'is_correct' => false, 'score' => 0.0, 'match_key' => null],
+                    ],
+                    'explanation' => 'Garuda Pancasila adalah lambang negara Indonesia dengan semboyan Bhinneka Tunggal Ika.',
+                ],
+            ];
+
+            $selected = $primarySingle[$vIdx];
+
+            return [
+                'number' => $number,
+                'type' => 'mcq_single',
+                'prompt' => $selected['prompt'],
+                'points' => 2.0,
+                'options' => $selected['options'],
+                'explanation' => $selected['explanation'],
+            ];
+        }
 
         if ($type === 'short_answer') {
             $shortAnswerVariants = [

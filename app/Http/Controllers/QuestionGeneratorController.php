@@ -52,22 +52,30 @@ class QuestionGeneratorController extends Controller
         $syllabus = config('curriculum_syllabus');
         $subjects = Subject::orderBy('name')->get();
         $isDeepSeekConfigured = filled(config('services.deepseek.api_key'));
-        $defaultModel = config('services.deepseek.model', 'deepseek-reasoner');
+        $isGeminiConfigured = filled(config('services.gemini.api_key'));
+        $modelsByProvider = DeepSeekQuestionGeneratorService::getModelsByProvider();
+        $supportedModels = DeepSeekQuestionGeneratorService::getSupportedModels();
+        $defaultModel = config('services.question_generator.default_model', 'deepseek-reasoner');
 
         return view('question-generator.index', compact(
             'syllabus',
             'subjects',
             'isDeepSeekConfigured',
+            'isGeminiConfigured',
+            'modelsByProvider',
+            'supportedModels',
             'defaultModel'
         ));
     }
 
     /**
-     * Generate questions using DeepSeek AI.
+     * Generate questions using DeepSeek or Google Gemini AI.
      */
     public function generate(Request $request, DeepSeekQuestionGeneratorService $aiService): JsonResponse
     {
         $this->authorizeStaffAccess();
+
+        $supportedKeys = implode(',', array_keys(DeepSeekQuestionGeneratorService::getSupportedModels()));
 
         $validated = $request->validate([
             'category' => 'required|string|in:school,tka,utbk,skd,custom',
@@ -86,7 +94,7 @@ class QuestionGeneratorController extends Controller
             'question_type' => 'nullable|string',
             'question_count' => 'nullable|integer|min:1|max:50',
             'custom_prompt' => 'nullable|string|max:2000',
-            'ai_model' => 'nullable|string|in:deepseek-chat,deepseek-reasoner',
+            'ai_model' => 'nullable|string|in:'.$supportedKeys,
             'type_distributions' => 'nullable|array',
             'type_distributions.*.type' => 'required|string',
             'type_distributions.*.standalone_count' => 'nullable|integer|min:0|max:50',
@@ -98,10 +106,12 @@ class QuestionGeneratorController extends Controller
         try {
             $package = $aiService->generate($validated);
             $wordText = $aiService->formatAsWordDocxText($package);
+            $modelUsed = $package['model_used'] ?? ($validated['ai_model'] ?? 'AI Engine');
+            $providerLabel = str_starts_with(strtolower((string) $modelUsed), 'gemini') ? 'Google Gemini' : 'DeepSeek AI';
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Soal berhasil di-generate menggunakan DeepSeek AI.',
+                'message' => "Soal berhasil di-generate menggunakan {$providerLabel} ({$modelUsed}).",
                 'package' => $package,
                 'word_text' => $wordText,
             ]);
