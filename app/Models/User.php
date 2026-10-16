@@ -62,6 +62,12 @@ class User extends Authenticatable
         }
 
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            if (str_contains($path, '.r2.dev/')) {
+                $subPath = preg_replace('/^https?:\/\/[^\/]+\//', '', $path);
+
+                return function_exists('url') ? url('/media/r2/'.$subPath) : '/media/r2/'.$subPath;
+            }
+
             return $path;
         }
 
@@ -74,7 +80,12 @@ class User extends Authenticatable
             return Storage::disk('public')->url($path);
         }
 
-        return Storage::disk($disk)->url($path);
+        $url = Storage::disk($disk)->url($path);
+        if (str_contains($url, '.r2.dev/')) {
+            return function_exists('url') ? url('/media/r2/'.$path) : '/media/r2/'.$path;
+        }
+
+        return $url;
     }
 
     /**
@@ -85,7 +96,7 @@ class User extends Authenticatable
         return Attribute::make(
             get: fn () => self::getStorageUrl(
                 $this->profile_photo_path ?: $this->avatar_url,
-                'https://images.pexels.com/photos/771742/pexels-photo-771742.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&dpr=1'
+                'https://ui-avatars.com/api/?name='.urlencode($this->name ?: 'User').'&color=2563EB&background=DBEAFE&size=256'
             )
         );
     }
@@ -98,7 +109,7 @@ class User extends Authenticatable
         return Attribute::make(
             get: fn () => self::getStorageUrl(
                 $this->cover_photo_path,
-                'https://images.pexels.com/photos/1229861/pexels-photo-1229861.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'
+                'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1200'
             )
         );
     }

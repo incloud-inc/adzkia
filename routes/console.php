@@ -3,6 +3,7 @@
 use App\Models\Assessment;
 use App\Models\ExamSession;
 use App\Models\Question;
+use App\Models\QuestionOption;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
@@ -11,7 +12,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('assessments:insert-grade12-image', function () {
-    $imageMarkdown = "\n\n![segitiga siku-siku.webp](https://pub-aeb2ed90015841b3aa9346f044e853a9.r2.dev/asesmen/YQqjHBJTCflSIP1XktU3a3kwHa7kjt0Tk1pikv0h.webp)\n\n";
+    $imageMarkdown = "\n\n![segitiga siku-siku.webp](/media/r2/asesmen/YQqjHBJTCflSIP1XktU3a3kwHa7kjt0Tk1pikv0h.webp)\n\n";
 
     $assessments = Assessment::withoutGlobalScopes()
         ->where(function ($query) {
@@ -39,6 +40,45 @@ Artisan::command('assessments:insert-grade12-image', function () {
 
     $this->info("Berhasil menyisipkan gambar segitiga siku-siku ke {$updatedCount} butir soal nomor 1 asesmen kelas 12.");
 })->purpose('Sisipkan gambar Cloudflare R2 ke butir soal nomor 1 kelas 12');
+
+Artisan::command('assessments:fix-r2-urls', function () {
+    $this->info('Memperbaiki URL Cloudflare R2 (*.r2.dev) ke media proxy (/media/r2/) pada bank soal dan opsi...');
+
+    $questionCount = 0;
+    Question::withoutGlobalScopes()
+        ->where('prompt', 'like', '%r2.dev%')
+        ->chunk(100, function ($questions) use (&$questionCount) {
+            foreach ($questions as $q) {
+                $newPrompt = preg_replace(
+                    '/https:\/\/[a-zA-Z0-9_-]+\.r2\.dev\/(asesmen\/[^\s\)\"\']+)/i',
+                    '/media/r2/$1',
+                    $q->prompt
+                );
+                if ($newPrompt !== $q->prompt) {
+                    $q->forceFill(['prompt' => $newPrompt])->save();
+                    $questionCount++;
+                }
+            }
+        });
+
+    $optionCount = 0;
+    QuestionOption::where('option_text', 'like', '%r2.dev%')
+        ->chunk(100, function ($options) use (&$optionCount) {
+            foreach ($options as $opt) {
+                $newText = preg_replace(
+                    '/https:\/\/[a-zA-Z0-9_-]+\.r2\.dev\/(asesmen\/[^\s\)\"\']+)/i',
+                    '/media/r2/$1',
+                    $opt->option_text
+                );
+                if ($newText !== $opt->option_text) {
+                    $opt->forceFill(['option_text' => $newText])->save();
+                    $optionCount++;
+                }
+            }
+        });
+
+    $this->info("Selesai! {$questionCount} soal dan {$optionCount} opsi jawaban berhasil dialihkan ke /media/r2/.");
+})->purpose('Perbaiki URL R2 terblokir menjadi media proxy lokal');
 
 Artisan::command('assessments:randomize-options', function () {
     $this->info('Mengaktifkan randomize_questions & randomize_options pada seluruh asesmen...');

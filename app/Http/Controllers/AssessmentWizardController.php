@@ -768,9 +768,14 @@ class AssessmentWizardController extends Controller
         if ($type === 'image' && extension_loaded('gd') && in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
             $optimizedPath = $this->optimizeAndStoreImage($file, $disk);
             if ($optimizedPath) {
+                $url = Storage::disk($disk)->url($optimizedPath);
+                if (str_contains($url, '.r2.dev/')) {
+                    $url = url('/media/r2/'.$optimizedPath);
+                }
+
                 return response()->json([
                     'success' => true,
-                    'url' => Storage::disk($disk)->url($optimizedPath),
+                    'url' => $url,
                     'type' => 'image',
                     'filename' => $file->getClientOriginalName(),
                 ]);
@@ -779,6 +784,9 @@ class AssessmentWizardController extends Controller
 
         $path = $file->store('asesmen', $disk);
         $url = Storage::disk($disk)->url($path);
+        if (str_contains($url, '.r2.dev/')) {
+            $url = url('/media/r2/'.$path);
+        }
 
         return response()->json([
             'success' => true,

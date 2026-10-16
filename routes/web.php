@@ -19,6 +19,7 @@ use App\Http\Controllers\Exam\ExamWorkspaceController;
 use App\Http\Controllers\GradeLevelController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\MediaGalleryController;
+use App\Http\Controllers\MediaProxyController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\PostalCodeController;
@@ -62,6 +63,9 @@ Route::get('/api/postal-codes/search', [PostalCodeController::class, 'search'])-
 Route::post('api/webhooks/payment/duitku', [PaymentWebhookController::class, 'duitku'])->name('payment.webhook.duitku');
 Route::post('api/webhooks/payment/tripay', [PaymentWebhookController::class, 'tripay'])->name('payment.webhook.tripay');
 Route::post('api/webhooks/payment/generic', [PaymentWebhookController::class, 'generic'])->name('payment.webhook.generic');
+
+// 5. Media Proxy & Cache Cloudflare R2 (Bypass blokir DNS *.r2.dev oleh ISP Indonesia)
+Route::get('media/r2/{path}', [MediaProxyController::class, 'show'])->where('path', '.*')->name('media.r2');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/run-storage-link', function () {

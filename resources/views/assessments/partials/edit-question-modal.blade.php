@@ -514,7 +514,7 @@
                                 <!-- Thumbnail -->
                                 <div class="h-24 bg-slate-50 flex items-center justify-center overflow-hidden relative border-b border-slate-100">
                                     <template x-if="item.is_image">
-                                        <img :src="item.url" :alt="item.name" loading="lazy" class="w-full h-full object-contain p-1.5 group-hover:scale-105 transition-transform duration-200">
+                                        <img :src="item.url" :alt="item.name" loading="lazy" class="w-full h-full object-contain p-1.5 group-hover:scale-105 transition-transform duration-200" onerror="if(!this.dataset.retried && this.src.includes('.r2.dev/')){this.dataset.retried='1';this.src='/media/r2/asesmen/' + (this.src.split('.r2.dev/asesmen/')[1] || '');}">
                                     </template>
                                     <template x-if="item.is_audio">
                                         <div class="flex flex-col items-center text-amber-600">

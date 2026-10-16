@@ -202,7 +202,9 @@
                 <div class="absolute inset-0 rounded-t-3xl overflow-hidden pointer-events-none">
                     <img src="{{ $tenant->cover_photo_url }}" 
                          alt="Foto Gedung {{ $tenant->name }}" 
-                         class="w-full h-full object-cover">
+                         class="w-full h-full object-cover"
+                         loading="lazy"
+                         onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2000';">
                     
                     <!-- Overlay Gradasi Gelap & Tint Halus Mengikuti Warna Tema -->
                     <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/25"></div>
@@ -243,7 +245,7 @@
                     <!-- Logo Sekolah (1:1 Aspect Ratio: Presisi 50% di Cover & 50% di Bawah Cover) -->
                     <div class="-mt-10 sm:-mt-12 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-2xl sm:rounded-3xl bg-white p-1.5 shadow-md border border-oc-gray-2 flex items-center justify-center shrink-0 relative z-10 overflow-hidden">
                         @if($tenant->logo_path)
-                            <img src="{{ $tenant->logo_url }}" alt="Logo {{ $tenant->name }}" class="w-full h-full object-contain rounded-xl sm:rounded-2xl">
+                            <img src="{{ $tenant->logo_url }}" alt="Logo {{ $tenant->name }}" class="w-full h-full object-contain rounded-xl sm:rounded-2xl" loading="lazy" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ urlencode($tenant->name) }}&color=10B981&background=D1FAE5';">
                         @else
                             <div class="w-full h-full aspect-square rounded-xl sm:rounded-2xl bg-gradient-to-br from-oc-gray-1 to-oc-blue-0 border border-oc-gray-3 flex flex-col items-center justify-center transition-colors duration-300" :style="{ color: currentTheme.hex }">
                                 <svg class="w-8 h-8 sm:w-10 sm:h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

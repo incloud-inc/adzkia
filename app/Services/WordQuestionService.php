@@ -266,6 +266,10 @@ class WordQuestionService
                     if (Storage::disk($disk)->put($path, $imageBinary, 'public')) {
                         $url = Storage::disk($disk)->url($path);
                         if (! empty($url)) {
+                            if (str_contains($url, '.r2.dev/')) {
+                                $url = function_exists('url') ? url('/media/r2/'.$path) : $url;
+                            }
+
                             return $url;
                         }
                     }

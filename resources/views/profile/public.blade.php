@@ -130,7 +130,7 @@
                 <div class="absolute inset-0 overflow-hidden pointer-events-none"
                      :style="{ background: coverGradient }">
                     @if($user->cover_photo_path)
-                        <img src="{{ $user->cover_photo_url }}" alt="Cover {{ $user->name }}" class="w-full h-full object-cover">
+                        <img src="{{ $user->cover_photo_url }}" alt="Cover {{ $user->name }}" class="w-full h-full object-cover" loading="lazy" onerror="this.style.display='none';">
                         <!-- Dual gradient vignette agar kontrol atas dan avatar bawah tetap terbaca jelas -->
                         <div class="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/45"></div>
                     @else
@@ -179,7 +179,9 @@
                          :style="{ background: avatarGlow }">
                         <img src="{{ $user->profile_photo_url }}" 
                              alt="{{ $user->name }}" 
-                             class="w-full h-full object-cover rounded-full bg-zinc-800 border-2 border-white/90 dark:border-zinc-900 shadow-inner">
+                             class="w-full h-full object-cover rounded-full bg-zinc-800 border-2 border-white/90 dark:border-zinc-900 shadow-inner"
+                             loading="lazy"
+                             onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ urlencode($user->name ?: 'Siswa') }}&color=2563EB&background=DBEAFE&size=256';">
                     </div>
 
                     <!-- Verified Badge Checkmark -->
@@ -820,7 +822,7 @@
                         <!-- Kop Lambang Institusi / Medali Pita Header Bergradasi Tema -->
                         @if($tenant && $tenant->logo_path)
                             <div class="flex items-center justify-center mb-1.5">
-                                <img src="{{ $tenant->logo_url }}" alt="{{ $tenantName }}" class="h-10 sm:h-11 max-w-[140px] object-contain drop-shadow">
+                                <img src="{{ $tenant->logo_url }}" alt="{{ $tenantName }}" class="h-10 sm:h-11 max-w-[140px] object-contain drop-shadow" loading="lazy" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ urlencode($tenantName) }}&color=10B981&background=D1FAE5';">
                             </div>
                         @else
                             <div class="w-11 h-11 mx-auto rounded-full flex items-center justify-center text-white shadow-lg mb-2 relative"

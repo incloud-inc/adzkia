@@ -520,9 +520,13 @@
                     processed = processed.replace(/<audio\b([^>]*)>(.*?)<\/audio>/gi, '<div class="my-2 p-2.5 rounded-xl bg-gray-2 border border-gray-6"><span class="text-[11px] font-bold text-gray-10 block mb-1">🔊 Pratinjau Audio:</span><audio controls $1 class="w-full">$2</audio></div>');
                     processed = processed.replace(/<video\b([^>]*)>(.*?)<\/video>/gi, '<div class="my-2 p-2 rounded-xl bg-black/5 border border-gray-6"><video controls $1 class="w-full max-h-60 rounded-lg object-contain bg-black">$2</video></div>');
                     processed = processed.replace(/!\[(.*?)\]\((.*?)\)/g, function(match, alt, url) {
-                        const cleanUrl = url.trim();
+                        let cleanUrl = url.trim();
                         if (!cleanUrl) {
                             return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-2 text-amber-11 border border-amber-5 text-xs animate-pulse">⏳ ' + (alt || 'Sedang mengunggah media...') + '</span>';
+                        }
+                        // Jika URL mengarah ke *.r2.dev (yang diblokir DNS ISP di Indonesia), alihkan otomatis ke proxy lokal /media/r2
+                        if (cleanUrl.includes('.r2.dev/asesmen/')) {
+                            cleanUrl = '/media/r2/asesmen/' + cleanUrl.split('.r2.dev/asesmen/')[1];
                         }
                         if (/\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/i.test(cleanUrl)) {
                             return '<div class="my-2 p-2.5 rounded-xl bg-gray-2 border border-gray-6"><span class="text-[11px] font-bold text-gray-10 block mb-1">🔊 Pratinjau Audio: ' + (alt || '') + '</span><audio controls src="' + cleanUrl + '" class="w-full"></audio></div>';
@@ -531,7 +535,7 @@
                             return '<div class="my-2 p-2 rounded-xl bg-black/5 border border-gray-6"><video controls src="' + cleanUrl + '" class="w-full max-h-60 rounded-lg object-contain bg-black"></video>' + (alt ? '<p class="text-[11px] text-gray-10 mt-1 italic text-center">' + alt + '</p>' : '') + '</div>';
                         }
                         return '<div class="my-2.5">' +
-                            '<img src="' + cleanUrl + '" alt="' + (alt || 'Gambar Soal') + '" class="max-w-full max-h-80 rounded-xl border border-gray-6 shadow-sm object-contain bg-white p-1.5" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML=\'<span class=\\\'text-xs text-red-11 italic\\\'>[Gagal memuat media dari R2]\';">' +
+                            '<img src="' + cleanUrl + '" alt="' + (alt || 'Gambar Soal') + '" class="max-w-full max-h-80 rounded-xl border border-gray-6 shadow-sm object-contain bg-white p-1.5" loading="lazy" onerror="if(!this.dataset.retried && this.src.includes(\'.r2.dev/\')){this.dataset.retried=\'1\';this.src=\'/media/r2/asesmen/\' + (this.src.split(\'.r2.dev/asesmen/\')[1] || \'\');}else{this.onerror=null;this.parentElement.innerHTML=\'<span class=\\\'text-xs text-red-11 italic\\\'>[Gagal memuat media dari R2]</span>\';}">' +
                             (alt ? '<p class="text-[11px] text-gray-10 mt-1 italic text-center">' + alt + '</p>' : '') +
                             '</div>';
                     });

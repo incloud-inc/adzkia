@@ -29,6 +29,23 @@ class MarkdownRenderer
 
         $processed = $markdown;
 
+        // 0. Otomatis alihkan URL Cloudflare R2 *.r2.dev ke media proxy lokal /media/r2
+        // Mengatasi pemblokiran DNS / TrustPositif oleh ISP Indonesia terhadap subdomain gratis r2.dev
+        $r2BaseUrl = '/media/r2';
+        if (function_exists('app') && app()->has('config')) {
+            $configuredUrl = config('filesystems.disks.r2.url');
+            if (! empty($configuredUrl) && ! str_contains($configuredUrl, 'r2.dev')) {
+                $r2BaseUrl = $configuredUrl;
+            } elseif (function_exists('url')) {
+                $r2BaseUrl = url('/media/r2');
+            }
+        }
+        $processed = preg_replace(
+            '/https:\/\/[a-zA-Z0-9_-]+\.r2\.dev\/(asesmen\/[^\s\)\"\']+)/i',
+            rtrim($r2BaseUrl, '/').'/$1',
+            $processed
+        );
+
         // 1. Lindungi Display Math ($$...$$)
         $processed = preg_replace_callback('/\$\$([\s\S]*?)\$\$/u', function ($m) use ($protect) {
             return $protect($m[0]);

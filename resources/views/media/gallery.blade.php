@@ -241,7 +241,8 @@
                         <div class="relative h-28 bg-slate-50 flex items-center justify-center overflow-hidden border-b border-slate-100">
                             @if($item['is_image'])
                                 <img src="{{ $item['url'] }}" alt="{{ $item['filename'] }}" loading="lazy"
-                                     class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300">
+                                     class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                                     onerror="if(!this.dataset.retried && this.src.includes('.r2.dev/')){this.dataset.retried='1';this.src='/media/r2/asesmen/' + (this.src.split('.r2.dev/asesmen/')[1] || '');}">
                             @elseif($item['is_video'])
                                 <div class="flex flex-col items-center gap-1 text-purple-600">
                                     <x-radix-icon name="video" class="w-8 h-8" />
@@ -366,7 +367,8 @@
                 <!-- Preview Viewport -->
                 <div class="flex items-center justify-center max-h-[60vh] overflow-hidden bg-slate-50 rounded-xl p-2 border border-slate-100">
                     <template x-if="previewIsImage">
-                        <img :src="previewUrl" :alt="previewName" class="max-h-[55vh] max-w-full object-contain rounded-lg">
+                        <img :src="previewUrl" :alt="previewName" class="max-h-[55vh] max-w-full object-contain rounded-lg"
+                             onerror="if(!this.dataset.retried && this.src.includes('.r2.dev/')){this.dataset.retried='1';this.src='/media/r2/asesmen/' + (this.src.split('.r2.dev/asesmen/')[1] || '');}">
                     </template>
                     <template x-if="previewIsVideo">
                         <video :src="previewUrl" controls class="max-h-[55vh] max-w-full rounded-lg"></video>
