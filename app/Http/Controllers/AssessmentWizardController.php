@@ -182,24 +182,10 @@ class AssessmentWizardController extends Controller
         // Preset templates for Step 1
         $assessmentTypes = [
             [
-                'id' => 'ph',
-                'name' => 'Penilaian Harian (PH)',
-                'desc' => 'Ujian rutin per topik/bab materi untuk evaluasi formatif harian.',
-                'badge' => 'Formatif',
-                'icon' => 'file-text',
-            ],
-            [
-                'id' => 'pts',
-                'name' => 'Penilaian Tengah Semester (PTS)',
-                'desc' => 'Evaluasi capaian belajar paruh semester dengan komposisi soal terpadu.',
-                'badge' => 'Sumatif',
-                'icon' => 'timer',
-            ],
-            [
-                'id' => 'pas',
-                'name' => 'Penilaian Akhir Semester (PAS / PAT)',
-                'desc' => 'Asesmen komprehensif semester ganjil/genap seluruh pokok bahasan.',
-                'badge' => 'Sumatif',
+                'id' => 'sumatif',
+                'name' => 'Asesmen Sumatif',
+                'desc' => 'Asesmen kurikulum terpadu (AS, ASTS, ASAS, ASAT, ASAJ) dengan 3 bagian soal otomatis.',
+                'badge' => 'Kurikulum Merdeka',
                 'icon' => 'badge',
             ],
             [

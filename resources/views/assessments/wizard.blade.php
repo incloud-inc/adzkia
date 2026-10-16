@@ -96,8 +96,9 @@
                     'Jadwal'
                 ],
                 form: {
-                    type: 'ph',
-                    title: '',
+                    type: 'sumatif',
+                    sumatif_type: 'ASTS',
+                    title: 'ASTS ... [A/B/C]',
                     subject_id: '',
                     grade_level: '1 SD',
                     duration_minutes: 90,
@@ -137,16 +138,23 @@
                     },
                     sections: [
                         {
-                            id: 'sec_' + Date.now() + '_1',
+                            id: 'sec_sum_' + Date.now() + '_1',
                             title: 'Bagian 1: Pilihan Ganda',
                             instructions: 'Pilihlah salah satu jawaban yang paling tepat.',
                             duration_minutes: null,
                             items: []
                         },
                         {
-                            id: 'sec_' + Date.now() + '_2',
-                            title: 'Bagian 2: Isian Singkat',
-                            instructions: 'Jawablah pertanyaan berikut dengan singkat dan tepat.',
+                            id: 'sec_sum_' + Date.now() + '_2',
+                            title: 'Bagian 2: Pilihan Ganda Kompleks & Isian',
+                            instructions: 'Pilihlah jawaban yang benar (dapat lebih dari satu), pasangkan pernyataan, atau isi jawaban singkat.',
+                            duration_minutes: null,
+                            items: []
+                        },
+                        {
+                            id: 'sec_sum_' + Date.now() + '_3',
+                            title: 'Bagian 3: Uraian / Essay',
+                            instructions: 'Jawablah pertanyaan uraian berikut dengan lengkap, jelas, dan terstruktur.',
                             duration_minutes: null,
                             items: []
                         }
@@ -155,25 +163,9 @@
 
                 selectAssessmentType(typeId) {
                     this.form.type = typeId;
-                    if (typeId === 'ph' || typeId === 'pts' || typeId === 'pas') {
-                        this.form.duration_minutes = (typeId === 'ph') ? 60 : 90;
-                        this.form.scoring_type = 'raw';
-                        this.form.sections = [
-                            {
-                                id: 'sec_' + typeId + '_1',
-                                title: 'Bagian 1: Pilihan Ganda',
-                                instructions: 'Pilihlah salah satu jawaban yang paling tepat.',
-                                duration_minutes: null,
-                                items: []
-                            },
-                            {
-                                id: 'sec_' + typeId + '_2',
-                                title: 'Bagian 2: Isian Singkat',
-                                instructions: 'Jawablah pertanyaan berikut dengan singkat dan tepat.',
-                                duration_minutes: null,
-                                items: []
-                            }
-                        ];
+                    if (typeId === 'sumatif' || typeId === 'ph' || typeId === 'pts' || typeId === 'pas') {
+                        const subtype = this.form.sumatif_type || (typeId === 'pts' ? 'ASTS' : (typeId === 'pas' ? 'ASAS' : (typeId === 'ph' ? 'AS' : 'ASTS')));
+                        this.selectSumatifSubtype(subtype);
                     } else if (typeId === 'toeic') {
                         this.form.duration_minutes = 120;
                         this.form.scoring_type = 'toeic_scale';
@@ -257,6 +249,48 @@
                         ];
                     } else if (typeId === 'utbk') {
                         this.selectUtbkPreset(this.form.utbk_package || 'tps');
+                    }
+                },
+
+                selectSumatifSubtype(subtype) {
+                    this.form.type = 'sumatif';
+                    this.form.sumatif_type = subtype;
+                    this.form.duration_minutes = 90;
+                    this.form.scoring_type = 'standard';
+                    this.form.title = subtype + ' ... [A/B/C]';
+                    this.form.sections = [
+                        {
+                            id: 'sec_' + subtype.toLowerCase() + '_' + Date.now() + '_1',
+                            title: 'Bagian 1: Pilihan Ganda',
+                            instructions: 'Pilihlah salah satu jawaban yang paling tepat.',
+                            duration_minutes: null,
+                            items: []
+                        },
+                        {
+                            id: 'sec_' + subtype.toLowerCase() + '_' + Date.now() + '_2',
+                            title: 'Bagian 2: Pilihan Ganda Kompleks & Isian',
+                            instructions: 'Pilihlah jawaban yang benar (dapat lebih dari satu), pasangkan pernyataan, atau isi jawaban singkat.',
+                            duration_minutes: null,
+                            items: []
+                        },
+                        {
+                            id: 'sec_' + subtype.toLowerCase() + '_' + Date.now() + '_3',
+                            title: 'Bagian 3: Uraian / Essay',
+                            instructions: 'Jawablah pertanyaan uraian berikut dengan lengkap, jelas, dan terstruktur.',
+                            duration_minutes: null,
+                            items: []
+                        }
+                    ];
+                },
+
+                getSumatifSubtypeDescription(subtype) {
+                    switch (subtype) {
+                        case 'AS': return 'Asesmen Sumatif (Lingkup Materi / Harian)';
+                        case 'ASTS': return 'Asesmen Sumatif Tengah Semester';
+                        case 'ASAS': return 'Asesmen Sumatif Akhir Semester';
+                        case 'ASAT': return 'Asesmen Sumatif Akhir Tahun';
+                        case 'ASAJ': return 'Asesmen Sumatif Akhir Jenjang';
+                        default: return 'Asesmen Sumatif Kurikulum Merdeka';
                     }
                 },
 
@@ -1426,7 +1460,27 @@
                                     {{ $type['desc'] }}
                                 </p>
                             </div>
-                            @if($type['id'] === 'utbk')
+                            @if($type['id'] === 'sumatif')
+                                <div class="mt-4 pt-3 border-t border-gray-6 flex flex-col gap-2" @click.stop="">
+                                    <div class="flex items-center justify-between text-[11px] font-semibold text-gray-12">
+                                        <span>Pilih Jenis Sumatif:</span>
+                                        <span class="text-[10px] text-green-11 font-mono font-bold bg-green-3 px-1.5 py-0.5 rounded" x-text="form.sumatif_type || 'ASTS'"></span>
+                                    </div>
+                                    <div class="grid grid-cols-5 gap-1.5">
+                                        @foreach(['AS', 'ASTS', 'ASAS', 'ASAT', 'ASAJ'] as $sub)
+                                            <button type="button" 
+                                                    @click.stop="selectSumatifSubtype('{{ $sub }}')" 
+                                                    class="py-2 px-1 rounded-xl text-xs font-bold transition-all shadow-2xs flex flex-col items-center justify-center cursor-pointer text-center"
+                                                    :class="form.type === 'sumatif' && form.sumatif_type === '{{ $sub }}' 
+                                                        ? 'bg-green-9 text-white ring-2 ring-green-6 shadow-sm font-black' 
+                                                        : 'bg-gray-3 hover:bg-gray-4 text-gray-12 border border-gray-5'">
+                                                <span class="leading-none tracking-tight">{{ $sub }}</span>
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                    <p class="text-[10px] text-gray-11 mt-0.5" x-text="getSumatifSubtypeDescription(form.sumatif_type || 'ASTS')"></p>
+                                </div>
+                            @elseif($type['id'] === 'utbk')
                                 <div class="mt-4 pt-3 border-t border-white/20 flex flex-col gap-2" @click.stop="">
                                     <div class="text-[11px] text-white/90 font-medium">Pilih Paket Ujian UTBK:</div>
                                     <div class="grid grid-cols-2 gap-2">
@@ -1476,7 +1530,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div class="md:col-span-2 space-y-1.5">
                         <label class="block text-sm font-semibold text-gray-12">Nama / Judul Ujian <span class="text-red-9">*</span></label>
-                        <input type="text" x-model="form.title" placeholder="Contoh: Penilaian Harian Matematika Wajib Bab Trigonometri"
+                        <input type="text" x-model="form.title" placeholder="Contoh: ASTS Matematika Wajib Kelas 10 [A]"
                                class="w-full rounded-xl border border-gray-7 bg-white px-4 py-2.5 text-base text-gray-12 placeholder:text-gray-8 outline-none focus:border-green-8 focus:ring-1 focus:ring-green-8">
                     </div>
 

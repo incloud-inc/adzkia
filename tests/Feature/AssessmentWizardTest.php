@@ -30,7 +30,11 @@ class AssessmentWizardTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('8 Langkah Pembuatan Ujian (Assessment)');
-        $response->assertSee('Penilaian Harian (PH)');
+        $response->assertSee('Asesmen Sumatif');
+        $response->assertSee('ASTS');
+        $response->assertSee('ASAS');
+        $response->assertSee('ASAT');
+        $response->assertSee('ASAJ');
         $response->assertSee('Matematika Wajib');
         $response->assertSee('Import Soal');
         $response->assertSee('openImportModal(secIdx)', false);
@@ -722,5 +726,119 @@ class AssessmentWizardTest extends TestCase
 
         // 3. Download template & import word are blocked with 403
         $this->actingAs($teacher)->get(route('assessments.download-template'))->assertStatus(403);
+    }
+
+    public function test_wizard_sumatif_assessment_creates_three_sections_and_stores_successfully(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 1 Bandung', 'subdomain' => 'sman1bdg', 'plan' => 'whitelabel']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        $subject = Subject::factory()->create(['name' => 'Fisika']);
+
+        $response = $this->actingAs($teacher)->get(route('assessments.wizard'));
+        $response->assertStatus(200);
+        $response->assertSee('Asesmen Sumatif');
+        $response->assertSee('selectSumatifSubtype', false);
+        $response->assertSee('ASTS ... [A/B/C]');
+        $response->assertSee('Bagian 1: Pilihan Ganda');
+        $response->assertSee('Bagian 2: Pilihan Ganda Kompleks & Isian', false);
+        $response->assertSee('Bagian 3: Uraian / Essay');
+
+        // Test storing sumatif assessment with 3 sections
+        $payload = [
+            'title' => 'ASTS Fisika Semester 1 [A]',
+            'subject_id' => $subject->id,
+            'type' => 'sumatif',
+            'grade_level' => '10 SMA',
+            'duration_minutes' => 90,
+            'scoring_type' => 'standard',
+            'status' => 'published',
+            'sections' => [
+                [
+                    'title' => 'Bagian 1: Pilihan Ganda',
+                    'instructions' => 'Pilihlah jawaban tepat',
+                    'items' => [
+                        [
+                            'type' => 'mcq_single',
+                            'question_text' => 'Berapakah kecepatan cahaya?',
+                            'options' => [
+                                ['label' => 'A', 'text' => '3x10^8 m/s', 'is_correct' => true],
+                                ['label' => 'B', 'text' => '3x10^6 m/s', 'is_correct' => false],
+                            ],
+                            'weight' => 2.0,
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian 2: Pilihan Ganda Kompleks & Isian',
+                    'instructions' => 'Pilih jawaban yang benar',
+                    'items' => [
+                        [
+                            'type' => 'short_answer',
+                            'question_text' => 'Satuan gaya dalam SI adalah...',
+                            'correct_answers' => ['Newton', 'N'],
+                            'weight' => 3.0,
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Bagian 3: Uraian / Essay',
+                    'instructions' => 'Tulis uraian lengkap',
+                    'items' => [
+                        [
+                            'type' => 'essay',
+                            'question_text' => 'Jelaskan Hukum Newton I!',
+                            'weight' => 5.0,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $storeResponse = $this->actingAs($teacher)->postJson(route('assessments.store'), $payload);
+        $storeResponse->assertStatus(200);
+        $storeResponse->assertJson(['status' => 'success']);
+        $this->assertDatabaseHas('assessments', [
+            'title' => 'ASTS Fisika Semester 1 [A]',
+            'type' => 'sumatif',
+            'duration_minutes' => 90,
+        ]);
+    }
+
+    public function test_assessment_index_displays_subject_beside_grade_and_info_column(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 3 Yogyakarta', 'subdomain' => 'sman3yk', 'plan' => 'whitelabel']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        $subject = Subject::factory()->create(['name' => 'Biologi Modern']);
+
+        $assessment = Assessment::create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subject->id,
+            'created_by' => $teacher->id,
+            'title' => 'ASAS Biologi Kelas 11 [A]',
+            'type' => 'sumatif',
+            'grade_level' => '11 SMA',
+            'duration_minutes' => 75,
+            'scoring_type' => 'standard',
+            'status' => 'published',
+        ]);
+
+        $response = $this->actingAs($teacher)->get(route('assessments.index'));
+        $response->assertStatus(200);
+
+        // Header has INFO instead of Mata Pelajaran
+        $response->assertSee('INFO');
+
+        // Title column has subject beside grade
+        $response->assertSee('ASAS Biologi Kelas 11 [A]');
+        $response->assertSee('Kelas 11 SMA');
+        $response->assertSee('Biologi Modern');
+
+        // INFO column displays duration in minutes and questions count
+        $response->assertSee('75 Menit');
+        $response->assertSee('0 Soal');
     }
 }

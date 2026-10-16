@@ -123,7 +123,7 @@
                     <thead>
                         <tr class="border-b border-gray-6 bg-gray-2/50 text-gray-11 uppercase tracking-wider font-semibold">
                             <th class="py-3.5 px-5">Judul Ujian</th>
-                            <th class="py-3.5 px-4">Mata Pelajaran</th>
+                            <th class="py-3.5 px-4">INFO</th>
                             @if($user && $user->isSuperUser())
                                 <th class="py-3.5 px-4 text-center" title="Hak Prerogatif Owner ADZKIA untuk mengunci ujian sebagai Wajib Tayang Nasional bagi semua tenant Enterprise">Wajib Nasional (Owner)</th>
                             @endif
@@ -142,12 +142,23 @@
                                     <a href="{{ route('assessments.show', $item) }}" class="hover:text-green-11 transition-colors text-sm">
                                         {{ $item->title }}
                                     </a>
-                                    <p class="text-[11px] text-gray-9 mt-0.5 font-normal">
-                                        Kelas {{ $item->grade_level ?? '-' }}
+                                    <p class="text-[11px] text-gray-9 mt-0.5 font-normal flex items-center gap-1.5 flex-wrap">
+                                        <span>Kelas {{ $item->grade_level ?? '-' }}</span>
+                                        <span class="text-gray-6">•</span>
+                                        <span class="inline-flex items-center text-gray-11 font-medium">{{ $item->subject?->name ?? 'Umum' }}</span>
                                     </p>
                                 </td>
-                                <td class="py-3.5 px-4 text-gray-12 font-medium">
-                                    {{ $item->subject?->name ?? 'Umum' }}
+                                <td class="py-3.5 px-4 text-gray-12">
+                                    <div class="flex flex-col gap-1 text-xs">
+                                        <span class="inline-flex items-center gap-1.5 text-gray-11 font-medium">
+                                            <x-radix-icon name="clock" class="w-3.5 h-3.5 text-gray-9 shrink-0" />
+                                            <span>{{ $item->duration_minutes ? $item->duration_minutes . ' Menit' : '-' }}</span>
+                                        </span>
+                                        <span class="inline-flex items-center gap-1.5 text-gray-9 text-[11px]">
+                                            <x-radix-icon name="file-text" class="w-3.5 h-3.5 text-gray-8 shrink-0" />
+                                            <span>{{ $item->questions_count ?? 0 }} Soal</span>
+                                        </span>
+                                    </div>
                                 </td>
                                 @if($user && $user->isSuperUser())
                                     <td class="py-3.5 px-4 text-center">
