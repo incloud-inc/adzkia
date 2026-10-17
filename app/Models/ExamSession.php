@@ -34,6 +34,8 @@ class ExamSession extends Model
         'meta',
         'score',
         'max_score',
+        'grading_status',
+        'graded_at',
     ];
 
     protected function casts(): array

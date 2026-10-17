@@ -123,6 +123,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/users/{user}', [DashboardUserController::class, 'show'])->name('dashboard.users.show');
     Route::put('dashboard/users/{user}', [DashboardUserController::class, 'update'])->name('dashboard.users.update');
     Route::delete('dashboard/users/{user}', [DashboardUserController::class, 'destroy'])->name('dashboard.users.destroy');
+    Route::post('dashboard/users/{user}/grant-assessment-access', [DashboardUserController::class, 'grantAssessmentAccess'])->name('dashboard.users.grant-assessment-access');
 
     Route::patch('tenants/{tenant}/plan', [TenantManagementController::class, 'updatePlan'])->name('tenants.update-plan');
     Route::resource('tenants', TenantManagementController::class);

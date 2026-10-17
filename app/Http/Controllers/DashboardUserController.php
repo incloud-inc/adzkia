@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assessment;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\UserAssessmentAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -228,5 +230,53 @@ class DashboardUserController extends Controller
 
         return redirect()->route('dashboard')
             ->with('success', 'Anggota '.$name.' berhasil dihapus.');
+    }
+
+    /**
+     * Berikan 1 kesempatan ujian gratis untuk asesmen berbayar kepada siswa.
+     */
+    public function grantAssessmentAccess(Request $request, User $user): RedirectResponse
+    {
+        $authUser = Auth::user();
+        abort_unless($authUser && ($authUser->isAdmin() || $authUser->isSuperUser()), 403, 'Akses ditolak: Anda tidak memiliki wewenang untuk memberikan akses ujian.');
+
+        $activeTenant = $authUser->currentTenant ?? $authUser->tenants()->first();
+        abort_unless($activeTenant, 403, 'Institusi / Tenant belum tersedia.');
+
+        // Proteksi Multi-Tenant:
+        // Admin tenant hanya bisa memberikan akses kepada siswa yang terdaftar di tenant aktifnya
+        if (! $authUser->isSuperUser()) {
+            abort_unless($user->tenants()->where('tenant_id', $activeTenant->id)->exists(), 403, 'Akses ditolak: Siswa tidak terdaftar pada institusi Anda.');
+        }
+
+        $validated = $request->validate([
+            'assessment_id' => 'required|integer|exists:assessments,id',
+        ]);
+
+        $assessment = Assessment::withoutGlobalScopes()->findOrFail($validated['assessment_id']);
+
+        // Verifikasi asesmen visible/tersedia untuk tenant ini
+        abort_unless($activeTenant->isAssessmentVisible($assessment), 403, 'Asesmen tidak tersedia untuk institusi ini.');
+
+        $access = UserAssessmentAccess::firstOrNew([
+            'user_id' => $user->id,
+            'assessment_id' => $assessment->id,
+        ]);
+
+        // Tambah kuota percobaan sebanyak 1 kesempatan
+        $access->quota_attempts = ($access->quota_attempts ?? 0) + 1;
+
+        // Masa berlaku kuota: 35 hari (default sistem) atau akumulasi jika masih aktif
+        $validityDays = $assessment->access_validity_days ?: 35;
+        $baseDate = ($access->exists && $access->expires_at && $access->expires_at->isFuture())
+            ? $access->expires_at->copy()
+            : now();
+
+        $access->expires_at = $baseDate->addDays($validityDays);
+        $access->last_purchased_at = now();
+        $access->save();
+
+        return redirect()->back()
+            ->with('success', "Berhasil memberikan 1 kesempatan gratis ujian {$assessment->title} kepada {$user->name}. Masa aktif berlaku {$validityDays} hari.");
     }
 }

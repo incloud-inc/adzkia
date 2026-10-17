@@ -42,16 +42,31 @@
         [x-cloak] { display:none !important; }
 
         /* Prose styles */
-        .prose-q { font-family: 'Open Sans', sans-serif; line-height: 1.7; color: #212529; }
-        .prose-q p { margin-bottom: 0.75rem; }
+        .prose-q { font-family: 'Open Sans', sans-serif; line-height: 1.75; color: #212529; word-break: break-word; }
+        .prose-q p { margin-top: 0; margin-bottom: 0.85rem; }
         .prose-q p:last-child { margin-bottom: 0; }
-        .prose-q strong { color: #212529; font-weight: 700; }
+        .prose-q h1 { font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; line-height: 1.3; margin-top: 1.4rem; margin-bottom: 0.65rem; color: #0f172a; letter-spacing: -0.02em; }
+        .prose-q h2 { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; line-height: 1.35; margin-top: 1.15rem; margin-bottom: 0.55rem; color: #0f172a; letter-spacing: -0.01em; }
+        .prose-q h3 { font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 700; line-height: 1.4; margin-top: 0.95rem; margin-bottom: 0.45rem; color: #1e293b; }
+        .prose-q h4, .prose-q h5, .prose-q h6 { font-size: 1rem; font-weight: 700; margin-top: 0.85rem; margin-bottom: 0.35rem; color: #1e293b; }
+        .prose-q h1:first-child, .prose-q h2:first-child, .prose-q h3:first-child { margin-top: 0; }
+        .prose-q strong, .prose-q b { color: #0f172a; font-weight: 700 !important; }
+        .prose-q em, .prose-q i { font-style: italic !important; }
+        .prose-q u { text-decoration: underline !important; }
+        .prose-q ul { list-style-type: disc !important; margin-top: 0.5rem !important; margin-bottom: 0.85rem !important; padding-left: 1.5rem !important; }
+        .prose-q ol { list-style-type: decimal !important; margin-top: 0.5rem !important; margin-bottom: 0.85rem !important; padding-left: 1.5rem !important; }
+        .prose-q li { margin-bottom: 0.35rem !important; display: list-item !important; }
+        .prose-q li > ul { list-style-type: circle !important; margin-top: 0.25rem !important; margin-bottom: 0.25rem !important; }
+        .prose-q blockquote { border-left: 4px solid #3b82f6; background-color: rgba(59, 130, 246, 0.05); padding: 0.6rem 1rem; margin: 0.85rem 0; font-style: italic; color: #475569; border-radius: 0 0.5rem 0.5rem 0; }
         .prose-q code { background: rgba(0,0,0,0.06); padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-size: 0.9em; font-family: monospace; }
-        .prose-q pre { background: #212529; color: #f8fafc; padding: 0.875rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.5rem 0; }
+        .prose-q pre { background: #212529; color: #f8fafc; padding: 0.875rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.75rem 0; }
+        .prose-q pre code { background: transparent; padding: 0; color: inherit; }
         .prose-q table { width: 100%; border-collapse: collapse; margin: 0.85rem 0; font-size: 0.875rem; border: 1px solid #ced4da; }
         .prose-q th { background: #f1f3f5; color: #212529; padding: 0.6rem 0.85rem; border: 1px solid #ced4da; font-weight: 700; text-align: left; }
         .prose-q td { padding: 0.6rem 0.85rem; border: 1px solid #ced4da; }
         .prose-q tr:nth-child(even) { background: #f8f9fa; }
+        .prose-q img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 0.75rem auto; display: block; }
+        .prose-q hr { margin: 1.25rem 0; border: 0; border-top: 1px solid #ced4da; }
 
         /* Animation */
         @keyframes timer-blink { 0%,100%{opacity:1} 50%{opacity:.35} }
@@ -129,18 +144,12 @@
                     </template>
                 </div>
 
-                <!-- Mobile (< sm): Hide full names, show assessment initials + optional section badge -->
-                <div class="sm:hidden flex items-center justify-center gap-1.5 min-w-0">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-white/20 border border-white/30 text-white font-display font-black text-xs tracking-wider"
-                          title="{{ $assessment->title }}">
-                        {{ $assessmentInitials }}
-                    </span>
-                    <template x-if="currentSectionTitle">
-                        <span class="text-[10px] text-blue-100 font-bold truncate max-w-[110px] bg-black/15 px-1.5 py-0.5 rounded"
-                              :title="currentSectionTitle"
-                              x-text="currentSectionTitle">
-                        </span>
-                    </template>
+                <!-- Mobile (< sm): Tampilkan judul asesmen saja (maksimal 2 baris) -->
+                <div class="sm:hidden min-w-0 px-1 text-center">
+                    <h1 class="font-display font-extrabold text-xs text-white leading-tight line-clamp-2 mx-auto"
+                        title="{{ $assessment->title }}">
+                        {{ $assessment->title }}
+                    </h1>
                 </div>
             </div>
 

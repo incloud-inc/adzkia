@@ -1,3 +1,8 @@
+@php
+    $authUser = auth()->user();
+    $isStaffUser = $authUser && ($authUser->isTeacher() || $authUser->isAdmin() || $authUser->isSuperUser());
+    $isEnglishLocked = ! $isStaffUser && $assessment->isEnglishTest();
+@endphp
 {{-- resources/views/exam/analysis.blade.php --}}
 <x-layouts.app title="Analisa Ujian — {{ $assessment->title }}">
     <div class="min-h-screen bg-slate-50/60 pb-16">
@@ -39,11 +44,19 @@
 
                     {{-- Actions --}}
                     <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-                        <a href="{{ route('exam.result', $session->uuid) }}"
-                           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition active:scale-95">
-                            <x-radix-icon name="eye-open" class="w-4 h-4" />
-                            <span>Lihat Pembahasan Lengkap</span>
-                        </a>
+                        @if(! $isEnglishLocked)
+                            <a href="{{ route('exam.result', $session->uuid) }}"
+                               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition active:scale-95">
+                                <x-radix-icon name="eye-open" class="w-4 h-4" />
+                                <span>Lihat Pembahasan Lengkap</span>
+                            </a>
+                        @else
+                            <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-500 border border-slate-200 text-xs font-semibold cursor-not-allowed select-none"
+                                 title="Pembahasan dirahasiakan untuk English Proficiency Test">
+                                <x-radix-icon name="lock-closed" class="w-4 h-4 text-slate-400" />
+                                <span>Pembahasan Dirahasiakan</span>
+                            </div>
+                        @endif
                         <a href="{{ route('exam.history') }}"
                            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold transition shadow-2xs">
                             <x-radix-icon name="arrow-left" class="w-4 h-4" />
@@ -56,6 +69,63 @@
 
         {{-- Main Analytics Content --}}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8">
+
+            @if(session('warning'))
+                <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4 sm:p-5 flex items-start gap-3.5 text-amber-900 shadow-sm">
+                    <x-radix-icon name="exclamation-triangle" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div class="text-xs sm:text-sm">
+                        <p class="font-bold text-amber-900">Pemberitahuan Kerahasiaan Pembahasan</p>
+                        <p class="mt-0.5 text-amber-800 leading-relaxed">{{ session('warning') }}</p>
+                    </div>
+                </div>
+            @endif
+
+            @if(!empty($summary['is_specialized']) && !empty($summary['scale_result']))
+                {{-- Specialized Scale Banner (TOEIC / TOEFL / UTBK) --}}
+                <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 text-white shadow-lg border border-indigo-500/30">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <span class="px-3 py-1 rounded-lg bg-indigo-500/30 border border-indigo-400/40 text-indigo-200 font-mono font-bold text-xs uppercase tracking-wider">
+                                {{ $summary['scale_result']['scale_label'] ?? 'Standarisasi Resmi' }}
+                            </span>
+                            @if(!empty($summary['scale_result']['cefr']))
+                                <span class="px-3 py-1 rounded-lg bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-display font-extrabold text-xs">
+                                    CEFR: {{ $summary['scale_result']['cefr'] }} — {{ $summary['scale_result']['proficiency'] ?? '' }}
+                                </span>
+                            @endif
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-xs text-slate-300 font-medium">Skor Resmi:</span>
+                            <strong class="text-3xl font-black font-display text-white tabular-nums">{{ (int) $summary['final_score'] }}</strong>
+                            <span class="text-xs text-indigo-300">/ {{ (int) $summary['total_points'] }}</span>
+                        </div>
+                    </div>
+                    @if(!empty($summary['scale_result']['breakdown']))
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-5">
+                            @foreach($summary['scale_result']['breakdown'] as $key => $sub)
+                                <div class="bg-white/5 hover:bg-white/10 transition-colors rounded-xl p-4 border border-white/10 flex flex-col justify-between">
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <div>
+                                            <p class="text-xs text-slate-300 font-bold uppercase tracking-wider font-display">{{ $sub['title'] ?? ucfirst((string)$key) }}</p>
+                                            @if(!empty($sub['subtest_group_label']))
+                                                <span class="text-[10px] text-indigo-300/80 font-medium block">{{ $sub['subtest_group_label'] }}</span>
+                                            @endif
+                                        </div>
+                                        <span class="text-[11px] font-mono text-emerald-400 font-bold shrink-0">{{ $sub['raw_score'] ?? 0 }} Benar</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-2 pt-2 border-t border-white/10">
+                                        <span class="text-xs text-slate-400">Skor Bagian:</span>
+                                        <p class="text-xl font-black text-white font-display tabular-nums">
+                                            {{ $sub['scaled_score'] ?? $sub['score'] ?? 0 }}
+                                            <span class="text-xs text-slate-400 font-normal">/ {{ $sub['max_scaled'] ?? $sub['max_score'] ?? 100 }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
 
             {{-- 1. KPI Cards Strip --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -73,11 +143,11 @@
                             <span class="text-4xl font-black font-display text-slate-900 tabular-nums">
                                 {{ number_format($summary['final_score'], 1) }}
                             </span>
-                            <span class="text-xs text-slate-500 font-medium">/ 100</span>
+                            <span class="text-xs text-slate-500 font-medium">/ {{ (int) $summary['total_points'] }}</span>
                         </div>
                         <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-3">
                             <div class="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
-                                 style="width: {{ min(max($summary['final_score'], 0), 100) }}%"></div>
+                                 style="width: {{ $summary['total_points'] > 0 ? min(max(($summary['final_score'] / $summary['total_points']) * 100, 0), 100) : 0 }}%"></div>
                         </div>
                     </div>
                     <div class="text-[11px] text-slate-500 flex items-center justify-between">
@@ -370,12 +440,20 @@
 
                                     {{-- 5. Tombol Aksi --}}
                                     <td class="py-4 px-4 text-center">
-                                        <a href="{{ route('exam.result', $session->uuid) }}"
-                                           class="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 hover:border-blue-600 text-xs font-bold transition-all shadow-2xs group whitespace-nowrap"
-                                           title="Buka Pembahasan Lengkap">
-                                            <x-radix-icon name="file-text" class="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                                            <span>Bahas</span>
-                                        </a>
+                                        @if(! $isEnglishLocked)
+                                            <a href="{{ route('exam.result', $session->uuid) }}"
+                                               class="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 hover:border-blue-600 text-xs font-bold transition-all shadow-2xs group whitespace-nowrap"
+                                               title="Buka Pembahasan Lengkap">
+                                                <x-radix-icon name="file-text" class="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                                                <span>Bahas</span>
+                                            </a>
+                                        @else
+                                            <span class="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 text-xs font-medium cursor-not-allowed select-none"
+                                                  title="Kunci jawaban dan pembahasan dirahasiakan untuk English Proficiency Test">
+                                                <x-radix-icon name="lock-closed" class="w-3.5 h-3.5" />
+                                                <span>Terkunci</span>
+                                            </span>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -385,24 +463,46 @@
             </div>
 
             {{-- 6. Bottom Banner / CTA --}}
-            <div class="rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-md">
-                <div>
-                    <h3 class="text-lg sm:text-xl font-bold font-display">Siap Memperbaiki dan Mendalami Pembahasan?</h3>
-                    <p class="text-xs sm:text-sm text-blue-100 mt-1 max-w-xl">
-                        Buka lembar ulasan pembahasan lengkap untuk menelaah kunci jawaban sistem, wacana, dan tips pengerjaan butir per butir soal.
-                    </p>
+            @if(! $isEnglishLocked)
+                <div class="rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-md">
+                    <div>
+                        <h3 class="text-lg sm:text-xl font-bold font-display">Siap Memperbaiki dan Mendalami Pembahasan?</h3>
+                        <p class="text-xs sm:text-sm text-blue-100 mt-1 max-w-xl">
+                            Buka lembar ulasan pembahasan lengkap untuk menelaah kunci jawaban sistem, wacana, dan tips pengerjaan butir per butir soal.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <a href="{{ route('exam.result', $session->uuid) }}"
+                           class="px-5 py-2.5 rounded-xl bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold shadow-sm transition active:scale-95">
+                            Buka Pembahasan Soal
+                        </a>
+                        <a href="{{ route('exam.history') }}"
+                           class="px-4 py-2.5 rounded-xl bg-blue-800/60 hover:bg-blue-800 text-white text-xs font-bold border border-white/20 transition">
+                            Riwayat Ujian
+                        </a>
+                    </div>
                 </div>
-                <div class="flex items-center gap-3 shrink-0">
-                    <a href="{{ route('exam.result', $session->uuid) }}"
-                       class="px-5 py-2.5 rounded-xl bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold shadow-sm transition active:scale-95">
-                        Buka Pembahasan Soal
-                    </a>
-                    <a href="{{ route('exam.history') }}"
-                       class="px-4 py-2.5 rounded-xl bg-blue-800/60 hover:bg-blue-800 text-white text-xs font-bold border border-white/20 transition">
-                        Riwayat Ujian
-                    </a>
+            @else
+                <div class="rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-md border border-indigo-500/30">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30">
+                            <x-radix-icon name="lock-closed" class="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 class="text-lg sm:text-xl font-bold font-display">Kebijakan Kerahasiaan Soal (English Proficiency Test)</h3>
+                            <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
+                                Sesuai regulasi asesmen terstandar resmi, butir soal dan lembar pembahasan dirahasiakan untuk peserta ujian guna menjaga validitas dan integritas bank soal.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <a href="{{ route('exam.history') }}"
+                           class="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold shadow-sm transition active:scale-95">
+                            Kembali ke Riwayat Ujian
+                        </a>
+                    </div>
                 </div>
-            </div>
+            @endif
 
         </div>
     </div>

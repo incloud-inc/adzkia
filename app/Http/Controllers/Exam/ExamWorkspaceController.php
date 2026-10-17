@@ -30,7 +30,11 @@ class ExamWorkspaceController extends Controller
 
         // Guard: status machine
         if ($session->isCompleted()) {
-            return redirect()->route('exam.result', ['session' => $session->uuid]);
+            $user = $request->user();
+            $isStaff = $user && ($user->isTeacher() || $user->isAdmin() || $user->isSuperUser());
+            $target = (! $isStaff && $session->assessment?->isEnglishTest()) ? 'exam.analysis' : 'exam.result';
+
+            return redirect()->route($target, ['session' => $session->uuid]);
         }
 
         if ($session->status === 'cancelled') {
@@ -255,7 +259,10 @@ class ExamWorkspaceController extends Controller
 
         $reason = $request->input('reason', 'student_submit');
         $isTimeUp = $reason === 'time_up' || $session->isExpired();
-        $targetRoute = $isTimeUp ? 'exam.analysis' : 'exam.result';
+        $user = $request->user();
+        $isStaff = $user && ($user->isTeacher() || $user->isAdmin() || $user->isSuperUser());
+        $isEnglishLocked = ! $isStaff && $session->assessment?->isEnglishTest();
+        $targetRoute = ($isTimeUp || $isEnglishLocked) ? 'exam.analysis' : 'exam.result';
 
         if ($session->isCompleted()) {
             return response()->json([
@@ -563,7 +570,9 @@ class ExamWorkspaceController extends Controller
                 'save' => route('exam.session.answer', ['session' => $session->uuid]),
                 'event' => route('exam.session.event', ['session' => $session->uuid]),
                 'submit' => route('exam.session.submit', ['session' => $session->uuid]),
-                'result' => route('exam.result', ['session' => $session->uuid]),
+                'result' => ((! auth()->user()?->isTeacher() && ! auth()->user()?->isAdmin() && ! auth()->user()?->isSuperUser()) && $session->assessment?->isEnglishTest())
+                    ? route('exam.analysis', ['session' => $session->uuid])
+                    : route('exam.result', ['session' => $session->uuid]),
                 'analysis' => route('exam.analysis', ['session' => $session->uuid]),
                 'lock_status' => route('exam.session.lock_status', ['session' => $session->uuid]),
                 'verify_pin' => route('exam.session.verify_pin', ['session' => $session->uuid]),

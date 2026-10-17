@@ -11,6 +11,7 @@ use App\Models\Question;
 use App\Services\Ai\AiExplanationService;
 use App\Services\AnswerReviewFormatter;
 use App\Services\ExamGradingService;
+use App\Services\Scoring\SpecializedScoringService;
 use App\Support\MarkdownRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -61,7 +62,7 @@ class ExamResultController extends Controller
     /**
      * Tampilkan rekap hasil ujian siswa (Post-Exam Summary Screen).
      */
-    public function show(Request $request, ExamSession $session): View|RedirectResponse
+    public function show(Request $request, ExamSession $session): View|RedirectResponse|JsonResponse
     {
         $user = $request->user();
 
@@ -96,7 +97,6 @@ class ExamResultController extends Controller
             $session->refresh();
         }
 
-        // Eager load data asesmen dan relasi pendukung
         $assessment = Assessment::withoutGlobalScopes()
             ->with([
                 'subject',
@@ -107,6 +107,19 @@ class ExamResultController extends Controller
                 'sections.questions.questionGroup',
             ])
             ->findOrFail($session->assessment_id);
+
+        // Kebijakan Keamanan Soal: Halaman pembahasan dan kunci butir soal untuk SEMUA English Test dikunci untuk murid (peserta ujian)
+        $isStaff = $user->isTeacher() || $user->isAdmin() || $user->isSuperUser();
+        if (! $isStaff && $assessment->isEnglishTest()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Halaman pembahasan untuk asesmen Bahasa Inggris (English Test) dirahasiakan untuk peserta ujian.',
+                ], 403);
+            }
+
+            return redirect()->route('exam.analysis', ['session' => $session->uuid])
+                ->with('warning', 'Sesuai kebijakan asesmen terstandar resmi (English Proficiency Test), lembar pembahasan dan kunci jawaban butir soal dirahasiakan untuk peserta ujian. Anda dapat melihat ringkasan skor resmi dan sertifikat capaian Anda pada halaman analisa ini.');
+        }
 
         $answers = $session->answers()->get()->keyBy('question_id');
 
@@ -402,32 +415,66 @@ class ExamResultController extends Controller
         $hasEssay = $totalEssayOverall > 0;
         $isScoreReleased = (bool) data_get($session->meta, 'is_score_released', ! $hasEssay);
 
-        // Jika score di session sudah diset, gunakan score tersebut; jika belum, gunakan earned points
-        $finalEarnedPoints = $session->score !== null ? (float) $session->score : $earnedPointsOverall;
-        $finalMaxPoints = $session->max_score !== null ? (float) $session->max_score : $totalPointsOverall;
+        $scoringService = app(SpecializedScoringService::class);
+        $scaleResult = data_get($session->meta, 'scale_result');
+        $isSpecialized = $scaleResult !== null || $scoringService->isSpecializedScale($assessment);
 
-        $scorePercentage = $finalMaxPoints > 0 ? round(($finalEarnedPoints / $finalMaxPoints) * 100, 1) : 0;
-        $isPassed = ($passingGrade['enabled'] ?? true) ? ($scorePercentage >= ($passingGrade['min_score'] ?? 75)) : true;
+        if ($isSpecialized) {
+            $finalScoreValue = $session->score !== null ? (float) $session->score : $earnedPointsOverall;
+            $finalMaxPoints = $session->max_score !== null ? (float) $session->max_score : (float) ($scaleResult['max_score'] ?? 100.0);
+            $minScorePassing = $passingGrade['min_score'] ?? 75;
+            $isPassed = ($passingGrade['enabled'] ?? true) ? ($finalScoreValue >= $minScorePassing) : true;
 
-        $summary = [
-            'total_questions' => $totalQuestionsOverall,
-            'total_correct' => $totalCorrectOverall,
-            'total_incorrect' => $totalIncorrectOverall,
-            'total_unanswered' => $totalUnansweredOverall,
-            'total_essay' => $totalEssayOverall,
-            'total_essay_pending' => $totalEssayPendingOverall,
-            'total_points' => $finalMaxPoints,
-            'earned_points' => round($finalEarnedPoints, 1),
-            'final_score' => $scorePercentage,
-            'has_essay' => $hasEssay,
-            'is_score_released' => $isScoreReleased,
-            'teacher_review_required' => $hasEssay && ! $isScoreReleased,
-            'passing_grade' => $passingGrade,
-            'is_passed' => $isPassed,
-            'post_exam_policy' => $postExamPolicy,
-            'duration_formatted' => $durationFormatted,
-            'completed_at_formatted' => $session->completed_at ? $session->completed_at->translatedFormat('d F Y, H:i') : null,
-        ];
+            $summary = [
+                'total_questions' => $totalQuestionsOverall,
+                'total_correct' => $totalCorrectOverall,
+                'total_incorrect' => $totalIncorrectOverall,
+                'total_unanswered' => $totalUnansweredOverall,
+                'total_essay' => $totalEssayOverall,
+                'total_essay_pending' => $totalEssayPendingOverall,
+                'total_points' => $finalMaxPoints,
+                'earned_points' => round($finalScoreValue, 1),
+                'final_score' => round($finalScoreValue, 1),
+                'is_specialized' => true,
+                'scale_result' => $scaleResult,
+                'has_essay' => $hasEssay,
+                'is_score_released' => $isScoreReleased,
+                'teacher_review_required' => $hasEssay && ! $isScoreReleased,
+                'passing_grade' => $passingGrade,
+                'is_passed' => $isPassed,
+                'post_exam_policy' => $postExamPolicy,
+                'duration_formatted' => $durationFormatted,
+                'completed_at_formatted' => $session->completed_at ? $session->completed_at->translatedFormat('d F Y, H:i') : null,
+            ];
+        } else {
+            $finalEarnedPoints = $session->score !== null ? (float) $session->score : $earnedPointsOverall;
+            $finalMaxPoints = $session->max_score !== null ? (float) $session->max_score : $totalPointsOverall;
+
+            $scorePercentage = $finalMaxPoints > 0 ? round(($finalEarnedPoints / $finalMaxPoints) * 100, 1) : 0;
+            $isPassed = ($passingGrade['enabled'] ?? true) ? ($scorePercentage >= ($passingGrade['min_score'] ?? 75)) : true;
+
+            $summary = [
+                'total_questions' => $totalQuestionsOverall,
+                'total_correct' => $totalCorrectOverall,
+                'total_incorrect' => $totalIncorrectOverall,
+                'total_unanswered' => $totalUnansweredOverall,
+                'total_essay' => $totalEssayOverall,
+                'total_essay_pending' => $totalEssayPendingOverall,
+                'total_points' => 100,
+                'earned_points' => round($finalEarnedPoints, 1),
+                'final_score' => $scorePercentage,
+                'is_specialized' => false,
+                'scale_result' => null,
+                'has_essay' => $hasEssay,
+                'is_score_released' => $isScoreReleased,
+                'teacher_review_required' => $hasEssay && ! $isScoreReleased,
+                'passing_grade' => $passingGrade,
+                'is_passed' => $isPassed,
+                'post_exam_policy' => $postExamPolicy,
+                'duration_formatted' => $durationFormatted,
+                'completed_at_formatted' => $session->completed_at ? $session->completed_at->translatedFormat('d F Y, H:i') : null,
+            ];
+        }
 
         return view('exam.result', compact('session', 'assessment', 'sectionsData', 'summary', 'allQuestionsReview'));
     }
@@ -677,10 +724,22 @@ class ExamResultController extends Controller
             'fail_label' => 'Belum Tuntas (Remedial)',
         ];
 
-        $finalEarnedPoints = $session->score !== null ? (float) $session->score : $earnedPointsOverall;
-        $finalMaxPoints = $session->max_score !== null ? (float) $session->max_score : $totalPointsOverall;
-        $scorePercentage = $finalMaxPoints > 0 ? round(($finalEarnedPoints / $finalMaxPoints) * 100, 1) : 0;
-        $isPassed = ($passingGrade['enabled'] ?? true) ? ($scorePercentage >= ($passingGrade['min_score'] ?? 75)) : true;
+        $scoringService = app(SpecializedScoringService::class);
+        $scaleResult = data_get($session->meta, 'scale_result');
+        $isSpecialized = $scaleResult !== null || $scoringService->isSpecializedScale($assessment);
+
+        if ($isSpecialized) {
+            $finalEarnedPoints = $session->score !== null ? (float) $session->score : $earnedPointsOverall;
+            $finalMaxPoints = $session->max_score !== null ? (float) $session->max_score : (float) ($scaleResult['max_score'] ?? 100.0);
+            $finalDisplayScore = round($finalEarnedPoints, 1);
+            $isPassed = ($passingGrade['enabled'] ?? true) ? ($finalDisplayScore >= ($passingGrade['min_score'] ?? 75)) : true;
+        } else {
+            $finalEarnedPoints = $session->score !== null ? (float) $session->score : $earnedPointsOverall;
+            $finalMaxPoints = $session->max_score !== null ? (float) $session->max_score : $totalPointsOverall;
+            $finalDisplayScore = $finalMaxPoints > 0 ? round(($finalEarnedPoints / $finalMaxPoints) * 100, 1) : 0;
+            $isPassed = ($passingGrade['enabled'] ?? true) ? ($finalDisplayScore >= ($passingGrade['min_score'] ?? 75)) : true;
+            $finalMaxPoints = 100;
+        }
 
         $answeredCount = $totalCorrectOverall + $totalIncorrectOverall;
         $overallAccuracy = $answeredCount > 0 ? round(($totalCorrectOverall / $answeredCount) * 100, 1) : 0;
@@ -751,9 +810,11 @@ class ExamResultController extends Controller
         }
 
         $summary = [
-            'final_score' => $scorePercentage,
+            'final_score' => $finalDisplayScore,
             'earned_points' => round($finalEarnedPoints, 1),
             'total_points' => round($finalMaxPoints, 1),
+            'is_specialized' => $isSpecialized,
+            'scale_result' => $scaleResult,
             'total_questions' => $totalQuestionsOverall,
             'total_correct' => $totalCorrectOverall,
             'total_incorrect' => $totalIncorrectOverall,
@@ -812,6 +873,16 @@ class ExamResultController extends Controller
         $user = $request->user();
         $canAccess = ($session->user_id === $user->id) || $user->isTeacher() || $user->isAdmin() || $user->isSuperUser();
         abort_unless($canAccess, 403, 'Akses tidak diizinkan.');
+
+        $isStaff = $user->isTeacher() || $user->isAdmin() || $user->isSuperUser();
+        $assessment = $session->assessment;
+        if (! $isStaff && $assessment && $assessment->isEnglishTest()) {
+            return response()->json([
+                'ok' => false,
+                'success' => false,
+                'message' => 'Pembahasan dan penjelasan butir soal untuk asesmen Bahasa Inggris tidak tersedia untuk peserta.',
+            ], 403);
+        }
 
         $answer = ExamAnswer::where('exam_session_id', $session->id)
             ->where('question_id', $question->id)

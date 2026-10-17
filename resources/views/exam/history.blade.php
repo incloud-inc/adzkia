@@ -183,11 +183,23 @@
                                                     <x-radix-icon name="bar-chart" class="w-3.5 h-3.5" />
                                                     <span>Analisa Ujian</span>
                                                 </a>
-                                                <a href="{{ route('exam.result', $session->uuid) }}" 
-                                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors shadow-2xs">
-                                                    <x-radix-icon name="eye-open" class="w-3.5 h-3.5" />
-                                                    <span>Lihat Hasil</span>
-                                                </a>
+                                                @php
+                                                    $user = auth()->user();
+                                                    $isStaff = $user && ($user->isTeacher() || $user->isAdmin() || $user->isSuperUser());
+                                                    $isLocked = ! $isStaff && ($session->assessment?->isEnglishTest() ?? false);
+                                                @endphp
+                                                @if(! $isLocked)
+                                                    <a href="{{ route('exam.result', $session->uuid) }}" 
+                                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors shadow-2xs">
+                                                        <x-radix-icon name="eye-open" class="w-3.5 h-3.5" />
+                                                        <span>Lihat Hasil</span>
+                                                    </a>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed select-none" title="Pembahasan dirahasiakan untuk English Test">
+                                                        <x-radix-icon name="lock-closed" class="w-3.5 h-3.5" />
+                                                        <span>Terkunci</span>
+                                                    </span>
+                                                @endif
                                             </div>
                                         @else
                                             <a href="{{ route('exam.workspace', $session->uuid) }}" 

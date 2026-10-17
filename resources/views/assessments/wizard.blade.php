@@ -1063,10 +1063,16 @@
                         this.form.settings.formula_type = 'weighted_percentage';
                         this.initSectionWeights();
                     } else if (presetId === 'utbk') {
-                        this.form.scoring_type = 'conversion';
+                        this.form.scoring_type = 'utbk';
+                        this.form.settings.scoring_template = 'utbk';
                         this.form.settings.post_exam_policy.show_ranking = true;
+                    } else if (presetId === 'toeic') {
+                        this.form.scoring_type = 'toeic';
+                        this.form.settings.scoring_template = 'toeic';
+                        this.form.settings.formula_type = 'sum';
                     } else if (presetId === 'toefl') {
-                        this.form.scoring_type = 'conversion';
+                        this.form.scoring_type = 'toefl';
+                        this.form.settings.scoring_template = 'toefl';
                         this.form.settings.formula_type = 'sum';
                     } else if (presetId === 'custom') {
                         this.form.scoring_type = 'custom';

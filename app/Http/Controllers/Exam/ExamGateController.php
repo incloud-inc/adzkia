@@ -148,7 +148,10 @@ class ExamGateController extends Controller
                     return redirect()->route('orders.checkout', $assessment)->with('info', $attemptCheck['message']);
                 }
 
-                return redirect()->route('exam.result', ['session' => $session->uuid])
+                $isStaff = $user->isTeacher() || $user->isAdmin() || $user->isSuperUser();
+                $targetRoute = (! $isStaff && $assessment->isEnglishTest()) ? 'exam.analysis' : 'exam.result';
+
+                return redirect()->route($targetRoute, ['session' => $session->uuid])
                     ->with('info', $attemptCheck['message'] ?? 'Anda sudah menyelesaikan ujian ini.');
             }
 

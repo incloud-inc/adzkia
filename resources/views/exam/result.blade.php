@@ -50,16 +50,31 @@
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         [x-cloak] { display: none !important; }
 
-        .prose-q { font-family: 'Open Sans', sans-serif; line-height: 1.7; color: #212529; }
-        .prose-q p { margin-bottom: 0.75rem; }
+        .prose-q { font-family: 'Open Sans', sans-serif; line-height: 1.75; color: #212529; word-break: break-word; }
+        .prose-q p { margin-top: 0; margin-bottom: 0.85rem; }
         .prose-q p:last-child { margin-bottom: 0; }
-        .prose-q strong { color: #212529; font-weight: 700; }
+        .prose-q h1 { font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; line-height: 1.3; margin-top: 1.4rem; margin-bottom: 0.65rem; color: #0f172a; letter-spacing: -0.02em; }
+        .prose-q h2 { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; line-height: 1.35; margin-top: 1.15rem; margin-bottom: 0.55rem; color: #0f172a; letter-spacing: -0.01em; }
+        .prose-q h3 { font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 700; line-height: 1.4; margin-top: 0.95rem; margin-bottom: 0.45rem; color: #1e293b; }
+        .prose-q h4, .prose-q h5, .prose-q h6 { font-size: 1rem; font-weight: 700; margin-top: 0.85rem; margin-bottom: 0.35rem; color: #1e293b; }
+        .prose-q h1:first-child, .prose-q h2:first-child, .prose-q h3:first-child { margin-top: 0; }
+        .prose-q strong, .prose-q b { color: #0f172a; font-weight: 700 !important; }
+        .prose-q em, .prose-q i { font-style: italic !important; }
+        .prose-q u { text-decoration: underline !important; }
+        .prose-q ul { list-style-type: disc !important; margin-top: 0.5rem !important; margin-bottom: 0.85rem !important; padding-left: 1.5rem !important; }
+        .prose-q ol { list-style-type: decimal !important; margin-top: 0.5rem !important; margin-bottom: 0.85rem !important; padding-left: 1.5rem !important; }
+        .prose-q li { margin-bottom: 0.35rem !important; display: list-item !important; }
+        .prose-q li > ul { list-style-type: circle !important; margin-top: 0.25rem !important; margin-bottom: 0.25rem !important; }
+        .prose-q blockquote { border-left: 4px solid #3b82f6; background-color: rgba(59, 130, 246, 0.05); padding: 0.6rem 1rem; margin: 0.85rem 0; font-style: italic; color: #475569; border-radius: 0 0.5rem 0.5rem 0; }
         .prose-q code { background: rgba(0,0,0,0.06); padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-size: 0.9em; font-family: monospace; }
-        .prose-q pre { background: #212529; color: #f8fafc; padding: 0.875rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.5rem 0; }
+        .prose-q pre { background: #212529; color: #f8fafc; padding: 0.875rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.75rem 0; }
+        .prose-q pre code { background: transparent; padding: 0; color: inherit; }
         .prose-q table { width: 100%; border-collapse: collapse; margin: 0.85rem 0; font-size: 0.875rem; border: 1px solid #ced4da; }
         .prose-q th { background: #f1f3f5; color: #212529; padding: 0.6rem 0.85rem; border: 1px solid #ced4da; font-weight: 700; text-align: left; }
         .prose-q td { padding: 0.6rem 0.85rem; border: 1px solid #ced4da; }
         .prose-q tr:nth-child(even) { background: #f8f9fa; }
+        .prose-q img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 0.75rem auto; display: block; }
+        .prose-q hr { margin: 1.25rem 0; border: 0; border-top: 1px solid #ced4da; }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden bg-[#a5d8ff] flex justify-center text-[#212529] antialiased"
@@ -150,18 +165,12 @@
                     </template>
                 </div>
 
-                <!-- Mobile (< sm): Hide full names, show assessment initials + optional section badge -->
-                <div class="sm:hidden flex items-center justify-center gap-1.5 min-w-0">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-white/20 border border-white/30 text-white font-display font-black text-xs tracking-wider"
-                          title="{{ $assessment->title }}">
-                        {{ $assessmentInitials }}
-                    </span>
-                    <template x-if="currentSectionTitle">
-                        <span class="text-[10px] text-blue-100 font-bold truncate max-w-[110px] bg-black/15 px-1.5 py-0.5 rounded"
-                              :title="currentSectionTitle"
-                              x-text="currentSectionTitle">
-                        </span>
-                    </template>
+                <!-- Mobile (< sm): Tampilkan judul asesmen saja (maksimal 2 baris) -->
+                <div class="sm:hidden min-w-0 px-1 text-center">
+                    <h1 class="font-display font-extrabold text-xs text-white leading-tight line-clamp-2 mx-auto"
+                        title="{{ $assessment->title }}">
+                        {{ $assessment->title }}
+                    </h1>
                 </div>
             </div>
 
@@ -177,7 +186,7 @@
                     @else
                         <span class="text-blue-100 font-medium hidden sm:inline text-[11px]">Nilai:</span>
                         <strong class="font-display font-extrabold text-xs sm:text-sm text-white">{{ $summary['final_score'] }}</strong>
-                        <span class="text-[10px] text-white/70">/ 100</span>
+                        <span class="text-[10px] text-white/70">/ {{ (int) $summary['total_points'] }}</span>
                     @endif
                 </div>
             </div>
@@ -204,7 +213,7 @@
                         Ujian ini memuat butir soal <strong>Essay / Uraian Bebas</strong> yang membutuhkan koreksi dan penilaian manual dari guru/pengampu. Nilai resmi Anda akan diperbarui dan dirilis setelah guru selesai memeriksa seluruh lembar jawaban.
                     </p>
                     <div class="flex flex-wrap items-center gap-4 text-xs font-semibold text-amber-800 pt-1 border-t border-amber-200/60">
-                        <span>• Nilai Objektif Sementara: <strong class="text-amber-950">{{ $summary['final_score'] }} / 100</strong> (belum termasuk nilai essay)</span>
+                        <span>• Nilai Objektif Sementara: <strong class="text-amber-950">{{ $summary['final_score'] }} / {{ (int) $summary['total_points'] }}</strong> (belum termasuk nilai essay)</span>
                         <span>• Jawaban Anda telah tersimpan aman di server</span>
                     </div>
                 </div>
@@ -236,7 +245,7 @@
                                     </span>
                                 </template>
                             </div>
-                            <div class="prose-q text-sm md:text-base text-[#212529] leading-relaxed font-serif text-justify"
+                            <div class="prose-q text-sm md:text-base text-[#212529] leading-relaxed"
                                  x-html="renderStimulusHtml(card.stimulus)"></div>
                         </div>
                     </template>
@@ -663,7 +672,19 @@
         <!-- FOOTER / NAVIGASI NOMOR SOAL (PERSIS DENGAN WORKSPACE CBT) -->
         <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex flex-col z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]">
             <!-- Mini Keterangan Warna / Legenda Soal -->
-            <div class="px-4 py-1.5 border-b border-blue-200/60 flex flex-wrap items-center justify-between text-[11px] font-bold text-slate-700 gap-x-4 gap-y-1 bg-blue-100/40">
+            <!-- Mobile View (< sm): KET Ringkas 1 Baris Saja -->
+            <div class="sm:hidden px-2.5 py-1 border-b border-blue-200/60 bg-blue-100/40 overflow-x-auto hide-scrollbar whitespace-nowrap">
+                <div class="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-700 min-w-max mx-auto">
+                    <span class="text-slate-500 font-extrabold font-display uppercase tracking-wider">KET:</span>
+                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span> Benar</span>
+                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500 inline-block"></span> Sebagian</span>
+                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-600 inline-block"></span> Salah</span>
+                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-400 inline-block"></span> Kosong</span>
+                </div>
+            </div>
+
+            <!-- Desktop View (sm and above): Keterangan Lengkap -->
+            <div class="hidden sm:flex px-4 py-1.5 border-b border-blue-200/60 items-center justify-between text-[11px] font-bold text-slate-700 gap-x-4 gap-y-1 bg-blue-100/40">
                 <div class="flex items-center gap-3 flex-wrap">
                     <span class="text-slate-500 text-[10px] uppercase tracking-wider font-extrabold font-display">Keterangan:</span>
                     <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-600 inline-block shadow-2xs"></span> Benar Penuh</span>

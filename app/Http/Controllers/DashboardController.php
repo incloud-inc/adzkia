@@ -174,6 +174,7 @@ class DashboardController extends Controller
             ? $allAssessments->filter(fn ($item) => $tenant->isAssessmentVisible($item))
             : $allAssessments;
 
+        $paidAssessments = $visibleAssessments->filter(fn ($item) => $item->price_type === 'paid' && (float) $item->price > 0)->values();
         $assessmentsCount = $visibleAssessments->count();
         $recentAssessments = $visibleAssessments->take(10);
         $questionBanksCount = QuestionBank::count();
@@ -193,6 +194,8 @@ class DashboardController extends Controller
             'assessmentsCount' => $assessmentsCount,
             'questionBanksCount' => $questionBanksCount,
             'recentAssessments' => $recentAssessments,
+            'visibleAssessments' => $visibleAssessments,
+            'paidAssessments' => $paidAssessments,
         ]);
     }
 }

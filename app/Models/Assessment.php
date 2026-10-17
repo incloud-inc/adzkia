@@ -363,4 +363,56 @@ class Assessment extends Model
             ->where('type', 'essay')
             ->exists();
     }
+
+    /**
+     * Periksa apakah asesmen ini merupakan English Test (TOEIC, TOEFL, IELTS, dsb.).
+     */
+    public function isEnglishTest(): bool
+    {
+        $type = strtolower(trim((string) $this->type));
+        $scoringType = strtolower(trim((string) $this->scoring_type));
+        $settings = (array) ($this->settings ?? []);
+        $template = strtolower(trim((string) ($settings['scoring_template'] ?? '')));
+        $title = strtolower(trim((string) $this->title));
+
+        // 1. Tipe asesmen spesifik
+        if (in_array($type, ['toeic', 'toefl', 'ielts', 'english', 'duolingo', 'efset', 'cefr'], true)) {
+            return true;
+        }
+
+        // 2. Tipe penilaian / template
+        if (in_array($scoringType, ['toeic', 'toefl', 'ielts', 'toeic_scale', 'toefl_scale'], true)) {
+            return true;
+        }
+        if (in_array($template, ['toeic', 'toefl', 'ielts'], true)) {
+            return true;
+        }
+
+        // 3. Judul asesmen memuat kata kunci English Test
+        if (str_contains($title, 'toeic')
+            || str_contains($title, 'toefl')
+            || str_contains($title, 'ielts')
+            || str_contains($title, 'english test')
+            || str_contains($title, 'english proficiency')
+            || str_contains($title, 'bahasa inggris')
+            || str_contains($title, 'duolingo english')) {
+            return true;
+        }
+
+        // 4. Relasi Mata Pelajaran (Subject)
+        $subject = $this->relationLoaded('subject') ? $this->subject : $this->subject()->first();
+        if ($subject) {
+            $subjCode = strtoupper(trim((string) $subject->code));
+            $subjName = strtolower(trim((string) $subject->name));
+
+            if (in_array($subjCode, ['ENG', 'BING', 'BINGG', 'ENGL', 'ENGLISH'], true)) {
+                return true;
+            }
+            if (str_contains($subjName, 'english') || str_contains($subjName, 'bahasa inggris')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

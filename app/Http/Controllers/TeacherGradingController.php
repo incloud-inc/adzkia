@@ -330,7 +330,10 @@ class TeacherGradingController extends Controller
             }
 
             $scorePenalty = (float) data_get($meta, 'score_penalty', 0);
-            [$finalScore, $computedMaxScore] = ExamGradingService::calculateFinalScores($assessment, $questions, $allAnswers, $scorePenalty);
+            [$finalScore, $computedMaxScore, $scaleResult] = ExamGradingService::calculateFinalScores($assessment, $questions, $allAnswers, $scorePenalty);
+            if ($scaleResult !== null) {
+                $meta['scale_result'] = $scaleResult;
+            }
 
             $session->forceFill([
                 'score' => $finalScore,

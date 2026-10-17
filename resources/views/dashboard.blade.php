@@ -884,6 +884,14 @@
                     this.detailUser = await res.json();
                     this.showDetailModal = true;
                 } catch (e) { alert('Gagal memuat data user.'); }
+            },
+            showGrantModal: false,
+            grantStudent: { id: null, name: '' },
+            selectedAssessmentId: '{{ ($paidAssessments ?? collect())->first()?->id ?? '' }}',
+            openGrantModal(userId, userName) {
+                this.grantStudent = { id: userId, name: userName };
+                this.selectedAssessmentId = '{{ ($paidAssessments ?? collect())->first()?->id ?? '' }}';
+                this.showGrantModal = true;
             }
         }" class="space-y-6">
 
@@ -1290,6 +1298,12 @@
                                         </td>
                                         <td class="py-3.5 px-4 text-right whitespace-nowrap">
                                             <div class="flex items-center justify-end gap-1.5">
+                                                <button type="button" @click="openGrantModal({{ $student->id }}, '{{ addslashes($student->name) }}')" 
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-all duration-150 cursor-pointer shadow-2xs active:scale-95"
+                                                        title="Beri 1x Kesempatan Ujian Gratis untuk Asesmen Berbayar">
+                                                    <x-radix-icon name="magic-wand" class="w-3.5 h-3.5 text-emerald-600" />
+                                                    <span>Beri Akses</span>
+                                                </button>
                                                 <button type="button" @click="openDetailModal({{ $student->id }})" 
                                                         class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-3 hover:bg-gray-4 text-gray-12 transition-colors cursor-pointer">
                                                     Detail
@@ -1515,6 +1529,127 @@
 
             <!-- Modals CRUD untuk Guru, Siswa, Admin -->
             <x-dashboard-user-modals :tenants="$tenants ?? collect([$tenant])" :currentTenant="$tenant" />
+
+            <!-- ========================================================================= -->
+            <!-- MODAL: BERI 1X KESEMPATAN UJIAN GRATIS KEPADA SISWA                     -->
+            <!-- ========================================================================= -->
+            <div x-show="showGrantModal" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+                 style="display: none;">
+                <div @click.away="showGrantModal = false"
+                     class="bg-white rounded-2xl border border-gray-6 shadow-2xl max-w-md w-full overflow-hidden transform transition-all">
+                    
+                    <form :action="'/dashboard/users/' + grantStudent.id + '/grant-assessment-access'" 
+                          method="POST" class="p-6 space-y-5">
+                        @csrf
+
+                        <!-- Header Modal -->
+                        <div class="flex items-center justify-between border-b border-gray-5 pb-3.5">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
+                                    <x-radix-icon name="magic-wand" class="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 class="font-display font-bold text-base text-gray-12 tracking-tight">Beri Kesempatan Ujian</h3>
+                                    <p class="text-xs text-gray-11">Akses gratis 1x percobaan ujian berbayar</p>
+                                </div>
+                            </div>
+                            <button type="button" @click="showGrantModal = false" class="text-gray-9 hover:text-gray-12 p-1.5 rounded-xl hover:bg-gray-3 transition-colors cursor-pointer">
+                                <x-radix-icon name="cross-1" class="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <!-- Info Target Siswa -->
+                        <div class="p-3.5 bg-gray-2 rounded-xl border border-gray-5 flex items-center justify-between">
+                            <div class="space-y-0.5">
+                                <span class="text-[10px] font-bold text-gray-10 uppercase tracking-wider">Siswa Penerima</span>
+                                <div class="text-xs font-bold text-gray-12" x-text="grantStudent.name"></div>
+                            </div>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300">
+                                Murid Terdaftar
+                            </span>
+                        </div>
+
+                        <!-- Dropdown Pilihan Asesmen Berbayar -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-gray-11 uppercase tracking-wider">
+                                Pilih Asesmen Berbayar <span class="text-red-9">*</span>
+                            </label>
+                            @php
+                                $candidateAssessments = ($paidAssessments ?? collect())->isNotEmpty()
+                                    ? $paidAssessments
+                                    : ($visibleAssessments ?? collect());
+                            @endphp
+
+                            @if($candidateAssessments->isNotEmpty())
+                                <select name="assessment_id" x-model="selectedAssessmentId" required 
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-gray-6 bg-white text-gray-12 text-xs font-semibold focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 outline-none transition-all">
+                                    @foreach($candidateAssessments as $cand)
+                                        <option value="{{ $cand->id }}">
+                                            {{ $cand->title }} 
+                                            @if($cand->price_type === 'paid')
+                                                (Rp {{ number_format($cand->price, 0, ',', '.') }})
+                                            @else
+                                                (Gratis)
+                                            @endif
+                                            - {{ $cand->subject?->name ?? 'Umum' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
+                                    Belum ada asesmen yang tersedia di institusi Anda. Silakan hubungi pemilik platform atau buat asesmen baru terlebih dahulu.
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Benefit / Penjelasan Sistem -->
+                        <div class="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-2 text-xs text-emerald-950">
+                            <div class="font-bold text-[11px] uppercase tracking-wide text-emerald-900 flex items-center gap-1.5">
+                                <span>🔒 Keamanan &amp; Ketentuan Akses</span>
+                            </div>
+                            <ul class="space-y-1.5 text-[11px] leading-relaxed text-emerald-900/90 pl-1">
+                                <li class="flex items-start gap-1.5">
+                                    <span class="text-emerald-700 font-bold shrink-0">✓</span>
+                                    <span>Memberikan kuota <strong>+1 kesempatan pengerjaan</strong> kepada siswa ini.</span>
+                                </li>
+                                <li class="flex items-start gap-1.5">
+                                    <span class="text-emerald-700 font-bold shrink-0">✓</span>
+                                    <span>Masa aktif pengerjaan berlaku <strong>35 hari</strong> kalender sejak diberikan.</span>
+                                </li>
+                                <li class="flex items-start gap-1.5">
+                                    <span class="text-emerald-700 font-bold shrink-0">✓</span>
+                                    <span>Siswa dapat langsung memulai ujian CBT <strong>tanpa melalui payment gateway</strong> atau membayar.</span>
+                                </li>
+                                <li class="flex items-start gap-1.5">
+                                    <span class="text-emerald-700 font-bold shrink-0">✓</span>
+                                    <span>Setelah 1x kesempatan selesai dikerjakan, ujian akan terkunci kembali secara otomatis.</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Tombol Aksi -->
+                        <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-5">
+                            <button type="button" @click="showGrantModal = false" 
+                                    class="px-4 py-2 rounded-xl text-xs font-semibold text-gray-11 hover:text-gray-12 hover:bg-gray-3 transition-colors cursor-pointer">
+                                Batal
+                            </button>
+                            <button type="submit" 
+                                    @if($candidateAssessments->isEmpty()) disabled @endif
+                                    class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <x-radix-icon name="magic-wand" class="w-4 h-4" />
+                                <span>Berikan 1x Kesempatan</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     @endif
 </x-layouts.app>

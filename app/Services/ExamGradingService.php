@@ -6,6 +6,7 @@ use App\Models\Assessment;
 use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
+use App\Services\Scoring\SpecializedScoringService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -114,10 +115,13 @@ class ExamGradingService
             }
 
             $scorePenalty = (float) data_get($session->meta, 'score_penalty', 0);
-            [$finalScore, $computedMaxScore] = self::calculateFinalScores($assessment, $questions, $answers, $scorePenalty);
+            [$finalScore, $computedMaxScore, $scaleResult] = self::calculateFinalScores($assessment, $questions, $answers, $scorePenalty);
 
             $hasEssay = $questions->contains(fn ($q) => $q->type === 'essay');
             $meta = (array) ($session->meta ?? []);
+            if ($scaleResult !== null) {
+                $meta['scale_result'] = $scaleResult;
+            }
             $isScoreReleased = (bool) data_get($meta, 'is_score_released', false);
 
             if ($hasEssay && ! $isScoreReleased) {
@@ -199,10 +203,13 @@ class ExamGradingService
 
         $assessment = $session->assessment;
         $scorePenalty = (float) data_get($session->meta, 'score_penalty', 0);
-        [$finalScore, $computedMaxScore] = self::calculateFinalScores($assessment, $questionMap, $answers, $scorePenalty);
+        [$finalScore, $computedMaxScore, $scaleResult] = self::calculateFinalScores($assessment, $questionMap, $answers, $scorePenalty);
 
         $hasEssay = $questionMap->contains(fn ($q) => $q->type === 'essay');
         $meta = (array) ($session->meta ?? []);
+        if ($scaleResult !== null) {
+            $meta['scale_result'] = $scaleResult;
+        }
         $isScoreReleased = (bool) data_get($meta, 'is_score_released', false);
 
         if ($hasEssay && ! $isScoreReleased) {
@@ -244,6 +251,25 @@ class ExamGradingService
      */
     public static function calculateFinalScores(?Assessment $assessment, Collection $questionMap, $answers, float $scorePenalty = 0.0): array
     {
+        if ($assessment) {
+            $scoringService = app(SpecializedScoringService::class);
+            if ($scoringService->isSpecializedScale($assessment)) {
+                $sections = $assessment->relationLoaded('sections')
+                    ? $assessment->sections
+                    : $assessment->sections()->get();
+
+                $scaleResult = $scoringService->calculateSpecializedScore(
+                    $assessment,
+                    $sections,
+                    $questionMap,
+                    $answers,
+                    $scorePenalty
+                );
+
+                return [(float) $scaleResult['score'], (float) $scaleResult['max_score'], $scaleResult];
+            }
+        }
+
         $settings = (array) ($assessment?->settings ?? []);
         $isWeighted = ($settings['formula_type'] ?? '') === 'weighted_percentage' && ! empty($settings['section_weights']);
 
@@ -255,7 +281,7 @@ class ExamGradingService
             $rawMax = (float) $questionMap->sum(fn ($q) => (float) ($q->points ?? 1));
             $finalScore = max(0.0, $rawTotal - $scorePenalty);
 
-            return [round($finalScore, 2), $rawMax > 0 ? $rawMax : 100.0];
+            return [round($finalScore, 2), $rawMax > 0 ? $rawMax : 100.0, null];
         }
 
         $sectionWeights = (array) $settings['section_weights'];
@@ -302,7 +328,7 @@ class ExamGradingService
 
         $finalScore = max(0.0, $weightedTotal - $scorePenalty);
 
-        return [round($finalScore, 2), 100.0];
+        return [round($finalScore, 2), 100.0, null];
     }
 
     /**

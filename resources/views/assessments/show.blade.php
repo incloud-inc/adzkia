@@ -477,7 +477,7 @@
                                             Stimulus Narasi: {{ $group->title ?? 'Wacana' }}
                                         </span>
                                     </div>
-                                    <div class="p-4 rounded-xl border border-emerald-200 bg-white text-xs text-gray-900 leading-relaxed whitespace-pre-line font-serif text-justify shadow-2xs">
+                                    <div class="p-4 rounded-xl border border-emerald-200 bg-white text-sm text-gray-900 leading-relaxed prose prose-sm max-w-none shadow-2xs">
                                         {!! \App\Support\MarkdownRenderer::render($group->stimulus_content) !!}
                                     </div>
 

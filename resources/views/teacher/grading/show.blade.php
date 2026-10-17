@@ -11,7 +11,19 @@
     @endphp
 
     <style>
-        .prose-q { font-family: 'Open Sans', sans-serif; line-height: 1.7; color: #1e293b; }
+        .prose-q { font-family: 'Open Sans', sans-serif; line-height: 1.75; color: #1e293b; word-break: break-word; }
+        .prose-q h1 { font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; line-height: 1.3; margin-top: 1.4rem; margin-bottom: 0.65rem; color: #0f172a; letter-spacing: -0.02em; }
+        .prose-q h2 { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; line-height: 1.35; margin-top: 1.15rem; margin-bottom: 0.55rem; color: #0f172a; letter-spacing: -0.01em; }
+        .prose-q h3 { font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 700; line-height: 1.4; margin-top: 0.95rem; margin-bottom: 0.45rem; color: #1e293b; }
+        .prose-q h4, .prose-q h5, .prose-q h6 { font-size: 1rem; font-weight: 700; margin-top: 0.85rem; margin-bottom: 0.35rem; color: #1e293b; }
+        .prose-q h1:first-child, .prose-q h2:first-child, .prose-q h3:first-child { margin-top: 0; }
+        .prose-q strong, .prose-q b { color: #0f172a; font-weight: 700 !important; }
+        .prose-q em, .prose-q i { font-style: italic !important; }
+        .prose-q u { text-decoration: underline !important; }
+        .prose-q ul { list-style-type: disc !important; margin-top: 0.5rem !important; margin-bottom: 0.85rem !important; padding-left: 1.5rem !important; }
+        .prose-q ol { list-style-type: decimal !important; margin-top: 0.5rem !important; margin-bottom: 0.85rem !important; padding-left: 1.5rem !important; }
+        .prose-q li { margin-bottom: 0.35rem !important; display: list-item !important; }
+        .prose-q blockquote { border-left: 4px solid #3b82f6; background-color: rgba(59, 130, 246, 0.05); padding: 0.6rem 1rem; margin: 0.85rem 0; font-style: italic; color: #475569; border-radius: 0 0.5rem 0.5rem 0; }
         .prose-q p { margin-bottom: 0.6rem; }
         .prose-q p:last-child { margin-bottom: 0; }
         .prose-q table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.875rem; border: 1px solid #cbd5e1; }
