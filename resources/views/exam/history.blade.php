@@ -1,5 +1,5 @@
 <x-layouts.app>
-    <x-slot:title>Riwayat Ujian &amp; Hasil Belajar Siswa</x-slot:title>
+    <x-slot:title>Riwayat Ujian & Hasil Belajar Siswa</x-slot:title>
 
     <div class="max-w-6xl mx-auto space-y-6 pb-12">
         <!-- Page Header -->

@@ -56,6 +56,7 @@ class SpecializedStandardScoringTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'subject_id' => $this->subject->id,
             'title' => 'Penilaian Harian Matematika',
+            'type' => 'ph',
             'scoring_type' => 'standard',
             'status' => 'published',
             'settings' => [
@@ -368,6 +369,7 @@ class SpecializedStandardScoringTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'subject_id' => $this->subject->id,
             'title' => 'Simulasi Try Out UTBK-SNBT 2026',
+            'type' => 'utbk',
             'scoring_type' => 'utbk',
             'status' => 'published',
             'settings' => [
@@ -522,6 +524,7 @@ class SpecializedStandardScoringTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'subject_id' => $this->subject->id,
             'title' => 'Simulasi UTBK SNBT - Literasi & Penalaran Matematika',
+            'type' => 'utbk',
             'scoring_type' => 'utbk',
             'status' => 'published',
             'settings' => [

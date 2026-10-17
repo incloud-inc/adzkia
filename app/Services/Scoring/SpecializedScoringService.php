@@ -101,19 +101,29 @@ class SpecializedScoringService
         $settings = (array) ($assessment->settings ?? []);
         $template = strtolower(trim((string) ($settings['scoring_template'] ?? '')));
 
-        // 1. TOEIC
-        if ($template === 'toeic' || in_array($scoringType, ['toeic', 'toeic_scale'], true) || ($type === 'toeic' && ! in_array($scoringType, ['standard', 'formula', 'weighted', 'rubric', 'manual'], true))) {
+        // 1. Scoring type / template explicit check (Prioritas Utama)
+        if ($template === 'utbk' || in_array($scoringType, ['utbk', 'utbk_irt', 'utbk_scale'], true)) {
+            return 'utbk';
+        }
+        if ($template === 'toeic' || in_array($scoringType, ['toeic', 'toeic_scale'], true)) {
             return 'toeic';
         }
-
-        // 2. TOEFL
-        if ($template === 'toefl' || in_array($scoringType, ['toefl', 'toefl_scale'], true) || ($type === 'toefl' && ! in_array($scoringType, ['standard', 'formula', 'weighted', 'rubric', 'manual'], true))) {
+        if ($template === 'toefl' || in_array($scoringType, ['toefl', 'toefl_scale'], true)) {
             return 'toefl';
         }
 
-        // 3. UTBK SNBT
-        if ($template === 'utbk' || in_array($scoringType, ['utbk', 'utbk_irt', 'utbk_scale'], true) || ($type === 'utbk' && ! in_array($scoringType, ['standard', 'formula', 'weighted', 'rubric', 'manual'], true))) {
-            return 'utbk';
+        // 2. Type fallback (hanya jika scoring_type tidak disetel ke tipe standar seperti standard, formula, weighted)
+        $isStandardScoring = in_array($scoringType, ['standard', 'formula', 'weighted', 'rubric', 'manual'], true);
+        if (! $isStandardScoring) {
+            if ($type === 'utbk') {
+                return 'utbk';
+            }
+            if ($type === 'toeic') {
+                return 'toeic';
+            }
+            if ($type === 'toefl') {
+                return 'toefl';
+            }
         }
 
         return null;

@@ -16,13 +16,20 @@ class PageTitleResolver
     protected static array $routeTitles = [
         'dashboard' => 'Dashboard',
         'dashboard.users.index' => 'Manajemen Pengguna',
+        'dashboard.users.show' => 'Detail Pengguna',
         'assessments.index' => 'Katalog Asesmen',
         'assessments.create' => 'Buat Asesmen Baru',
         'assessments.wizard' => 'Wizard Pembuatan Asesmen',
         'assessments.show' => 'Detail Asesmen',
+        'assessments.edit' => 'Edit Asesmen',
         'assessments.result' => 'Hasil Evaluasi Asesmen',
+        'assessments.result-preview' => 'Pratinjau Hasil Evaluasi Asesmen',
+        'assessments.analytics' => 'Analisis Butir Soal & Daya Serap',
         'assessments.analytics.index' => 'Analisis Butir Soal & Daya Serap',
         'assessments.analytics.preview' => 'Pratinjau Analisis Asesmen',
+        'assessments.grading' => 'Daftar Penilaian Ujian',
+        'assessments.grading.session' => 'Koreksi Lembar Jawaban Siswa',
+        'assessments.proctoring' => 'Pengawasan Ujian (Proctoring)',
         'question-banks.index' => 'Bank Soal',
         'question-banks.create' => 'Tambah Bank Soal',
         'question-banks.show' => 'Detail Bank Soal',
@@ -39,8 +46,11 @@ class PageTitleResolver
         'tenants.edit' => 'Edit Data Tenant',
         'tenants.show' => 'Detail Institusi',
         'tenants.branding.edit' => 'Branding & Kustomisasi Portal',
+        'reports.sales' => 'Laporan Penjualan Paket Soal',
+        'reports.sales.index' => 'Laporan Penjualan Paket Soal',
         'sales-reports.index' => 'Laporan Penjualan Paket Soal',
         'wallet.index' => 'Dompet & Pendapatan',
+        'wallet.admin.payouts' => 'Kelola Penarikan Dana (Payout)',
         'wallet.admin-payouts' => 'Kelola Penarikan Dana (Payout)',
         'profile.edit' => 'Pengaturan Profil & Keamanan',
         'settings.index' => 'Pengaturan Sistem',
@@ -54,6 +64,8 @@ class PageTitleResolver
         'password.reset' => 'Atur Ulang Kata Sandi',
         'password.force_change' => 'Ganti Kata Sandi',
         'tenant.select' => 'Pilih Institusi',
+        'media.gallery.index' => 'Galeri Media Cloudflare R2',
+        'verification.notice' => 'Verifikasi Alamat Email',
     ];
 
     /**
@@ -67,7 +79,7 @@ class PageTitleResolver
 
         // 1. Tentukan judul halaman mentah (Raw Title)
         if (filled($customTitle)) {
-            $rawTitle = trim($customTitle);
+            $rawTitle = strip_tags((string) $customTitle);
         } else {
             $routeName = Route::currentRouteName();
             if ($routeName === 'dashboard' && $user) {
@@ -84,6 +96,9 @@ class PageTitleResolver
                 $rawTitle = self::$routeTitles[$routeName] ?? 'Aplikasi Ujian';
             }
         }
+
+        // Decode entitas HTML (seperti &amp;, &#039;, &quot;, &ndash;) agar tidak terjadi double-escaping oleh Blade {{ ... }}
+        $rawTitle = html_entity_decode($rawTitle, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         // 2. Bersihkan sufiks "- ADZKIA" atau "| ADZKIA" atau "Laravel" yang mungkin terbawa
         $cleanedTitle = preg_replace('/\s*[-|]\s*(ADZKIA|Laravel)\s*$/i', '', $rawTitle);

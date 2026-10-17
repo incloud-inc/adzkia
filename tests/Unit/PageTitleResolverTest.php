@@ -80,4 +80,33 @@ class PageTitleResolverTest extends TestCase
         $title2 = PageTitleResolver::resolve('Dashboard - ADZKIA', $tenant);
         $this->assertSame('Dashboard', $title2);
     }
+
+    public function test_decodes_html_entities_and_prevents_raw_amp_in_resolved_title(): void
+    {
+        $tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
+
+        $title = PageTitleResolver::resolve('Riwayat Ujian &amp; Hasil Belajar Siswa', $tenant);
+        $this->assertSame('Riwayat Ujian & Hasil Belajar Siswa', $title);
+        $this->assertStringNotContainsString('&amp;', $title);
+
+        $titleWithQuotes = PageTitleResolver::resolve('Asesmen &quot;Bahasa Inggris&quot; &amp; Sains', $tenant);
+        $this->assertSame('Asesmen "Bahasa Inggris" & Sains', $titleWithQuotes);
+        $this->assertStringNotContainsString('&quot;', $titleWithQuotes);
+        $this->assertStringNotContainsString('&amp;', $titleWithQuotes);
+    }
+
+    public function test_route_titles_resolve_accurately_for_admin_tenant_and_student(): void
+    {
+        $standardTenant = Tenant::factory()->create(['plan' => 'gratis']);
+
+        // Default route resolution
+        $historyTitle = PageTitleResolver::resolve('Riwayat Ujian & Hasil Belajar Siswa', $standardTenant);
+        $this->assertSame('Riwayat Ujian & Hasil Belajar Siswa - ADZKIA', $historyTitle);
+
+        $settingsTitle = PageTitleResolver::resolve('Pengaturan Sistem & Payment Gateway', $standardTenant);
+        $this->assertSame('Pengaturan Sistem & Payment Gateway - ADZKIA', $settingsTitle);
+
+        $analyticsTitle = PageTitleResolver::resolve('Analisis Butir Soal & Daya Serap', $standardTenant);
+        $this->assertSame('Analisis Butir Soal & Daya Serap - ADZKIA', $analyticsTitle);
+    }
 }

@@ -1,5 +1,5 @@
 <x-layouts.app>
-    <x-slot:title>Pengaturan Sistem &amp; Payment Gateway - ADZKIA</x-slot:title>
+    <x-slot:title>Pengaturan Sistem & Payment Gateway</x-slot:title>
 
     <div class="space-y-6 pb-20 max-w-6xl mx-auto" x-data="{ 
         activeTab: 'gateway',
