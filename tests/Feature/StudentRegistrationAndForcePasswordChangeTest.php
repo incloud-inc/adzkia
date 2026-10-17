@@ -49,12 +49,11 @@ class StudentRegistrationAndForcePasswordChangeTest extends TestCase
         ]);
     }
 
-    public function test_student_can_register_on_main_domain_and_is_assigned_to_tenant_1(): void
+    public function test_public_registration_is_closed_on_main_domain(): void
     {
         $response = $this->get('/register');
-        $response->assertStatus(200);
-        $response->assertSee('Pendaftaran Siswa Baru di');
-        $response->assertSee('ADZKIA Pusat');
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('error');
 
         $registerResponse = $this->post('/register', [
             'name' => 'Siswa Baru Utama',
@@ -63,23 +62,18 @@ class StudentRegistrationAndForcePasswordChangeTest extends TestCase
             'password_confirmation' => 'RahasiaBaru123!',
         ]);
 
-        $registerResponse->assertRedirect(route('dashboard'));
+        $registerResponse->assertRedirect(route('login'));
+        $registerResponse->assertSessionHas('error');
 
         $user = User::where('email', 'siswa.utama@example.com')->first();
-        $this->assertNotNull($user);
-        $this->assertEquals('Siswa Baru Utama', $user->name);
-        $this->assertFalse((bool) $user->must_change_password);
-        $this->assertEquals(1, $user->current_tenant_id);
-        $this->assertTrue($user->tenants()->where('tenant_id', 1)->exists());
-        $this->assertEquals('U', $user->tenants()->where('tenant_id', 1)->first()->pivot->role);
+        $this->assertNull($user);
     }
 
-    public function test_student_can_register_on_subdomain_and_is_assigned_to_subdomain_tenant(): void
+    public function test_public_registration_is_closed_on_subdomain(): void
     {
         $response = $this->get('http://smpn1.adzkia.test/register');
-        $response->assertStatus(200);
-        $response->assertSee('Pendaftaran Siswa Baru di');
-        $response->assertSee('SMP Negeri 1 Padang');
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('error');
 
         $registerResponse = $this->post('http://smpn1.adzkia.test/register', [
             'name' => 'Siswa SMP 1',
@@ -88,13 +82,11 @@ class StudentRegistrationAndForcePasswordChangeTest extends TestCase
             'password_confirmation' => 'RahasiaBaru123!',
         ]);
 
-        $registerResponse->assertRedirect(route('dashboard'));
+        $registerResponse->assertRedirect(route('login'));
+        $registerResponse->assertSessionHas('error');
 
         $user = User::where('email', 'siswa.smp@example.com')->first();
-        $this->assertNotNull($user);
-        $this->assertEquals($this->tenantSmp->id, $user->current_tenant_id);
-        $this->assertTrue($user->tenants()->where('tenant_id', $this->tenantSmp->id)->exists());
-        $this->assertEquals('U', $user->tenants()->where('tenant_id', $this->tenantSmp->id)->first()->pivot->role);
+        $this->assertNull($user);
     }
 
     public function test_student_registered_by_admin_must_change_password_before_accessing_anything(): void
@@ -153,8 +145,8 @@ class StudentRegistrationAndForcePasswordChangeTest extends TestCase
         $this->assertFalse((bool) $student->must_change_password);
         $this->assertTrue(Hash::check('PasswordAman999!', $student->password));
 
-        // Siswa relogin dengan password baru dan kini bisa akses dashboard
-        $this->actingAs($student)->get(route('dashboard'))->assertStatus(200);
+        // Siswa relogin dengan password baru dan kini bisa akses dashboard pada host tenant miliknya
+        $this->actingAs($student)->get('http://pusat.localhost/dashboard')->assertStatus(200);
     }
 
     public function test_bulk_add_users_by_admin(): void
@@ -201,12 +193,44 @@ class StudentRegistrationAndForcePasswordChangeTest extends TestCase
         $responseEnt->assertSee('#8b5cf6'); // Enterprise custom theme color
     }
 
-    public function test_google_login_on_subdomain_and_main_domain(): void
+    public function test_google_login_rejects_unregistered_user_and_does_not_create_account(): void
     {
         $abstractUser = Mockery::mock(SocialiteUser::class);
-        $abstractUser->shouldReceive('getId')->andReturn('google-id-12345');
-        $abstractUser->shouldReceive('getEmail')->andReturn('google.user@example.com');
-        $abstractUser->shouldReceive('getName')->andReturn('Google Student');
+        $abstractUser->shouldReceive('getId')->andReturn('google-unregistered-999');
+        $abstractUser->shouldReceive('getEmail')->andReturn('unknown@stranger.com');
+        $abstractUser->shouldReceive('getName')->andReturn('Unknown Stranger');
+        $abstractUser->shouldReceive('getNickname')->andReturn(null);
+        $abstractUser->shouldReceive('getAvatar')->andReturn(null);
+
+        $provider = Mockery::mock('Laravel\Socialite\Two\GoogleProvider');
+        $provider->shouldReceive('user')->andReturn($abstractUser);
+
+        Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+
+        $response = $this->get('/auth/google/callback');
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('error');
+
+        $this->assertNull(User::where('email', 'unknown@stranger.com')->first());
+    }
+
+    public function test_registered_student_google_login_redirects_to_force_change_password_then_dashboard_on_subsequent_login(): void
+    {
+        // 1. Admin tenant mendaftarkan siswa
+        $student = User::create([
+            'name' => 'Siswa SMP Terdaftar',
+            'email' => 'student.google@smpn1.sch.id',
+            'password' => Hash::make('Masuk123!'),
+            'must_change_password' => true,
+            'current_tenant_id' => $this->tenantSmp->id,
+            'email_verified_at' => now(),
+        ]);
+        $student->tenants()->attach($this->tenantSmp->id, ['role' => 'U']);
+
+        $abstractUser = Mockery::mock(SocialiteUser::class);
+        $abstractUser->shouldReceive('getId')->andReturn('google-student-777');
+        $abstractUser->shouldReceive('getEmail')->andReturn('student.google@smpn1.sch.id');
+        $abstractUser->shouldReceive('getName')->andReturn('Siswa SMP Terdaftar');
         $abstractUser->shouldReceive('getNickname')->andReturn(null);
         $abstractUser->shouldReceive('getAvatar')->andReturn('https://lh3.googleusercontent.com/avatar.jpg');
 
@@ -215,16 +239,29 @@ class StudentRegistrationAndForcePasswordChangeTest extends TestCase
 
         Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
 
-        // Simulasi Google Callback di subdomain
+        // 2. Siswa login pertama kali dengan Google
         $response = $this->get('http://smpn1.adzkia.test/auth/google/callback');
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('password.force_change'));
 
-        $user = User::where('email', 'google.user@example.com')->first();
-        $this->assertNotNull($user);
-        $this->assertEquals('Google Student', $user->name);
-        $this->assertEquals('google-id-12345', $user->google_id);
-        $this->assertEquals($this->tenantSmp->id, $user->current_tenant_id);
-        $this->assertTrue($user->tenants()->where('tenant_id', $this->tenantSmp->id)->exists());
-        $this->assertFalse((bool) $user->must_change_password);
+        $student->refresh();
+        $this->assertEquals('google-student-777', $student->google_id);
+        $this->assertTrue((bool) $student->must_change_password);
+
+        // 3. Siswa mengganti password bawaan Masuk123!
+        $this->actingAs($student)->post(route('password.force_change.update'), [
+            'password' => 'SiswaKeren2026!',
+            'password_confirmation' => 'SiswaKeren2026!',
+        ])->assertRedirect(route('login'));
+
+        $student->refresh();
+        $this->assertFalse((bool) $student->must_change_password);
+
+        // Bersihkan session
+        Auth::logout();
+        session()->flush();
+
+        // 4. Login berikutnya via Google langsung diarahkan ke Dashboard
+        $subsequentResponse = $this->get('http://smpn1.adzkia.test/auth/google/callback');
+        $subsequentResponse->assertRedirect(route('dashboard'));
     }
 }

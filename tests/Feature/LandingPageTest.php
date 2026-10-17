@@ -21,13 +21,13 @@ class LandingPageTest extends TestCase
 
         // 2. Headlines & Eyebrow
         $response->assertSee('Sekolah & BIMBEL Optimalkan Pembelajaran, ADZKIA CBT Sempurnakan Pencapaian', false);
-        $response->assertSee('Aplikasi Ujian/Asesmen.', false);
+        $response->assertSee('Aplikasi Ujian/Asesmen', false);
         $response->assertSee('Soal ASLI, Pembahasan AI.', false);
         $response->assertSee('ADZKIA CBT adalah platform ujian dan asesmen untuk Sekolah dan BIMBEL dengan Bank Soal ASLI TKA, UTBK, dan SKD Kedinasan & CPNS.', false);
 
         // 3. Card info mendatar (9 items)
         $response->assertSee('Sekolah dan BIMBEL Menggunakan ADZKIA');
-        $response->assertSee('Murid/Pelajar melaksanakan Asesmen di ADZKIA');
+        $response->assertSee('Murid (Siswa) melaksanakan Asesmen di ADZKIA');
         $response->assertSee('Asesmen untuk Kelas 1 SD sampai 12 SMA');
         $response->assertSee('Asesmen untuk TKA, UTBK, dan SKD Kedinasan CPNS');
         $response->assertSee('TOEIC, TOEFL, dan IELTS');
@@ -37,11 +37,10 @@ class LandingPageTest extends TestCase
         $response->assertSee('Sesi Asesmen dilaksanakan pekan ini');
 
         // 4. Teaser & Features
-        $response->assertSee('Contoh Soal Asli UTBK SNBT:');
-        $response->assertSee('(PM UTBK 2025) Untuk keperluan pengairan tanaman');
+        $response->assertSee('(PM UTBK 2025)');
+        $response->assertSee('Untuk keperluan pengairan tanaman');
         $response->assertSee('Generate Pembahasan AI');
-        $response->assertSee('Solusi');
-        $response->assertSee('Guru menjelaskan singkat,<br>AI menjabarkan sampai jelas.', false);
+        $response->assertSee('Pembahasan AI membimbing murid memahami alur logika secara visual dan terstruktur!');
 
         // 5. Deleted terms must NOT be seen
         $response->assertDontSee('CBT & AI Engine');
@@ -49,6 +48,6 @@ class LandingPageTest extends TestCase
 
         // 6. Soft selling CTA
         $response->assertSee('Siap Menghadirkan Standar Asesmen Terbaik untuk Murid Anda?');
-        $response->assertSee('Tanya Santai via WhatsApp');
+        $response->assertSee('Konsultasi via WhatsApp');
     }
 }

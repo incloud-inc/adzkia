@@ -134,7 +134,7 @@
                 </div>
             </div>
 
-            <!-- Center: NAMA ASESMEN (Tengah Header, Truncate jika panjang) -->
+            <!-- Center: NAMA ASESMEN & SECTION (Tengah Header, Truncate jika panjang) -->
             <div class="flex-1 min-w-0 px-2 sm:px-4 text-center">
                 <!-- Desktop & Tablet (sm and above): Full Title with Truncate -->
                 <div class="hidden sm:block min-w-0">
@@ -142,14 +142,26 @@
                         title="{{ $assessment->title }}">
                         {{ $assessment->title }}
                     </h1>
+                    <template x-if="currentSectionTitle">
+                        <p class="font-display text-[11px] sm:text-xs text-blue-100 font-semibold truncate mx-auto max-w-xs md:max-w-sm lg:max-w-md mt-0.5 tracking-wide"
+                           :title="currentSectionTitle"
+                           x-text="currentSectionTitle">
+                        </p>
+                    </template>
                 </div>
 
-                <!-- Mobile (< sm): Hide full names, show assessment initials -->
+                <!-- Mobile (< sm): Hide full names, show assessment initials + optional section badge -->
                 <div class="sm:hidden flex items-center justify-center gap-1.5 min-w-0">
                     <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-white/20 border border-white/30 text-white font-display font-black text-xs tracking-wider"
                           title="{{ $assessment->title }}">
                         {{ $assessmentInitials }}
                     </span>
+                    <template x-if="currentSectionTitle">
+                        <span class="text-[10px] text-blue-100 font-bold truncate max-w-[110px] bg-black/15 px-1.5 py-0.5 rounded"
+                              :title="currentSectionTitle"
+                              x-text="currentSectionTitle">
+                        </span>
+                    </template>
                 </div>
             </div>
 
@@ -172,7 +184,7 @@
         </header>
 
         <!-- AREA SOAL & PEMBAHASAN -->
-        <section class="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
+        <section id="review-scroll-container" x-ref="scrollContainer" class="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
 
             @if($summary['teacher_review_required'])
                 <!-- Banner: Menunggu Pemeriksaan Guru -->
@@ -209,8 +221,8 @@
                 <article x-show="currentCardIndex === cardIdx" :data-card-index="cardIdx" class="space-y-6">
 
                     <!-- Stimulus / Wacana (Jika Ada pada Kartu Ini) -->
-                    <template x-if="card.stimulus && card.stimulus.content">
-                        <div class="rounded-2xl border-2 border-blue-300/80 bg-blue-50/70 p-5 md:p-6 space-y-3 shadow-xs">
+                    <template x-if="card.stimulus && (card.stimulus.content || card.stimulus.media_url || card.stimulus.rendered)">
+                        <div :id="'review-stimulus-card-' + cardIdx" class="rounded-2xl border-2 border-blue-300/80 bg-blue-50/70 p-5 md:p-6 space-y-3 shadow-xs">
                             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-blue-200 pb-2.5">
                                 <div class="flex items-center gap-2">
                                     <span class="rounded bg-blue-600 text-white px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider font-display shadow-2xs">
@@ -792,6 +804,14 @@
                 return this.displayItems[this.currentCardIndex] || null;
             },
 
+            get currentSectionTitle() {
+                const card = this.currentCard;
+                const q0 = card?.questions?.[0];
+                let title = (card?.section_title || q0?.section_title || '').trim();
+                if (!title) return '';
+                return title.replace(/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i, '').trim();
+            },
+
             typeLabel(type) {
                 const labels = {
                     'mcq_single': 'Pilihan Ganda',
@@ -809,6 +829,39 @@
                 return labels[type] || 'Soal';
             },
 
+            scrollToCardStimulusOrTop(cardIdx, targetQid = null) {
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        const scrollContainer = this.$refs.scrollContainer || document.getElementById('review-scroll-container');
+                        const card = this.displayItems[cardIdx];
+                        const hasStimulus = card && card.stimulus && (card.stimulus.content || card.stimulus.media_url || card.stimulus.rendered);
+                        const isFirstQuestion = !targetQid || (card && card.questions && card.questions[0]?.id === targetQid);
+
+                        if (hasStimulus && isFirstQuestion) {
+                            const stimulusEl = document.getElementById('review-stimulus-card-' + cardIdx);
+                            if (stimulusEl) {
+                                stimulusEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                return;
+                            }
+                        }
+
+                        if (targetQid && !isFirstQuestion) {
+                            const targetEl = document.getElementById('review-question-block-' + targetQid);
+                            if (targetEl) {
+                                targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                return;
+                            }
+                        }
+
+                        if (scrollContainer) {
+                            scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+                        } else {
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                    }, 60);
+                });
+            },
+
             goToQuestion(qid) {
                 const cardIdx = this.displayItems.findIndex(c => c.questions.some(q => q.id === qid));
                 if (cardIdx === -1) return;
@@ -817,10 +870,7 @@
 
                 this.$nextTick(() => {
                     this.renderMath();
-                    const targetEl = document.getElementById('review-question-block-' + qid);
-                    if (targetEl) {
-                        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
+                    this.scrollToCardStimulusOrTop(cardIdx, qid);
                 });
             },
 
@@ -828,7 +878,10 @@
                 if (this.currentCardIndex > 0) {
                     this.currentCardIndex--;
                     this.activeQuestionId = this.displayItems[this.currentCardIndex]?.questions[0]?.id;
-                    this.$nextTick(() => this.renderMath());
+                    this.$nextTick(() => {
+                        this.renderMath();
+                        this.scrollToCardStimulusOrTop(this.currentCardIndex, null);
+                    });
                 }
             },
 
@@ -836,7 +889,10 @@
                 if (this.currentCardIndex < this.displayItems.length - 1) {
                     this.currentCardIndex++;
                     this.activeQuestionId = this.displayItems[this.currentCardIndex]?.questions[0]?.id;
-                    this.$nextTick(() => this.renderMath());
+                    this.$nextTick(() => {
+                        this.renderMath();
+                        this.scrollToCardStimulusOrTop(this.currentCardIndex, null);
+                    });
                 }
             },
 
@@ -1007,27 +1063,54 @@
             renderStimulusHtml(stimulus) {
                 if (!stimulus) return '';
                 let html = '';
+
+                if (stimulus.media_url) {
+                    const isVid = stimulus.type === 'video' || stimulus.stimulus_type === 'video' || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(stimulus.media_url);
+                    const cleanUrl = stimulus.media_url.trim();
+                    const cleanTitle = (stimulus.title || (isVid ? 'Video Stimulus' : 'Audio Stimulus')).replace(/"/g, '&quot;');
+                    html += `
+                    <div class="my-4 rounded-xl border border-blue-200 bg-blue-50/70 p-4 shadow-xs">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="font-display text-xs font-bold text-blue-950">${isVid ? '🎬' : '🎧'} ${cleanTitle}</span>
+                        </div>
+                        ${isVid ? `<video class="w-full max-h-72 object-contain bg-black rounded-lg" src="${cleanUrl}" controls playsinline preload="metadata"></video>`
+                                : `<audio class="w-full" src="${cleanUrl}" controls preload="metadata"></audio>`}
+                    </div>`;
+                }
+
                 if (stimulus.rendered) {
                     html += stimulus.rendered;
                 } else if (stimulus.content) {
                     html += this.renderRich(stimulus.content);
                 }
-                return html;
+
+                return html.replace(/<(audio|video)\b([^>]*?)\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?([^>]*?)>/gi, '<$1$2$3>');
             },
 
             // Polling State
             gradingStatus: '{{ $session->grading_status }}',
             sessionUuid: '{{ $session->uuid }}',
 
+            pauseAllMedia() {
+                document.querySelectorAll('audio, video').forEach(el => {
+                    el.removeAttribute('autoplay');
+                    try { el.pause(); } catch(_) {}
+                });
+            },
+
             init() {
                 if (this.gradingStatus === 'pending' || this.gradingStatus === 'processing') {
                     this.startPolling();
                 }
 
+                this.pauseAllMedia();
+
                 this.$watch('currentCardIndex', () => {
+                    this.pauseAllMedia();
                     this.renderMath();
                 });
                 this.$nextTick(() => {
+                    this.pauseAllMedia();
                     this.renderMath();
                 });
             },
@@ -1071,9 +1154,25 @@
             renderRich(text) {
                 if (!text) return '';
                 let raw = text;
+
+                raw = raw.replace(/\[(?:listening|audio):([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
+                    const cleanUrl = url.trim();
+                    const cleanTitle = (title || 'Audio Stimulus').replace(/"/g, '&quot;');
+                    return `<div class="my-3 p-3 rounded-xl border border-blue-200 bg-blue-50/60"><span class="text-xs font-bold text-blue-900 block mb-1">🎧 ${cleanTitle}</span><audio class="w-full" src="${cleanUrl}" controls preload="metadata"></audio></div>`;
+                });
+                raw = raw.replace(/\[video:([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
+                    const cleanUrl = url.trim();
+                    const cleanTitle = (title || 'Video Stimulus').replace(/"/g, '&quot;');
+                    return `<div class="my-3 p-3 rounded-xl border border-blue-200 bg-blue-50/60"><span class="text-xs font-bold text-blue-950 block mb-1">🎬 ${cleanTitle}</span><video class="w-full max-h-72 object-contain bg-black rounded-lg" src="${cleanUrl}" controls playsinline preload="metadata"></video></div>`;
+                });
+
                 if (window.marked && typeof window.marked.parse === 'function') {
                     try { raw = window.marked.parse(raw, { gfm: true, breaks: true }); } catch(_) {}
                 }
+
+                // Hapus atribut autoplay agar audio/video di pembahasan hanya dimainkan saat diklik tombol play
+                raw = raw.replace(/<(audio|video)\b([^>]*?)\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?([^>]*?)>/gi, '<$1$2$3>');
+
                 this.renderMath();
                 return raw;
             }

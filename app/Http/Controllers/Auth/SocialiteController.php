@@ -9,9 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Throwable;
 
@@ -96,71 +94,42 @@ class SocialiteController extends Controller
             $targetTenant = Tenant::find(1) ?? Tenant::first();
         }
 
-        $user = DB::transaction(function () use ($googleId, $email, $name, $avatar, $targetTenant): User {
-            // 1) Pengguna sudah ada berdasarkan google_id
-            $existing = User::query()->where('google_id', $googleId)->first();
+        // 1) Validasi: Pengguna harus sudah terdaftar di sistem (oleh admin tenant)
+        $existing = User::query()
+            ->where('google_id', $googleId)
+            ->orWhere('email', $email)
+            ->first();
 
-            if ($existing !== null) {
-                if ($avatar !== null && $existing->avatar_url !== $avatar) {
-                    $existing->forceFill(['avatar_url' => $avatar])->save();
-                }
+        if ($existing === null) {
+            return redirect()
+                ->route('login')
+                ->with('error', "Akun Google ({$email}) belum didaftarkan oleh admin sekolah/tenant. Pendaftaran mandiri tidak diizinkan. Silakan hubungi admin sekolah Anda.");
+        }
 
-                if ($targetTenant && ! $existing->tenants()->where('tenant_id', $targetTenant->id)->exists()) {
-                    $existing->tenants()->attach($targetTenant->id, ['role' => 'U']);
-                }
+        $user = DB::transaction(function () use ($existing, $googleId, $avatar, $targetTenant): User {
+            $attributes = [];
 
-                if ($targetTenant && ! $existing->current_tenant_id) {
-                    $existing->forceFill(['current_tenant_id' => $targetTenant->id])->save();
-                }
-
-                return $existing;
+            if ($existing->google_id !== $googleId) {
+                $attributes['google_id'] = $googleId;
             }
 
-            // 2) Pengguna sudah ada berdasarkan email -> tautkan Google
-            $byEmail = User::query()->where('email', $email)->first();
-
-            if ($byEmail !== null) {
-                $attributes = [
-                    'google_id' => $googleId,
-                    'avatar_url' => $avatar ?? $byEmail->avatar_url,
-                ];
-
-                if ($byEmail->email_verified_at === null) {
-                    $attributes['email_verified_at'] = now();
-                }
-
-                if ($targetTenant && ! $byEmail->tenants()->where('tenant_id', $targetTenant->id)->exists()) {
-                    $byEmail->tenants()->attach($targetTenant->id, ['role' => 'U']);
-                }
-
-                if ($targetTenant && ! $byEmail->current_tenant_id) {
-                    $attributes['current_tenant_id'] = $targetTenant->id;
-                }
-
-                $byEmail->forceFill($attributes)->save();
-
-                return $byEmail;
+            if ($avatar !== null && $existing->avatar_url !== $avatar) {
+                $attributes['avatar_url'] = $avatar;
             }
 
-            // 3) Pendaftar baru via Google
-            $newUser = User::query()->create([
-                'name' => $name,
-                'email' => $email,
-                'password' => Hash::make(Str::random(32)),
-                'google_id' => $googleId,
-                'avatar_url' => $avatar,
-                'email_verified_at' => now(),
-                'must_change_password' => false,
-                'current_tenant_id' => $targetTenant?->id,
-            ]);
-
-            if ($targetTenant !== null) {
-                $newUser->tenants()->syncWithoutDetaching([
-                    $targetTenant->getKey() => ['role' => 'U'],
-                ]);
+            if ($existing->email_verified_at === null) {
+                $attributes['email_verified_at'] = now();
             }
 
-            return $newUser;
+            if ($targetTenant && ! $existing->current_tenant_id) {
+                $attributes['current_tenant_id'] = $targetTenant->id;
+            }
+
+            if (! empty($attributes)) {
+                $existing->forceFill($attributes)->save();
+            }
+
+            return $existing;
         });
 
         if ($targetTenant && $user->tenants()->where('tenant_id', $targetTenant->id)->exists()) {
@@ -171,6 +140,10 @@ class SocialiteController extends Controller
 
         $request->session()->regenerate();
         $request->session()->forget('google_oauth_tenant_id');
+
+        if ($user->must_change_password) {
+            return redirect()->route('password.force_change');
+        }
 
         return $this->redirectAfterLogin($user);
     }

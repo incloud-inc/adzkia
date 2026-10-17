@@ -190,13 +190,6 @@
                            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-emerald-700 hover:bg-slate-100/80 transition-colors">
                             Masuk
                         </a>
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" 
-                               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm active:scale-[0.98]">
-                                <span>Daftar</span>
-                                <span class="text-emerald-400">↗</span>
-                            </a>
-                        @endif
                     @endauth
                 </div>
             </nav>
@@ -234,7 +227,7 @@
 
                 <!-- Hero CTA Buttons -->
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-14">
-                    <a href="{{ Route::has('register') ? route('register') : route('login') }}" 
+                    <a href="{{ route('login') }}" 
                        class="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-bold shadow-lg shadow-emerald-700/25 transition-all duration-200 active:scale-[0.98] group">
                         <span>Mulai Asesmen Sekarang</span>
                         <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center transition-transform group-hover:translate-x-0.5">
@@ -852,13 +845,11 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
 
                     <!-- Soft Selling Action Row -->
                     <div class="flex flex-wrap items-center gap-4">
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" 
-                                class="inline-flex min-h-[48px] items-center gap-2.5 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-700/25 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]">
-                                <span>Coba Gratis Tanpa Komitmen</span>
-                                <span class="text-emerald-200">↗</span>
-                            </a>
-                        @endif
+                        <a href="{{ route('login') }}" 
+                            class="inline-flex min-h-[48px] items-center gap-2.5 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-700/25 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]">
+                            <span>Masuk ke Asesmen</span>
+                            <span class="text-emerald-200">↗</span>
+                        </a>
 
                         <!-- Tombol WhatsApp tanpa menampilkan nomor telepon di teks -->
                         <a href="https://wa.me/6281329983555?text=Halo%20Tim%20ADZKIA%20CBT%2C%20saya%20tertarik%20untuk%20berkonsultasi%20mengenai%20platform%20ujian%20dan%20asesmen%20ADZKIA%20CBT%20untuk%20Sekolah%2FBIMBEL%20kami." 

@@ -474,7 +474,9 @@ class ExamWorkspaceController extends Controller
             $section = $q->assessmentSection ?? $q->questionGroup?->assessmentSection;
             $sectionId = $q->assessment_section_id ?? $q->questionGroup?->assessment_section_id ?? $section?->id;
             $sectionDuration = $sectionDurations[$sectionId] ?? ($section?->duration_minutes !== null ? (int) $section->duration_minutes : null);
-            $sectionTitle = $section?->title;
+            $rawSectionTitle = $section?->title;
+            $cleanSectionTitle = filled($rawSectionTitle) ? preg_replace('/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i', '', trim($rawSectionTitle)) : null;
+            $sectionTitle = filled($cleanSectionTitle) ? $cleanSectionTitle : $rawSectionTitle;
             $sectionIdx = $sections->search(fn ($s) => $s->id == $sectionId);
             $sectionNumber = $sectionIdx !== false ? $sectionIdx + 1 : 1;
 
@@ -517,10 +519,12 @@ class ExamWorkspaceController extends Controller
         $activeTenant = $session->tenant ?? $assessment->tenant ?? auth()->user()->currentTenant;
 
         $sectionsPayload = $sections->values()->map(function ($s, $i) use ($sectionDurations) {
+            $cleanTitle = filled($s->title) ? preg_replace('/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i', '', trim($s->title)) : null;
+
             return [
                 'id' => $s->id,
                 'number' => $i + 1,
-                'title' => $s->title,
+                'title' => filled($cleanTitle) ? $cleanTitle : $s->title,
                 'duration_minutes' => $sectionDurations[$s->id] ?? (int) ($s->duration_minutes ?: 15),
             ];
         })->all();

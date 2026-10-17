@@ -517,8 +517,14 @@
                     processed = processed.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
 
                     // Media audio/video/image
-                    processed = processed.replace(/<audio\b([^>]*)>(.*?)<\/audio>/gi, '<div class="my-2 p-2.5 rounded-xl bg-gray-2 border border-gray-6"><span class="text-[11px] font-bold text-gray-10 block mb-1">🔊 Pratinjau Audio:</span><audio controls $1 class="w-full">$2</audio></div>');
-                    processed = processed.replace(/<video\b([^>]*)>(.*?)<\/video>/gi, '<div class="my-2 p-2 rounded-xl bg-black/5 border border-gray-6"><video controls $1 class="w-full max-h-60 rounded-lg object-contain bg-black">$2</video></div>');
+                    processed = processed.replace(/<audio\b([^>]*)>(.*?)<\/audio>/gi, function(match, attrs, content) {
+                        const cleanAttrs = (attrs || '').replace(/\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?/gi, '');
+                        return `<div class="my-2 p-2.5 rounded-xl bg-gray-2 border border-gray-6"><span class="text-[11px] font-bold text-gray-10 block mb-1">🔊 Pratinjau Audio:</span><audio controls preload="metadata" ${cleanAttrs} class="w-full">${content}</audio></div>`;
+                    });
+                    processed = processed.replace(/<video\b([^>]*)>(.*?)<\/video>/gi, function(match, attrs, content) {
+                        const cleanAttrs = (attrs || '').replace(/\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?/gi, '');
+                        return `<div class="my-2 p-2 rounded-xl bg-black/5 border border-gray-6"><video controls preload="metadata" ${cleanAttrs} class="w-full max-h-60 rounded-lg object-contain bg-black">${content}</video></div>`;
+                    });
                     processed = processed.replace(/!\[(.*?)\]\((.*?)\)/g, function(match, alt, url) {
                         let cleanUrl = url.trim();
                         if (!cleanUrl) {
@@ -785,9 +791,9 @@
                             const isVideo = data.type === 'video' || file.type.startsWith('video/') || /\.(mp4|webm|ogv|mov)$/i.test(file.name);
 
                             if (isAudio) {
-                                markdownMedia = `\n<audio controls autoplay src="${data.url}"></audio>\n`;
+                                markdownMedia = `\n<audio controls preload="metadata" src="${data.url}"></audio>\n`;
                             } else if (isVideo) {
-                                markdownMedia = `\n<video controls autoplay playsinline src="${data.url}" class="max-h-80 w-full rounded-xl my-2"></video>\n`;
+                                markdownMedia = `\n<video controls playsinline preload="metadata" src="${data.url}" class="max-h-80 w-full rounded-xl my-2"></video>\n`;
                             } else {
                                 markdownMedia = `\n![${cleanName}](${data.url})\n`;
                             }
@@ -876,16 +882,17 @@
                             });
                         }
                     }
-                                                            else if (stepToValidate === 4) {
+                    else if (stepToValidate === 4) {
                         let totalQuestions = 0;
-                        this.form.sections.forEach((sec, sIdx) => {
-                            sec.items.forEach((item, iIdx) => {
+                        (this.form.sections || []).forEach((sec, sIdx) => {
+                            (sec.items || []).forEach((item, iIdx) => {
                                 totalQuestions++;
                                 const qLabel = `Bagian ${sIdx+1} No.${iIdx+1}`;
 
                                 if (!item.is_group) {
                                     // Cek teks soal
-                                    if (!item.prompt) {
+                                    const promptText = (item.prompt || '').replace(/<[^>]*>/g, '').trim();
+                                    if (!promptText && !item.prompt) {
                                         this.validationErrors.push(`${qLabel}: Teks pertanyaan tidak boleh kosong.`);
                                     }
 
@@ -894,8 +901,8 @@
                                         if (!item.options || item.options.length < 2) {
                                             this.validationErrors.push(`${qLabel}: Minimal harus ada 2 opsi jawaban.`);
                                         } else {
-                                            let hasCorrect = item.options.some(o => o.is_correct);
-                                            if (!hasCorrect) this.validationErrors.push(`${qLabel}: Harus memilih minimal 1 jawaban benar.`);
+                                            let hasCorrect = item.options.some(o => o.is_correct === true || o.is_correct === 1 || o.is_correct === '1' || o.is_correct === 'true');
+                                            if (!hasCorrect) this.validationErrors.push(`${qLabel}: Harus memilih minimal 1 jawaban benar (klik tombol radio/checkbox di samping pilihan).`);
                                         }
                                     }
 
@@ -907,16 +914,18 @@
                                     }
                                 } else {
                                     // Cek Stimulus
-                                    if (!item.stimulus_content) {
+                                    const stimText = (item.stimulus_content || '').replace(/<[^>]*>/g, '').trim();
+                                    if (!stimText && !item.stimulus_content) {
                                         this.validationErrors.push(`${qLabel} (Stimulus): Konten narasi/stimulus tidak boleh kosong.`);
                                     }
                                     if (!item.questions || item.questions.length === 0) {
                                         this.validationErrors.push(`${qLabel} (Stimulus): Minimal harus memiliki 1 soal turunan.`);
                                     } else {
                                         item.questions.forEach((child, cIdx) => {
-                                            if (!child.prompt) this.validationErrors.push(`${qLabel} Anak Soal ${cIdx+1}: Teks pertanyaan tidak boleh kosong.`);
+                                            const childPrompt = (child.prompt || '').replace(/<[^>]*>/g, '').trim();
+                                            if (!childPrompt && !child.prompt) this.validationErrors.push(`${qLabel} Anak Soal ${cIdx+1}: Teks pertanyaan tidak boleh kosong.`);
                                             if (child.type === 'mcq_single' || child.type === 'mcq_multiple') {
-                                                let hasCorrect = child.options && child.options.some(o => o.is_correct);
+                                                let hasCorrect = child.options && child.options.some(o => o.is_correct === true || o.is_correct === 1 || o.is_correct === '1' || o.is_correct === 'true');
                                                 if (!hasCorrect) this.validationErrors.push(`${qLabel} Anak Soal ${cIdx+1}: Harus memilih minimal 1 jawaban benar.`);
                                             }
                                         });
@@ -925,15 +934,107 @@
                             });
                         });
                         if (totalQuestions === 0) {
-                            this.validationErrors.push('Langkah 4 (Soal): Ujian harus memiliki minimal 1 soal.');
+                            this.validationErrors.push('Langkah 4 (Soal): Ujian harus memiliki minimal 1 butir soal. Silakan tambahkan soal tunggal, stimulus narasi, atau import soal.');
                         }
                     }
                     
                     if (this.validationErrors.length > 0) {
                         this.showErrorModal = true;
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                         return false;
                     }
                     return true;
+                },
+
+                getItemValidationWarning(item) {
+                    if (!item) return null;
+                    if (!item.is_group) {
+                        const promptText = (item.prompt || '').replace(/<[^>]*>/g, '').trim();
+                        if (!promptText && !item.prompt) {
+                            return 'Teks soal masih kosong';
+                        }
+                        if (item.type === 'mcq_single' || item.type === 'mcq_multiple') {
+                            if (!item.options || item.options.length < 2) {
+                                return 'Minimal 2 opsi jawaban';
+                            }
+                            const hasCorrect = item.options.some(o => o.is_correct === true || o.is_correct === 1 || o.is_correct === '1' || o.is_correct === 'true');
+                            if (!hasCorrect) {
+                                return 'Kunci jawaban belum dipilih';
+                            }
+                        }
+                        if (item.type === 'matching') {
+                            if (!item.options || item.options.length === 0) {
+                                return 'Pasangan jawaban kosong';
+                            }
+                        }
+                    } else {
+                        const stimText = (item.stimulus_content || '').replace(/<[^>]*>/g, '').trim();
+                        if (!stimText && !item.stimulus_content) {
+                            return 'Wacana stimulus masih kosong';
+                        }
+                        if (!item.questions || item.questions.length === 0) {
+                            return 'Belum ada anak soal';
+                        }
+                        for (let i = 0; i < item.questions.length; i++) {
+                            const child = item.questions[i];
+                            const childPrompt = (child.prompt || '').replace(/<[^>]*>/g, '').trim();
+                            if (!childPrompt && !child.prompt) return `Anak #${i+1} teks kosong`;
+                            if (child.type === 'mcq_single' || child.type === 'mcq_multiple') {
+                                const hasCorrect = child.options && child.options.some(o => o.is_correct === true || o.is_correct === 1 || o.is_correct === '1' || o.is_correct === 'true');
+                                if (!hasCorrect) return `Anak #${i+1} kunci belum dipilih`;
+                            }
+                        }
+                    }
+                    return null;
+                },
+
+                handleTypeChange(q) {
+                    if (!q) return;
+                    if (['mcq_single', 'mcq_multiple', 'mcq_weighted'].includes(q.type)) {
+                        if (!q.options || q.options.length === 0) {
+                            q.options = this.getDefaultMcqOptions();
+                        } else {
+                            const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+                            q.options.forEach((opt, idx) => {
+                                opt.label = letters[idx] || (idx + 1);
+                            });
+                            if (q.type === 'mcq_single') {
+                                const hasCorrect = q.options.some(o => o.is_correct === true || o.is_correct === 1 || o.is_correct === '1');
+                                if (!hasCorrect && q.options.length > 0) {
+                                    q.options[0].is_correct = true;
+                                }
+                            }
+                        }
+                    } else if (q.type === 'binary_matrix') {
+                        if (!q.settings) q.settings = { labels: ['Benar', 'Salah'] };
+                        if (!q.settings.labels) q.settings.labels = ['Benar', 'Salah'];
+                        if (!q.options || q.options.length === 0) {
+                            q.options = [
+                                { id: 'stmt_' + Date.now() + '_1', label: '1', option_text: '', is_correct: true, match_key: q.settings.labels[0], score: 1.0 },
+                                { id: 'stmt_' + Date.now() + '_2', label: '2', option_text: '', is_correct: true, match_key: q.settings.labels[0], score: 1.0 }
+                            ];
+                        }
+                    } else if (q.type === 'matching') {
+                        if (!q.options || q.options.length === 0) {
+                            q.options = [
+                                { id: 'pair_' + Date.now() + '_1', label: '1', option_text: '', match_key: '', is_correct: true, score: 1.0 },
+                                { id: 'pair_' + Date.now() + '_2', label: '2', option_text: '', match_key: '', is_correct: true, score: 1.0 }
+                            ];
+                        }
+                    } else if (q.type === 'ordering') {
+                        if (!q.options || q.options.length === 0) {
+                            q.options = [
+                                { id: 'ord_' + Date.now() + '_1', label: '1', option_text: '', is_correct: true, score: 1.0 },
+                                { id: 'ord_' + Date.now() + '_2', label: '2', option_text: '', is_correct: true, score: 1.0 }
+                            ];
+                        }
+                    } else if (q.type === 'short_answer') {
+                        if (!q.options || q.options.length === 0) {
+                            q.options = [
+                                { id: 'sa_' + Date.now() + '_1', label: '1', option_text: '', is_correct: true, score: 1.0 }
+                            ];
+                        }
+                    }
                 },
 
                 generateToken() {
@@ -1757,7 +1858,15 @@
             <div class="flex items-start sm:items-center gap-3 w-full">
                 <span class="w-8 h-8 rounded-lg bg-green-2 text-green-11 flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-green-6/50" x-text="itemIdx + 1"></span>
                 <div class="min-w-0 flex-1 cursor-pointer" @click="activeItemId = item.id; $nextTick(() => document.body.style.overflow = 'hidden')">
-                    <div class="text-[10px] font-bold text-gray-11 uppercase tracking-wider mb-0.5 group-hover:text-green-9 transition-colors" x-text="item.is_group ? 'Stimulus Narasi' : item.type.replace('_', ' ')"></div>
+                    <div class="flex items-center gap-2 mb-0.5">
+                        <span class="text-[10px] font-bold text-gray-11 uppercase tracking-wider group-hover:text-green-9 transition-colors" x-text="item.is_group ? 'Stimulus Narasi' : item.type.replace('_', ' ')"></span>
+                        <template x-if="getItemValidationWarning(item)">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-2 text-amber-11 border border-amber-6/50 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-9"></span>
+                                <span x-text="getItemValidationWarning(item)"></span>
+                            </span>
+                        </template>
+                    </div>
                     <div class="text-sm font-medium text-gray-12 truncate" x-text="item.title || (item.prompt ? item.prompt.replace(/(<([^>]+)>)/gi, '').substring(0, 80) + '...' : 'Soal belum diisi')"></div>
                 </div>
             </div>
@@ -1839,7 +1948,7 @@
                                                 <div class="flex items-center justify-between border-b border-gray-5 pb-2.5">
                                                     <div class="flex items-center gap-2">
                                                         <span class="w-6 h-6 rounded-md bg-gray-12 text-white flex items-center justify-center text-xs font-bold" x-text="qIdx + 1"></span>
-                                                        <select x-model="childQ.type" class="rounded-lg border border-gray-6 px-2.5 py-1 text-xs font-bold text-gray-12 outline-none cursor-pointer">
+                                                        <select x-model="childQ.type" @change="handleTypeChange(childQ)" class="rounded-lg border border-gray-6 px-2.5 py-1 text-xs font-bold text-gray-12 outline-none cursor-pointer">
                                                             <option value="mcq_single">Pilihan Ganda (Single Choice)</option>
                                                             <option value="mcq_multiple">Pilihan Ganda Multiple Answer</option>
                                                             <option value="mcq_weighted">Pilihan Ganda Berbobot (1-5)</option>
@@ -2073,7 +2182,7 @@
                                     <div class="flex items-center justify-between border-b border-gray-5 pb-3">
                                         <div class="flex items-center gap-2.5">
                                             <span class="w-7 h-7 rounded-lg bg-gray-12 text-white flex items-center justify-center text-xs font-bold" x-text="itemIdx + 1"></span>
-                                            <select x-model="item.type" class="rounded-lg border border-gray-6 px-3 py-1.5 text-xs font-bold text-gray-12 outline-none cursor-pointer">
+                                            <select x-model="item.type" @change="handleTypeChange(item)" class="rounded-lg border border-gray-6 px-3 py-1.5 text-xs font-bold text-gray-12 outline-none cursor-pointer">
                                                 <option value="mcq_single">Pilihan Ganda (Single Choice)</option>
                                                 <option value="mcq_multiple">Pilihan Ganda Multiple Answer</option>
                                                 <option value="mcq_weighted">Pilihan Ganda Berbobot (1-5)</option>
@@ -2333,8 +2442,26 @@
 </template> <!-- End form.sections Loop (line 1573) -->
 </div> <!-- End space-y-8 (line 1572) -->
 
+                <!-- Inline Step 4 Validation Warning Banner -->
+                <div x-show="validationErrors.length > 0 && currentStep === 4" x-transition.opacity class="mb-4 p-4 rounded-2xl bg-red-50 border border-red-200 shadow-sm space-y-2.5">
+                    <div class="flex items-center justify-between text-red-800 font-bold text-sm">
+                        <div class="flex items-center gap-2">
+                            <x-radix-icon name="exclamation-triangle" class="w-5 h-5 text-red-600 shrink-0" />
+                            <span>Perhatian: Ada beberapa soal yang belum lengkap / belum valid:</span>
+                        </div>
+                        <button type="button" @click="showErrorModal = true" class="text-xs text-red-600 underline hover:text-red-800 cursor-pointer font-semibold">
+                            Buka Detail Modal Error
+                        </button>
+                    </div>
+                    <ul class="space-y-1 pl-6 list-disc text-xs text-red-700 font-medium">
+                        <template x-for="(err, idx) in validationErrors" :key="idx">
+                            <li x-text="err"></li>
+                        </template>
+                    </ul>
+                </div>
+
                 <!-- Navigation Step 4 (Outside Kotak Pembuatan Soal, Inside Langkah 4) -->
-                <div class="flex items-center justify-between pt-6 pb-12 mb-8 border-t border-gray-5 mt-10">
+                <div class="flex items-center justify-between pt-6 pb-12 mb-8 border-t border-gray-5 mt-6">
                     <button type="button" @click="currentStep--" 
                             class="px-5 py-2.5 rounded-xl border border-gray-6 bg-white hover:bg-gray-3 text-sm font-semibold text-gray-12 transition-colors cursor-pointer flex items-center gap-2">
                         <x-radix-icon name="arrow-left" class="w-4 h-4" />
@@ -3686,35 +3813,35 @@ BOBOT: 2.0</pre>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Error Validation Modal -->
-    <div x-show="showErrorModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-12/50 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]" @click.outside="showErrorModal = false">
-            <div class="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center justify-between">
-                <h3 class="text-lg font-bold text-red-700 flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    Validasi Form Gagal
-                </h3>
-                <button @click="showErrorModal = false" class="text-red-400 hover:text-red-600 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="p-6 overflow-y-auto space-y-4 flex-1">
-                <p class="text-sm text-gray-11">Ada beberapa kolom yang belum diisi dengan benar. Mohon perbaiki error berikut untuk melanjutkan:</p>
-                <ul class="space-y-2">
-                    <template x-for="(err, idx) in validationErrors" :key="idx">
-                        <li class="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
-                            <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span x-text="err"></span>
-                        </li>
-                    </template>
-                </ul>
-            </div>
-            <div class="p-4 border-t border-gray-5 bg-gray-2 flex justify-end">
-                <button @click="showErrorModal = false" class="px-5 py-2.5 bg-gray-12 text-white text-sm font-semibold rounded-xl hover:bg-gray-11 transition-colors">
-                    Mengerti, Perbaiki Sekarang
-                </button>
+        <!-- Error Validation Modal (Inside Alpine Component Scope) -->
+        <div x-show="showErrorModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-12/50 backdrop-blur-sm" x-cloak>
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]" @click.outside="showErrorModal = false">
+                <div class="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-red-700 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        Validasi Form Gagal
+                    </h3>
+                    <button @click="showErrorModal = false" class="text-red-400 hover:text-red-600 transition-colors cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                    <p class="text-sm text-gray-11">Ada beberapa kolom yang belum diisi dengan benar. Mohon perbaiki error berikut untuk melanjutkan:</p>
+                    <ul class="space-y-2">
+                        <template x-for="(err, idx) in validationErrors" :key="idx">
+                            <li class="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
+                                <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <span x-text="err"></span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+                <div class="p-4 border-t border-gray-5 bg-gray-2 flex justify-end">
+                    <button @click="showErrorModal = false" class="px-5 py-2.5 bg-gray-12 text-white text-sm font-semibold rounded-xl hover:bg-gray-11 transition-colors cursor-pointer">
+                        Mengerti, Perbaiki Sekarang
+                    </button>
+                </div>
             </div>
         </div>
     </div>

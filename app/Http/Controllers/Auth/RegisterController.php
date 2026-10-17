@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tenant;
 use App\Models\TenantInvitation;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -45,20 +44,10 @@ class RegisterController extends Controller
             ]);
         }
 
-        // Jalur pendaftaran mandiri (Self-Registration) Siswa
-        $tenant = app()->has('currentTenant') ? app('currentTenant') : null;
-        if (! $tenant) {
-            $tenant = Tenant::find(1) ?? Tenant::first();
-        }
-
-        return view('auth.register', [
-            'invitation' => null,
-            'inviteToken' => null,
-            'email' => old('email', ''),
-            'tenant' => $tenant,
-            'tenantName' => $tenant?->name ?? 'ADZKIA',
-            'role' => 'U',
-        ]);
+        // Pendaftaran mandiri siswa ditutup: alihkan ke login
+        return redirect()
+            ->route('login')
+            ->with('error', 'Pendaftaran mandiri dinonaktifkan. Akun siswa didaftarkan langsung oleh pihak sekolah/admin tenant. Silakan hubungi admin sekolah Anda.');
     }
 
     /**
@@ -116,47 +105,9 @@ class RegisterController extends Controller
             return redirect()->route('dashboard');
         }
 
-        // 2. Jalur pendaftaran mandiri siswa / murid
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'whatsapp_number' => ['nullable', 'string', 'max:20'],
-        ]);
-
-        $tenant = app()->has('currentTenant') ? app('currentTenant') : null;
-        if (! $tenant) {
-            $tenant = Tenant::find(1) ?? Tenant::first();
-        }
-
-        $user = DB::transaction(function () use ($validated, $tenant): User {
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-                'whatsapp_number' => $validated['whatsapp_number'] ?? null,
-                'email_verified_at' => now(),
-                'must_change_password' => false,
-                'current_tenant_id' => $tenant?->id,
-            ]);
-
-            if ($tenant) {
-                $user->tenants()->attach($tenant->id, [
-                    'role' => 'U',
-                ]);
-            }
-
-            return $user;
-        });
-
-        if ($tenant) {
-            $user->switchTenant($tenant->id);
-        }
-
-        Auth::login($user);
-
-        $request->session()->regenerate();
-
-        return redirect()->route('dashboard');
+        // 2. Pendaftaran mandiri siswa ditolak
+        return redirect()
+            ->route('login')
+            ->with('error', 'Pendaftaran mandiri dinonaktifkan. Akun siswa didaftarkan langsung oleh pihak sekolah/admin tenant. Silakan hubungi admin sekolah Anda.');
     }
 }

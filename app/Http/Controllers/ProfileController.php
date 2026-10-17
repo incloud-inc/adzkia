@@ -34,7 +34,7 @@ class ProfileController extends Controller
 
             if ($targetHost && $currentHost !== $targetHost) {
                 // Di local dev, jangan paksa redirect ke *.localhost jika sedang diakses dari localhost (mencegah kegagalan DNS loopback di Windows)
-                $isLocalSubdomainRedirect = in_array($currentHost, ['localhost', '127.0.0.1'], true) && str_ends_with($targetHost, '.localhost');
+                $isLocalSubdomainRedirect = ! app()->runningUnitTests() && in_array($currentHost, ['localhost', '127.0.0.1'], true) && str_ends_with($targetHost, '.localhost');
 
                 if (! $isLocalSubdomainRedirect) {
                     if ($isStudent) {

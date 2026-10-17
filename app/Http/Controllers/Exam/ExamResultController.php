@@ -297,14 +297,17 @@ class ExamResultController extends Controller
                     ];
                 }
 
-                // Simpan item ulasan untuk prototype-pembahasan dengan penomoran berurutan (1, 2, 3...)
+                $rawSecTitle = $section->title;
+                $cleanSecTitle = filled($rawSecTitle) ? preg_replace('/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i', '', trim($rawSecTitle)) : null;
+                $effectiveSecTitle = filled($cleanSecTitle) ? $cleanSecTitle : $rawSecTitle;
+
                 $questionReviewList[] = [
                     'id' => $q->id,
                     'answer_id' => $ans?->id,
                     'number' => $globalQuestionNumber++,
                     'section_id' => $section->id,
                     'section_number' => $secIndex + 1,
-                    'section_title' => $section->title,
+                    'section_title' => $effectiveSecTitle,
                     'question_group_id' => $q->question_group_id,
                     'prompt' => $q->prompt,
                     'rendered_prompt' => filled($q->prompt) ? MarkdownRenderer::render($q->prompt) : '',
@@ -355,9 +358,13 @@ class ExamResultController extends Controller
                 ? round(($secEarnedPoints / $secTotalPoints) * (float) $secWeight, 1)
                 : null;
 
+            $rawSecTitle = $section->title;
+            $cleanSecTitle = filled($rawSecTitle) ? preg_replace('/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i', '', trim($rawSecTitle)) : null;
+            $effectiveSecTitle = filled($cleanSecTitle) ? $cleanSecTitle : $rawSecTitle;
+
             $sectionsData[] = [
                 'id' => $section->id,
-                'title' => $section->title,
+                'title' => $effectiveSecTitle,
                 'instructions' => $section->instructions,
                 'weight' => $secWeight !== null ? (float) $secWeight : null,
                 'weighted_points' => $secWeightedPoints,

@@ -638,4 +638,13 @@
             @include('assessments.partials.edit-question-modal')
         @endif
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('audio, video').forEach(function(el) {
+                el.removeAttribute('autoplay');
+                try { el.pause(); } catch(_) {}
+            });
+        });
+    </script>
 </x-layouts.app>

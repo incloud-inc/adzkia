@@ -72,6 +72,20 @@ class MarkdownRenderer
             $html = strtr($html, $placeholders);
         }
 
+        // 6. Hilangkan atribut autoplay pada tag <audio> dan <video> agar tidak memutar suara otomatis secara bersamaan
+        $html = preg_replace_callback('/<(audio|video)\b([^>]*?)>/i', function ($m) {
+            $tag = $m[1];
+            $attrs = $m[2];
+            // Hapus atribut autoplay (autoplay, autoplay="true", autoplay="autoplay", dll)
+            $attrs = preg_replace('/\bautoplay(?:\s*=\s*(?:["\'][^"\']*["\']|[^\s>]+))?/i', '', $attrs);
+            // Tambahkan preload="metadata" jika belum memiliki atribut preload
+            if (! preg_match('/\bpreload\s*=/i', $attrs)) {
+                $attrs .= ' preload="metadata"';
+            }
+
+            return "<{$tag}{$attrs}>";
+        }, $html);
+
         return $html;
     }
 }
