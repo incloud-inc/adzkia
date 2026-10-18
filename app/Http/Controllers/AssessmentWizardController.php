@@ -166,6 +166,25 @@ class AssessmentWizardController extends Controller
         return response()->json(['success' => true, 'message' => 'Draft saved to cloud.']);
     }
 
+    /**
+     * Clear / discard saved draft from cache.
+     */
+    public function clearDraft(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        if ($user) {
+            if ($user->current_tenant_id) {
+                Cache::forget('assessment_draft_'.$user->current_tenant_id);
+            }
+            Cache::forget('assessment_draft_'.$user->id);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Draft ujian berhasil dihapus.',
+        ]);
+    }
+
     public function create(): View|RedirectResponse
     {
         $user = Auth::user();
@@ -291,7 +310,7 @@ class AssessmentWizardController extends Controller
             'sections.*.title' => 'required|string|max:255',
             'sections.*.instructions' => 'nullable|string',
             'sections.*.order' => 'nullable|integer',
-            'sections.*.duration_minutes' => 'nullable|integer|min:1',
+            'sections.*.duration_minutes' => 'nullable|numeric|min:0.1',
             'sections.*.items' => 'nullable|array',
         ]);
 
@@ -365,7 +384,7 @@ class AssessmentWizardController extends Controller
                     'title' => $secData['title'],
                     'instructions' => $secData['instructions'] ?? null,
                     'order' => $secData['order'] ?? ($sIndex + 1),
-                    'duration_minutes' => ! empty($secData['duration_minutes']) ? (int) $secData['duration_minutes'] : null,
+                    'duration_minutes' => ! empty($secData['duration_minutes']) ? (float) $secData['duration_minutes'] : null,
                 ]);
                 $createdSections[$sIndex] = $section;
 

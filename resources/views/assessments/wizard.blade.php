@@ -4,6 +4,72 @@
     <!-- Alpine.js Wizard State Machine -->
     <script>
         window.assessmentWizard = function() {
+            const createDefaultForm = () => ({
+                type: 'sumatif',
+                sumatif_type: 'ASTS',
+                title: 'ASTS ... [A/B/C]',
+                subject_id: '',
+                grade_level: '1 SD',
+                duration_minutes: 90,
+                description: '',
+                scoring_type: 'standard',
+                status: 'published',
+                price_type: 'free',
+                price: 0,
+                max_attempts: null,
+                access_validity_days: 35,
+                packages: [
+                    { name: 'Paket 1 Percobaan', price: 10000, attempts: 1, validity_days: 35 },
+                    { name: 'Paket 3 Percobaan', price: 25000, attempts: 3, validity_days: 35 },
+                    { name: 'Paket 7 Percobaan', price: 50000, attempts: 7, validity_days: 35 }
+                ],
+                settings: {
+                    token: 'ADZ' + Math.floor(100 + Math.random() * 900),
+                    randomize_questions: true,
+                    randomize_options: true,
+                    passing_grade: {
+                        enabled: true,
+                        min_score: 75,
+                        pass_label: 'Lulus / Tuntas',
+                        fail_label: 'Belum Tuntas (Remedial)'
+                    },
+                    scoring_template: 'standard',
+                    formula_type: 'sum',
+                    section_weights: {},
+                    proctoring_mode: 'unproctored',
+                    post_exam_policy: {
+                        teacher_review_required: false,
+                        show_breakdown: true,
+                        show_ranking: true,
+                        show_instant_score: true,
+                        release_mode: 'immediate'
+                    }
+                },
+                sections: [
+                    {
+                        id: 'sec_sum_' + Date.now() + '_1',
+                        title: 'Bagian 1: Pilihan Ganda',
+                        instructions: 'Pilihlah salah satu jawaban yang paling tepat.',
+                        duration_minutes: null,
+                        items: []
+                    },
+                    {
+                        id: 'sec_sum_' + Date.now() + '_2',
+                        title: 'Bagian 2: Pilihan Ganda Kompleks & Isian',
+                        instructions: 'Pilihlah jawaban yang benar (dapat lebih dari satu), pasangkan pernyataan, atau isi jawaban singkat.',
+                        duration_minutes: null,
+                        items: []
+                    },
+                    {
+                        id: 'sec_sum_' + Date.now() + '_3',
+                        title: 'Bagian 3: Uraian / Essay',
+                        instructions: 'Jawablah pertanyaan uraian berikut dengan lengkap, jelas, dan terstruktur.',
+                        duration_minutes: null,
+                        items: []
+                    }
+                ]
+            });
+
             return {
                 currentStep: 1,
                 isSubmitting: false,
@@ -23,6 +89,11 @@
                 serverDraft: @json($draft ?? null),
                 draftTimer: null,
                 prefillNotice: null,
+                prefillTitle: null,
+                resetNotice: null,
+                isDraftLoaded: false,
+                getDefaultForm: createDefaultForm,
+                form: createDefaultForm(),
 
                 init() {
                     if (this.serverDraft && !this.wizardPrefill && typeof this.serverDraft === 'object') {
@@ -35,8 +106,10 @@
                             }
                             return Object.assign(target || {}, source);
                         };
-                        this.form = mergeDeep(JSON.parse(JSON.stringify(this.form)), this.serverDraft);
-                        this.prefillNotice = 'Draft ujian sebelumnya berhasil dimuat.';
+                        this.form = mergeDeep(JSON.parse(JSON.stringify(this.getDefaultForm())), this.serverDraft);
+                        this.isDraftLoaded = true;
+                        this.prefillTitle = 'Draft Ujian Sebelumnya Ditemukan';
+                        this.prefillNotice = 'Draft ujian sebelumnya berhasil dimuat. Anda dapat melanjutkan pengerjaan atau mengabaikannya untuk mulai membuat soal dari awal.';
                     }
 
                     this.$watch('form', () => {
@@ -49,6 +122,8 @@
                     }, { deep: true });
 
                     if (this.wizardPrefill) {
+                        this.isDraftLoaded = false;
+                        this.prefillTitle = 'Sinkronisasi Studio AI Berhasil';
                         if (this.wizardPrefill.type) {
                             this.selectAssessmentType(this.wizardPrefill.type);
                         }
@@ -95,71 +170,6 @@
                     'Publish',
                     'Jadwal'
                 ],
-                form: {
-                    type: 'sumatif',
-                    sumatif_type: 'ASTS',
-                    title: 'ASTS ... [A/B/C]',
-                    subject_id: '',
-                    grade_level: '1 SD',
-                    duration_minutes: 90,
-                    description: '',
-                    scoring_type: 'standard',
-                    status: 'published',
-                    price_type: 'free',
-                    price: 0,
-                    max_attempts: null,
-                    access_validity_days: 35,
-                    packages: [
-                        { name: 'Paket 1 Percobaan', price: 10000, attempts: 1, validity_days: 35 },
-                        { name: 'Paket 3 Percobaan', price: 25000, attempts: 3, validity_days: 35 },
-                        { name: 'Paket 7 Percobaan', price: 50000, attempts: 7, validity_days: 35 }
-                    ],
-                    settings: {
-                        token: 'ADZ' + Math.floor(100 + Math.random() * 900),
-                        randomize_questions: true,
-                        randomize_options: true,
-                        passing_grade: {
-                            enabled: true,
-                            min_score: 75,
-                            pass_label: 'Lulus / Tuntas',
-                            fail_label: 'Belum Tuntas (Remedial)'
-                        },
-                        scoring_template: 'standard',
-                        formula_type: 'sum',
-                        section_weights: {},
-                        proctoring_mode: 'unproctored',
-                        post_exam_policy: {
-                            teacher_review_required: false,
-                            show_breakdown: true,
-                            show_ranking: true,
-                            show_instant_score: true,
-                            release_mode: 'immediate'
-                        }
-                    },
-                    sections: [
-                        {
-                            id: 'sec_sum_' + Date.now() + '_1',
-                            title: 'Bagian 1: Pilihan Ganda',
-                            instructions: 'Pilihlah salah satu jawaban yang paling tepat.',
-                            duration_minutes: null,
-                            items: []
-                        },
-                        {
-                            id: 'sec_sum_' + Date.now() + '_2',
-                            title: 'Bagian 2: Pilihan Ganda Kompleks & Isian',
-                            instructions: 'Pilihlah jawaban yang benar (dapat lebih dari satu), pasangkan pernyataan, atau isi jawaban singkat.',
-                            duration_minutes: null,
-                            items: []
-                        },
-                        {
-                            id: 'sec_sum_' + Date.now() + '_3',
-                            title: 'Bagian 3: Uraian / Essay',
-                            instructions: 'Jawablah pertanyaan uraian berikut dengan lengkap, jelas, dan terstruktur.',
-                            duration_minutes: null,
-                            items: []
-                        }
-                    ]
-                },
 
                 selectAssessmentType(typeId) {
                     this.form.type = typeId;
@@ -334,27 +344,27 @@
                             }
                         ];
                     } else {
-                        this.form.duration_minutes = 120;
+                        this.form.duration_minutes = 105;
                         this.form.sections = [
                             {
                                 id: 'sec_utbk_lit_1',
-                                title: 'Subtes 1: Literasi dalam Bahasa Indonesia',
-                                instructions: 'Analisis teks sastra dan informasi berbahasa Indonesia untuk menjawab pertanyaan.',
-                                duration_minutes: 45,
+                                title: 'Subtes 1: Literasi dalam Bahasa Indonesia (30 Soal)',
+                                instructions: 'Target: 30 butir soal • Alokasi waktu: 42,5 menit. Analisis teks sastra dan informasi berbahasa Indonesia untuk menjawab pertanyaan.',
+                                duration_minutes: 42.5,
                                 items: []
                             },
                             {
                                 id: 'sec_utbk_lit_2',
-                                title: 'Subtes 2: Literasi dalam Bahasa Inggris',
-                                instructions: 'Read English academic and general texts, then answer comprehension questions.',
-                                duration_minutes: 30,
+                                title: 'Subtes 2: Literasi dalam Bahasa Inggris (20 Soal)',
+                                instructions: 'Target: 20 butir soal • Alokasi waktu: 20 menit. Read English academic and general texts, then answer comprehension questions.',
+                                duration_minutes: 20,
                                 items: []
                             },
                             {
                                 id: 'sec_utbk_lit_3',
-                                title: 'Subtes 3: Penalaran Matematika',
-                                instructions: 'Terapkan konsep matematika dalam memecahkan masalah kontekstual nyata.',
-                                duration_minutes: 45,
+                                title: 'Subtes 3: Penalaran Matematika (PM) (20 Soal)',
+                                instructions: 'Target: 20 butir soal • Alokasi waktu: 42,5 menit. Terapkan konsep matematika dalam memecahkan masalah kontekstual nyata.',
+                                duration_minutes: 42.5,
                                 items: []
                             }
                         ];
@@ -1368,7 +1378,48 @@
                     this.form.packages.splice(index, 1);
                 },
 
-                
+                discardDraftAndStartFresh() {
+                    const message = this.isDraftLoaded
+                        ? 'Apakah Anda yakin ingin mengabaikan draft ujian sebelumnya dan mulai membuat soal dari awal? Draft yang tersimpan akan dibersihkan.'
+                        : (this.wizardPrefill
+                            ? 'Apakah Anda yakin ingin mengabaikan hasil dari Studio AI dan memulai membuat soal dari awal?'
+                            : 'Apakah Anda yakin ingin mengabaikan seluruh pengisian dan memulai pembuatan soal dari awal?');
+
+                    if (!confirm(message)) {
+                        return;
+                    }
+
+                    clearTimeout(this.draftTimer);
+                    this.draftTimer = null;
+
+                    fetch('{{ route("assessments.draft.clear") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    }).catch(err => {
+                        console.error('Failed to clear draft on server:', err);
+                    });
+
+                    this.serverDraft = null;
+                    this.wizardPrefill = null;
+                    this.prefillNotice = null;
+                    this.prefillTitle = null;
+                    this.isDraftLoaded = false;
+                    this.activeItemId = null;
+                    this.activeSectionIdx = 0;
+                    this.validationErrors = [];
+                    this.form = this.getDefaultForm();
+                    this.currentStep = 1;
+
+                    this.resetNotice = 'Draft berhasil diabaikan. Formulir telah di-reset agar Anda dapat memulai membuat soal baru dari awal.';
+                    setTimeout(() => {
+                        this.resetNotice = null;
+                    }, 6000);
+                },
+
                 saveDraft() {
                     fetch('{{ route("assessments.draft.save") }}', {
                         method: 'POST',
@@ -1458,6 +1509,14 @@
                 </div>
                 
                 <div class="flex items-center gap-3">
+                    <button type="button" 
+                            @click="discardDraftAndStartFresh()"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-6 bg-white hover:bg-rose-1 hover:border-rose-6 hover:text-rose-11 text-gray-11 text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+                            title="Bersihkan draft dan mulai membuat soal dari awal">
+                        <x-radix-icon name="reload" class="w-3.5 h-3.5" />
+                        <span>Mulai dari Awal</span>
+                    </button>
+
                     <span class="text-xs font-mono font-bold text-gray-11">
                         Langkah <span x-text="currentStep" class="text-green-11 text-base"></span> dari 8
                     </span>
@@ -1483,24 +1542,73 @@
             </div>
         </div>
 
-        <!-- Prefill Notice from AI Question Generator Studio -->
+        <!-- Prefill Notice from AI Question Generator Studio / Server Draft -->
         <template x-if="prefillNotice">
-            <div class="p-4 rounded-2xl bg-emerald-2 border border-emerald-6 text-emerald-12 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                <div class="flex items-center gap-3">
-                    <span class="w-8 h-8 rounded-xl bg-emerald-4 text-emerald-11 flex items-center justify-center font-bold text-base shadow-2xs shrink-0">✨</span>
+            <div :class="isDraftLoaded 
+                    ? 'bg-amber-2/70 border-amber-6 text-amber-12' 
+                    : 'bg-emerald-2 border border-emerald-6 text-emerald-12'"
+                 class="p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                <div class="flex items-start sm:items-center gap-3">
+                    <div :class="isDraftLoaded ? 'bg-amber-4 text-amber-11' : 'bg-emerald-4 text-emerald-11'"
+                         class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base shadow-2xs shrink-0">
+                        <span x-text="isDraftLoaded ? '📝' : '✨'"></span>
+                    </div>
                     <div>
-                        <h4 class="font-bold text-xs uppercase tracking-wider text-emerald-11">Sinkronisasi Studio AI Berhasil</h4>
-                        <p class="text-xs text-emerald-12 mt-0.5" x-text="prefillNotice"></p>
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-bold text-xs uppercase tracking-wider"
+                                :class="isDraftLoaded ? 'text-amber-11' : 'text-emerald-11'"
+                                x-text="prefillTitle || (isDraftLoaded ? 'Draft Ujian Sebelumnya Ditemukan' : 'Sinkronisasi Studio AI Berhasil')"></h4>
+                            <span :class="isDraftLoaded ? 'bg-amber-3 text-amber-11 border-amber-5' : 'bg-emerald-3 text-emerald-11 border-emerald-5'"
+                                  class="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
+                                  x-text="isDraftLoaded ? 'Draft Aktif' : 'Studio AI'"></span>
+                        </div>
+                        <p class="text-xs mt-0.5" 
+                           :class="isDraftLoaded ? 'text-amber-12' : 'text-emerald-12'"
+                           x-text="prefillNotice"></p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 shrink-0">
-                    <button type="button" @click="goToStep(4)" class="px-3.5 py-1.5 rounded-lg bg-emerald-9 hover:bg-emerald-10 text-white text-xs font-bold transition-colors cursor-pointer">
-                        Lihat Butir Soal (Langkah 4) →
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                    <!-- Tombol Abaikan & Mulai dari Awal -->
+                    <button type="button" 
+                            @click="discardDraftAndStartFresh()" 
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-rose-5 hover:bg-rose-2 hover:border-rose-6 text-rose-11 hover:text-rose-12 text-xs font-bold transition-colors cursor-pointer shadow-2xs">
+                        <x-radix-icon name="trash" class="w-3.5 h-3.5 text-rose-10" />
+                        <span>Abaikan & Mulai dari Awal</span>
                     </button>
-                    <button type="button" @click="prefillNotice = null" class="p-1.5 text-emerald-10 hover:text-emerald-12 transition-colors cursor-pointer">
+
+                    <!-- Tombol Lanjutkan / Lihat Butir Soal -->
+                    <button type="button" 
+                            @click="goToStep(4)" 
+                            :class="isDraftLoaded ? 'bg-amber-9 hover:bg-amber-10' : 'bg-emerald-9 hover:bg-emerald-10'"
+                            class="px-3.5 py-1.5 rounded-lg text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs">
+                        <span x-text="isDraftLoaded ? 'Lanjut Edit Soal (Langkah 4) →' : 'Lihat Butir Soal (Langkah 4) →'"></span>
+                    </button>
+
+                    <!-- Tombol Tutup Banner -->
+                    <button type="button" 
+                            @click="prefillNotice = null" 
+                            :class="isDraftLoaded ? 'text-amber-10 hover:text-amber-12' : 'text-emerald-10 hover:text-emerald-12'"
+                            class="p-1.5 transition-colors cursor-pointer rounded-lg hover:bg-black/5"
+                            title="Tutup pemberitahuan">
                         <x-radix-icon name="cross-2" class="w-4 h-4" />
                     </button>
                 </div>
+            </div>
+        </template>
+
+        <!-- Notification After Resetting / Discarding Draft -->
+        <template x-if="resetNotice">
+            <div class="p-4 rounded-2xl bg-blue-2 border border-blue-6 text-blue-12 flex items-center justify-between gap-3 shadow-xs">
+                <div class="flex items-center gap-3">
+                    <span class="w-8 h-8 rounded-xl bg-blue-4 text-blue-11 flex items-center justify-center font-bold text-base shrink-0">✓</span>
+                    <div>
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-blue-11">Mulai Ujian Baru dari Awal</h4>
+                        <p class="text-xs text-blue-12 mt-0.5" x-text="resetNotice"></p>
+                    </div>
+                </div>
+                <button type="button" @click="resetNotice = null" class="p-1.5 text-blue-10 hover:text-blue-12 transition-colors cursor-pointer">
+                    <x-radix-icon name="cross-2" class="w-4 h-4" />
+                </button>
             </div>
         </template>
 
@@ -1603,7 +1711,7 @@
                                         <button type="button" @click.stop="selectUtbkPreset('literasi')" 
                                                 class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center cursor-pointer text-center"
                                                 :class="form.type === 'utbk' && form.utbk_package === 'literasi' ? 'bg-white text-[#1971c2] ring-2 ring-white shadow-md' : 'bg-white/20 hover:bg-white/30 text-white border border-white/30'">
-                                            Literasi Numerasi (3 Subtes &bull; 120m)
+                                            Literasi Numerasi (3 Subtes &bull; 105m)
                                         </button>
                                     </div>
                                 </div>
@@ -1755,7 +1863,7 @@
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-semibold text-gray-11">Durasi Khusus (Menit, Opsional)</label>
-                                    <input type="number" x-model="sec.duration_minutes" placeholder="Opsional"
+                                    <input type="number" step="any" x-model="sec.duration_minutes" placeholder="Opsional"
                                            :disabled="isStandardLockedType()"
                                            :class="isStandardLockedType() ? 'bg-gray-2 text-gray-9 cursor-not-allowed border-gray-5' : 'bg-white text-gray-12 focus:border-green-8 border-gray-6'"
                                            class="w-full rounded-xl px-3.5 py-2 text-sm outline-none border">

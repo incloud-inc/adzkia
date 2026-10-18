@@ -379,7 +379,7 @@ class ExamWorkspaceController extends Controller
         $sectionDurations = [];
         foreach ($sections as $sec) {
             if ($sec->duration_minutes && $sec->duration_minutes > 0) {
-                $sectionDurations[$sec->id] = (int) $sec->duration_minutes;
+                $sectionDurations[$sec->id] = (float) $sec->duration_minutes;
             } else {
                 $secQCount = $questions->filter(fn ($q) => ($q->assessment_section_id ?? $q->questionGroup?->assessment_section_id) == $sec->id)->count();
                 if ($totalQuestionsCount > 0 && $secQCount > 0) {
@@ -480,7 +480,7 @@ class ExamWorkspaceController extends Controller
 
             $section = $q->assessmentSection ?? $q->questionGroup?->assessmentSection;
             $sectionId = $q->assessment_section_id ?? $q->questionGroup?->assessment_section_id ?? $section?->id;
-            $sectionDuration = $sectionDurations[$sectionId] ?? ($section?->duration_minutes !== null ? (int) $section->duration_minutes : null);
+            $sectionDuration = $sectionDurations[$sectionId] ?? ($section?->duration_minutes !== null ? (float) $section->duration_minutes : null);
             $rawSectionTitle = $section?->title;
             $cleanSectionTitle = filled($rawSectionTitle) ? preg_replace('/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i', '', trim($rawSectionTitle)) : null;
             $sectionTitle = filled($cleanSectionTitle) ? $cleanSectionTitle : $rawSectionTitle;
@@ -532,7 +532,7 @@ class ExamWorkspaceController extends Controller
                 'id' => $s->id,
                 'number' => $i + 1,
                 'title' => filled($cleanTitle) ? $cleanTitle : $s->title,
-                'duration_minutes' => $sectionDurations[$s->id] ?? (int) ($s->duration_minutes ?: 15),
+                'duration_minutes' => $sectionDurations[$s->id] ?? (float) ($s->duration_minutes ?: 15),
             ];
         })->all();
 

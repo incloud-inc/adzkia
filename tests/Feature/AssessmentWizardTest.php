@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\WordQuestionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class AssessmentWizardTest extends TestCase
@@ -840,5 +841,109 @@ class AssessmentWizardTest extends TestCase
         // INFO column displays duration in minutes and questions count
         $response->assertSee('75 Menit');
         $response->assertSee('0 Soal');
+    }
+
+    public function test_teacher_can_clear_assessment_draft(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 1 Bandung', 'subdomain' => 'sman1bdg', 'plan' => 'whitelabel']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        $key = 'assessment_draft_'.$tenant->id;
+        Cache::put($key, ['title' => 'Draft Ujian Tersimpan', 'sections' => []], 3600);
+        $this->assertTrue(Cache::has($key));
+
+        $response = $this->actingAs($teacher)->postJson(route('assessments.draft.clear'));
+
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+        $this->assertFalse(Cache::has($key));
+    }
+
+    public function test_wizard_contains_ignore_and_reset_draft_facilities(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 2 Surabaya', 'subdomain' => 'sman2sby', 'plan' => 'whitelabel']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        $response = $this->actingAs($teacher)->get(route('assessments.create'));
+
+        $response->assertStatus(200);
+        $response->assertSee('discardDraftAndStartFresh()', false);
+        $response->assertSee('Abaikan & Mulai dari Awal', false);
+        $response->assertSee('Mulai dari Awal');
+        $response->assertSee(route('assessments.draft.clear'), false);
+    }
+
+    public function test_utbk_literasi_numerasi_preset_and_float_section_duration(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 5 Semarang', 'subdomain' => 'sman5smg', 'plan' => 'whitelabel']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        $subject = Subject::factory()->create(['name' => 'Literasi & UTBK']);
+
+        $response = $this->actingAs($teacher)->get(route('assessments.create'));
+        $response->assertStatus(200);
+        $response->assertSee('Literasi Numerasi (3 Subtes &bull; 105m)', false);
+        $response->assertSee('Subtes 1: Literasi dalam Bahasa Indonesia (30 Soal)');
+        $response->assertSee('Subtes 2: Literasi dalam Bahasa Inggris (20 Soal)');
+        $response->assertSee('Subtes 3: Penalaran Matematika (PM) (20 Soal)');
+        $response->assertSee('42.5');
+
+        // Store UTBK assessment with 42.5 minutes section duration
+        $payload = [
+            'title' => 'Simulasi UTBK SNBT Literasi & Numerasi',
+            'subject_id' => $subject->id,
+            'type' => 'utbk',
+            'duration_minutes' => 105,
+            'sections' => [
+                [
+                    'title' => 'Subtes 1: Literasi dalam Bahasa Indonesia (30 Soal)',
+                    'instructions' => 'Target: 30 butir soal • Alokasi waktu: 42,5 menit.',
+                    'duration_minutes' => 42.5,
+                    'order' => 1,
+                    'items' => [
+                        [
+                            'is_group' => false,
+                            'type' => 'mcq_single',
+                            'prompt' => 'Soal LBI 1',
+                            'points' => 1.0,
+                            'options' => [
+                                ['label' => 'A', 'option_text' => 'Kunci', 'is_correct' => true, 'score' => 1.0],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'title' => 'Subtes 2: Literasi dalam Bahasa Inggris (20 Soal)',
+                    'instructions' => 'Target: 20 butir soal • Alokasi waktu: 20 menit.',
+                    'duration_minutes' => 20,
+                    'order' => 2,
+                    'items' => [],
+                ],
+                [
+                    'title' => 'Subtes 3: Penalaran Matematika (PM) (20 Soal)',
+                    'instructions' => 'Target: 20 butir soal • Alokasi waktu: 42,5 menit.',
+                    'duration_minutes' => 42.5,
+                    'order' => 3,
+                    'items' => [],
+                ],
+            ],
+        ];
+
+        $storeResponse = $this->actingAs($teacher)->postJson(route('assessments.store'), $payload);
+        $storeResponse->assertStatus(200);
+        $storeResponse->assertJson(['status' => 'success']);
+
+        $assessment = Assessment::where('title', 'Simulasi UTBK SNBT Literasi & Numerasi')->first();
+        $this->assertNotNull($assessment);
+        $this->assertEquals(105, $assessment->duration_minutes);
+
+        $sections = $assessment->sections()->orderBy('order')->get();
+        $this->assertCount(3, $sections);
+        $this->assertEquals(42.5, (float) $sections[0]->duration_minutes);
+        $this->assertEquals(20.0, (float) $sections[1]->duration_minutes);
+        $this->assertEquals(42.5, (float) $sections[2]->duration_minutes);
     }
 }

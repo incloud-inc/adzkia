@@ -183,6 +183,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('questions/{question}', [QuestionController::class, 'update'])->name('questions.update');
 
     Route::post('assessments/draft', [AssessmentWizardController::class, 'saveDraft'])->name('assessments.draft.save');
+    Route::match(['post', 'delete'], 'assessments/draft/clear', [AssessmentWizardController::class, 'clearDraft'])->name('assessments.draft.clear');
     Route::resource('assessments', AssessmentWizardController::class);
 
     // Proctoring & Pengawasan Ujian Guru
