@@ -168,18 +168,21 @@
                 </a>
 
                 <!-- Nav Anchors (Desktop) -->
-                <div class="hidden lg:flex items-center gap-7 text-xs font-semibold text-slate-600">
-                    <a href="#cakupan" class="hover:text-emerald-700 transition-colors">Cakupan Asesmen</a>
+                <div class="hidden lg:flex items-center gap-6 xl:gap-7 text-xs font-semibold text-slate-600">
+                    <a href="#about" class="hover:text-emerald-700 transition-colors">About</a>
+                    <a href="#soal-asli" class="hover:text-emerald-700 transition-colors">Soal Asli</a>
+                    <a href="#dibahas-ai" class="hover:text-emerald-700 transition-colors">Dibahas AI</a>
                     <a href="#solusi" class="hover:text-emerald-700 transition-colors">Solusi</a>
-                    <a href="#keunggulan" class="hover:text-emerald-700 transition-colors">Kurikulum Lengkap</a>
-                    <a href="#kontak" class="hover:text-emerald-700 transition-colors">Konsultasi</a>
+                    <a href="#keunggulan" class="hover:text-emerald-700 transition-colors">Keunggulan</a>
+                    <a href="#level-tenant" class="hover:text-emerald-700 transition-colors">Enterprise</a>
+                    <a href="#konsultasi" class="hover:text-emerald-700 transition-colors">Konsultasi</a>
                 </div>
 
-                <!-- Auth Action Buttons -->
-                <div class="flex items-center gap-2.5">
+                <!-- Auth Action Buttons + Mobile Toggle -->
+                <div class="flex items-center gap-2 sm:gap-2.5">
                     @auth
                         <a href="{{ route('dashboard') }}" 
-                           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-sm shadow-emerald-700/20 active:scale-[0.98]">
+                           class="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-sm shadow-emerald-700/20 active:scale-[0.98]">
                             <span>Buka Dashboard</span>
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -191,13 +194,37 @@
                             Masuk
                         </a>
                     @endauth
+
+                    <!-- Mobile Menu Button -->
+                    <button type="button" 
+                            id="btn-mobile-menu"
+                            onclick="toggleMobileMenu()" 
+                            aria-label="Buka Menu" 
+                            class="lg:hidden p-2 rounded-xl text-slate-600 hover:text-emerald-700 hover:bg-slate-100/80 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
                 </div>
             </nav>
+
+            <!-- Mobile Navigation Drawer -->
+            <div id="mobile-menu-drawer" class="hidden lg:hidden mt-2 bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-xl rounded-2xl p-4 transition-all">
+                <div class="grid grid-cols-2 gap-2 text-xs font-semibold text-slate-700">
+                    <a href="#about" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors">About</a>
+                    <a href="#soal-asli" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors">Soal Asli</a>
+                    <a href="#dibahas-ai" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors">Dibahas AI</a>
+                    <a href="#solusi" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors">Solusi</a>
+                    <a href="#keunggulan" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors">Keunggulan</a>
+                    <a href="#level-tenant" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors">Enterprise</a>
+                    <a href="#konsultasi" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors">Konsultasi</a>
+                </div>
+            </div>
         </div>
     </header>
 
     <!-- HERO SECTION -->
-    <section class="relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden subtle-grid">
+    <section id="about" class="scroll-mt-20 relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden subtle-grid">
         <!-- Ambient Decorative Glow -->
         <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-[680px] h-[340px] bg-gradient-to-tr from-emerald-400/20 via-teal-300/15 to-transparent blur-3xl pointer-events-none rounded-full"></div>
 
@@ -237,19 +264,17 @@
                         </div>
                     </a>
 
-                    <a href="https://wa.me/6281329983555?text=Halo%20Tim%20ADZKIA%20CBT%2C%20saya%20tertarik%20untuk%20berkonsultasi%20mengenai%20platform%20ujian%20dan%20asesmen%20ADZKIA%20CBT%20untuk%20Sekolah%2FBIMBEL%20kami." 
-                       target="_blank" 
-                       rel="noopener noreferrer"
+                    <a href="mailto:adzkia.tryout@gmail.com?subject=Konsultasi%20Demo%20ADZKIA%20CBT&body=Halo%20Tim%20ADZKIA%20CBT%2C%20saya%20tertarik%20untuk%20berkonsultasi%20mengenai%20platform%20ujian%20dan%20asesmen%20ADZKIA%20CBT%20untuk%20Sekolah%2FBIMBEL%20kami." 
                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-sm font-semibold shadow-xs transition-all duration-200 group">
-                        <svg class="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        <svg class="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                         <span>Konsultasi Demo Sekolah / Bimbel</span>
                     </a>
                 </div>
 
                 <!-- Interactive Hero Teaser Card: Double Bezel Machined Look -->
-                <div class="p-2 sm:p-3 rounded-3xl bg-slate-900/5 ring-1 ring-slate-900/10 shadow-2xl shadow-slate-900/10 max-w-3xl mx-auto">
+                <div id="soal-asli" class="scroll-mt-28 p-2 sm:p-3 rounded-3xl bg-slate-900/5 ring-1 ring-slate-900/10 shadow-2xl shadow-slate-900/10 max-w-3xl mx-auto">
                     <div class="bg-white rounded-2xl p-5 sm:p-7 border border-slate-100 text-left relative overflow-hidden">
                         
                         <!-- Top status line -->
@@ -279,18 +304,19 @@
                             </div>
 
                             <!-- Kotak Pembahasan AI: Simulasi Aman Tanpa API Key -->
-                            <div id="ai-simulation-wrapper" class="mt-4 pt-4 border-t border-slate-100">
+                            <div id="ai-simulation-wrapper" class="mt-4 pt-4 border-t border-slate-100 relative">
+                                <div id="dibahas-ai" class="absolute -top-32 left-0"></div>
                                 <!-- Tombol Simulasi Generate Pembahasan AI -->
                                 <div id="ai-btn-container" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <button type="button" 
                                             id="btn-simulate-ai"
                                             onclick="simulateAiExplanation()"
-                                            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all active:scale-[0.98] cursor-pointer group">
+                                            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all active:scale-[0.98] cursor-pointer group shrink-0">
                                         <span class="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
                                         <span>✨ Generate Pembahasan AI</span>
                                         <span class="text-emerald-200 text-xs transition-transform group-hover:translate-x-0.5">→</span>
                                     </button>
-                                    <span class="text-[11px] text-slate-400 font-medium italic">Klik untuk melihat simulasi penjelasan cerdas step-by-step</span>
+                                    <span class="text-[11px] text-slate-500 font-medium italic">Soal Asli sudah dilengkapi pembahasan oleh Guru dan Ahli, tapi kamu masih bisa minta penjelasan AI.</span>
                                 </div>
 
                                 <!-- Status Loading Simulasi -->
@@ -498,6 +524,13 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             tabRaw.className = "px-2.5 py-1 rounded-md bg-slate-900 text-emerald-400 font-bold shadow-2xs border border-slate-700 cursor-pointer transition-all";
                         }
                     }
+
+                    function toggleMobileMenu() {
+                        const drawer = document.getElementById('mobile-menu-drawer');
+                        if (drawer) {
+                            drawer.classList.toggle('hidden');
+                        }
+                    }
                 </script>
 
             </div>
@@ -506,7 +539,8 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
 
 
     <!-- SECTION: CARD INFO MENDATAR -->
-    <section id="cakupan" class="py-20 sm:py-28 bg-white border-y border-slate-200/80 relative">
+    <section id="solusi" class="scroll-mt-20 py-20 sm:py-28 bg-white border-y border-slate-200/80 relative">
+        <div id="cakupan" class="absolute -top-24 left-0"></div>
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             
             <!-- Section Header -->
@@ -542,9 +576,6 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Sekolah dan BIMBEL Menggunakan ADZKIA
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                            Portal mandiri, logo custom, dan bank soal terisolasi.
-                        </p>
                     </div>
                 </div>
 
@@ -565,13 +596,10 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Murid (Siswa) melaksanakan Asesmen di ADZKIA
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                            Mengerjakan kuis, tryout, dan latihan dengan nyaman di mobile & PC.
-                        </p>
                     </div>
                 </div>
 
-                <!-- CARD 3: x Asesmen untuk Kelas 1 SD sampai 12 SMA -->
+                <!-- CARD 3: Free & PRO / x Asesmen / Siap digunakan untuk Murid, Mahasiswa, Profesional -->
                 <div class="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-500 shadow-xs hover:shadow-md transition-all duration-200 flex flex-row items-center gap-4 group">
                     <div class="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 text-indigo-700 group-hover:scale-105 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                         <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -580,21 +608,18 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                     </div>
                     <div class="min-w-0 flex-1">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-800 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md inline-block mb-1">
-                            Semua Tingkat
+                            {{ $stats['assessments']['badge'] ?? 'Free & PRO' }}
                         </span>
                         <div class="text-2xl font-black text-slate-900 tracking-tight font-display">
-                            12 Jenjang
+                            {{ $stats['assessments']['count'] ?? ($stats['grade_levels']['count'] ?? '10 Asesmen') }}
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
-                            Asesmen untuk Kelas 1 SD sampai 12 SMA
+                            Siap digunakan untuk Murid, Mahasiswa, Profesional
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                            Kurikulum Merdeka & K-13 dengan kisi-kisi per fase belajar.
-                        </p>
                     </div>
                 </div>
 
-                <!-- CARD 4: x Asesmen untuk TKA, UTBK, dan SKD Kedinasan CPNS -->
+                <!-- CARD 4: Soal Asli TKA, UTBK (Sejak 2019), dan SKD Kedinasan & CPNS lengkap dengan PEMBAHASAN -->
                 <div class="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-500 shadow-xs hover:shadow-md transition-all duration-200 flex flex-row items-center gap-4 group">
                     <div class="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0 text-amber-700 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all">
                         <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -609,15 +634,12 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             TKA • UTBK • SKD
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
-                            Asesmen untuk TKA, UTBK, dan SKD Kedinasan CPNS
+                            Soal Asli TKA, UTBK (Sejak 2019), dan SKD Kedinasan & CPNS lengkap dengan PEMBAHASAN
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5">
-                            Soal Asli 2024, 2025, 2026 dan Prediksi 2027. Format tes CAT resmi: TWK, TIU, TKP, Penalaran Umum, & Kuantitatif.
-                        </p>
                     </div>
                 </div>
 
-                <!-- CARD 5: x TOEIC, x TOEFL, x IELTS -->
+                <!-- CARD 5: TOEIC Simulation, TOEFL Preparation, dan IELTS Mock Test. -->
                 <div class="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-500 shadow-xs hover:shadow-md transition-all duration-200 flex flex-row items-center gap-4 group">
                     <div class="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0 text-purple-700 group-hover:scale-105 group-hover:bg-purple-600 group-hover:text-white transition-all">
                         <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -632,11 +654,8 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             Global Test
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
-                            TOEIC, TOEFL, dan IELTS
+                            TOEIC Simulation, TOEFL Preparation, dan IELTS Mock Test.
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                            Listening audio player, reading comprehension, dan konversi skor akurat.
-                        </p>
                     </div>
                 </div>
 
@@ -657,9 +676,6 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Bank Soal Tersedia di ADZKIA
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                            Klasifikasi HOTS, persamaan LaTeX, tabel, dan gambar visual resolusi tinggi.
-                        </p>
                     </div>
                 </div>
 
@@ -680,9 +696,6 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Sesi Asesmen dilaksanakan
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                            Teruji melayani sesi paralel skala besar dengan zero server lag.
-                        </p>
                     </div>
                 </div>
 
@@ -703,9 +716,6 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Sesi Asesmen dilaksanakan bulan ini
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                            Penilaian harian, tryout periodik, dan evaluasi bulanan berjalan lancar.
-                        </p>
                     </div>
                 </div>
 
@@ -726,9 +736,6 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Sesi Asesmen dilaksanakan pekan ini
                         </h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                            Kuis adaptif dan tes terformat intensif dalam 7 hari terakhir.
-                        </p>
                     </div>
                 </div>
 
@@ -739,9 +746,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
 
 
     <!-- SECTION: SOLUSI UNGGULAN & AI DEEP DIVE -->
-    <section id="solusi" class="py-20 sm:py-28 subtle-grid relative overflow-hidden isolate">
-        <!-- Target Anchor untuk Navigasi Kurikulum Lengkap & Solusi -->
-        <div id="keunggulan" class="absolute -top-24 left-0"></div>
+    <section id="keunggulan" class="scroll-mt-20 py-20 sm:py-28 subtle-grid relative overflow-hidden isolate">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             
             <div class="text-center max-w-3xl mx-auto mb-16">
@@ -815,6 +820,261 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
     </section>
 
 
+    <!-- SECTION: 3 LEVEL KEMITRAAN TENANT (STARTER, PRO, ENTERPRISE) -->
+    <section id="level-tenant" class="scroll-mt-20 py-20 sm:py-28 relative overflow-hidden bg-slate-50 border-t border-slate-200">
+        <!-- Ambient subtle background glow -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[360px] bg-gradient-to-r from-blue-100/40 via-emerald-100/30 to-orange-100/30 blur-3xl rounded-full"></div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 relative">
+            
+            <!-- Section Header -->
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-xs font-bold uppercase tracking-wider px-3.5 py-1 rounded-full border shadow-2xs"
+                      style="background-color: #e7f5ff; border-color: #a5d8ff; color: #1864ab;">
+                    Tingkatan Kemitraan Sekolah &amp; BIMBEL
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-950 font-display tracking-tight mt-3">
+                    Pilih Level Tenant Sesuai Skala Institusi Anda
+                </h2>
+                <p class="text-slate-600 text-sm sm:text-base mt-2">
+                    Skema kerja sama transparan, adil, dan didukung sistem bagi hasil otomatis langsung ke saldo tenant.
+                </p>
+            </div>
+
+            <!-- 3 Level Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-stretch">
+                
+                <!-- 1. STARTER (ORANGE) -->
+                <div class="rounded-3xl border p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative"
+                     style="background-color: #fff4e6; border-color: #ffd8a8;">
+                    <div>
+                        <!-- Icon: Rocket Launch (Open Color Orange #fd7e14 / #d9480f) -->
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm mb-5"
+                             style="background-color: #ffffff; border-color: #ffd8a8; color: #e8590c;">
+                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                            </svg>
+                        </div>
+
+                        <!-- Title & Description -->
+                        <h3 class="text-2xl font-black tracking-tight font-display" style="color: #d9480f;">
+                            STARTER
+                        </h3>
+                        <p class="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+                            Langkah awal terbaik bagi sekolah atau bimbel perintis yang ingin menyelenggarakan asesmen mandiri tanpa perlu repot membuat soal.
+                        </p>
+
+                        <!-- Revenue Share Box -->
+                        <div class="mt-6 p-4 rounded-2xl border bg-white shadow-2xs space-y-1.5"
+                             style="border-color: #ffd8a8;">
+                            <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Skema Bagi Hasil:</div>
+                            <div class="flex items-baseline justify-between">
+                                <div class="text-xl font-black font-display" style="color: #d9480f;">
+                                    25% <span class="text-xs font-semibold text-slate-600">Tenant</span>
+                                </div>
+                                <div class="text-xs font-bold text-slate-500">
+                                    75% ADZKIA
+                                </div>
+                            </div>
+                            <div class="text-[11px] text-slate-500 leading-tight">
+                                Bagi hasil langsung dikreditkan otomatis setiap murid membayar asesmen.
+                            </div>
+                        </div>
+
+                        <!-- Feature List -->
+                        <div class="mt-6 space-y-2.5 text-xs text-slate-700">
+                            <div class="font-bold text-[11px] uppercase tracking-wider text-slate-400">Fitur &amp; Layanan:</div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #e8590c;">✓</span>
+                                <span>Akses Bank Soal ASLI Kurasi ADZKIA (SD, SMP, SMA, UTBK)</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #e8590c;">✓</span>
+                                <span>Pembahasan Soal Berbasis AI Step-by-Step</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #e8590c;">✓</span>
+                                <span>Sistem Anti-Curang &amp; Proctoring Ujian</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #e8590c;">✓</span>
+                                <span>Dompet Saldo Tenant &amp; Penarikan Otomatis</span>
+                            </div>
+                            <div class="flex items-start gap-2.5 text-slate-400">
+                                <span class="shrink-0 mt-0.5 font-bold">✕</span>
+                                <span class="line-through">Penerbitan Kupon Diskon Mandiri</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CTA Button -->
+                    <div class="mt-8 pt-4 border-t" style="border-color: #ffd8a8;">
+                        <a href="mailto:adzkia.tryout@gmail.com?subject=Daftar%20Kemitraan%20Starter%20ADZKIA%20CBT&amp;body=Halo%20Tim%20ADZKIA%20CBT%2C%20kami%20tertarik%20mendaftarkan%20sekolah%2Fbimbel%20kami%20pada%20Level%20STARTER."
+                           class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white text-xs font-bold transition-all shadow-xs hover:shadow-md active:scale-[0.98]"
+                           style="background-color: #fd7e14;">
+                            <span>Mulai Level Starter</span>
+                            <span class="text-white/80">→</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 2. PRO (GREEN) -->
+                <div class="rounded-3xl border p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative"
+                     style="background-color: #ebfbee; border-color: #b2f2bb;">
+                    <div>
+                        <!-- Icon: Award Medal / Trophy (Open Color Green #40c057 / #2b8a3e) -->
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm mb-5"
+                             style="background-color: #ffffff; border-color: #b2f2bb; color: #2b8a3e;">
+                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                            </svg>
+                        </div>
+
+                        <!-- Title & Description -->
+                        <h3 class="text-2xl font-black tracking-tight font-display" style="color: #2b8a3e;">
+                            PRO
+                        </h3>
+                        <p class="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+                            Ideal untuk bimbingan belajar dan sekolah dengan jumlah murid aktif reguler yang banyak dan mempunyai website sendiri. Siap SCALEUP bersama ADZKIA.
+                        </p>
+
+                        <!-- Revenue Share Box -->
+                        <div class="mt-6 p-4 rounded-2xl border bg-white shadow-2xs space-y-1.5"
+                             style="border-color: #b2f2bb;">
+                            <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Skema Bagi Hasil:</div>
+                            <div class="flex items-baseline justify-between">
+                                <div class="text-xl font-black font-display" style="color: #2b8a3e;">
+                                    50% <span class="text-xs font-semibold text-slate-600">Tenant</span>
+                                </div>
+                                <div class="text-xs font-bold text-slate-500">
+                                    50% ADZKIA
+                                </div>
+                            </div>
+                            <div class="text-[11px] text-slate-500 leading-tight">
+                                Rasio bagi hasil seimbang untuk akselerasi pendapatan institusi.
+                            </div>
+                        </div>
+
+                        <!-- Feature List -->
+                        <div class="mt-6 space-y-2.5 text-xs text-slate-700">
+                            <div class="font-bold text-[11px] uppercase tracking-wider text-slate-400">Fitur &amp; Layanan:</div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #2b8a3e;">✓</span>
+                                <span>Seluruh Fitur Starter (Bank Soal, CBT, AI Engine)</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #2b8a3e;">✓</span>
+                                <span>Bagi Hasil Lebih Besar (50% dari Setiap Transaksi)</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #2b8a3e;">✓</span>
+                                <span>Laporan Analisis Ketuntasan Belajar Siswa</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #2b8a3e;">✓</span>
+                                <span>Prioritas Jalur Antrean Dukungan Teknis</span>
+                            </div>
+                            <div class="flex items-start gap-2.5 text-slate-400">
+                                <span class="shrink-0 mt-0.5 font-bold">✕</span>
+                                <span class="line-through">Penerbitan Kupon Diskon Mandiri</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CTA Button -->
+                    <div class="mt-8 pt-4 border-t" style="border-color: #b2f2bb;">
+                        <a href="mailto:adzkia.tryout@gmail.com?subject=Daftar%20Kemitraan%20Pro%20ADZKIA%20CBT&amp;body=Halo%20Tim%20ADZKIA%20CBT%2C%20kami%20tertarik%20dengan%20kemitraan%20Level%20PRO%20(Bagi%20hasil%2050%3A50)."
+                           class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white text-xs font-bold transition-all shadow-xs hover:shadow-md active:scale-[0.98]"
+                           style="background-color: #40c057;">
+                            <span>Pilih Level Pro</span>
+                            <span class="text-white/80">→</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 3. ENTERPRISE (BLUE) -->
+                <div class="rounded-3xl border p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative"
+                     style="background-color: #e7f5ff; border-color: #a5d8ff;">
+
+                    <div>
+                        <!-- Icon: Sovereign Crown / Diamond Star (Open Color Blue #228be6 / #1864ab) -->
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm mb-5 text-white"
+                             style="background: linear-gradient(135deg, #1864ab 0%, #1971c2 50%, #1c7ed6 100%); border-color: #a5d8ff;">
+                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                        </div>
+
+                        <!-- Title & Description -->
+                        <h3 class="text-2xl font-black tracking-tight font-display" style="color: #1864ab;">
+                            ENTERPRISE
+                        </h3>
+                        <p class="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+                            Dirancang untuk institusi pendidikan besar, yayasan sekolah, atau jaringan BIMBEL nasional. Eksklusif dengan WHITE LABEL.
+                        </p>
+
+                        <!-- Revenue Share Box -->
+                        <div class="mt-6 p-4 rounded-2xl border bg-white shadow-2xs space-y-1.5"
+                             style="border-color: #a5d8ff;">
+                            <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Skema Bagi Hasil:</div>
+                            <div class="flex items-baseline justify-between">
+                                <div class="text-xl font-black font-display" style="color: #1864ab;">
+                                    75% <span class="text-xs font-semibold text-slate-600">Tenant</span>
+                                </div>
+                                <div class="text-xs font-bold text-slate-500">
+                                    25% ADZKIA
+                                </div>
+                            </div>
+                            <div class="text-[11px] text-slate-500 leading-tight">
+                                Margin tertinggi di industri CBT untuk keleluasaan operasional mandiri.
+                            </div>
+                        </div>
+
+                        <!-- Feature List -->
+                        <div class="mt-6 space-y-2.5 text-xs text-slate-700">
+                            <div class="font-bold text-[11px] uppercase tracking-wider text-slate-400">Fitur Eksklusif Enterprise:</div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #1864ab;">✓</span>
+                                <span><strong>Penerbitan Kupon Diskon Mandiri</strong> untuk murid (Persentase / Potongan Tetap)</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #1864ab;">✓</span>
+                                <span><strong>Bagi Hasil Terbesar 75%</strong> langsung masuk saldo dompet tenant</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #1864ab;">✓</span>
+                                <span>Akses Tanpa Batas Seluruh Bank Soal Asli &amp; AI Engine</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #1864ab;">✓</span>
+                                <span>Dedicated Account Manager &amp; Konsultasi Kurikulum Khusus</span>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="font-bold shrink-0 mt-0.5" style="color: #1864ab;">✓</span>
+                                <span>Custom Portal &amp; Branding Institusi Mitra</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CTA Button -->
+                    <div class="mt-8 pt-4 border-t" style="border-color: #a5d8ff;">
+                        <a href="mailto:adzkia.tryout@gmail.com?subject=Konsultasi%20Kemitraan%20Enterprise%20ADZKIA%20CBT&amp;body=Halo%20Tim%20ADZKIA%20CBT%2C%20kami%20tertarik%20menjadi%20mitra%20Level%20ENTERPRISE%20(Bagi%20hasil%2075%25%20dan%20fitur%20kupon%20diskon%20murid)."
+                           class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white text-xs font-bold transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+                           style="background-color: #1c7ed6;">
+                            <span>Konsultasi Enterprise</span>
+                            <span class="text-white/80">→</span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+
     <!-- FOOTER & CALL TO ACTION (MODERN WEB GUIDANCE) -->
     <footer id="kontak" role="contentinfo" class="bg-slate-950 text-slate-300 pt-20 pb-12 relative overflow-hidden -mt-px isolate">
         
@@ -827,7 +1087,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
         <div class="max-w-6xl mx-auto px-4 sm:px-6 relative">
             
             <!-- SOFT SELLING CTA CARD -->
-            <div class="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-emerald-950/70 border border-slate-800/90 p-8 sm:p-12 mb-16 shadow-2xl relative overflow-hidden group">
+            <div id="konsultasi" class="scroll-mt-28 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-emerald-950/70 border border-slate-800/90 p-8 sm:p-12 mb-16 shadow-2xl relative overflow-hidden group">
 
                 <div class="max-w-3xl">
                     <!-- Slogan Badge Penutup -->
@@ -851,16 +1111,14 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             <span class="text-emerald-200">↗</span>
                         </a>
 
-                        <!-- Tombol WhatsApp tanpa menampilkan nomor telepon di teks -->
-                        <a href="https://wa.me/6281329983555?text=Halo%20Tim%20ADZKIA%20CBT%2C%20saya%20tertarik%20untuk%20berkonsultasi%20mengenai%20platform%20ujian%20dan%20asesmen%20ADZKIA%20CBT%20untuk%20Sekolah%2FBIMBEL%20kami." 
-                           target="_blank" 
-                           rel="noopener noreferrer"
-                           aria-label="Konsultasi Kemitraan via WhatsApp"
+                        <!-- Tombol Email Konsultasi -->
+                        <a href="mailto:adzkia.tryout@gmail.com?subject=Konsultasi%20Kemitraan%20ADZKIA%20CBT&body=Halo%20Tim%20ADZKIA%20CBT%2C%20saya%20tertarik%20untuk%20berkonsultasi%20mengenai%20platform%20ujian%20dan%20asesmen%20ADZKIA%20CBT%20untuk%20Sekolah%2FBIMBEL%20kami." 
+                           aria-label="Konsultasi Kemitraan via Email ke adzkia.tryout@gmail.com"
                            class="inline-flex min-h-[48px] items-center gap-2.5 px-5 py-3 rounded-xl bg-emerald-700/90 hover:bg-emerald-600 text-white border border-emerald-500/50 text-xs sm:text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 shadow-md shadow-emerald-950/40">
-                            <svg class="w-4.5 h-4.5 text-white shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                            <svg class="w-4.5 h-4.5 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
-                            <span>Konsultasi via WhatsApp</span>
+                            <span>Email ke adzkia.tryout@gmail.com</span>
                         </a>
 
                         @if (Route::has('login'))
@@ -917,15 +1175,11 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0 mt-1"></span>
-                            <span>TKA &amp; UTBK SNBT (Asli 2024–2026 &amp; Prediksi 2027)</span>
+                            <span>Soal Asli TKA, UTBK (Sejak 2019), &amp; SKD Kedinasan CPNS lengkap PEMBAHASAN</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
-                            <span>SKD CPNS &amp; Kedinasan</span>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
-                            <span>TOEIC, TOEFL, &amp; IELTS</span>
+                            <span>TOEIC Simulation, TOEFL Preparation, &amp; IELTS Mock Test</span>
                         </li>
                     </ul>
                 </nav>

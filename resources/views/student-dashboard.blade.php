@@ -105,9 +105,9 @@
                             <h3 class="font-display font-bold text-sm text-gray-12 line-clamp-2 leading-snug">
                                 {{ $exam->title }}
                             </h3>
-                            <p class="font-sans text-xs text-gray-11 mt-1 line-clamp-2">
-                                {{ Str::limit($exam->description ?: 'Ujian evaluasi dan asesmen terstruktur CBT.', 50) }}
-                            </p>
+                            <div class="font-sans text-xs text-gray-11 mt-1 line-clamp-2 prose prose-xs max-w-none prose-p:my-0">
+                                {!! \App\Support\MarkdownRenderer::render($exam->description ?: 'Ujian evaluasi dan asesmen terstruktur CBT.') !!}
+                            </div>
                         </div>
                         <div class="mt-4 pt-3 border-t border-dashed border-gray-5 flex items-center justify-between text-xs text-gray-11">
                             <span class="flex items-center gap-1 font-mono">
@@ -929,9 +929,9 @@
                             <h3 class="font-display font-bold text-base text-gray-12 leading-snug mb-1.5">
                                 {{ $exam->title }}
                             </h3>
-                            <p class="font-sans text-xs text-gray-11 line-clamp-2 leading-relaxed mb-4">
-                                {{ $exam->description ?: 'Ujian premium dengan standar CBT.' }}
-                            </p>
+                            <div class="font-sans text-xs text-gray-11 line-clamp-2 leading-relaxed mb-4 prose prose-xs max-w-none prose-p:my-0">
+                                {!! \App\Support\MarkdownRenderer::render($exam->description ?: 'Ujian premium dengan standar CBT.') !!}
+                            </div>
                             
                             <div class="flex items-center justify-between pt-4 border-t border-amber-200/50">
                                 <span class="text-xs text-gray-11 font-medium">{{ $exam->questions_count }} Soal</span>

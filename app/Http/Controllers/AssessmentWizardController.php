@@ -31,8 +31,8 @@ class AssessmentWizardController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = Assessment::with(['subject', 'creator'])
-            ->withCount(['sections', 'questions']);
+        $query = Assessment::select('assessments.*')
+            ->with(['subject', 'creator']);
 
         $user = Auth::user();
         $isStaff = $user && ($user->isTeacher() || $user->isAdmin() || $user->isSuperUser());
@@ -43,12 +43,28 @@ class AssessmentWizardController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where('title', 'like', "%{$search}%");
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('settings->token', 'like', "%{$search}%")
+                    ->orWhere('settings', 'like', '%"token":"%'.$search.'%"%')
+                    ->orWhereHas('subject', fn ($sq) => $sq->where('name', 'like', "%{$search}%"));
+            });
         }
 
         if ($request->filled('subject_id')) {
             $query->where('subject_id', $request->subject_id);
+        } elseif ($request->filled('subject')) {
+            $subjectVal = trim((string) $request->subject);
+            if (is_numeric($subjectVal)) {
+                $query->where('subject_id', (int) $subjectVal);
+            } else {
+                $query->whereHas('subject', function ($sq) use ($subjectVal) {
+                    $sq->where('name', 'like', "%{$subjectVal}%")
+                        ->orWhere('code', 'like', "%{$subjectVal}%");
+                });
+            }
         }
 
         if ($request->filled('status')) {
@@ -59,6 +75,19 @@ class AssessmentWizardController extends Controller
 
         if ($request->filled('type')) {
             $query->where('type', $request->type);
+        }
+
+        if ($request->filled('price_type')) {
+            if ($request->price_type === 'free') {
+                $query->where(function ($q) {
+                    $q->where('price_type', 'free')
+                        ->orWhereNull('price_type')
+                        ->orWhere('price', '<=', 0);
+                });
+            } elseif ($request->price_type === 'paid') {
+                $query->where('price_type', 'paid')
+                    ->where('price', '>', 0);
+            }
         }
 
         if ($request->filled('grade_level')) {
@@ -90,6 +119,9 @@ class AssessmentWizardController extends Controller
                 } elseif (in_array($lowerGrade, ['skd', 'cpns'])) {
                     $q->where('grade_level', 'like', '%SKD%')
                         ->orWhere('grade_level', 'like', '%CPNS%');
+                } elseif ($lowerGrade === 'pro') {
+                    $q->where('grade_level', 'like', '%PRO%')
+                        ->orWhereIn('type', ['pro', 'toeic', 'toefl', 'ielts']);
                 } else {
                     $q->where('grade_level', $grade)
                         ->orWhereRaw('LOWER(grade_level) = ?', [$lowerGrade]);
@@ -103,17 +135,18 @@ class AssessmentWizardController extends Controller
                 $join->on('user_assessment_accesses.assessment_id', '=', 'assessments.id')
                     ->where('user_assessment_accesses.user_id', '=', $userId);
             })
-                ->select('assessments.*')
                 ->orderByRaw('CASE WHEN user_assessment_accesses.id IS NOT NULL THEN 0 ELSE 1 END ASC')
                 ->orderByRaw('CASE WHEN user_assessment_accesses.expires_at IS NULL THEN 1 ELSE 0 END ASC')
                 ->orderBy('user_assessment_accesses.expires_at', 'desc')
                 ->orderByRaw('(COALESCE(user_assessment_accesses.quota_attempts, 0) - COALESCE(user_assessment_accesses.attempts_used, 0)) DESC')
                 ->orderBy('assessments.id', 'desc');
         } else {
-            $query->latest();
+            $query->latest('assessments.id');
         }
 
-        $assessments = $query->paginate(10)->withQueryString();
+        $assessments = $query->withCount(['sections', 'questions'])
+            ->paginate(15)
+            ->withQueryString();
         $subjects = Subject::orderBy('name')->get();
         $gradeLevels = GradeLevel::orderBy('order')->get();
 

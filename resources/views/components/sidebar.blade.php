@@ -233,6 +233,25 @@
                 <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Dompet Saldo</span>
             </a>
 
+            <a href="{{ route('tenant.coupons.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('tenant.coupons.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Kupon Diskon Murid">
+                <x-radix-icon name="badge" class="w-6 h-6 shrink-0 {{ request()->routeIs('tenant.coupons.*') ? 'text-green-11' : 'text-amber-600' }}" />
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Kupon Diskon</span>
+                    @if($currentTenant && $currentTenant->isEnterprise())
+                        <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-purple-800 bg-purple-100 border border-purple-300 rounded-md">
+                            PROMO
+                        </span>
+                    @else
+                        <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-300 rounded-md">
+                            ENTERPRISE
+                        </span>
+                    @endif
+                </span>
+            </a>
+
             @if(auth()->user()->currentTenant)
                 <a href="{{ route('tenants.branding.edit', auth()->user()->currentTenant) }}" 
                     class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('tenants.branding.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"

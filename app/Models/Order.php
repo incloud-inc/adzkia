@@ -20,8 +20,11 @@ class Order extends Model
         'package_attempts',
         'package_validity_days',
         'price_amount',
+        'discount_amount',
         'admin_fee',
         'total_amount',
+        'coupon_id',
+        'coupon_code_snapshot',
         'payment_gateway',
         'payment_method',
         'payment_reference',
@@ -43,6 +46,7 @@ class Order extends Model
     {
         return [
             'price_amount' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'admin_fee' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'tenant_revenue_amount' => 'decimal:2',
@@ -75,6 +79,16 @@ class Order extends Model
     public function package(): BelongsTo
     {
         return $this->belongsTo(AssessmentPackage::class, 'assessment_package_id');
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
+    }
+
+    public function hasCoupon(): bool
+    {
+        return ! empty($this->coupon_id) || ((float) $this->discount_amount > 0);
     }
 
     public function isSettled(): bool

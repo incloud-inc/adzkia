@@ -13,7 +13,59 @@
         selectedPackageId: {{ $initialPackageId }},
         basePrice: {{ $initialPrice }},
         selectedAttempts: {{ $initialAttempts }},
-        adminFees: { QRIS: 1000, VA_BCA: 3000, VA_MANDIRI: 3000, VA_BRI: 3000, VA_BNI: 3000, SHOPEEPAY: 1500 }
+        adminFees: { QRIS: 1000, VA_BCA: 3000, VA_MANDIRI: 3000, VA_BRI: 3000, VA_BNI: 3000, SHOPEEPAY: 1500 },
+        couponInput: '{{ old('coupon_code', '') }}',
+        appliedCoupon: null,
+        discountAmount: 0,
+        couponMessage: '',
+        couponError: '{{ $errors->first('coupon_code') }}',
+        isApplying: false,
+        get totalPay() {
+            let finalPrice = Math.max(0, this.basePrice - this.discountAmount);
+            return finalPrice + (this.adminFees[this.selectedMethod] || 0);
+        },
+        async applyCoupon() {
+            if (!this.couponInput.trim()) return;
+            this.isApplying = true;
+            this.couponError = '';
+            this.couponMessage = '';
+            try {
+                const response = await fetch('{{ route('orders.apply-coupon', $assessment) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        coupon_code: this.couponInput.trim(),
+                        package_id: this.selectedPackageId
+                    })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    this.appliedCoupon = data.coupon;
+                    this.discountAmount = data.coupon.discount_amount;
+                    this.couponMessage = data.message;
+                    this.couponError = '';
+                } else {
+                    this.appliedCoupon = null;
+                    this.discountAmount = 0;
+                    this.couponError = data.message || 'Kupon tidak valid.';
+                }
+            } catch (err) {
+                this.couponError = 'Gagal memvalidasi kupon. Silakan coba lagi.';
+            } finally {
+                this.isApplying = false;
+            }
+        },
+        removeCoupon() {
+            this.couponInput = '';
+            this.appliedCoupon = null;
+            this.discountAmount = 0;
+            this.couponMessage = '';
+            this.couponError = '';
+        }
     }">
         <!-- Top Breadcrumb Navigation -->
         <div class="flex items-center gap-3">
@@ -53,6 +105,7 @@
                     @csrf
                     <input type="hidden" name="payment_method" :value="selectedMethod">
                     <input type="hidden" name="package_id" :value="selectedPackageId">
+                    <input type="hidden" name="coupon_code" :value="appliedCoupon ? appliedCoupon.code : couponInput">
 
                     @if(isset($packages) && $packages->count() > 0)
                         <!-- Package Selection -->
@@ -70,7 +123,7 @@
 
                             <div class="grid grid-cols-1 sm:grid-cols-{{ min($packages->count(), 3) }} gap-3">
                                 @foreach($packages as $pkg)
-                                    <div @click="selectedPackageId = {{ $pkg->id }}; basePrice = {{ (float)$pkg->price }}; selectedAttempts = {{ (int)$pkg->attempts }}"
+                                    <div @click="selectedPackageId = {{ $pkg->id }}; basePrice = {{ (float)$pkg->price }}; selectedAttempts = {{ (int)$pkg->attempts }}; if(appliedCoupon) applyCoupon();"
                                          :class="selectedPackageId === {{ $pkg->id }} ? 'border-blue-8 bg-blue-2/40 ring-2 ring-blue-7 shadow-xs' : 'border-gray-6 bg-white hover:border-gray-7'"
                                          class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between relative group">
                                         <div class="space-y-1.5 mb-3">
@@ -210,6 +263,66 @@
                         @endif
                     </div>
 
+                    <!-- Promo / Coupon Code Section -->
+                    <div class="p-4 rounded-xl bg-purple-1/40 border border-purple-6/40 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-gray-12 flex items-center gap-1.5">
+                                <x-radix-icon name="badge" class="w-4 h-4 text-purple-10" />
+                                <span>Punya Kode Kupon Diskon?</span>
+                            </span>
+                            @if($tenant && $tenant->isEnterprise())
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-3 text-purple-11">
+                                    {{ $tenant->name }}
+                                </span>
+                            @endif
+                        </div>
+
+                        <!-- Not Applied State: Input & Button -->
+                        <div x-show="!appliedCoupon" class="space-y-2">
+                            <div class="flex gap-2">
+                                <input type="text"
+                                       x-model="couponInput"
+                                       @keydown.enter.prevent="applyCoupon"
+                                       placeholder="MASUKKAN KODE PROMO"
+                                       class="flex-1 font-mono uppercase text-xs font-bold px-3 py-2 rounded-lg border border-gray-6 bg-white focus:border-purple-8 focus:ring-1 focus:ring-purple-4 outline-none">
+                                <button type="button"
+                                        @click="applyCoupon"
+                                        :disabled="isApplying || !couponInput.trim()"
+                                        class="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5">
+                                    <span x-show="!isApplying">Gunakan</span>
+                                    <span x-show="isApplying" class="animate-spin">⏳</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Applied State: Badge with Code, Discount & Remove button -->
+                        <div x-show="appliedCoupon" x-cloak class="p-2.5 rounded-lg bg-green-2 border border-green-6/50 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-md bg-green-3 text-green-11 flex items-center justify-center text-xs font-bold">✓</span>
+                                <div>
+                                    <div class="font-mono text-xs font-extrabold text-green-12" x-text="appliedCoupon?.code"></div>
+                                    <div class="text-[11px] text-green-11 font-medium" x-text="'Hemat ' + (appliedCoupon?.formatted_discount || '') + ' (' + (appliedCoupon?.discount_amount_formatted || '') + ')'"></div>
+                                </div>
+                            </div>
+                            <button type="button"
+                                    @click="removeCoupon"
+                                    class="text-xs text-red-11 hover:text-red-12 font-semibold px-2 py-1 rounded hover:bg-red-2 transition-colors cursor-pointer"
+                                    title="Hapus Kupon">
+                                Batal
+                            </button>
+                        </div>
+
+                        <!-- Feedback Alerts -->
+                        <div x-show="couponMessage" x-cloak class="text-[11px] text-green-11 font-medium flex items-center gap-1">
+                            <x-radix-icon name="check" class="w-3.5 h-3.5 shrink-0" />
+                            <span x-text="couponMessage"></span>
+                        </div>
+                        <div x-show="couponError" x-cloak class="text-[11px] text-red-11 font-medium flex items-center gap-1">
+                            <x-radix-icon name="cross-circled" class="w-3.5 h-3.5 shrink-0" />
+                            <span x-text="couponError"></span>
+                        </div>
+                    </div>
+
                     <!-- Financial Breakdown -->
                     <div class="space-y-2.5 text-xs text-gray-11 border-b border-gray-5 pb-4">
                         @if(isset($packages) && $packages->count() > 0)
@@ -222,6 +335,13 @@
                             <span>Harga Asesmen</span>
                             <span class="font-semibold text-gray-12" x-text="'Rp ' + basePrice.toLocaleString('id-ID')">Rp {{ number_format($defaultPackage ? $defaultPackage->price : (float) $assessment->price, 0, ',', '.') }}</span>
                         </div>
+                        <div x-show="discountAmount > 0" x-cloak class="flex justify-between items-center text-green-11 font-bold">
+                            <span class="flex items-center gap-1">
+                                <span>Diskon Kupon</span>
+                                <span class="text-[10px] px-1.5 py-0.2 bg-green-3 text-green-12 rounded" x-text="appliedCoupon?.formatted_discount"></span>
+                            </span>
+                            <span x-text="'- Rp ' + discountAmount.toLocaleString('id-ID')"></span>
+                        </div>
                         <div class="flex justify-between items-center">
                             <span>Biaya Layanan Gateway</span>
                             <span class="font-semibold text-gray-12" x-text="'Rp ' + (adminFees[selectedMethod] || 0).toLocaleString('id-ID')"></span>
@@ -232,7 +352,7 @@
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-sm text-gray-12">Total Pembayaran</span>
                         <span class="font-display font-black text-xl text-green-9"
-                              x-text="'Rp ' + (basePrice + (adminFees[selectedMethod] || 0)).toLocaleString('id-ID')"></span>
+                              x-text="'Rp ' + totalPay.toLocaleString('id-ID')"></span>
                     </div>
 
                     <!-- Submit Button -->

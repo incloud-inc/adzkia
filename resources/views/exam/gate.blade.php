@@ -140,7 +140,7 @@
                 <h2 class="text-2xl font-bold leading-snug text-slate-900">{{ $assessment->title }}</h2>
                 @if($assessment->description)
                     <div class="mt-3.5 rounded-xl bg-slate-50 border border-slate-200/90 p-4 text-sm text-slate-700 leading-relaxed prose prose-slate prose-sm sm:prose-base max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-a:text-blue-600 prose-img:rounded-xl shadow-2xs" id="assessment-description-view">
-                        {!! Str::markdown($assessment->description) !!}
+                        {!! \App\Support\MarkdownRenderer::render($assessment->description) !!}
                     </div>
                 @endif
 

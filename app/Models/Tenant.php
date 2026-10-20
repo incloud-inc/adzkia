@@ -80,6 +80,11 @@ class Tenant extends Model
         return $this->hasMany(PayoutRequest::class);
     }
 
+    public function coupons(): HasMany
+    {
+        return $this->hasMany(Coupon::class);
+    }
+
     /* =========================================================================
      * TIER / LEVEL BISNIS
      * ========================================================================= */
@@ -176,6 +181,15 @@ class Tenant extends Model
      * Hanya Level 3 (Enterprise) yang bisa ON/OFF katalog asesmen ADZKIA.
      */
     public function canToggleAdzkiaAssessments(): bool
+    {
+        return $this->isEnterprise();
+    }
+
+    /**
+     * Fasilitas pembuatan kupon diskon murid HANYA untuk Level ENTERPRISE.
+     * Biaya diskon ditanggung sepenuhnya oleh tenant (mengurangi jatah bagi hasil tenant).
+     */
+    public function canManageCoupons(): bool
     {
         return $this->isEnterprise();
     }
@@ -501,14 +515,15 @@ class Tenant extends Model
     public function showGrade(string $grade): bool
     {
         $settings = $this->settings ?? [];
-        $lower = strtolower($grade);
-        $key = 'show_grade_'.$lower;
+        $lower = strtolower(str_replace('_', '', $grade));
+        $key = 'show_grade_'.strtolower($grade);
 
         if (isset($settings[$key])) {
             return (bool) $settings[$key];
         }
 
-        $activeGrades = $this->getSchoolGrades();
+        $allGrades = array_merge((array) $this->getSchoolGrades(), (array) $this->getProGroups());
+        $activeGrades = array_map(fn ($g) => strtolower(str_replace('_', '', (string) $g)), $allGrades);
 
         return in_array($lower, $activeGrades, true);
     }

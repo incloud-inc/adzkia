@@ -99,9 +99,9 @@
                     @endif
                 @else
                     @if($assessment->price_type === 'paid' && (float) $assessment->price > 0 && ! ($user && $user->hasPurchasedAssessment($assessment)))
-                        <a href="{{ route('orders.checkout', $assessment) }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs font-bold transition-all shadow-md cursor-pointer">
-                            <x-radix-icon name="tokens" class="w-4 h-4" />
-                            <span>Beli Asesmen (Rp {{ number_format($assessment->price, 0, ',', '.') }})</span>
+                        <a href="{{ route('orders.checkout', $assessment) }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#ffd43b] hover:bg-[#fcc419] text-[#e67700] border border-[#fcc419] text-xs font-extrabold transition-all shadow-xs cursor-pointer active:scale-95">
+                            <x-radix-icon name="tokens" class="w-4 h-4 text-[#e67700]" />
+                            <span>Beli Asesmen ({{ $assessment->formatted_price }})</span>
                         </a>
                     @else
                         <a href="{{ route('exam.gate.show', $assessment) }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-all shadow-md cursor-pointer">

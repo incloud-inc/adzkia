@@ -49,7 +49,13 @@
                     Pembayaran Berhasil
                 </span>
                 <h2 class="font-display font-black text-2xl text-gray-12 tracking-tight mt-2">Akses Ujian Telah Aktif!</h2>
-                <p class="text-xs text-gray-11 mt-1">Pembayaran sebesar <strong>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</strong> telah kami terima. Anda sekarang dapat memulai pengerjaan ujian CBT.</p>
+                <p class="text-xs text-gray-11 mt-1">
+                    Pembayaran sebesar <strong>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</strong>
+                    @if($order->coupon_code_snapshot)
+                        <span class="text-green-11 font-semibold">(Diskon Kupon {{ $order->coupon_code_snapshot }} hemat Rp {{ number_format($order->discount_amount, 0, ',', '.') }})</span>
+                    @endif
+                    telah kami terima. Anda sekarang dapat memulai pengerjaan ujian CBT.
+                </p>
             </div>
 
             <div class="pt-2">
@@ -68,7 +74,14 @@
                 <div>
                     <span class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Menunggu Pembayaran</span>
                     <h2 class="font-display font-black text-2xl tracking-tight mt-0.5">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</h2>
-                    <p class="text-xs text-gray-300 mt-1">{{ $order->assessment?->title }}</p>
+                    <div class="flex items-center gap-2 mt-1">
+                        <p class="text-xs text-gray-300">{{ $order->assessment?->title }}</p>
+                        @if($order->coupon_code_snapshot)
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-400/20 text-purple-200 border border-purple-400/30">
+                                Kupon: {{ $order->coupon_code_snapshot }} (-Rp {{ number_format($order->discount_amount, 0, ',', '.') }})
+                            </span>
+                        @endif
+                    </div>
                 </div>
                 <div class="text-right">
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40">

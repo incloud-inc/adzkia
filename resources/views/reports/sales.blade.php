@@ -189,8 +189,16 @@
                                         {{ $order->tenant_tier_snapshot }}
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 text-right font-mono font-bold text-gray-12 whitespace-nowrap">
-                                    Rp {{ number_format($order->price_amount, 0, ',', '.') }}
+                                <td class="py-3 px-4 text-right font-mono whitespace-nowrap">
+                                    <span class="font-bold text-gray-12 block">Rp {{ number_format($order->price_amount, 0, ',', '.') }}</span>
+                                    @if($order->coupon_code_snapshot)
+                                        <span class="text-[10px] text-purple-11 font-semibold block" title="Kupon {{ $order->coupon_code_snapshot }}">
+                                            Diskon: -Rp {{ number_format($order->discount_amount, 0, ',', '.') }}
+                                        </span>
+                                        <span class="text-[10px] text-gray-10 block">
+                                            Bayar: Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="py-3 px-4 text-right font-mono bg-blue-50/30 text-blue-900 whitespace-nowrap">
                                     <strong class="block">Rp {{ number_format($order->platform_revenue_amount, 0, ',', '.') }}</strong>
@@ -198,7 +206,11 @@
                                 </td>
                                 <td class="py-3 px-4 text-right font-mono bg-green-50/30 text-green-900 whitespace-nowrap">
                                     <strong class="block">Rp {{ number_format($order->tenant_revenue_amount, 0, ',', '.') }}</strong>
-                                    <span class="text-[10px] text-green-700">({{ $order->revenue_share_tenant_pct }}%)</span>
+                                    @if($order->discount_amount > 0)
+                                        <span class="text-[10px] text-purple-11 font-semibold block">({{ $order->revenue_share_tenant_pct }}% - serap diskon)</span>
+                                    @else
+                                        <span class="text-[10px] text-green-700">({{ $order->revenue_share_tenant_pct }}%)</span>
+                                    @endif
                                 </td>
                                 <td class="py-3 px-4 text-center whitespace-nowrap">
                                     @if($order->status === 'settled')

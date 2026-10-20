@@ -98,25 +98,51 @@ class DashboardController extends Controller
             $targetTenant = $tenant ?? Tenant::first();
 
             $userId = $user->id;
-            $availableAssessments = Assessment::where('status', 'published')
+            $assessmentsQuery = Assessment::where('status', 'published')
+                ->select('assessments.*')
                 ->with([
                     'subject',
                     'creator',
                     'accesses' => fn ($q) => $q->where('user_id', $userId),
                 ])
-                ->withCount(['sections', 'questions'])
                 ->leftJoin('user_assessment_accesses', function ($join) use ($userId) {
                     $join->on('user_assessment_accesses.assessment_id', '=', 'assessments.id')
                         ->where('user_assessment_accesses.user_id', '=', $userId);
                 })
-                ->select('assessments.*')
+                ->withCount(['sections', 'questions']);
+
+            if ($request->filled('search')) {
+                $search = trim((string) $request->search);
+                $assessmentsQuery->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhere('settings->token', 'like', "%{$search}%")
+                        ->orWhere('settings', 'like', '%"token":"%'.$search.'%"%')
+                        ->orWhereHas('subject', fn ($sq) => $sq->where('name', 'like', "%{$search}%"));
+                });
+            }
+
+            if ($request->filled('price_type')) {
+                if ($request->price_type === 'free') {
+                    $assessmentsQuery->where(function ($q) {
+                        $q->where('price_type', 'free')
+                            ->orWhereNull('price_type')
+                            ->orWhere('price', '<=', 0);
+                    });
+                } elseif ($request->price_type === 'paid') {
+                    $assessmentsQuery->where('price_type', 'paid')
+                        ->where('price', '>', 0);
+                }
+            }
+
+            $availableAssessments = $assessmentsQuery
                 ->orderByRaw('CASE WHEN user_assessment_accesses.id IS NOT NULL THEN 0 ELSE 1 END ASC')
                 ->orderByRaw('CASE WHEN user_assessment_accesses.expires_at IS NULL THEN 1 ELSE 0 END ASC')
                 ->orderBy('user_assessment_accesses.expires_at', 'desc')
                 ->orderByRaw('(COALESCE(user_assessment_accesses.quota_attempts, 0) - COALESCE(user_assessment_accesses.attempts_used, 0)) DESC')
                 ->orderBy('assessments.id', 'desc')
-                ->take(6)
-                ->get();
+                ->paginate(9)
+                ->withQueryString();
 
             $totalAvailable = Assessment::where('status', 'published')->count();
             $subjectsCount = Subject::count();

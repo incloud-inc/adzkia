@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Assessment;
 use App\Models\Order;
+use App\Services\CouponService;
 use App\Services\Payment\PaymentGatewayService;
 use App\Services\Payment\RevenueDistributionService;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +17,8 @@ class OrderController extends Controller
 {
     public function __construct(
         protected PaymentGatewayService $paymentService,
-        protected RevenueDistributionService $distributionService
+        protected RevenueDistributionService $distributionService,
+        protected CouponService $couponService
     ) {}
 
     /**
@@ -47,6 +49,57 @@ class OrderController extends Controller
     }
 
     /**
+     * Check / validate a coupon code for checkout via AJAX.
+     */
+    public function applyCoupon(Request $request, Assessment $assessment): JsonResponse
+    {
+        $validated = $request->validate([
+            'coupon_code' => 'required|string|max:50',
+            'package_id' => 'nullable|integer|exists:assessment_packages,id',
+        ]);
+
+        $package = null;
+        if (! empty($validated['package_id'])) {
+            $package = $assessment->packages()->where('id', $validated['package_id'])->first();
+        }
+
+        if (! $package && $assessment->packages()->where('is_active', true)->exists()) {
+            $package = $assessment->packages()->where('is_active', true)->orderBy('sort_order')->orderBy('price')->first();
+        }
+
+        $price = $package ? (float) $package->price : (float) $assessment->price;
+        $tenant = $assessment->tenant ?? auth()->user()?->currentTenant;
+
+        $result = $this->couponService->validateCoupon(
+            $validated['coupon_code'],
+            $tenant,
+            auth()->user(),
+            $price
+        );
+
+        if (! $result['valid']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'coupon' => [
+                'code' => $result['code'],
+                'name' => $result['name'],
+                'formatted_discount' => $result['formatted_discount'],
+                'discount_amount' => $result['discount_amount'],
+                'discount_amount_formatted' => 'Rp '.number_format($result['discount_amount'], 0, ',', '.'),
+                'final_amount' => $result['final_amount'],
+                'final_amount_formatted' => 'Rp '.number_format($result['final_amount'], 0, ',', '.'),
+            ],
+        ]);
+    }
+
+    /**
      * Process checkout form submission and create order.
      */
     public function store(Request $request, Assessment $assessment): RedirectResponse|JsonResponse
@@ -65,6 +118,7 @@ class OrderController extends Controller
         $validated = $request->validate([
             'payment_method' => 'required|string|in:'.implode(',', array_keys(config('payment.methods', []))),
             'package_id' => 'nullable|integer|exists:assessment_packages,id',
+            'coupon_code' => 'nullable|string|max:50',
         ]);
 
         $package = null;
@@ -82,8 +136,39 @@ class OrderController extends Controller
 
         $tenant = $assessment->tenant ?? $user->currentTenant;
 
-        // Snapshot revenue share according to tenant tier
-        $snapshot = $this->distributionService->computeSnapshot($tenant, $price);
+        // Process coupon if submitted
+        $coupon = null;
+        $discountAmount = 0.00;
+        $totalAmount = $price;
+
+        if (! empty($validated['coupon_code'])) {
+            $couponResult = $this->couponService->validateCoupon(
+                $validated['coupon_code'],
+                $tenant,
+                $user,
+                $price
+            );
+
+            if (! $couponResult['valid']) {
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $couponResult['message'],
+                    ], 422);
+                }
+
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['coupon_code' => $couponResult['message']]);
+            }
+
+            $coupon = $couponResult['coupon'] ?? null;
+            $discountAmount = (float) ($couponResult['discount_amount'] ?? 0.00);
+            $totalAmount = (float) ($couponResult['final_amount'] ?? $price);
+        }
+
+        // Snapshot revenue share according to tenant tier (tenant absorbs discount!)
+        $snapshot = $this->distributionService->computeSnapshot($tenant, $price, $discountAmount);
 
         $order = Order::create([
             'order_number' => Order::generateOrderNumber(),
@@ -94,8 +179,11 @@ class OrderController extends Controller
             'package_attempts' => $packageAttempts,
             'package_validity_days' => $validityDays,
             'price_amount' => $price,
+            'discount_amount' => $discountAmount,
             'admin_fee' => 0,
-            'total_amount' => $price,
+            'total_amount' => $totalAmount,
+            'coupon_id' => $coupon?->id,
+            'coupon_code_snapshot' => $coupon?->code,
             'payment_gateway' => config('payment.default', 'duitku'),
             'payment_method' => $validated['payment_method'],
             'status' => 'pending',

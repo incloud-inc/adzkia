@@ -34,6 +34,7 @@ use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeacherGradingController;
 use App\Http\Controllers\TenantBrandingController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\TenantCouponController;
 use App\Http\Controllers\TenantManagementController;
 use App\Http\Controllers\TenantWalletController;
 use App\Http\Middleware\CheckOwnerRole;
@@ -273,9 +274,19 @@ Route::middleware(['auth'])->group(function () {
     // ─── Orders & Assessment Purchases (B2B2C) ────────────────────
     Route::get('assessments/{assessment}/checkout', [OrderController::class, 'checkout'])->name('orders.checkout');
     Route::post('assessments/{assessment}/checkout', [OrderController::class, 'store'])->name('orders.store');
+    Route::post('assessments/{assessment}/apply-coupon', [OrderController::class, 'applyCoupon'])->name('orders.apply-coupon');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('orders/{order}/status', [OrderController::class, 'checkStatus'])->name('orders.status');
     Route::post('orders/{order}/simulate-pay', [OrderController::class, 'simulatePayment'])->name('orders.simulate-pay');
+
+    // ─── Manajemen Kupon Diskon (Tenant Enterprise) ───────────────
+    Route::get('dashboard/coupons', [TenantCouponController::class, 'index'])->name('tenant.coupons.index');
+    Route::get('dashboard/coupons/create', [TenantCouponController::class, 'create'])->name('tenant.coupons.create');
+    Route::post('dashboard/coupons', [TenantCouponController::class, 'store'])->name('tenant.coupons.store');
+    Route::get('dashboard/coupons/{coupon}/edit', [TenantCouponController::class, 'edit'])->name('tenant.coupons.edit');
+    Route::put('dashboard/coupons/{coupon}', [TenantCouponController::class, 'update'])->name('tenant.coupons.update');
+    Route::delete('dashboard/coupons/{coupon}', [TenantCouponController::class, 'destroy'])->name('tenant.coupons.destroy');
+    Route::post('dashboard/coupons/{coupon}/toggle', [TenantCouponController::class, 'toggleStatus'])->name('tenant.coupons.toggle');
 
     // ─── Dompet & Payout Tenant ──────────────────────────────────
     Route::get('wallet', [TenantWalletController::class, 'index'])->name('wallet.index');

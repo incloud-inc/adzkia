@@ -415,4 +415,48 @@ class Assessment extends Model
 
         return false;
     }
+
+    /**
+     * Cek apakah asesmen ini berbayar.
+     */
+    public function isPaid(): bool
+    {
+        return $this->price_type === 'paid' && (float) $this->price > 0;
+    }
+
+    /**
+     * Cek apakah asesmen ini gratis.
+     */
+    public function isFree(): bool
+    {
+        return ! $this->isPaid();
+    }
+
+    /**
+     * Format harga asesmen (Gratis atau Rp XX.XXX).
+     */
+    public function getFormattedPriceAttribute(): string
+    {
+        if ($this->isFree()) {
+            return 'Gratis';
+        }
+
+        return 'Rp '.number_format((float) $this->price, 0, ',', '.');
+    }
+
+    /**
+     * Accessor jumlah total soal (fallback aman jika withCount tidak disertakan).
+     */
+    public function getQuestionsCountAttribute(): int
+    {
+        if (array_key_exists('questions_count', $this->attributes) && $this->attributes['questions_count'] !== null) {
+            return (int) $this->attributes['questions_count'];
+        }
+
+        if ($this->relationLoaded('questions')) {
+            return $this->questions->count();
+        }
+
+        return $this->questions()->count();
+    }
 }

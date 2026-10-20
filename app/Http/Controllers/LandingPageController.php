@@ -74,19 +74,24 @@ class LandingPageController extends Controller
                 'label' => 'Murid/Pelajar melaksanakan Asesmen di ADZKIA',
                 'badge' => 'Peserta Didik',
             ],
+            'assessments' => [
+                'count' => ($realAssessments > 0 ? number_format($realAssessments, 0, ',', '.') : '10').' Asesmen',
+                'label' => 'Siap digunakan untuk Murid, Mahasiswa, Profesional',
+                'badge' => 'Free & PRO',
+            ],
             'grade_levels' => [
-                'count' => 'Kelas 1 - 12',
-                'label' => 'Asesmen untuk Kelas 1 SD sampai 12 SMA',
-                'badge' => 'Semua Tingkat',
+                'count' => ($realAssessments > 0 ? number_format($realAssessments, 0, ',', '.') : '10').' Asesmen',
+                'label' => 'Siap digunakan untuk Murid, Mahasiswa, Profesional',
+                'badge' => 'Free & PRO',
             ],
             'curriculums' => [
                 'count' => 'TKA • UTBK • SKD',
-                'label' => 'Asesmen untuk TKA, UTBK, dan SKD Kedinasan CPNS',
+                'label' => 'Soal Asli TKA, UTBK (Sejak 2019), dan SKD Kedinasan & CPNS lengkap dengan PEMBAHASAN',
                 'badge' => 'Seleksi Nasional',
             ],
             'languages' => [
                 'count' => 'Global Test',
-                'label' => 'TOEIC, TOEFL, dan IELTS',
+                'label' => 'TOEIC Simulation, TOEFL Preparation, dan IELTS Mock Test.',
                 'badge' => 'Sertifikasi Bahasa',
             ],
             'question_bank' => [

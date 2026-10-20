@@ -22,15 +22,19 @@ class RevenueDistributionService
      *     platform_amount: float
      * }
      */
-    public function computeSnapshot(?Tenant $tenant, float $priceAmount): array
+    public function computeSnapshot(?Tenant $tenant, float $priceAmount, float $discountAmount = 0.00): array
     {
+        $discountAmount = max(0.00, round($discountAmount, 2));
+
         if (! $tenant) {
+            $effectivePrice = max(0.00, round($priceAmount - $discountAmount, 2));
+
             return [
                 'tier' => 'platform',
                 'tenant_pct' => 0,
                 'platform_pct' => 100,
                 'tenant_amount' => 0.00,
-                'platform_amount' => round($priceAmount, 2),
+                'platform_amount' => $effectivePrice,
             ];
         }
 
@@ -52,8 +56,12 @@ class RevenueDistributionService
 
         $platformPct = 100 - $tenantPct;
 
-        $tenantAmount = round(($priceAmount * $tenantPct) / 100, 2);
-        $platformAmount = round($priceAmount - $tenantAmount, 2);
+        // Base revenue split
+        $baseTenantAmount = round(($priceAmount * $tenantPct) / 100, 2);
+        $platformAmount = round($priceAmount - $baseTenantAmount, 2);
+
+        // Tenant absorbs the discount completely (safeguarding ADZKIA platform revenue)
+        $tenantAmount = max(0.00, round($baseTenantAmount - $discountAmount, 2));
 
         return [
             'tier' => $tier,

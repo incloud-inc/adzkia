@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Assessment;
 use App\Models\GradeLevel;
+use App\Models\Subject;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -375,6 +376,8 @@ class TenantController extends Controller
                 'tag' => 'PRO',
                 'title' => 'Soal Asli dan Prediksi untuk PROFESIONAL',
                 'badge' => '',
+                'grade_level' => 'PRO',
+                'default_subject_code' => 'TOEIC',
                 'filter' => ['PRO'],
                 'defaults' => [
                     ['name' => 'Simulasi Skolastik Lanjut', 'desc' => 'Penalaran Analitis & Pemecahan Masalah', 'badge' => 'TPS'],
@@ -386,6 +389,8 @@ class TenantController extends Controller
                 'tag' => 'UTBK SNBT',
                 'title' => 'Soal ASLI dan PEMBAHASAN Sejak 2019',
                 'badge' => '',
+                'grade_level' => 'UTBK',
+                'default_subject_code' => 'TPS',
                 'filter' => ['UTBK', 'SNBT'],
                 'defaults' => [
                     ['name' => 'Penalaran Umum (PU)', 'desc' => 'Silogisme, Induktif & Penalaran Analitis', 'badge' => 'PU'],
@@ -397,6 +402,8 @@ class TenantController extends Controller
                 'tag' => 'SKD KEDINASAN & CPNS',
                 'title' => 'Soal ASLI dan PREDIKSI dilengkapi PEMBAHASAN',
                 'badge' => '',
+                'grade_level' => 'SKD',
+                'default_subject_code' => 'PPKN',
                 'filter' => ['SKD', 'CPNS'],
                 'defaults' => [
                     ['name' => 'Tes Wawasan Kebangsaan (TWK)', 'desc' => 'Pancasila, UUD 1945, NKRI & Bhinneka Tunggal Ika', 'badge' => 'TWK'],
@@ -408,6 +415,8 @@ class TenantController extends Controller
                 'tag' => 'TKA SD',
                 'title' => 'Tes Kemampuan Akademik (TKA) SD',
                 'badge' => '',
+                'grade_level' => 'TKASD',
+                'default_subject_code' => 'IPA',
                 'filter' => ['TKASD', 'TKA SD'],
                 'defaults' => [
                     ['name' => 'Olimpiade Sains Kuark SD', 'desc' => 'Eksperimen & Konsep Alam Sekitar', 'badge' => 'IPA'],
@@ -419,6 +428,8 @@ class TenantController extends Controller
                 'tag' => 'TKA SMP',
                 'title' => 'Tes Kemampuan Akademik (TKA) SMP',
                 'badge' => '',
+                'grade_level' => 'TKASMP',
+                'default_subject_code' => 'MAT',
                 'filter' => ['TKASMP', 'TKA SMP'],
                 'defaults' => [
                     ['name' => 'Matematika Olimpiade SMP', 'desc' => 'Teori Bilangan & Kombinatorika', 'badge' => 'MTK'],
@@ -430,6 +441,8 @@ class TenantController extends Controller
                 'tag' => 'TKA SMA',
                 'title' => 'Tes Kemampuan Akademik (TKA) SMA',
                 'badge' => '',
+                'grade_level' => 'TKASMA',
+                'default_subject_code' => 'FIS',
                 'filter' => ['TKASMA', 'TKA SMA'],
                 'defaults' => [
                     ['name' => 'Fisika Modern & Termodinamika', 'desc' => 'Mekanika Kuantum & Fluida Bergerak', 'badge' => 'FIS'],
@@ -458,6 +471,8 @@ class TenantController extends Controller
             'from-violet-600 to-indigo-700',
             'from-rose-600 via-red-600 to-amber-600',
         ];
+
+        $subjectsByCode = Subject::all()->keyBy(fn ($s) => strtoupper($s->code));
 
         $proCards = [];
 
@@ -505,14 +520,39 @@ class TenantController extends Controller
                 }
             }
 
+            $cardGradeLevel = $preset['grade_level'] ?? ($gl ? $gl->value : $normKey);
+            $cardSubjectId = null;
+
+            if ($matchedAssessments->isNotEmpty()) {
+                $firstMatched = $matchedAssessments->first();
+                $cardSubjectId = $firstMatched->subject_id;
+                if (! empty($firstMatched->grade_level)) {
+                    $cardGradeLevel = $firstMatched->grade_level;
+                }
+            }
+
+            if (! $cardSubjectId && ! empty($preset['default_subject_code'])) {
+                $cardSubjectId = $subjectsByCode->get(strtoupper($preset['default_subject_code']))?->id;
+            }
+
             $readyCount = max(count($matchedAssessments), 3);
+
+            $filterParams = array_filter([
+                'grade_level' => $cardGradeLevel,
+                'subject_id' => $cardSubjectId,
+            ]);
+
+            $filterUrl = route('assessments.index', $filterParams);
 
             $proCards[$pKey] = [
                 'tag' => $tag,
                 'title' => $title,
                 'badge' => $badge,
-                'ready' => "{$readyCount} Paket Siap",
+                'ready' => "{$readyCount} Paket",
                 'items' => $cardItems,
+                'url' => $filterUrl,
+                'grade_level' => $cardGradeLevel,
+                'subject_id' => $cardSubjectId,
             ];
         }
 

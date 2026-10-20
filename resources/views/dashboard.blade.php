@@ -547,15 +547,48 @@
 
             <!-- Asesmen & Ujian Siap Dikerjakan -->
             <section class="bg-white border border-gray-6 rounded-2xl p-4 sm:p-6 shadow-xs">
-                <div class="flex items-center justify-between mb-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                     <div>
-                        <h2 class="font-display font-bold text-lg text-gray-12 tracking-tight">Ujian &amp; Asesmen Siap Dikerjakan</h2>
+                        <h2 class="font-display font-bold text-lg text-gray-12 tracking-tight">Katalog Ujian &amp; Asesmen Siap Dikerjakan</h2>
                         <p class="font-sans text-xs text-gray-11 mt-0.5">Pilih salah satu asesmen di bawah ini untuk memulai evaluasi belajar mandiri.</p>
                     </div>
                     <a href="{{ route('assessments.index') }}" class="font-sans text-xs font-bold text-blue-11 hover:text-blue-12 hover:underline inline-flex items-center gap-1 shrink-0">
                         <span>Lihat Semua Ujian</span>
                         <x-radix-icon name="arrow-right" class="w-3.5 h-3.5" />
                     </a>
+                </div>
+
+                <!-- Filter & Search Bar Siswa -->
+                <div class="mb-5 bg-gray-2/60 p-3 rounded-xl border border-gray-6">
+                    <form method="GET" action="{{ route('dashboard') }}" class="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <div class="relative flex-1 min-w-0">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-9 pointer-events-none">
+                                <x-radix-icon name="magnifying-glass" class="w-3.5 h-3.5" />
+                            </span>
+                            <input type="text" name="search" value="{{ request('search') }}" 
+                                   placeholder="Cari judul asesmen, mapel, materi, token..." 
+                                   class="w-full rounded-lg border border-gray-7 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-blue-8 focus:ring-1 focus:ring-blue-8 outline-none">
+                        </div>
+
+                        <div class="w-full sm:w-32 shrink-0">
+                            <select name="price_type" onchange="this.form.submit()" 
+                                    class="w-full rounded-lg border border-gray-7 bg-white px-2.5 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
+                                <option value="">Semua Biaya</option>
+                                <option value="free" {{ request('price_type') === 'free' ? 'selected' : '' }}>Gratis</option>
+                                <option value="paid" {{ request('price_type') === 'paid' ? 'selected' : '' }}>Berbayar</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-gray-12 hover:bg-black text-white text-xs font-semibold transition-colors cursor-pointer shrink-0">
+                            Cari
+                        </button>
+
+                        @if(request()->hasAny(['search', 'price_type']))
+                            <a href="{{ route('dashboard') }}" class="px-2.5 py-1.5 rounded-lg bg-gray-3 hover:bg-gray-4 text-gray-11 hover:text-gray-12 text-xs font-semibold flex items-center justify-center transition-colors shrink-0">
+                                Reset
+                            </a>
+                        @endif
+                    </form>
                 </div>
 
                 @if($availableAssessments && $availableAssessments->count() > 0)
@@ -571,58 +604,101 @@
                         @foreach($availableAssessments as $exam)
                             @php
                                 $access = $exam->accesses?->first();
-                                $isPurchased = !is_null($access);
+                                $hasAccess = $access ? $access->isValid() : ($user ? $user->hasPurchasedAssessment($exam) : false);
+                                $isPaid = $exam->isPaid();
                             @endphp
-                            <article class="min-w-[280px] xs:min-w-[320px] md:min-w-0 snap-start shrink-0 md:shrink flex-1 p-5 rounded-2xl border-2 transition-colors duration-150 flex flex-col justify-between {{ $isPurchased ? 'border-amber-500 shadow-xs hover:border-amber-700' : 'border-gray-6 bg-gray-1 hover:bg-white hover:border-blue-8' }}"
-                                     style="{{ $isPurchased ? 'background-color: #ffd8a8 !important;' : '' }}">
+                            <article class="min-w-[280px] xs:min-w-[320px] md:min-w-0 snap-start shrink-0 md:shrink flex-1 p-5 rounded-2xl border-2 transition-all duration-150 flex flex-col justify-between {{ $hasAccess ? 'border-amber-400 shadow-xs hover:border-amber-600' : 'border-gray-6 bg-gray-1 hover:bg-white hover:border-blue-8' }}"
+                                     style="{{ $hasAccess ? 'background-color: #fff9db !important;' : '' }}">
                                 <div>
                                     <div class="flex items-center justify-between gap-2 mb-2.5">
-                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase {{ $isPurchased ? 'bg-amber-200 text-amber-900 border border-amber-300' : 'bg-blue-3 text-blue-11 border border-blue-6/60' }}">
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase {{ $hasAccess ? 'bg-amber-200 text-amber-900 border border-amber-300' : 'bg-blue-3 text-blue-11 border border-blue-6/60' }}">
                                             {{ $exam->subject?->name ?? 'Umum' }}
                                         </span>
-                                        @if($isPurchased)
-                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-900 text-white shadow-2xs">
-                                                {{ $access->daysRemaining() }} Hari ({{ $access->availableAttempts() }}x)
+                                        @if($hasAccess)
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-900 text-white shadow-2xs" title="Sisa {{ $access?->daysRemaining() ?? 0 }} Hari">
+                                                {{ $access?->daysRemaining() ?? 0 }} Hari ({{ $access?->availableAttempts() ?? 0 }}x)
+                                            </span>
+                                        @elseif($isPaid)
+                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fff9db] text-[#e67700] border border-[#fcc419]">
+                                                {{ $exam->formatted_price }}
                                             </span>
                                         @else
-                                            <span class="text-xs text-gray-11 font-medium flex items-center gap-1">
-                                                <x-radix-icon name="timer" class="w-3 h-3 text-gray-10" />
-                                                <span>{{ $exam->duration_minutes }} menit</span>
+                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                Gratis
                                             </span>
                                         @endif
                                     </div>
                                     <h3 class="font-display font-bold text-sm text-gray-12 line-clamp-2">
                                         {{ $exam->title }}
                                     </h3>
-                                    <p class="font-sans text-xs text-gray-11 mt-1.5 line-clamp-2">
-                                        {{ $exam->description ?: 'Evaluasi pemahaman terstruktur dengan CBT engine berstandar nasional.' }}
-                                    </p>
+                                    <div x-data="{ showFullDesc: false }" class="mt-1.5">
+                                        <div :class="showFullDesc ? '' : 'line-clamp-2'" class="font-sans text-xs text-gray-11 leading-relaxed prose prose-xs max-w-none prose-p:my-0.5 prose-p:leading-relaxed prose-headings:my-0.5 prose-headings:text-xs prose-headings:font-bold prose-ul:my-0.5 prose-ul:pl-4 prose-ol:my-0.5 prose-ol:pl-4 prose-li:my-0 prose-strong:text-gray-12 prose-a:text-blue-11 prose-code:text-[11px] prose-code:bg-gray-3 prose-code:px-1 prose-code:py-0.5 prose-code:rounded">
+                                            @if(!empty(trim((string) $exam->description)))
+                                                {!! \App\Support\MarkdownRenderer::render($exam->description) !!}
+                                            @else
+                                                <p>Evaluasi pemahaman terstruktur dengan CBT engine berstandar nasional.</p>
+                                            @endif
+                                        </div>
+                                        @if(!empty($exam->description) && (strlen(strip_tags($exam->description)) > 100 || str_contains($exam->description, "\n")))
+                                            <button type="button" 
+                                                    @click.stop="showFullDesc = !showFullDesc; $nextTick(() => { if (window.triggerKaTeX) window.triggerKaTeX($el.closest('article')); })" 
+                                                    class="text-[11px] text-blue-11 hover:text-blue-12 hover:underline font-semibold mt-1 inline-flex items-center gap-1 cursor-pointer">
+                                                <span x-text="showFullDesc ? 'Tutup Deskripsi ▲' : 'Baca selengkapnya...'"></span>
+                                            </button>
+                                        @endif
+                                    </div>
                                 </div>
 
-                                <div class="mt-4 pt-3.5 border-t {{ $isPurchased ? 'border-amber-300/80' : 'border-gray-5' }} flex items-center justify-between">
-                                    <span class="font-sans text-xs {{ $isPurchased ? 'text-amber-900 font-semibold' : 'text-gray-11' }}">
-                                        {{ $exam->questions_count }} Butir Soal
+                                <div class="mt-4 pt-3.5 border-t {{ $hasAccess ? 'border-amber-300/80' : 'border-gray-5' }} flex items-center justify-between gap-2">
+                                    <span class="font-sans text-xs {{ $hasAccess ? 'text-amber-900 font-semibold' : 'text-gray-11' }}">
+                                        {{ $exam->questions_count }} Soal • {{ $exam->duration_minutes }}m
                                     </span>
                                     <div class="flex items-center gap-2">
-                                        <a href="{{ route('assessments.show', $exam) }}" class="px-2.5 py-1.5 rounded-xl border {{ $isPurchased ? 'border-amber-300 bg-amber-50 hover:bg-white text-amber-900' : 'border-gray-6 bg-white hover:bg-gray-3 text-gray-12' }} text-xs font-semibold transition-all">
+                                        <a href="{{ route('assessments.show', $exam) }}" class="px-2.5 py-1.5 rounded-xl border {{ $hasAccess ? 'border-amber-300 bg-amber-50 hover:bg-white text-amber-900' : 'border-gray-6 bg-white hover:bg-gray-3 text-gray-12' }} text-xs font-semibold transition-all">
                                             Detail
                                         </a>
-                                        <a href="{{ route('exam.gate.show', $exam) }}" class="px-3.5 py-1.5 rounded-xl {{ $isPurchased ? 'bg-amber-900 hover:bg-black text-white' : 'bg-blue-9 hover:bg-blue-10 text-white' }} text-xs font-bold transition-all duration-200 shadow-xs active:scale-95 inline-flex items-center gap-1.5">
-                                            <x-radix-icon name="pencil1" class="w-3.5 h-3.5" />
-                                            <span>Mulai Ujian</span>
-                                        </a>
+                                        @if($isPaid && ! $hasAccess)
+                                            <a href="{{ route('orders.checkout', $exam) }}" 
+                                               class="px-3.5 py-1.5 rounded-xl bg-[#ffd43b] hover:bg-[#fcc419] text-[#e67700] border border-[#fcc419] text-xs font-extrabold transition-all duration-200 shadow-xs active:scale-95 inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                                               title="Beli akses untuk mengikuti asesmen ini">
+                                                <x-radix-icon name="tokens" class="w-3.5 h-3.5 text-[#e67700]" />
+                                                <span>Beli ({{ $exam->formatted_price }})</span>
+                                            </a>
+                                        @else
+                                            <a href="{{ route('exam.gate.show', $exam) }}" class="px-3.5 py-1.5 rounded-xl {{ $hasAccess ? 'bg-amber-900 hover:bg-black text-white' : 'bg-blue-9 hover:bg-blue-10 text-white' }} text-xs font-bold transition-all duration-200 shadow-xs active:scale-95 inline-flex items-center gap-1.5 whitespace-nowrap">
+                                                <x-radix-icon name="pencil1" class="w-3.5 h-3.5" />
+                                                <span>Mulai Ujian</span>
+                                            </a>
+                                        @endif
                                     </div>
                                 </div>
                             </article>
                         @endforeach
                     </div>
+
+                    @if($availableAssessments->hasPages())
+                        <div class="mt-6 pt-4 border-t border-gray-6">
+                            {{ $availableAssessments->links() }}
+                        </div>
+                    @endif
                 @else
                     <div class="text-center py-14 bg-gray-2/40 rounded-2xl border border-dashed border-gray-6">
                         <div class="w-12 h-12 bg-blue-3 text-blue-11 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
                             <x-radix-icon name="file-text" class="w-5 h-5" />
                         </div>
-                        <h4 class="font-display font-bold text-sm text-gray-12">Belum ada ujian yang dijadwalkan</h4>
-                        <p class="font-sans text-xs text-gray-11 mt-1">Ujian aktif yang diterbitkan oleh guru atau sekolah Anda akan muncul di sini.</p>
+                        <h4 class="font-display font-bold text-sm text-gray-12">Tidak ada asesmen yang ditemukan</h4>
+                        <p class="font-sans text-xs text-gray-11 mt-1">
+                            @if(request()->hasAny(['search', 'price_type']))
+                                Tidak ada ujian yang cocok dengan kriteria pencarian Anda. Coba kata kunci lain atau reset filter.
+                            @else
+                                Ujian aktif yang diterbitkan oleh guru atau sekolah Anda akan muncul di sini.
+                            @endif
+                        </p>
+                        @if(request()->hasAny(['search', 'price_type']))
+                            <a href="{{ route('dashboard') }}" class="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-12 text-white text-xs font-semibold hover:bg-black transition-colors">
+                                Reset Filter
+                            </a>
+                        @endif
                     </div>
                 @endif
             </section>

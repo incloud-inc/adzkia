@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use App\Models\Order;
 use App\Models\UserAssessmentAccess;
+use App\Services\CouponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +24,8 @@ class PaymentGatewayService
         $methodConfig = config("payment.methods.{$methodCode}");
 
         $adminFee = (float) ($methodConfig['fee'] ?? 0);
-        $totalAmount = (float) $order->price_amount + $adminFee;
+        $effectivePrice = max(0.00, (float) $order->price_amount - (float) $order->discount_amount);
+        $totalAmount = $effectivePrice + $adminFee;
         $expiryPeriod = (int) config("payment.gateways.{$driver}.expiry_period", 1440);
 
         $order->update([
@@ -339,6 +341,11 @@ class PaymentGatewayService
                 // Grant / accumulate assessment access quota & 35-day validity
                 $this->grantAssessmentAccess($order);
 
+                // Record coupon usage if applied
+                if ($order->coupon_id) {
+                    app(CouponService::class)->recordUsage($order);
+                }
+
                 Log::info("Order {$order->order_number} marked as settled, distributed, and assessment access granted.");
             }
 
@@ -376,6 +383,10 @@ class PaymentGatewayService
         ]);
 
         $this->grantAssessmentAccess($order);
+
+        if ($order->coupon_id) {
+            app(CouponService::class)->recordUsage($order);
+        }
 
         return $this->distributionService->distribute($order);
     }

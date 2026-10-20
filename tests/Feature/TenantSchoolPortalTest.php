@@ -367,4 +367,114 @@ class TenantSchoolPortalTest extends TestCase
         $response->assertSee('Simulasi Kalkulus Lanjut');
         $response->assertSee('MAT');
     }
+
+    /**
+     * Memastikan card asesmen pro menampilkan 'Paket' tanpa kata 'Siap',
+     * dan menyertakan URL ke halaman asesmen yang terfilter kelas dan mapel.
+     */
+    public function test_pro_cards_display_paket_without_siap_and_have_filtered_assessment_urls(): void
+    {
+        $tenant = Tenant::factory()->create([
+            'subdomain' => 'procardtestportal',
+            'settings' => [
+                'theme_palette' => 'indigo',
+                'school_grade' => 'sma',
+                'school_grades' => ['sma'],
+                'pro_groups' => ['UTBK', 'TKASMA', 'SKD'],
+            ],
+        ]);
+
+        $subjectFis = Subject::factory()->create([
+            'name' => 'Fisika Terapan',
+            'code' => 'FIS',
+        ]);
+
+        Assessment::factory()->create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subjectFis->id,
+            'title' => 'Try Out Fisika TKASMA',
+            'type' => 'custom',
+            'grade_level' => 'TKASMA',
+            'status' => 'published',
+            'is_global' => true,
+        ]);
+
+        $response = $this->get("http://{$tenant->subdomain}.localhost/");
+
+        $response->assertStatus(200);
+
+        // Pastikan kata "Paket Siap" sudah tidak ada sama sekali
+        $response->assertDontSee('Paket Siap');
+
+        // Pastikan teks menampilkan "Paket"
+        $response->assertSee('Paket');
+
+        // Pastikan link terfilter ke halaman asesmen ada di dalam respons
+        $expectedUrl = route('assessments.index', [
+            'grade_level' => 'TKASMA',
+            'subject_id' => $subjectFis->id,
+        ]);
+        $response->assertSee($expectedUrl);
+    }
+
+    /**
+     * Memastikan akses ke halaman asesmen dengan filter kelas & mapel dari card PRO berfungsi.
+     */
+    public function test_pro_card_filter_link_filters_assessments_correctly_on_assessments_index(): void
+    {
+        $tenant = Tenant::factory()->create([
+            'subdomain' => 'filtertestportal',
+        ]);
+
+        $student = User::factory()->create([
+            'current_tenant_id' => $tenant->id,
+        ]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $subjectFis = Subject::factory()->create(['name' => 'Fisika Kuantum', 'code' => 'FIS']);
+        $subjectBio = Subject::factory()->create(['name' => 'Biologi Sel', 'code' => 'BIO']);
+
+        // Asesmen yang cocok dengan filter
+        $matched = Assessment::create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subjectFis->id,
+            'created_by' => $student->id,
+            'title' => 'Ujian Fisika Khusus TKASMA',
+            'type' => 'custom',
+            'grade_level' => 'TKASMA',
+            'status' => 'published',
+            'duration_minutes' => 60,
+        ]);
+
+        // Asesmen dengan kelas berbeda
+        $otherGrade = Assessment::create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subjectFis->id,
+            'created_by' => $student->id,
+            'title' => 'Ujian Fisika Kelas 10 SD',
+            'type' => 'custom',
+            'grade_level' => '1 SD',
+            'status' => 'published',
+            'duration_minutes' => 60,
+        ]);
+
+        // Asesmen dengan mapel berbeda
+        $otherSubject = Assessment::create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subjectBio->id,
+            'created_by' => $student->id,
+            'title' => 'Ujian Biologi TKASMA',
+            'type' => 'custom',
+            'grade_level' => 'TKASMA',
+            'status' => 'published',
+            'duration_minutes' => 60,
+        ]);
+
+        $response = $this->actingAs($student)->get("http://{$tenant->subdomain}.localhost/assessments?grade_level=TKASMA&subject_id={$subjectFis->id}");
+
+        $response->assertStatus(200);
+        $response->assertSee('Ujian Fisika Khusus TKASMA');
+        $response->assertDontSee('Ujian Fisika Kelas 10 SD');
+        $response->assertDontSee('Ujian Biologi TKASMA');
+    }
 }

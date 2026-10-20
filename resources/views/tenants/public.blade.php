@@ -378,7 +378,8 @@
                             'tag' => 'PRO',
                             'title' => 'Soal Asli dan Prediksi untuk PROFESIONAL',
                             'badge' => '',
-                            'ready' => '3 Paket Siap',
+                            'ready' => '3 Paket',
+                            'url' => route('assessments.index', ['grade_level' => 'PRO']),
                             'items' => [
                                 ['name' => 'Simulasi Skolastik Lanjut', 'desc' => 'Penalaran Analitis & Pemecahan Masalah', 'badge' => 'TPS'],
                                 ['name' => 'Drill Logika & Numerasi Cepat', 'desc' => 'Trik Algoritma & Aritmetika Praktis', 'badge' => 'NUM'],
@@ -389,7 +390,8 @@
                             'tag' => 'UTBK SNBT',
                             'title' => 'Soal ASLI dan PEMBAHASAN Sejak 2019',
                             'badge' => '',
-                            'ready' => '4 Paket Siap',
+                            'ready' => '4 Paket',
+                            'url' => route('assessments.index', ['grade_level' => 'UTBK']),
                             'items' => [
                                 ['name' => 'Penalaran Umum (PU)', 'desc' => 'Silogisme, Induktif & Penalaran Analitis', 'badge' => 'PU'],
                                 ['name' => 'Pengetahuan Kuantitatif', 'desc' => 'Aljabar, Bilangan, Geometri & Peluang', 'badge' => 'PK'],
@@ -400,7 +402,8 @@
                             'tag' => 'SKD KEDINASAN & CPNS',
                             'title' => 'Soal ASLI dan PREDIKSI dilengkapi PEMBAHASAN',
                             'badge' => '',
-                            'ready' => '3 Paket Siap',
+                            'ready' => '3 Paket',
+                            'url' => route('assessments.index', ['grade_level' => 'SKD']),
                             'items' => [
                                 ['name' => 'Tes Wawasan Kebangsaan (TWK)', 'desc' => 'Pancasila, UUD 1945, NKRI & Bhinneka Tunggal Ika', 'badge' => 'TWK'],
                                 ['name' => 'Tes Inteligensi Umum (TIU)', 'desc' => 'Kemampuan Verbal, Numerik & Figural Sistem CAT', 'badge' => 'TIU'],
@@ -411,7 +414,8 @@
                             'tag' => 'UTBK SNBT',
                             'title' => 'Soal ASLI dan PEMBAHASAN Sejak 2019',
                             'badge' => '',
-                            'ready' => '4 Paket Siap',
+                            'ready' => '4 Paket',
+                            'url' => route('assessments.index', ['grade_level' => 'UTBK']),
                             'items' => [
                                 ['name' => 'Penalaran Umum (PU)', 'desc' => 'Silogisme & Penalaran Analitis', 'badge' => 'PU'],
                                 ['name' => 'Pengetahuan Kuantitatif', 'desc' => 'Aljabar, Aritmetika & Geometri', 'badge' => 'PK'],
@@ -422,7 +426,8 @@
                             'tag' => 'SKD KEDINASAN & CPNS',
                             'title' => 'Soal ASLI dan PREDIKSI dilengkapi PEMBAHASAN',
                             'badge' => '',
-                            'ready' => '3 Paket Siap',
+                            'ready' => '3 Paket',
+                            'url' => route('assessments.index', ['grade_level' => 'SKD']),
                             'items' => [
                                 ['name' => 'Simulasi SKD Kedinasan', 'desc' => 'TWK, TIU, TKP Sistem CAT', 'badge' => 'SKD'],
                                 ['name' => 'TKA Saintek & Soshum', 'desc' => 'Pendalaman Soal Analitis Lanjut', 'badge' => 'TKA'],
@@ -433,7 +438,8 @@
                             'tag' => 'KELAS 10',
                             'title' => 'Asesmen Pilihan Kelas X',
                             'badge' => '',
-                            'ready' => '3 Paket Siap',
+                            'ready' => '3 Paket',
+                            'url' => route('assessments.index', ['grade_level' => '10 SMA']),
                             'items' => [
                                 ['name' => 'Simulasi TPS Skolastik', 'desc' => 'Penalaran Umum & Skolastik', 'badge' => 'TPS'],
                                 ['name' => 'Matematika Wajib', 'desc' => 'Fungsi Kuadrat & Polinomial', 'badge' => 'MTK'],
@@ -444,7 +450,8 @@
                             'tag' => 'KELAS 11',
                             'title' => 'Asesmen Pilihan Kelas XI',
                             'badge' => '',
-                            'ready' => '3 Paket Siap',
+                            'ready' => '3 Paket',
+                            'url' => route('assessments.index', ['grade_level' => '11 SMA']),
                             'items' => [
                                 ['name' => 'Kimia: Laju Reaksi', 'desc' => 'Termokimia & Kesetimbangan', 'badge' => 'KIM'],
                                 ['name' => 'Fisika Fluida & Termo', 'desc' => 'Hukum Bernoulli & Viskositas', 'badge' => 'FIS'],
@@ -455,7 +462,8 @@
                             'tag' => 'KELAS 12',
                             'title' => 'Asesmen Pilihan Kelas XII',
                             'badge' => 'Persiapan Akhir Siswa',
-                            'ready' => '3 Paket Siap',
+                            'ready' => '3 Paket',
+                            'url' => route('assessments.index', ['grade_level' => '12 SMA']),
                             'items' => [
                                 ['name' => 'TryOut Akbar UTBK 2026', 'desc' => 'TPS, Literasi & Penalaran MTK', 'badge' => 'UTBK'],
                                 ['name' => 'Ujian Sekolah Kelulusan', 'desc' => 'Standar USBN Nasional 2026', 'badge' => 'USBN'],
@@ -466,7 +474,8 @@
                             'tag' => 'TKA AKADEMIK',
                             'title' => 'Tes Kemampuan Akademik',
                             'badge' => '',
-                            'ready' => '3 Paket Siap',
+                            'ready' => '3 Paket',
+                            'url' => route('assessments.index', ['grade_level' => 'TKASMA']),
                             'items' => [
                                 ['name' => 'Fisika Modern & Optik', 'desc' => 'Kuantum, Atom & Gelombang', 'badge' => 'FIS'],
                                 ['name' => 'Kimia Organik & Polimer', 'desc' => 'Gugus Fungsi & Makromolekul', 'badge' => 'KIM'],
@@ -477,7 +486,8 @@
                             'tag' => 'SMP PRO',
                             'title' => 'SMP Akselerasi Favorit',
                             'badge' => '',
-                            'ready' => '3 Paket Siap',
+                            'ready' => '3 Paket',
+                            'url' => route('assessments.index', ['grade_level' => 'TKASMP']),
                             'items' => [
                                 ['name' => 'Matematika Olimpiade SMP', 'desc' => 'Teori Bilangan & Kombinatorika', 'badge' => 'MTK'],
                                 ['name' => 'IPA Terpadu Lanjut', 'desc' => 'Mekanika Fisika & Sel Tubuh', 'badge' => 'IPA'],
@@ -488,7 +498,8 @@
                             'tag' => 'SD PRO',
                             'title' => 'SD Berprestasi & AKM',
                             'badge' => '',
-                            'ready' => '3 Paket Siap',
+                            'ready' => '3 Paket',
+                            'url' => route('assessments.index', ['grade_level' => 'TKASD']),
                             'items' => [
                                 ['name' => 'Olimpiade Sains Kuark SD', 'desc' => 'Eksperimen & Alam Sekitar', 'badge' => 'IPA'],
                                 ['name' => 'Matematika Nalaria Realistik', 'desc' => 'Problem Solving & Logika Dasar', 'badge' => 'MTK'],
@@ -505,14 +516,15 @@
                 @foreach($activeProGroups as $pKey)
                     @if(isset($renderedCards[$pKey]))
                         @php $card = $renderedCards[$pKey]; @endphp
-                        <div class="w-[84vw] sm:w-[360px] aspect-square rounded-3xl theme-card border theme-border shadow-sm hover:shadow-md spring-ease p-5 sm:p-6 flex flex-col justify-between shrink-0 snap-start">
-                            <div>
+                        <div class="w-[84vw] sm:w-[360px] aspect-square rounded-3xl theme-card border theme-border shadow-sm hover:shadow-md spring-ease p-5 sm:p-6 flex flex-col justify-between shrink-0 snap-start cursor-pointer group/card"
+                             onclick="if (!event.target.closest('a, button')) window.location.href = '{{ $card['url'] ?? route('assessments.index') }}'">
+                            <a href="{{ $card['url'] ?? route('assessments.index') }}" class="block group/title hover:opacity-85 transition-opacity">
                                 <span class="text-[11px] font-extrabold uppercase tracking-widest theme-subtext block">{{ $card['tag'] }}</span>
-                                <h3 class="text-lg sm:text-2xl font-black theme-heading tracking-tight leading-tight mt-0.5">{{ $card['title'] }}</h3>
+                                <h3 class="text-lg sm:text-2xl font-black theme-heading tracking-tight leading-tight mt-0.5 group-hover/title:underline decoration-2 underline-offset-2">{{ $card['title'] }}</h3>
                                 @if(!empty($card['badge']))
                                     <p class="text-[11px] sm:text-xs text-amber-500 font-semibold mt-1 line-clamp-1">{{ $card['badge'] }}</p>
                                 @endif
-                            </div>
+                            </a>
 
                             <div class="space-y-3 my-auto">
                                 @foreach($card['items'] as $item)
@@ -537,8 +549,13 @@
                             </div>
 
                             <div class="pt-2 border-t theme-border flex items-center justify-between text-[11px] theme-subtext">
-                                <span class="truncate max-w-[220px]">{{ $card['badge'] ?: $card['tag'] }}</span>
-                                <span class="font-mono font-bold theme-heading shrink-0">{{ $card['ready'] }}</span>
+                                <a href="{{ $card['url'] ?? route('assessments.index') }}" class="truncate max-w-[200px] hover:underline">{{ $card['badge'] ?: $card['tag'] }}</a>
+                                <a href="{{ $card['url'] ?? route('assessments.index') }}" 
+                                   class="font-mono font-bold theme-heading shrink-0 hover:underline inline-flex items-center gap-1 group/pkg py-0.5 px-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                   title="Lihat semua paket asesmen {{ $card['tag'] }}">
+                                    <span>{{ $card['ready'] }}</span>
+                                    <svg class="w-3.5 h-3.5 opacity-70 group-hover/pkg:translate-x-0.5 group-hover/pkg:-translate-y-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+                                </a>
                             </div>
                         </div>
                     @endif

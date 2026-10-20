@@ -66,7 +66,7 @@
                         <x-radix-icon name="magnifying-glass" class="w-3.5 h-3.5" />
                     </span>
                     <input type="text" name="search" value="{{ request('search') }}" 
-                           placeholder="Cari judul ujian..." 
+                           placeholder="Cari judul, mapel, materi, token ujian..." 
                            class="w-full rounded-lg border border-gray-7 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none">
                 </div>
 
@@ -92,6 +92,15 @@
                     </select>
                 </div>
 
+                <div class="w-full sm:w-28 shrink-0">
+                    <select name="price_type" onchange="this.form.submit()" 
+                            class="w-full rounded-lg border border-gray-7 bg-white px-2 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
+                        <option value="">Semua Biaya</option>
+                        <option value="free" {{ request('price_type') === 'free' ? 'selected' : '' }}>Gratis</option>
+                        <option value="paid" {{ request('price_type') === 'paid' ? 'selected' : '' }}>Berbayar</option>
+                    </select>
+                </div>
+
                 @if($canManage)
                     <div class="w-full sm:w-20 shrink-0">
                         <select name="status" onchange="this.form.submit()" 
@@ -108,7 +117,7 @@
                     Filter
                 </button>
 
-                @if(request()->hasAny(['search', 'grade_level', 'subject_id', 'status', 'type']))
+                @if(request()->hasAny(['search', 'grade_level', 'subject_id', 'status', 'type', 'price_type']))
                     <a href="{{ route('assessments.index') }}" class="px-2 py-1.5 rounded-lg bg-gray-2 hover:bg-gray-3 text-gray-11 hover:text-gray-12 text-xs font-semibold flex items-center justify-center transition-colors shrink-0">
                         Reset
                     </a>
@@ -130,7 +139,7 @@
                             @if($canManage)
                                 <th class="py-3.5 px-4 text-center">Awasi</th>
                             @else
-                                <th class="py-3.5 px-4 text-center">HARI (percobaan)</th>
+                                <th class="py-3.5 px-4 text-center">Biaya / Akses</th>
                             @endif
                             <th class="py-3.5 px-5 text-right">Aksi</th>
                         </tr>
@@ -147,6 +156,11 @@
                                         <span class="text-gray-6">•</span>
                                         <span class="inline-flex items-center text-gray-11 font-medium">{{ $item->subject?->name ?? 'Umum' }}</span>
                                     </p>
+                                    @if(!empty(trim((string) $item->description)))
+                                        <div class="text-[11px] text-gray-10 mt-1 line-clamp-1 prose prose-xs max-w-none prose-p:my-0">
+                                            {!! \App\Support\MarkdownRenderer::render($item->description) !!}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="py-3.5 px-4 text-gray-12">
                                     <div class="flex flex-col gap-1 text-xs">
@@ -185,21 +199,28 @@
                                 @else
                                     @php
                                         $userAccess = $item->accesses->first();
+                                        $hasAccess = $userAccess ? $userAccess->isValid() : ($user ? $user->hasPurchasedAssessment($item) : false);
                                         $days = $userAccess ? $userAccess->daysRemaining() : 0;
                                         $attempts = $userAccess ? $userAccess->availableAttempts() : 0;
-                                        $isFree = ($item->price_type === 'free' || (float) $item->price <= 0);
+                                        $isPaid = $item->isPaid();
                                     @endphp
                                     <td class="py-3.5 px-4 text-center whitespace-nowrap">
-                                        @if($isFree)
+                                        @if(! $isPaid)
                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                Free (Forever)
+                                                Gratis
+                                            </span>
+                                        @elseif($hasAccess)
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300" title="Akses Aktif: Sisa {{ $days }} Hari, {{ $attempts }}x percobaan">
+                                                Aktif ({{ $attempts }}x)
                                             </span>
                                         @elseif($userAccess)
-                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold {{ $userAccess->isValid() ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-gray-100 text-gray-600 border border-gray-300' }}">
-                                                {{ $days }} Hari ({{ $attempts }}x)
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300" title="Masa aktif atau kuota percobaan telah habis">
+                                                Kedaluwarsa
                                             </span>
                                         @else
-                                            <span class="text-xs text-gray-9 font-medium">Belum Dibeli / -</span>
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#fff9db] text-[#e67700] border border-[#fcc419]">
+                                                {{ $item->formatted_price }}
+                                            </span>
                                         @endif
                                     </td>
                                 @endif
@@ -260,18 +281,32 @@
                                                             aria-label="Hapus Ujian">
                                                         <x-radix-icon name="trash" class="w-4 h-4" />
                                                         <span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-gray-900 text-white text-[11px] font-medium rounded-md px-2 py-1 shadow-lg whitespace-nowrap z-50">
-                                                            Hapus Ujian
+                                                             Hapus Ujian
                                                         </span>
                                                     </button>
                                                 </form>
                                             @endif
                                         </div>
                                     @else
-                                        <a href="{{ route('exam.gate.show', $item) }}" 
-                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white transition-colors shadow-xs">
-                                            <span>Ikuti Ujian</span>
-                                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5" />
-                                        </a>
+                                        @php
+                                            $userAccess = $item->accesses->first();
+                                            $hasAccess = $userAccess ? $userAccess->isValid() : ($user ? $user->hasPurchasedAssessment($item) : false);
+                                            $isPaid = $item->isPaid();
+                                        @endphp
+                                        @if($isPaid && ! $hasAccess)
+                                            <a href="{{ route('orders.checkout', $item) }}" 
+                                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#ffd43b] hover:bg-[#fcc419] text-[#e67700] border border-[#fcc419] transition-all shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
+                                               title="Beli akses untuk mengikuti asesmen ini">
+                                                <x-radix-icon name="tokens" class="w-3.5 h-3.5 text-[#e67700]" />
+                                                <span>Beli ({{ $item->formatted_price }})</span>
+                                            </a>
+                                        @else
+                                            <a href="{{ route('exam.gate.show', $item) }}" 
+                                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white transition-colors shadow-xs whitespace-nowrap">
+                                                <span>Ikuti Ujian</span>
+                                                <x-radix-icon name="arrow-right" class="w-3.5 h-3.5" />
+                                            </a>
+                                        @endif
                                     @endif
                                 </td>
                             </tr>
