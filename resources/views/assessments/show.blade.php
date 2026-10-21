@@ -47,57 +47,81 @@
                             </span>
                         @endif
                     </div>
-                    <h1 class="font-display font-extrabold text-2xl text-gray-12 tracking-tight mt-1">
-                        {{ $assessment->title }}
-                    </h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <h1 class="font-display font-extrabold text-2xl text-gray-12 tracking-tight">
+                            {{ $assessment->title }}
+                        </h1>
+                        @if($canManage)
+                            <button type="button"
+                                    @click="$dispatch('open-edit-assessment-modal', { title: @js($assessment->title), description: @js($assessment->description ?? '') })"
+                                    onclick="window.openEditAssessmentModal && window.openEditAssessmentModal({ title: @js($assessment->title), description: @js($assessment->description ?? '') })"
+                                    class="p-1.5 rounded-lg text-gray-9 hover:text-blue-11 hover:bg-blue-3 transition-colors cursor-pointer"
+                                    title="Edit Judul & Deskripsi Asesmen">
+                                <x-radix-icon name="pencil-1" class="w-4 h-4" />
+                            </button>
+                        @endif
+                    </div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 flex-wrap">
-                @if($canManage)
-                    <form method="POST" action="{{ route('assessments.toggle-status', $assessment) }}" class="inline">
-                        @csrf
-                        @method('PATCH')
-                        @if($assessment->status === 'published')
-                            <button type="submit" onclick="return confirm('Apakah Anda yakin ingin menonaktifkan asesmen ini? Siswa tidak akan dapat melihat atau mengakses ujian ini.')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Klik untuk menonaktifkan asesmen (menjadi Draf)">
-                                <x-radix-icon name="eye-closed" class="w-4 h-4 text-amber-700" />
-                                <span>Nonaktifkan Asesmen</span>
-                            </button>
-                        @else
-                            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Klik untuk mengaktifkan asesmen agar tayang untuk siswa">
-                                <x-radix-icon name="check-circled" class="w-4 h-4 text-white" />
-                                <span>Aktifkan Asesmen</span>
-                            </button>
-                        @endif
-                    </form>
-                    <a href="{{ route('assessments.grading', $assessment) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Koreksi Lembar Jawaban & Nilai Final Siswa">
-                        <x-radix-icon name="pencil-2" class="w-4 h-4 text-white" />
-                        <span>Koreksi & Nilai</span>
-                    </a>
-                    <a href="{{ route('assessments.proctoring', $assessment) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Masuk ke Ruang Pengawasan Ujian Real-Time">
-                        <x-radix-icon name="desktop" class="w-4 h-4 text-white" />
-                        <span>Ruang Pengawasan</span>
-                    </a>
-                    <a href="{{ route('assessments.result-preview', $assessment) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold transition-colors cursor-pointer" title="Lihat Tampilan Hasil Ujian Pasca Pengerjaan Siswa">
-                        <x-radix-icon name="eye-open" class="w-4 h-4 text-emerald-700" />
-                        <span>Pratinjau Hasil</span>
-                    </a>
-                    <form method="POST" action="{{ route('assessments.generate-explanations', $assessment) }}" class="inline"
-                          x-data="{ submitting: false }" @submit="submitting = true">
-                        @csrf
-                        <button type="submit" :disabled="submitting" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-75 active:scale-95" title="Generate Pembahasan AI untuk semua butir soal dengan DeepSeek Reasoner">
-                            <svg x-show="submitting" class="w-3.5 h-3.5 animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="4" opacity=".2"/><path stroke-width="4" d="M12 2a10 10 0 0 1 10 10"/></svg>
-                            <x-radix-icon x-show="!submitting" name="magic-wand" class="w-4 h-4 text-white" />
-                            <span x-text="submitting ? 'Memproses...' : 'Pembahasan AI'">Pembahasan AI</span>
+            @if($canManage)
+                <div class="flex flex-col sm:items-end gap-2 shrink-0">
+                    <!-- Baris 1: Edit Judul & Deskripsi, Pembahasan AI, Nonaktifkan Asesmen -->
+                    <div class="flex items-center gap-2 flex-wrap justify-end">
+                        <button type="button"
+                                @click="$dispatch('open-edit-assessment-modal', { title: @js($assessment->title), description: @js($assessment->description ?? '') })"
+                                onclick="window.openEditAssessmentModal && window.openEditAssessmentModal({ title: @js($assessment->title), description: @js($assessment->description ?? '') })"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                                title="Edit Judul & Petunjuk Pengerjaan Asesmen">
+                            <x-radix-icon name="pencil-2" class="w-4 h-4 text-blue-700" />
+                            <span>Edit Judul &amp; Deskripsi</span>
                         </button>
-                    </form>
-                    @if($canCreate)
-                        <a href="{{ route('assessments.wizard') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300 text-xs font-semibold transition-colors cursor-pointer">
-                            <x-radix-icon name="plus" class="w-4 h-4 text-gray-700" />
-                            <span>Buat Ujian Lain</span>
+
+                        <form method="POST" action="{{ route('assessments.generate-explanations', $assessment) }}" class="inline"
+                              x-data="{ submitting: false }" @submit="submitting = true">
+                            @csrf
+                            <button type="submit" :disabled="submitting" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-75 active:scale-95" title="Generate Pembahasan AI untuk semua butir soal dengan DeepSeek Reasoner">
+                                <svg x-show="submitting" class="w-3.5 h-3.5 animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="4" opacity=".2"/><path stroke-width="4" d="M12 2a10 10 0 0 1 10 10"/></svg>
+                                <x-radix-icon x-show="!submitting" name="magic-wand" class="w-4 h-4 text-white" />
+                                <span x-text="submitting ? 'Memproses...' : 'Pembahasan AI'">Pembahasan AI</span>
+                            </button>
+                        </form>
+
+                        <form method="POST" action="{{ route('assessments.toggle-status', $assessment) }}" class="inline">
+                            @csrf
+                            @method('PATCH')
+                            @if($assessment->status === 'published')
+                                <button type="submit" onclick="return confirm('Apakah Anda yakin ingin menonaktifkan asesmen ini? Siswa tidak akan dapat melihat atau mengakses ujian ini.')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Klik untuk menonaktifkan asesmen (menjadi Draf)">
+                                    <x-radix-icon name="eye-closed" class="w-4 h-4 text-amber-700" />
+                                    <span>Nonaktifkan Asesmen</span>
+                                </button>
+                            @else
+                                <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Klik untuk mengaktifkan asesmen agar tayang untuk siswa">
+                                    <x-radix-icon name="check-circled" class="w-4 h-4 text-white" />
+                                    <span>Aktifkan Asesmen</span>
+                                </button>
+                            @endif
+                        </form>
+                    </div>
+
+                    <!-- Baris 2: Koreksi & Nilai, Ruang Pengawasan, Pratinjau Hasil -->
+                    <div class="flex items-center gap-2 flex-wrap justify-end">
+                        <a href="{{ route('assessments.grading', $assessment) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Koreksi Lembar Jawaban & Nilai Final Siswa">
+                            <x-radix-icon name="pencil-2" class="w-4 h-4 text-white" />
+                            <span>Koreksi & Nilai</span>
                         </a>
-                    @endif
-                @else
+                        <a href="{{ route('assessments.proctoring', $assessment) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95" title="Masuk ke Ruang Pengawasan Ujian Real-Time">
+                            <x-radix-icon name="desktop" class="w-4 h-4 text-white" />
+                            <span>Ruang Pengawasan</span>
+                        </a>
+                        <a href="{{ route('assessments.result-preview', $assessment) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold transition-colors cursor-pointer" title="Lihat Tampilan Hasil Ujian Pasca Pengerjaan Siswa">
+                            <x-radix-icon name="eye-open" class="w-4 h-4 text-emerald-700" />
+                            <span>Pratinjau Hasil</span>
+                        </a>
+                    </div>
+                </div>
+            @else
+                <div class="flex items-center gap-2 justify-end">
                     @if($assessment->price_type === 'paid' && (float) $assessment->price > 0 && ! ($user && $user->hasPurchasedAssessment($assessment)))
                         <a href="{{ route('orders.checkout', $assessment) }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#ffd43b] hover:bg-[#fcc419] text-[#e67700] border border-[#fcc419] text-xs font-extrabold transition-all shadow-xs cursor-pointer active:scale-95">
                             <x-radix-icon name="tokens" class="w-4 h-4 text-[#e67700]" />
@@ -109,8 +133,8 @@
                             <span>Mulai Kerjakan Ujian</span>
                         </a>
                     @endif
-                @endif
-            </div>
+                </div>
+            @endif
         </div>
 
         @if($user && $user->isSuperUser())
@@ -219,7 +243,10 @@
 
         @if($assessment->description)
             <div class="p-5 rounded-2xl border border-gray-6 bg-white text-xs text-gray-11 leading-relaxed shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
-                <span class="font-bold text-gray-12 block mb-1 text-sm">Petunjuk Umum & Arahan Pengerjaan:</span>
+                <span class="font-bold text-gray-12 block mb-1 text-sm flex items-center gap-2">
+                    <x-radix-icon name="file-text" class="w-4 h-4 text-gray-10" />
+                    <span>Petunjuk Umum &amp; Arahan Pengerjaan:</span>
+                </span>
                 <div class="prose prose-sm text-gray-11">
                     {!! \App\Support\MarkdownRenderer::render($assessment->description) !!}
                 </div>
@@ -635,6 +662,7 @@
         @endif
 
         @if($canManage)
+            @include('assessments.partials.edit-assessment-modal')
             @include('assessments.partials.edit-question-modal')
         @endif
     </div>

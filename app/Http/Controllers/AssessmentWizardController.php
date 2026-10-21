@@ -569,6 +569,48 @@ class AssessmentWizardController extends Controller
     }
 
     /**
+     * Update the specified assessment details (Judul dan Deskripsi / Petunjuk Ujian).
+     */
+    public function update(Request $request, Assessment $assessment): JsonResponse|RedirectResponse
+    {
+        $user = Auth::user();
+        if (! $user || (! $user->isTeacher() && ! $user->isAdmin() && ! $user->isSuperUser())) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk mengubah data asesmen.');
+        }
+
+        if (! $user->isSuperUser() && $assessment->tenant_id !== null) {
+            $userTenantIds = $user->tenants->pluck('id')->all();
+            if (! in_array($assessment->tenant_id, $userTenantIds, true) && $user->current_tenant_id !== $assessment->tenant_id) {
+                abort(403, 'Akses ditolak: Anda tidak memiliki wewenang mengedit asesmen milik institusi lain.');
+            }
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $assessment->update([
+            'title' => trim($validated['title']),
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        $msg = "Judul dan deskripsi asesmen '{$assessment->title}' berhasil diperbarui.";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'title' => $assessment->title,
+                'description' => $assessment->description,
+            ]);
+        }
+
+        return redirect()->route('assessments.show', $assessment)
+            ->with('success', $msg);
+    }
+
+    /**
      * Download sample Microsoft Word (.docx) or Markdown (.md) question template.
      */
     public function downloadTemplate(Request $request, WordQuestionService $service): BinaryFileResponse
