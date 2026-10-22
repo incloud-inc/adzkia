@@ -487,24 +487,26 @@
 
                     // 4. Transformasi Teks Biasa (di luar blok matematika resmi):
                     // A. Akar pangkat verbal: "akar pangkat 3 dari 8" -> $\sqrt[3]{8}$
-                    processed = processed.replace(/(^|[^\$\\])akar\s+pangkat\s+([0-9a-zA-Z]+)\s+dari\s+([^\s,\.\?!;:]+)/gi, '$1$\\sqrt[$2]{$3}$');
+                    // Batasi dengan (^|[^a-zA-Z0-9_\$\\]) agar tidak memotong kata lain seperti "lokakarya", "jakarta", "yogyakarta", dll.
+                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])akar\s+pangkat\s+([0-9a-zA-Z]+)\s+dari\s+([^\s,\.\?!;:]+)/gi, '$1$\\sqrt[$2]{$3}$');
 
                     // B. Akar derajat kurung siku: sqrt[3]{8}, akar[3]{8}, sqrt[3](8), akar[3](8)
-                    processed = processed.replace(/(^|[^\$\\])(?:sqrt|akar)\s*\[([^\]]+)\]\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/gi, function(m, p, deg, e1, e2, e3) {
+                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])(?:sqrt|akar)\s*\[([^\]]+)\]\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9]+(?:\.[0-9]+)?))/gi, function(m, p, deg, e1, e2, e3) {
                         return p + '$\\sqrt[' + deg + ']{' + (e1 || e2 || e3) + '}$';
                     });
 
-                    // C. Akar biasa: sqrt{x}, sqrt(x), akar{x}, akar(x), akar 25
-                    processed = processed.replace(/(^|[^\$\\])(?:sqrt|akar)\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/gi, function(m, p, e1, e2, e3) {
+                    // C. Akar biasa: sqrt{x}, sqrt(x), akar{x}, akar(x), dan sqrt dengan angka: sqrt 25, sqrt 16
+                    // PENTING: Kata "akar" dalam bahasa Indonesia TIDAK BOLEH diubah jika bukan kurung kurawal/biasa {x} atau (x).
+                    // Ini mencegah kata seperti "lokakarya", "jakarta", "yogyakarta", "kebakaran", "pakar", "akar pohon", "akar masalah" rusak menjadi \sqrt.
+                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])(?:(?:sqrt|akar)\s*(?:\{([^}]+)\}|\(([^\)]+)\))|sqrt\s*([0-9]+(?:\.[0-9]+)?))/gi, function(m, p, e1, e2, e3) {
                         const expr = (e1 || e2 || e3);
-                        if (/^(masalah|rumput|pohon|tunggang|serabut)$/i.test(expr)) return m;
                         return p + '$\\sqrt{' + expr + '}$';
                     });
 
                     // D. Simbol akar Unicode: ∜x, ∛x, √x
-                    processed = processed.replace(/(^|[^\$\\])∜\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[4]{' + (e1 || e2 || e3) + '}$'; });
-                    processed = processed.replace(/(^|[^\$\\])∛\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[3]{' + (e1 || e2 || e3) + '}$'; });
-                    processed = processed.replace(/(^|[^\$\\])√\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt{' + (e1 || e2 || e3) + '}$'; });
+                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])∜\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[4]{' + (e1 || e2 || e3) + '}$'; });
+                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])∛\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[3]{' + (e1 || e2 || e3) + '}$'; });
+                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])√\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt{' + (e1 || e2 || e3) + '}$'; });
 
                     // E. Makro LaTeX terbuka tanpa $ di teks biasa: \sqrt[n]{x}, \sqrt{x}, \frac{a}{b}, dsb.
                     processed = processed.replace(/(^|[^\$\\])(\\sqrt\[[^\]]+\]\{[^{}]+\})(?!\$)/g, '$1$$$2$$');
@@ -528,11 +530,15 @@
 
                     // Media audio/video/image
                     processed = processed.replace(/<audio\b([^>]*)>(.*?)<\/audio>/gi, function(match, attrs, content) {
-                        const cleanAttrs = (attrs || '').replace(/\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?/gi, '');
+                        let cleanAttrs = (attrs || '').replace(/\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?/gi, '');
+                        cleanAttrs = cleanAttrs.replace(/https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/media\/r2\//gi, '/media/r2/');
+                        cleanAttrs = cleanAttrs.replace(/https:\/\/[a-zA-Z0-9_-]+\.r2\.dev\/asesmen\//gi, '/media/r2/asesmen/');
                         return `<div class="my-2 p-2.5 rounded-xl bg-gray-2 border border-gray-6"><span class="text-[11px] font-bold text-gray-10 block mb-1">🔊 Pratinjau Audio:</span><audio controls preload="metadata" ${cleanAttrs} class="w-full">${content}</audio></div>`;
                     });
                     processed = processed.replace(/<video\b([^>]*)>(.*?)<\/video>/gi, function(match, attrs, content) {
-                        const cleanAttrs = (attrs || '').replace(/\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?/gi, '');
+                        let cleanAttrs = (attrs || '').replace(/\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?/gi, '');
+                        cleanAttrs = cleanAttrs.replace(/https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/media\/r2\//gi, '/media/r2/');
+                        cleanAttrs = cleanAttrs.replace(/https:\/\/[a-zA-Z0-9_-]+\.r2\.dev\/asesmen\//gi, '/media/r2/asesmen/');
                         return `<div class="my-2 p-2 rounded-xl bg-black/5 border border-gray-6"><video controls preload="metadata" ${cleanAttrs} class="w-full max-h-60 rounded-lg object-contain bg-black">${content}</video></div>`;
                     });
                     processed = processed.replace(/!\[(.*?)\]\((.*?)\)/g, function(match, alt, url) {
@@ -540,9 +546,11 @@
                         if (!cleanUrl) {
                             return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-2 text-amber-11 border border-amber-5 text-xs animate-pulse">⏳ ' + (alt || 'Sedang mengunggah media...') + '</span>';
                         }
-                        // Jika URL mengarah ke *.r2.dev (yang diblokir DNS ISP di Indonesia), alihkan otomatis ke proxy lokal /media/r2
+                        // Jika URL mengarah ke *.r2.dev atau URL localhost / 127.0.0.1, alihkan otomatis ke proxy lokal /media/r2
                         if (cleanUrl.includes('.r2.dev/asesmen/')) {
                             cleanUrl = '/media/r2/asesmen/' + cleanUrl.split('.r2.dev/asesmen/')[1];
+                        } else if (/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/media\/r2\/(.+)$/i.test(cleanUrl)) {
+                            cleanUrl = '/media/r2/' + cleanUrl.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/media\/r2\//i, '');
                         }
                         if (/\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/i.test(cleanUrl)) {
                             return '<div class="my-2 p-2.5 rounded-xl bg-gray-2 border border-gray-6"><span class="text-[11px] font-bold text-gray-10 block mb-1">🔊 Pratinjau Audio: ' + (alt || '') + '</span><audio controls src="' + cleanUrl + '" class="w-full"></audio></div>';

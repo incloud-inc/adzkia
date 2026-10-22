@@ -3,6 +3,7 @@
 use App\Models\Assessment;
 use App\Models\ExamSession;
 use App\Models\Question;
+use App\Models\QuestionGroup;
 use App\Models\QuestionOption;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -42,43 +43,108 @@ Artisan::command('assessments:insert-grade12-image', function () {
 })->purpose('Sisipkan gambar Cloudflare R2 ke butir soal nomor 1 kelas 12');
 
 Artisan::command('assessments:fix-r2-urls', function () {
-    $this->info('Memperbaiki URL Cloudflare R2 (*.r2.dev) ke media proxy (/media/r2/) pada bank soal dan opsi...');
+    $this->info('Memperbaiki URL Cloudflare R2 / localhost dan kata rusak (\sqrt) pada bank soal, opsi, dan stimulus...');
+
+    $repairText = function (?string $text): ?string {
+        if (! $text) {
+            return $text;
+        }
+
+        // 1. Perbaiki URL media hardcoded localhost / 127.0.0.1 / r2.dev ke relative /media/r2/
+        $text = preg_replace(
+            '/https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/media\/r2\/([^\s\)\"\']+)/i',
+            '/media/r2/$1',
+            $text
+        );
+        $text = preg_replace(
+            '/https:\/\/[a-zA-Z0-9_-]+\.r2\.dev\/(asesmen\/[^\s\)\"\']+)/i',
+            '/media/r2/$1',
+            $text
+        );
+
+        // 2. Perbaiki kata-kata kota / nama yang sebelumnya rusak terpotong simbol akar (\sqrt)
+        $replacements = [
+            'Yogy$\\sqrt{ta}$' => 'Yogyakarta',
+            'Yogy\\sqrt{ta}' => 'Yogyakarta',
+            'J$\\sqrt{ta}$' => 'Jakarta',
+            'J\\sqrt{ta}' => 'Jakarta',
+            'Sur$\\sqrt{ta}$' => 'Surakarta',
+            'Sur\\sqrt{ta}' => 'Surakarta',
+            'Suk$\\sqrt{ya}$' => 'Sukakarya',
+            'Suk\\sqrt{ya}' => 'Sukakarya',
+            'Lok$\\sqrt{ya}$' => 'Lokakarya',
+            'Lok\\sqrt{ya}' => 'Lokakarya',
+            'M$\\sqrt{im}$' => 'Makarim',
+            'M\\sqrt{im}' => 'Makarim',
+            'keb$\\sqrt{an}$' => 'kebakaran',
+            'keb\\sqrt{an}' => 'kebakaran',
+            'pemb$\\sqrt{an}$' => 'pembakaran',
+            'pemb\\sqrt{an}' => 'pembakaran',
+            '$\\sqrt{kuadrat}$' => 'akar kuadrat',
+            '\\sqrt{kuadrat}' => 'akar kuadrat',
+            '$\\sqrt{masalah}$' => 'akar masalah',
+            '\\sqrt{masalah}' => 'akar masalah',
+        ];
+        $text = str_replace(array_keys($replacements), array_values($replacements), $text);
+
+        // 3. Perbaiki pola "bakar <kata>" dan "pakar <kata>"
+        $text = preg_replace('/b\$?\\\\sqrt\{([a-zA-Z]+)\}\$?/u', 'bakar $1', $text);
+        $text = preg_replace('/p\$?\\\\sqrt\{([a-zA-Z]+)\}\$?/u', 'pakar $1', $text);
+
+        return $text;
+    };
 
     $questionCount = 0;
     Question::withoutGlobalScopes()
-        ->where('prompt', 'like', '%r2.dev%')
-        ->chunk(100, function ($questions) use (&$questionCount) {
+        ->chunk(100, function ($questions) use (&$questionCount, $repairText) {
             foreach ($questions as $q) {
-                $newPrompt = preg_replace(
-                    '/https:\/\/[a-zA-Z0-9_-]+\.r2\.dev\/(asesmen\/[^\s\)\"\']+)/i',
-                    '/media/r2/$1',
-                    $q->prompt
-                );
-                if ($newPrompt !== $q->prompt) {
-                    $q->forceFill(['prompt' => $newPrompt])->save();
+                $newPrompt = $repairText($q->prompt);
+                $newExp = $repairText($q->explanation);
+                if ($newPrompt !== $q->prompt || $newExp !== $q->explanation) {
+                    $q->forceFill([
+                        'prompt' => $newPrompt,
+                        'explanation' => $newExp,
+                    ])->save();
                     $questionCount++;
                 }
             }
         });
 
     $optionCount = 0;
-    QuestionOption::where('option_text', 'like', '%r2.dev%')
-        ->chunk(100, function ($options) use (&$optionCount) {
-            foreach ($options as $opt) {
-                $newText = preg_replace(
-                    '/https:\/\/[a-zA-Z0-9_-]+\.r2\.dev\/(asesmen\/[^\s\)\"\']+)/i',
-                    '/media/r2/$1',
-                    $opt->option_text
-                );
-                if ($newText !== $opt->option_text) {
-                    $opt->forceFill(['option_text' => $newText])->save();
-                    $optionCount++;
-                }
+    QuestionOption::chunk(100, function ($options) use (&$optionCount, $repairText) {
+        foreach ($options as $opt) {
+            $newText = $repairText($opt->option_text);
+            if ($newText !== $opt->option_text) {
+                $opt->forceFill(['option_text' => $newText])->save();
+                $optionCount++;
             }
-        });
+        }
+    });
 
-    $this->info("Selesai! {$questionCount} soal dan {$optionCount} opsi jawaban berhasil dialihkan ke /media/r2/.");
-})->purpose('Perbaiki URL R2 terblokir menjadi media proxy lokal');
+    $groupCount = 0;
+    QuestionGroup::chunk(100, function ($groups) use (&$groupCount, $repairText) {
+        foreach ($groups as $g) {
+            $newStim = $repairText($g->stimulus_content);
+            if ($newStim !== $g->stimulus_content) {
+                $g->forceFill(['stimulus_content' => $newStim])->save();
+                $groupCount++;
+            }
+        }
+    });
+
+    $assessmentCount = 0;
+    Assessment::withoutGlobalScopes()->chunk(100, function ($assessments) use (&$assessmentCount, $repairText) {
+        foreach ($assessments as $a) {
+            $newDesc = $repairText($a->description);
+            if ($newDesc !== $a->description) {
+                $a->forceFill(['description' => $newDesc])->save();
+                $assessmentCount++;
+            }
+        }
+    });
+
+    $this->info("Selesai! {$questionCount} butir soal, {$optionCount} opsi jawaban, {$groupCount} grup stimulus, dan {$assessmentCount} asesmen berhasil diperbaiki.");
+})->purpose('Perbaiki URL media menjadi proxy lokal dan pulihkan kata rusak simbol akar');
 
 Artisan::command('assessments:randomize-options', function () {
     $this->info('Mengaktifkan randomize_questions & randomize_options pada seluruh asesmen...');

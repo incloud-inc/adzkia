@@ -266,8 +266,8 @@ class WordQuestionService
                     if (Storage::disk($disk)->put($path, $imageBinary, 'public')) {
                         $url = Storage::disk($disk)->url($path);
                         if (! empty($url)) {
-                            if (str_contains($url, '.r2.dev/')) {
-                                $url = function_exists('url') ? url('/media/r2/'.$path) : $url;
+                            if (str_contains($url, '.r2.dev/') || preg_match('/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/media\/r2\//i', $url)) {
+                                $url = '/media/r2/'.$path;
                             }
 
                             return $url;
@@ -1001,25 +1001,26 @@ class WordQuestionService
 
         // 4. Transformasi akar pangkat verbal bahasa Indonesia:
         // Contoh: "akar pangkat 3 dari 27", "akar pangkat n dari x"
-        $text = preg_replace_callback('/akar\s+pangkat\s+([0-9a-zA-Z]+)\s+dari\s+([^\s,\.\?!;:]+)/iu', function ($m) use ($protect) {
+        // Batasi dengan (?<![a-zA-Z0-9_\$\\\\]) agar tidak memotong kata lain seperti "lokakarya", "jakarta", "yogyakarta", dll.
+        $text = preg_replace_callback('/(?<![a-zA-Z0-9_\$\\\\])akar\s+pangkat\s+([0-9a-zA-Z]+)\s+dari\s+([^\s,\.\?!;:]+)/iu', function ($m) use ($protect) {
             return $protect('$\\sqrt['.trim($m[1]).']{'.trim($m[2]).'}$');
         }, $text);
 
         // 5. Transformasi notasi sqrt & akar dengan derajat kurung siku:
-        // Contoh: sqrt[n]{x}, sqrt[n](x), akar[n]{x}, akar[n](x), akar[n] x
-        $text = preg_replace_callback('/(?:sqrt|akar)\s*\[([^\]]+)\]\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/iu', function ($m) use ($protect) {
+        // Contoh: sqrt[n]{x}, sqrt[n](x), akar[n]{x}, akar[n](x)
+        $text = preg_replace_callback('/(?<![a-zA-Z0-9_\$\\\\])(?:sqrt|akar)\s*\[([^\]]+)\]\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9]+(?:\.[0-9]+)?))/iu', function ($m) use ($protect) {
             $expr = trim($m[2] !== '' ? $m[2] : ($m[3] !== '' ? $m[3] : ($m[4] ?? '')));
 
             return $protect('$\\sqrt['.trim($m[1]).']{'.$expr.'}$');
         }, $text);
 
         // 6. Transformasi notasi sqrt & akar biasa:
-        // Contoh: sqrt{x}, sqrt(x), akar{x}, akar(x), akar 25, akar x
-        $text = preg_replace_callback('/(?:sqrt|akar)\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/iu', function ($m) use ($protect) {
+        // Sqrt & akar dengan kurung kurawal atau kurung biasa: sqrt{x}, sqrt(x), akar{x}, akar(x)
+        // Dan sqrt dengan angka: sqrt 25, sqrt 144
+        // PENTING: Kata "akar" dalam bahasa Indonesia TIDAK BOLEH diubah jika bukan kurung kurawal/biasa {x} atau (x).
+        // Ini mencegah kata seperti "lokakarya", "jakarta", "yogyakarta", "kebakaran", "pakar", "akar masalah", "akar tanaman" rusak menjadi \sqrt.
+        $text = preg_replace_callback('/(?<![a-zA-Z0-9_\$\\\\])(?:(?:sqrt|akar)\s*(?:\{([^}]+)\}|\(([^\)]+)\))|sqrt\s*([0-9]+(?:\.[0-9]+)?))/iu', function ($m) use ($protect) {
             $expr = trim($m[1] !== '' ? $m[1] : ($m[2] !== '' ? $m[2] : ($m[3] ?? '')));
-            if (in_array(strtolower($expr), ['masalah', 'rumput', 'pohon', 'tunggang', 'serabut'], true)) {
-                return $m[0];
-            }
 
             return $protect('$\\sqrt{'.$expr.'}$');
         }, $text);

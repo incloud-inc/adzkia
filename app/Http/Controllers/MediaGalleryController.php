@@ -80,8 +80,8 @@ class MediaGalleryController extends Controller
                 }
 
                 $url = $storage->url($path);
-                if (str_contains($url, '.r2.dev/')) {
-                    $url = url('/media/r2/'.$path);
+                if (str_contains($url, '.r2.dev/') || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+                    $url = '/media/r2/'.$path;
                 }
 
                 // Clean human label from filename (e.g. word_20261005_... or random hash)
@@ -189,8 +189,8 @@ class MediaGalleryController extends Controller
         // Selalu simpan di dalam folder 'asesmen'
         $path = $file->store('asesmen', $disk);
         $url = Storage::disk($disk)->url($path);
-        if (str_contains($url, '.r2.dev/')) {
-            $url = url('/media/r2/'.$path);
+        if (str_contains($url, '.r2.dev/') || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+            $url = '/media/r2/'.$path;
         }
         $filename = basename($path);
         $label = pathinfo($filename, PATHINFO_FILENAME);

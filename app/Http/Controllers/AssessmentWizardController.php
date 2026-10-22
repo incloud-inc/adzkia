@@ -863,8 +863,8 @@ class AssessmentWizardController extends Controller
             $optimizedPath = $this->optimizeAndStoreImage($file, $disk);
             if ($optimizedPath) {
                 $url = Storage::disk($disk)->url($optimizedPath);
-                if (str_contains($url, '.r2.dev/')) {
-                    $url = url('/media/r2/'.$optimizedPath);
+                if (str_contains($url, '.r2.dev/') || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+                    $url = '/media/r2/'.$optimizedPath;
                 }
 
                 return response()->json([
@@ -878,8 +878,8 @@ class AssessmentWizardController extends Controller
 
         $path = $file->store('asesmen', $disk);
         $url = Storage::disk($disk)->url($path);
-        if (str_contains($url, '.r2.dev/')) {
-            $url = url('/media/r2/'.$path);
+        if (str_contains($url, '.r2.dev/') || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+            $url = '/media/r2/'.$path;
         }
 
         return response()->json([

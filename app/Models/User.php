@@ -62,8 +62,9 @@ class User extends Authenticatable
         }
 
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            if (str_contains($path, '.r2.dev/')) {
-                $subPath = preg_replace('/^https?:\/\/[^\/]+\//', '', $path);
+            if (str_contains($path, '.r2.dev/') || preg_match('/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/media\/r2\/(.+)$/i', $path, $m)) {
+                $subPath = ! empty($m[1]) ? $m[1] : preg_replace('/^https?:\/\/[^\/]+\//', '', $path);
+                $subPath = ltrim(preg_replace('/^media\/r2\//', '', $subPath), '/');
 
                 return function_exists('url') ? url('/media/r2/'.$subPath) : '/media/r2/'.$subPath;
             }

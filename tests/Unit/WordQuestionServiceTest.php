@@ -426,6 +426,24 @@ class WordQuestionServiceTest extends TestCase
         $this->assertStringNotContainsString('<em>', $html);
     }
 
+    public function test_it_does_not_mangle_words_containing_akar_such_as_lokakarya_and_jakarta(): void
+    {
+        $input = 'Peserta lokakarya dari Jakarta, Yogyakarta, dan Surakarta membahas kebakaran hutan bersama pakar lingkungan. Jangan sampai akar masalah tidak teratasi oleh bahan bakar fosil.';
+        $formatted = $this->service->formatMathInPlainText($input);
+
+        // Pastikan tidak ada simbol akar math \sqrt yang merusak kata-kata bahasa Indonesia
+        $this->assertStringContainsString('lokakarya', $formatted);
+        $this->assertStringContainsString('Jakarta', $formatted);
+        $this->assertStringContainsString('Yogyakarta', $formatted);
+        $this->assertStringContainsString('Surakarta', $formatted);
+        $this->assertStringContainsString('kebakaran', $formatted);
+        $this->assertStringContainsString('pakar', $formatted);
+        $this->assertStringContainsString('akar masalah', $formatted);
+        $this->assertStringContainsString('bahan bakar', $formatted);
+        $this->assertStringNotContainsString('\\sqrt', $formatted);
+        $this->assertStringNotContainsString('$', $formatted);
+    }
+
     public function test_it_parses_all_question_types_from_markdown(): void
     {
         $templateMd = $this->service->generateMarkdownTemplate();
