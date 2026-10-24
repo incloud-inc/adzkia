@@ -28,6 +28,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestionBankController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\QuestionGeneratorController;
+use App\Http\Controllers\QuestionGroupController;
 use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SubjectController;
@@ -182,6 +183,7 @@ Route::middleware(['auth'])->group(function () {
     Route::match(['put', 'patch', 'post'], 'questions/{question}/explanation', [AssessmentExplanationController::class, 'updateExplanation'])->name('questions.explanation.update');
     Route::get('questions/{question}/explanation-status', [AssessmentExplanationController::class, 'status'])->name('questions.explanation-status');
     Route::put('questions/{question}', [QuestionController::class, 'update'])->name('questions.update');
+    Route::put('question-groups/{questionGroup}', [QuestionGroupController::class, 'update'])->name('question-groups.update');
 
     Route::post('assessments/draft', [AssessmentWizardController::class, 'saveDraft'])->name('assessments.draft.save');
     Route::match(['post', 'delete'], 'assessments/draft/clear', [AssessmentWizardController::class, 'clearDraft'])->name('assessments.draft.clear');

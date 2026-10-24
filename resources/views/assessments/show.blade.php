@@ -499,10 +499,30 @@
                             <!-- 1. Question Groups (Stimulus / Narasi Berseri) -->
                             @foreach($section->questionGroups as $gIndex => $group)
                                 <div class="border border-emerald-300/80 bg-emerald-50/40 rounded-2xl p-5 space-y-4">
-                                    <div class="flex items-center gap-2">
-                                        <span class="px-2.5 py-1 rounded-md bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider shadow-2xs">
-                                            Stimulus Narasi: {{ $group->title ?? 'Wacana' }}
-                                        </span>
+                                    <div class="flex items-center justify-between gap-3 border-b border-emerald-200/80 pb-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-2.5 py-1 rounded-md bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider shadow-2xs">
+                                                Stimulus Narasi: {{ $group->title ?? 'Wacana' }}
+                                            </span>
+                                        </div>
+                                        @if($canManage)
+                                            <button type="button"
+                                                    @click="$dispatch('open-edit-stimulus-modal', {
+                                                        id: {{ $group->id }},
+                                                        title: @js($group->title ?? ''),
+                                                        stimulus_content: @js($group->stimulus_content ?? '')
+                                                    })"
+                                                    onclick="window.openEditStimulusModal && window.openEditStimulusModal({
+                                                        id: {{ $group->id }},
+                                                        title: @js($group->title ?? ''),
+                                                        stimulus_content: @js($group->stimulus_content ?? '')
+                                                    })"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100/80 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+                                                    title="Edit Stimulus / Narasi Wacana Ini">
+                                                <x-radix-icon name="pencil-1" class="w-3.5 h-3.5 text-emerald-800" />
+                                                <span>Edit Stimulus</span>
+                                            </button>
+                                        @endif
                                     </div>
                                     <div class="p-4 rounded-xl border border-emerald-200 bg-white text-sm text-gray-900 leading-relaxed prose prose-sm max-w-none shadow-2xs">
                                         {!! \App\Support\MarkdownRenderer::render($group->stimulus_content) !!}
@@ -664,6 +684,7 @@
         @if($canManage)
             @include('assessments.partials.edit-assessment-modal')
             @include('assessments.partials.edit-question-modal')
+            @include('assessments.partials.edit-stimulus-modal')
         @endif
     </div>
 
