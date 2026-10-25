@@ -1,14 +1,14 @@
 @if(in_array($question->type, ['mcq_single', 'mcq_multiple', 'mcq_weighted']))
     <div class="space-y-2 pt-1">
         @foreach($question->options as $opt)
-            <div class="flex items-start gap-3 p-3 rounded-xl {{ $opt->is_correct ? 'bg-emerald-50/80 border-2 border-emerald-400 shadow-2xs' : 'bg-white border border-gray-200 hover:bg-gray-50' }} text-xs transition-colors">
-                <span class="w-6 h-6 rounded-md font-mono font-bold flex items-center justify-center shrink-0 {{ $opt->is_correct ? 'bg-emerald-600 text-white' : 'bg-gray-100 border border-gray-300 text-gray-700' }}">
+            <div class="flex items-start gap-3 p-3 rounded-xl {{ ($opt->is_correct && $question->type !== 'mcq_weighted') ? 'bg-emerald-50/80 border-2 border-emerald-400 shadow-2xs' : 'bg-white border border-gray-200 hover:bg-gray-50' }} text-xs transition-colors">
+                <span class="w-6 h-6 rounded-md font-mono font-bold flex items-center justify-center shrink-0 {{ ($opt->is_correct && $question->type !== 'mcq_weighted') ? 'bg-emerald-600 text-white' : 'bg-gray-100 border border-gray-300 text-gray-700' }}">
                     {{ $opt->label }}
                 </span>
                 <div class="flex-1 text-slate-800 font-medium prose prose-sm max-w-none leading-relaxed">
                     {!! \App\Support\MarkdownRenderer::render($opt->option_text) !!}
                 </div>
-                @if($opt->is_correct)
+                @if($opt->is_correct && $question->type !== 'mcq_weighted')
                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-600 text-white font-bold text-[11px] shrink-0 shadow-2xs">
                         <x-radix-icon name="check" class="w-3.5 h-3.5 text-white" />
                         <span>Kunci Jawaban</span>

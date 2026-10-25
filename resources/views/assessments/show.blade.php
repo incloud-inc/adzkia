@@ -550,7 +550,7 @@
                                                                         points: {{ (float) $childQ->points }},
                                                                         type: @js($childQ->type),
                                                                         explanation: @js($childQ->explanation ?? ''),
-                                                                        options: @js($childQ->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct])->values()),
+                                                                        options: @js($childQ->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct, 'score' => (float) $o->score])->values()),
                                                                         short_answer: @js($childQ->type === 'short_answer' ? ($childQ->options->first()?->option_text ?? '') : '')
                                                                     })"
                                                                     onclick="window.openEditQuestionModal && window.openEditQuestionModal({
@@ -559,7 +559,7 @@
                                                                         points: {{ (float) $childQ->points }},
                                                                         type: @js($childQ->type),
                                                                         explanation: @js($childQ->explanation ?? ''),
-                                                                        options: @js($childQ->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct])->values()),
+                                                                        options: @js($childQ->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct, 'score' => (float) $o->score])->values()),
                                                                         short_answer: @js($childQ->type === 'short_answer' ? ($childQ->options->first()?->option_text ?? '') : '')
                                                                     })"
                                                                     class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 text-[11px] font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
@@ -603,7 +603,7 @@
                                                             points: {{ (float) $question->points }},
                                                             type: @js($question->type),
                                                             explanation: @js($question->explanation ?? ''),
-                                                            options: @js($question->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct])->values()),
+                                                            options: @js($question->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct, 'score' => (float) $o->score])->values()),
                                                             short_answer: @js($question->type === 'short_answer' ? ($question->options->first()?->option_text ?? '') : '')
                                                         })"
                                                         onclick="window.openEditQuestionModal && window.openEditQuestionModal({
@@ -612,7 +612,7 @@
                                                             points: {{ (float) $question->points }},
                                                             type: @js($question->type),
                                                             explanation: @js($question->explanation ?? ''),
-                                                            options: @js($question->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct])->values()),
+                                                            options: @js($question->options->map(fn($o) => ['id' => $o->id, 'label' => $o->label, 'option_text' => $o->option_text, 'is_correct' => (bool) $o->is_correct, 'score' => (float) $o->score])->values()),
                                                             short_answer: @js($question->type === 'short_answer' ? ($question->options->first()?->option_text ?? '') : '')
                                                         })"
                                                         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 text-[11px] font-bold transition-all shadow-2xs cursor-pointer active:scale-95"

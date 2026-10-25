@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -50,18 +51,40 @@ class MediaGalleryController extends Controller
         $disk = config('filesystems.upload_disk', 'r2');
         $storage = Storage::disk($disk);
 
-        $rawFiles = [];
+        $rawItems = [];
         try {
-            // Hanya ambil berkas dari folder 'asesmen'
-            $rawFiles = $storage->files('asesmen');
+            // Ambil berkas beserta metadata langsung dalam 1 panggilan (listContents)
+            $contents = $storage->listContents('asesmen', false);
+            foreach ($contents as $item) {
+                if ($item->isFile()) {
+                    $rawItems[] = [
+                        'path' => $item->path(),
+                        'size' => $item->fileSize() ?? 0,
+                        'last_modified' => $item->lastModified() ?? 0,
+                    ];
+                }
+            }
         } catch (\Throwable $e) {
             report($e);
+            try {
+                $rawFiles = $storage->files('asesmen');
+                foreach ($rawFiles as $path) {
+                    $rawItems[] = [
+                        'path' => $path,
+                        'size' => 0,
+                        'last_modified' => 0,
+                    ];
+                }
+            } catch (\Throwable) {
+                // Ignore
+            }
         }
 
         // Pastikan hanya memproses berkas yang berada di dalam folder asesmen/
-        $files = collect($rawFiles)
-            ->filter(fn (string $path) => str_starts_with($path, 'asesmen/'))
-            ->map(function (string $path) use ($storage) {
+        $files = collect($rawItems)
+            ->filter(fn (array $item) => str_starts_with($item['path'], 'asesmen/'))
+            ->map(function (array $item) use ($storage) {
+                $path = $item['path'];
                 $filename = basename($path);
                 $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
@@ -69,15 +92,8 @@ class MediaGalleryController extends Controller
                 $isVideo = in_array($ext, ['mp4', 'webm', 'ogv', 'mov'], true);
                 $isAudio = in_array($ext, ['mp3', 'wav', 'ogg', 'm4a', 'aac'], true);
 
-                $sizeBytes = 0;
-                $lastModified = 0;
-
-                try {
-                    $sizeBytes = $storage->size($path);
-                    $lastModified = $storage->lastModified($path);
-                } catch (\Throwable) {
-                    // Ignore metadata fetch errors
-                }
+                $sizeBytes = $item['size'];
+                $lastModified = $item['last_modified'];
 
                 $url = $storage->url($path);
                 if (str_contains($url, '.r2.dev/') || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
@@ -121,6 +137,13 @@ class MediaGalleryController extends Controller
             })->values();
         }
 
+        $allMatchingCount = $files->count();
+        $totalSizeBytes = $files->sum('size_bytes');
+        $totalSizeFormatted = $this->formatBytes($totalSizeBytes);
+        $imageCount = $files->where('is_image', true)->count();
+        $audioCount = $files->where('is_audio', true)->count();
+        $videoCount = $files->where('is_video', true)->count();
+
         // Filter tipe media
         if ($type = $request->input('type')) {
             if ($type === 'image') {
@@ -141,16 +164,37 @@ class MediaGalleryController extends Controller
             ]);
         }
 
-        $totalSizeBytes = $files->sum('size_bytes');
-        $totalSizeFormatted = $this->formatBytes($totalSizeBytes);
+        $totalFilteredCount = $files->count();
+
+        // Paginasi: default 24 berkas per halaman (sesuai grid 2, 3, 4, 6 kolom)
+        $perPage = (int) $request->input('per_page', 24);
+        if ($perPage < 6 || $perPage > 120) {
+            $perPage = 24;
+        }
+
+        $currentPage = max(1, (int) $request->input('page', 1));
+        $currentItems = $files->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        $paginatedFiles = new LengthAwarePaginator(
+            $currentItems,
+            $totalFilteredCount,
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
 
         return view('media.gallery', [
-            'files' => $files,
-            'totalCount' => $files->count(),
+            'files' => $paginatedFiles,
+            'totalCount' => $allMatchingCount,
+            'filteredCount' => $totalFilteredCount,
             'totalSizeFormatted' => $totalSizeFormatted,
-            'imageCount' => $files->where('is_image', true)->count(),
-            'audioCount' => $files->where('is_audio', true)->count(),
-            'videoCount' => $files->where('is_video', true)->count(),
+            'imageCount' => $imageCount,
+            'audioCount' => $audioCount,
+            'videoCount' => $videoCount,
+            'perPage' => $perPage,
         ]);
     }
 

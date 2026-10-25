@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -135,5 +136,36 @@ class MediaGalleryTest extends TestCase
 
         // File di folder avatars tetap aman dan tidak terhapus
         $this->assertTrue(Storage::disk('r2')->exists('avatars/secret.jpg'));
+    }
+
+    public function test_media_gallery_is_paginated(): void
+    {
+        Storage::fake('r2');
+        for ($i = 1; $i <= 30; $i++) {
+            Storage::disk('r2')->put("asesmen/test_image_{$i}.jpg", "image-content-{$i}");
+        }
+
+        $tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
+        $admin = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $admin->tenants()->attach($tenant->id, ['role' => 'A']);
+
+        // Halaman 1 dengan per_page=12
+        $response1 = $this->actingAs($admin)->get(route('media.gallery.index', ['per_page' => 12, 'page' => 1]));
+        $response1->assertOk();
+
+        $files1 = $response1->viewData('files');
+        $this->assertInstanceOf(LengthAwarePaginator::class, $files1);
+        $this->assertSame(30, $files1->total());
+        $this->assertSame(12, $files1->perPage());
+        $this->assertSame(1, $files1->currentPage());
+        $this->assertSame(12, $files1->count());
+
+        // Halaman 3 (sisa 6 file)
+        $response3 = $this->actingAs($admin)->get(route('media.gallery.index', ['per_page' => 12, 'page' => 3]));
+        $response3->assertOk();
+
+        $files3 = $response3->viewData('files');
+        $this->assertSame(3, $files3->currentPage());
+        $this->assertSame(6, $files3->count());
     }
 }

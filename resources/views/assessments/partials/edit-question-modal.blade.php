@@ -77,20 +77,38 @@
                         id: opt.id || null,
                         label: opt.label || String.fromCharCode(65 + i),
                         option_text: opt.option_text || '',
-                        is_correct: !!opt.is_correct
+                        is_correct: !!opt.is_correct,
+                        score: opt.score !== undefined ? parseFloat(opt.score) : 0
                     }));
                     const correctIdx = this.options.findIndex(o => o.is_correct);
                     this.correctOptionIndex = correctIdx !== -1 ? correctIdx : 0;
                 } else {
                     this.options = [
-                        { id: null, label: 'A', option_text: '', is_correct: true },
-                        { id: null, label: 'B', option_text: '', is_correct: false },
-                        { id: null, label: 'C', option_text: '', is_correct: false },
+                        { id: null, label: 'A', option_text: '', is_correct: true, score: 0 },
+                        { id: null, label: 'B', option_text: '', is_correct: false, score: 0 },
+                        { id: null, label: 'C', option_text: '', is_correct: false, score: 0 },
+                        { id: null, label: 'D', option_text: '', is_correct: false, score: 0 },
+                        { id: null, label: 'E', option_text: '', is_correct: false, score: 0 },
                     ];
                     this.correctOptionIndex = 0;
                 }
 
                 this.isOpen = true;
+            },
+
+            onTypeChange() {
+                if (['mcq_single', 'mcq_multiple', 'mcq_weighted'].includes(this.type)) {
+                    if (!Array.isArray(this.options) || this.options.length < 2) {
+                        this.options = [
+                            { id: null, label: 'A', option_text: '', is_correct: true, score: 0 },
+                            { id: null, label: 'B', option_text: '', is_correct: false, score: 0 },
+                            { id: null, label: 'C', option_text: '', is_correct: false, score: 0 },
+                            { id: null, label: 'D', option_text: '', is_correct: false, score: 0 },
+                            { id: null, label: 'E', option_text: '', is_correct: false, score: 0 },
+                        ];
+                        this.correctOptionIndex = 0;
+                    }
+                }
             },
 
             closeModal() {
@@ -105,7 +123,8 @@
                     id: null,
                     label: nextLetter,
                     option_text: '',
-                    is_correct: false
+                    is_correct: false,
+                    score: 0
                 });
             },
 
@@ -185,14 +204,31 @@
 
                 if (this.type === 'short_answer') {
                     payload.short_answer = this.shortAnswer;
-                } else if (['mcq_single', 'mcq_multiple', 'mcq_weighted'].includes(this.type)) {
+                } else if (this.type === 'mcq_single') {
                     payload.options = this.options.map((opt, idx) => ({
                         id: opt.id,
                         label: opt.label,
                         option_text: opt.option_text,
-                        is_correct: this.type === 'mcq_single' ? (idx === parseInt(this.correctOptionIndex)) : opt.is_correct
+                        is_correct: idx === parseInt(this.correctOptionIndex),
+                        score: (idx === parseInt(this.correctOptionIndex)) ? (parseFloat(this.points) || 1) : 0
                     }));
                     payload.correct_option = this.correctOptionIndex;
+                } else if (this.type === 'mcq_weighted') {
+                    payload.options = this.options.map((opt) => ({
+                        id: opt.id,
+                        label: opt.label,
+                        option_text: opt.option_text,
+                        is_correct: parseFloat(opt.score) > 0,
+                        score: parseFloat(opt.score) || 0
+                    }));
+                } else if (this.type === 'mcq_multiple') {
+                    payload.options = this.options.map((opt) => ({
+                        id: opt.id,
+                        label: opt.label,
+                        option_text: opt.option_text,
+                        is_correct: !!opt.is_correct,
+                        score: opt.is_correct ? (parseFloat(this.points) || 1) : 0
+                    }));
                 }
 
                 try {
@@ -277,7 +313,7 @@
                             Edit Butir Soal
                         </h3>
                         <p class="text-[11px] text-slate-300">
-                            Tipe Soal: <span class="font-mono font-bold uppercase text-sky-300" x-text="type"></span>
+                            ID Soal: #<span class="font-mono font-bold text-sky-300" x-text="questionId"></span>
                         </p>
                     </div>
                 </div>
@@ -296,6 +332,34 @@
                 <div x-show="successMessage" x-cloak class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
                     <x-radix-icon name="check-circled" class="w-4 h-4 shrink-0 text-emerald-600" />
                     <span x-text="successMessage"></span>
+                </div>
+
+                <!-- Baris Tipe Soal & Bobot Poin -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-gray-900 uppercase tracking-wider">
+                            Tipe Soal <span class="text-rose-500">*</span>
+                        </label>
+                        <select x-model="type" @change="onTypeChange()" class="w-full rounded-xl border border-gray-300 py-2 px-3 text-xs font-semibold text-gray-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer">
+                            <option value="mcq_single">Pilihan Ganda Biasa (mcq_single)</option>
+                            <option value="mcq_weighted">Pilihan Ganda Berbobot / TKP (mcq_weighted)</option>
+                            <option value="mcq_multiple">Pilihan Ganda Kompleks (mcq_multiple)</option>
+                            <option value="short_answer">Isian Singkat (short_answer)</option>
+                            <option value="essay">Uraian / Esai (essay)</option>
+                        </select>
+                        <p class="text-[10px] text-gray-500">Pilih <strong>Pilihan Ganda Biasa</strong> untuk 1 kunci jawaban benar (A-E).</p>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-gray-900 uppercase tracking-wider">
+                            Bobot Poin Soal
+                        </label>
+                        <div class="relative">
+                            <input type="number" step="0.5" min="0" x-model="points" class="w-full rounded-xl border border-gray-300 py-2 px-3 text-xs font-mono font-bold text-gray-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                            <span class="absolute right-3 top-2 text-xs text-gray-500 font-semibold">poin</span>
+                        </div>
+                        <p class="text-[10px] text-gray-500">Nilai maksimum soal jika dijawab dengan benar.</p>
+                    </div>
                 </div>
 
                 <!-- Info Bar Soal Gambar -->
@@ -339,24 +403,13 @@
                     <textarea x-model="prompt" rows="4" class="w-full rounded-xl border border-gray-300 p-3 text-xs text-gray-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-sans leading-relaxed" placeholder="Tuliskan teks pertanyaan..."></textarea>
                 </div>
 
-                <!-- Bobot Poin -->
-                <div class="w-48 space-y-1.5">
-                    <label class="block text-xs font-bold text-gray-900 uppercase tracking-wider">
-                        Bobot Poin
-                    </label>
-                    <div class="relative">
-                        <input type="number" step="0.5" min="0" x-model="points" class="w-full rounded-xl border border-gray-300 py-2 px-3 text-xs font-mono font-bold text-gray-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
-                        <span class="absolute right-3 top-2 text-xs text-gray-500 font-semibold">poin</span>
-                    </div>
-                </div>
-
-                <!-- Bagian Pilihan Jawaban (Untuk Pilihan Ganda: MCQ Single) -->
+                <!-- Bagian Pilihan Jawaban: MCQ Single (Pilihan Ganda Biasa) -->
                 <template x-if="type === 'mcq_single'">
                     <div class="space-y-3 pt-2 border-t border-gray-200">
                         <div class="flex items-center justify-between">
                             <div>
                                 <label class="block text-xs font-bold text-gray-900 uppercase tracking-wider">
-                                    Pilihan Jawaban (Opsi A, B, C)
+                                    Pilihan Jawaban (Pilihan Ganda Biasa)
                                 </label>
                                 <p class="text-[11px] text-gray-500">Pilih radio button lingkaran hijau di samping opsi yang merupakan <strong>kunci jawaban benar</strong>.</p>
                             </div>
@@ -388,6 +441,99 @@
                                     <!-- Status Kunci Badge -->
                                     <span x-show="parseInt(correctOptionIndex) === idx" class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white uppercase shrink-0">
                                         Kunci
+                                    </span>
+
+                                    <!-- Delete Button -->
+                                    <button type="button" @click="removeOption(idx)" class="p-1 rounded text-gray-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0" title="Hapus opsi ini">
+                                        <x-radix-icon name="trash" class="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Bagian Pilihan Jawaban: MCQ Weighted (Pilihan Ganda Berbobot / TKP) -->
+                <template x-if="type === 'mcq_weighted'">
+                    <div class="space-y-3 pt-2 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-900 uppercase tracking-wider">
+                                    Pilihan Jawaban Berbobot (Skala / TKP)
+                                </label>
+                                <p class="text-[11px] text-gray-500">Atur bobot skor untuk setiap opsi jawaban (contoh TKP: opsi terbaik bernilai 5, lalu 4, 3, 2, 1).</p>
+                            </div>
+                            <button type="button" @click="addOption()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 text-[11px] font-bold cursor-pointer transition-colors">
+                                <x-radix-icon name="plus" class="w-3.5 h-3.5 text-blue-700" />
+                                <span>Tambah Opsi</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-2.5">
+                            <template x-for="(opt, idx) in options" :key="idx">
+                                <div class="flex items-center gap-2.5 p-2.5 rounded-xl border border-gray-200 bg-gray-50/50">
+                                    <span class="w-6 h-6 rounded-md bg-blue-600 text-white font-mono font-bold text-xs flex items-center justify-center shrink-0"
+                                          x-text="opt.label"></span>
+
+                                    <!-- Option Text Input -->
+                                    <input type="text" x-model="opt.option_text"
+                                           class="flex-1 rounded-lg border border-gray-300 py-1.5 px-3 text-xs text-gray-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 bg-white"
+                                           :placeholder="'Teks pilihan ' + opt.label">
+
+                                    <!-- Score Input -->
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <span class="text-[11px] font-bold text-gray-600">Skor:</span>
+                                        <input type="number" step="0.5" min="0" x-model="opt.score"
+                                               class="w-16 rounded-lg border border-gray-300 py-1 px-2 text-xs font-mono font-bold text-center text-blue-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 bg-white">
+                                    </div>
+
+                                    <!-- Delete Button -->
+                                    <button type="button" @click="removeOption(idx)" class="p-1 rounded text-gray-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0" title="Hapus opsi ini">
+                                        <x-radix-icon name="trash" class="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Bagian Pilihan Jawaban: MCQ Multiple (Pilihan Ganda Kompleks) -->
+                <template x-if="type === 'mcq_multiple'">
+                    <div class="space-y-3 pt-2 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-900 uppercase tracking-wider">
+                                    Pilihan Jawaban (Pilihan Ganda Kompleks)
+                                </label>
+                                <p class="text-[11px] text-gray-500">Centang kotak pada semua pilihan yang merupakan <strong>kunci jawaban benar</strong> (bisa lebih dari satu).</p>
+                            </div>
+                            <button type="button" @click="addOption()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold cursor-pointer transition-colors">
+                                <x-radix-icon name="plus" class="w-3.5 h-3.5 text-emerald-700" />
+                                <span>Tambah Opsi</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-2.5">
+                            <template x-for="(opt, idx) in options" :key="idx">
+                                <div class="flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors"
+                                     :class="opt.is_correct ? 'border-emerald-400 bg-emerald-50/50' : 'border-gray-200 bg-gray-50/50'">
+                                    <!-- Checkbox Kunci -->
+                                    <label class="flex items-center gap-1.5 cursor-pointer shrink-0" :title="'Tandai ' + opt.label + ' sebagai jawaban benar'">
+                                        <input type="checkbox" x-model="opt.is_correct"
+                                               class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                                        <span class="w-6 h-6 rounded-md font-mono font-bold text-xs flex items-center justify-center shrink-0"
+                                              :class="opt.is_correct ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-700'"
+                                              x-text="opt.label"></span>
+                                    </label>
+
+                                    <!-- Option Text Input -->
+                                    <input type="text" x-model="opt.option_text"
+                                           class="flex-1 rounded-lg border border-gray-300 py-1.5 px-3 text-xs text-gray-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 bg-white"
+                                           :placeholder="'Teks pilihan ' + opt.label">
+
+                                    <!-- Status Kunci Badge -->
+                                    <span x-show="opt.is_correct" class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white uppercase shrink-0">
+                                        Benar
                                     </span>
 
                                     <!-- Delete Button -->

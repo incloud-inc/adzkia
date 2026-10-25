@@ -1528,13 +1528,21 @@ class WordQuestionService
             }
 
             // Option Check for MCQ:
-            // "A. Opsi teks" or TKP Format 2: "A. [5] Opsi teks" or "- A. Opsi teks" or "* A. Opsi teks"
-            if ($currentQuestion && preg_match('/^(?:[-*]\s+)?([A-E])[\.\)]\s*(?:\[(\d+(?:\.\d+)?)\]|\((\d+(?:\.\d+)?)\)|\[(?:skor|bobot|poin)\s*:\s*(\d+(?:\.\d+)?)\])?\s*(.*)$/i', $cleanLine, $matchesOpt)) {
+            // "A. Opsi teks" or TKP Format 2: "A. [5] Opsi teks" or "A. [skor: 5] Opsi teks" or "- A. Opsi teks"
+            if ($currentQuestion && preg_match('/^(?:[-*]\s+)?([A-E])[\.\)]\s*(?:\[(?:(?:skor|bobot|poin)\s*:\s*)?(\d+(?:\.\d+)?)\]|\((?:skor|bobot|poin)\s*:\s*(\d+(?:\.\d+)?)\))?\s*(.*)$/i', $cleanLine, $matchesOpt)) {
                 $letter = strtoupper($matchesOpt[1]);
-                $scoreCandidate = $matchesOpt[2] ?: ($matchesOpt[3] ?: ($matchesOpt[4] ?: null));
+                $scoreCandidate = $matchesOpt[2] ?: ($matchesOpt[3] ?: null);
 
-                preg_match('/^(?:[-*]\s+)?(?:(?:\*\*|\*|<u>)?[A-E][\.\)](?:\*\*|\*|<\/u>)?\s*)(?:\[(?:\d+(?:\.\d+)?|(?:skor|bobot|poin)\s*:\s*\d+(?:\.\d+)?)\]|\(\d+(?:\.\d+)?\))?\s*(.*)$/i', $line, $matchesLine);
-                $optText = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : trim($matchesOpt[5]);
+                preg_match('/^(?:[-*]\s+)?(?:(?:\*\*|\*|<u>)?[A-E][\.\)](?:\*\*|\*|<\/u>)?\s*)(?:\[(?:(?:skor|bobot|poin)\s*:\s*)?\d+(?:\.\d+)?\]|\((?:skor|bobot|poin)\s*:\s*\d+(?:\.\d+)?\))?\s*(.*)$/i', $line, $matchesLine);
+                $optText = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : trim($matchesOpt[4] ?? '');
+
+                // Guard: If [X] was matched without explicit "skor:", but remaining text is empty or starts with punctuation/conjunctions (e.g. A. [1], or A. [1], [2], dan [3]), it is a statement reference, not a score!
+                if ($scoreCandidate !== null && ! preg_match('/(?:skor|bobot|poin)\s*:\s*\d+/i', $cleanLine)) {
+                    if ($optText === '' || preg_match('/^([,;.\-]|\b(?:dan|atau|and|or)\b)/i', $optText)) {
+                        $optText = '['.$scoreCandidate.']'.($optText !== '' ? ' '.$optText : '');
+                        $scoreCandidate = null;
+                    }
+                }
 
                 $optScore = 0.0;
                 if ($scoreCandidate !== null) {

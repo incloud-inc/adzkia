@@ -195,26 +195,29 @@
                 @if(request('type'))
                     <input type="hidden" name="type" value="{{ request('type') }}">
                 @endif
+                @if(request('per_page'))
+                    <input type="hidden" name="per_page" value="{{ request('per_page') }}">
+                @endif
             </form>
 
             <!-- Media Type Filter Chips -->
             <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-                <a href="{{ route('media.gallery.index', array_merge(request()->except('type'), ['type' => 'all'])) }}"
+                <a href="{{ route('media.gallery.index', array_merge(request()->except(['type', 'page']), ['type' => 'all'])) }}"
                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap {{ request('type', 'all') === 'all' ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 border border-slate-200/60' }}">
                     <span>Semua</span>
                     <span class="font-mono text-[10px] {{ request('type', 'all') === 'all' ? 'text-slate-300' : 'text-slate-500' }}">[{{ $totalCount }}]</span>
                 </a>
-                <a href="{{ route('media.gallery.index', array_merge(request()->except('type'), ['type' => 'image'])) }}"
+                <a href="{{ route('media.gallery.index', array_merge(request()->except(['type', 'page']), ['type' => 'image'])) }}"
                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap {{ request('type') === 'image' ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 border border-slate-200/60' }}">
                     <span>Gambar</span>
                     <span class="font-mono text-[10px] {{ request('type') === 'image' ? 'text-slate-300' : 'text-slate-500' }}">[{{ $imageCount }}]</span>
                 </a>
-                <a href="{{ route('media.gallery.index', array_merge(request()->except('type'), ['type' => 'audio'])) }}"
+                <a href="{{ route('media.gallery.index', array_merge(request()->except(['type', 'page']), ['type' => 'audio'])) }}"
                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap {{ request('type') === 'audio' ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 border border-slate-200/60' }}">
                     <span>Audio</span>
                     <span class="font-mono text-[10px] {{ request('type') === 'audio' ? 'text-slate-300' : 'text-slate-500' }}">[{{ $audioCount }}]</span>
                 </a>
-                <a href="{{ route('media.gallery.index', array_merge(request()->except('type'), ['type' => 'video'])) }}"
+                <a href="{{ route('media.gallery.index', array_merge(request()->except(['type', 'page']), ['type' => 'video'])) }}"
                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap {{ request('type') === 'video' ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 border border-slate-200/60' }}">
                     <span>Video</span>
                     <span class="font-mono text-[10px] {{ request('type') === 'video' ? 'text-slate-300' : 'text-slate-500' }}">[{{ $videoCount }}]</span>
@@ -342,6 +345,35 @@
                     </div>
                 @endforeach
             </div>
+
+            <!-- Paginasi Berkas Media -->
+            @if($files->hasPages() || $files->total() > 12)
+                <div class="bg-white rounded-xl border border-slate-200/70 p-4 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 text-xs text-slate-500 font-sans">
+                        <span>
+                            Menampilkan <span class="font-bold text-slate-800">{{ $files->firstItem() ?? 0 }}</span>–<span class="font-bold text-slate-800">{{ $files->lastItem() ?? 0 }}</span> dari <span class="font-bold text-slate-800">{{ $files->total() }}</span> berkas
+                        </span>
+                        <span class="text-slate-300 hidden sm:inline">|</span>
+                        <!-- Per Page Selector -->
+                        <div class="flex items-center gap-1.5">
+                            <label for="per_page_select" class="text-slate-400">Tampilkan:</label>
+                            <select id="per_page_select" onchange="window.location.href = this.value;" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-700 focus:outline-none focus:border-slate-800 cursor-pointer">
+                                @foreach([12, 24, 48, 96] as $size)
+                                    <option value="{{ route('media.gallery.index', array_merge(request()->except(['per_page', 'page']), ['per_page' => $size])) }}" {{ $files->perPage() == $size ? 'selected' : '' }}>
+                                        {{ $size }} / hal
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    @if($files->hasPages())
+                        <div class="overflow-x-auto max-w-full">
+                            {{ $files->links() }}
+                        </div>
+                    @endif
+                </div>
+            @endif
         @endif
 
         <!-- Machined Precision Zoom Modal -->

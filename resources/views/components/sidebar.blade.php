@@ -79,13 +79,13 @@
                     <span>Bank Soal Global</span>
                     <div class="flex items-center gap-1.5 ml-auto">
                         @if(isset($activeExamCount) && $activeExamCount > 0)
-                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold leading-none text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-full shadow-2xs font-mono" title="{{ $activeExamCount }} siswa sedang ujian">
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                 {{ $activeExamCount }}
                             </span>
                         @endif
                         @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
-                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-rose-600 rounded-full shadow-2xs font-mono" title="{{ $pendingGradingCount }} perlu dikoreksi">
+                            <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-rose-800 bg-rose-100 border border-rose-300 rounded-md" title="{{ $pendingGradingCount }} perlu dikoreksi">
                                 {{ $pendingGradingCount }}
                             </span>
                         @endif
@@ -190,13 +190,13 @@
                     <span>Bank Soal</span>
                     <div class="flex items-center gap-1.5 ml-auto">
                         @if(isset($activeExamCount) && $activeExamCount > 0)
-                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold leading-none text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-full shadow-2xs font-mono" title="{{ $activeExamCount }} siswa sedang ujian">
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                 {{ $activeExamCount }}
                             </span>
                         @endif
                         @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
-                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-rose-600 rounded-full shadow-2xs font-mono" title="{{ $pendingGradingCount }} perlu dikoreksi">
+                            <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-rose-800 bg-rose-100 border border-rose-300 rounded-md" title="{{ $pendingGradingCount }} perlu dikoreksi">
                                 {{ $pendingGradingCount }}
                             </span>
                         @endif
@@ -303,13 +303,13 @@
                     <span>Bank Soal</span>
                     <div class="flex items-center gap-1.5 ml-auto">
                         @if(isset($activeExamCount) && $activeExamCount > 0)
-                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold leading-none text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-full shadow-2xs font-mono" title="{{ $activeExamCount }} siswa sedang ujian">
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                 {{ $activeExamCount }}
                             </span>
                         @endif
                         @if(isset($pendingGradingCount) && $pendingGradingCount > 0)
-                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-rose-600 rounded-full shadow-2xs font-mono" title="{{ $pendingGradingCount }} perlu dikoreksi">
+                            <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-rose-800 bg-rose-100 border border-rose-300 rounded-md" title="{{ $pendingGradingCount }} perlu dikoreksi">
                                 {{ $pendingGradingCount }}
                             </span>
                         @endif
