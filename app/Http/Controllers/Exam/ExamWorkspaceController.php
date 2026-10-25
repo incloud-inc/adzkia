@@ -432,7 +432,7 @@ class ExamWorkspaceController extends Controller
         $mapped = $questions->map(function (Question $q, int $idx) use ($randomizeO, $existingAnswers, $session, $sectionDurations, $sections) {
             $options = $q->options;
 
-            $alwaysShuffleTypes = ['ordering', 'reorder', 'matching'];
+            $alwaysShuffleTypes = ['ordering', 'reorder', 'matching', 'binary_matrix', 'boolean_matrix'];
             $randomShuffleTypes = ['mcq_single', 'mcq_multiple', 'mcq_weighted'];
 
             $shouldShuffle = in_array($q->type, $alwaysShuffleTypes, true)

@@ -485,4 +485,290 @@ class WordQuestionServiceTest extends TestCase
         $this->assertTrue($qNarrative['is_group']);
         $this->assertCount(2, $qNarrative['questions']);
     }
+
+    public function test_numbered_statements_inside_prompt_do_not_split_question(): void
+    {
+        $markdown = <<<'MD'
+1. Toko yang memiliki selisih jumlah laki-laki dan perempuan yang tidak mengikuti BPJS lebih dari 9 orang adalah.... (UTBK 2023/TPS/PM/Gel.1/15)
+(1) Toko A dan Toko B
+(2) Toko B dan Toko C
+(3) Toko A, Toko B, dan Toko C
+(4) Toko C dan Toko D
+A. (1), (2), dan (3)
+B. (1) dan (3)
+C. (2) dan (4)
+D. (4)
+E. (1), (2), (3), dan (4)
+KUNCI: A
+BOBOT: 1.0
+
+2. Soal nomor dua dengan format nomor berurutan tanpa kurung:
+1) Pernyataan satu
+2) Pernyataan dua
+3) Pernyataan tiga
+A. Pernyataan 1 saja
+B. Pernyataan 2 saja
+C. Semua benar
+KUNCI: C
+MD;
+
+        $items = $this->service->parseMarkdownContent($markdown);
+        $this->assertCount(2, $items);
+
+        $q1 = $items[0];
+        $this->assertSame('mcq_single', $q1['type']);
+        $this->assertStringContainsString('(1) Toko A dan Toko B', $q1['prompt']);
+        $this->assertStringContainsString('(4) Toko C dan Toko D', $q1['prompt']);
+        $this->assertCount(5, $q1['options']);
+        $this->assertSame('A', $q1['options'][0]['label']);
+        $this->assertTrue($q1['options'][0]['is_correct']);
+
+        $q2 = $items[1];
+        $this->assertSame('mcq_single', $q2['type']);
+        $this->assertStringContainsString('1) Pernyataan satu', $q2['prompt']);
+        $this->assertStringContainsString('3) Pernyataan tiga', $q2['prompt']);
+        $this->assertCount(3, $q2['options']);
+        $this->assertSame('C', $q2['options'][2]['label']);
+        $this->assertTrue($q2['options'][2]['is_correct']);
+    }
+
+    public function test_tkp_score_at_end_of_option_text(): void
+    {
+        $markdown = <<<'MD'
+[TKP]
+1. Anda melihat antrean pelayanan menumpuk di depan loket. Respon Anda:
+A. Menyapa warga dengan ramah dan membagikan nomor antrean tertib [5]
+B. Meminta warga bersabar menunggu jam kerja staf selesai istirahat [4]
+C. Mengarahkan warga ke sistem antrean online mandiri [3]
+D. Membiarkan antrean berjalan alami sesuai jam operasional [2]
+E. Meninggalkan loket karena bukan giliran jaga Anda [1]
+PEMBAHASAN: Asas integritas dan pelayanan publik terbaik.
+MD;
+
+        $items = $this->service->parseMarkdownContent($markdown);
+        $this->assertCount(1, $items);
+
+        $q = $items[0];
+        $this->assertSame('mcq_weighted', $q['type']);
+        $this->assertEquals(5.0, $q['points']);
+        $this->assertCount(5, $q['options']);
+
+        $this->assertSame('A', $q['options'][0]['label']);
+        $this->assertEquals(5.0, $q['options'][0]['score']);
+        $this->assertSame('Menyapa warga dengan ramah dan membagikan nomor antrean tertib', $q['options'][0]['option_text']);
+
+        $this->assertSame('E', $q['options'][4]['label']);
+        $this->assertEquals(1.0, $q['options'][4]['score']);
+        $this->assertSame('Meninggalkan loket karena bukan giliran jaga Anda', $q['options'][4]['option_text']);
+    }
+
+    public function test_ordering_options_strictly_use_letters_a_b_c_d_e(): void
+    {
+        $markdown = <<<'MD'
+[MENGURUTKAN]
+1. Urutkan tahapan pembuatan roti berikut dari awal hingga selesai:
+A. Menyiapkan bahan tepung dan ragi
+B. Menguleni adonan hingga kalis
+C. Mendiamkan adonan hingga mengembang
+D. Memanggang adonan di dalam oven
+BOBOT: 4.0
+MD;
+
+        $items = $this->service->parseMarkdownContent($markdown);
+        $this->assertCount(1, $items);
+
+        $q = $items[0];
+        $this->assertSame('ordering', $q['type']);
+        $this->assertEquals(4.0, $q['points']);
+        $this->assertCount(4, $q['options']);
+
+        $this->assertSame('A', $q['options'][0]['label']);
+        $this->assertSame(1, $q['options'][0]['order']);
+        $this->assertSame('Menyiapkan bahan tepung dan ragi', $q['options'][0]['option_text']);
+
+        $this->assertSame('B', $q['options'][1]['label']);
+        $this->assertSame(2, $q['options'][1]['order']);
+
+        $this->assertSame('C', $q['options'][2]['label']);
+        $this->assertSame(3, $q['options'][2]['order']);
+
+        $this->assertSame('D', $q['options'][3]['label']);
+        $this->assertSame(4, $q['options'][3]['order']);
+    }
+
+    public function test_matching_and_binary_matrix_strictly_use_letters(): void
+    {
+        $markdown = <<<'MD'
+[BENAR SALAH]
+1. Tentukan kebenaran pernyataan berikut:
+KOLOM: Benar | Salah
+A. Air mendidih pada suhu 100 derajat Celsius [BENAR]
+B. Es membeku pada suhu 50 derajat Celsius [SALAH]
+
+[MENJODOHKAN]
+2. Pasangkan ibukota negara berikut:
+A. Indonesia -> Jakarta
+B. Jepang -> Tokyo
+C. Prancis -> Paris
+BOBOT: 3.0
+MD;
+
+        $items = $this->service->parseMarkdownContent($markdown);
+        $this->assertCount(2, $items);
+
+        $q1 = $items[0];
+        $this->assertSame('binary_matrix', $q1['type']);
+        $this->assertCount(2, $q1['options']);
+        $this->assertSame('A', $q1['options'][0]['label']);
+        $this->assertSame('Benar', $q1['options'][0]['match_key']);
+        $this->assertSame('B', $q1['options'][1]['label']);
+        $this->assertSame('Salah', $q1['options'][1]['match_key']);
+
+        $q2 = $items[1];
+        $this->assertSame('matching', $q2['type']);
+        $this->assertCount(3, $q2['options']);
+        $this->assertSame('A', $q2['options'][0]['label']);
+        $this->assertSame('Indonesia', $q2['options'][0]['option_text']);
+        $this->assertSame('Jakarta', $q2['options'][0]['match_key']);
+        $this->assertSame('B', $q2['options'][1]['label']);
+        $this->assertSame('Jepang', $q2['options'][1]['option_text']);
+        $this->assertSame('Tokyo', $q2['options'][1]['match_key']);
+        $this->assertSame('C', $q2['options'][2]['label']);
+    }
+
+    public function test_numbered_list_in_explanation_does_not_create_new_question(): void
+    {
+        $markdown = <<<'MD'
+1. Soal nomor satu:
+A. Opsi 1
+B. Opsi 2
+KUNCI: A
+PEMBAHASAN: Penjelasan nomor 1 memiliki dua poin penting:
+1. Poin analisis pertama tentang konsep
+2. Poin analisis kedua tentang kesimpulan
+
+2. Soal nomor dua berikutnya:
+A. Jawaban A
+B. Jawaban B
+KUNCI: B
+MD;
+
+        $items = $this->service->parseMarkdownContent($markdown);
+        $this->assertCount(2, $items);
+
+        $q1 = $items[0];
+        $this->assertStringContainsString('Poin analisis pertama tentang konsep', $q1['explanation']);
+        $this->assertStringContainsString('Poin analisis kedua tentang kesimpulan', $q1['explanation']);
+
+        $q2 = $items[1];
+        $this->assertSame('Soal nomor dua berikutnya:', $q2['prompt']);
+        $this->assertCount(2, $q2['options']);
+    }
+
+    public function test_letters_and_numbers_in_explanation_are_not_thrown_into_options(): void
+    {
+        $markdown = <<<'MD'
+1. Berapakah hasil dari 2 + 3?
+A. 4
+B. 5
+C. 6
+D. 7
+KUNCI: B
+PEMBAHASAN:
+Langkah pengerjaan:
+1. Ambil bilangan 2
+2. Tambahkan dengan bilangan 3 sehingga 2 + 3 = 5
+Analisis pilihan jawaban:
+A. Pilihan A salah karena hasilnya 5 bukan 4.
+B. Pilihan B benar karena 2 + 3 = 5.
+C. Pilihan C salah karena hasilnya 5 bukan 6.
+D. Pilihan D salah karena hasilnya 5 bukan 7.
+
+2. Berapakah nilai 10 dibagi 2?
+A. 2
+B. 3
+C. 5
+D. 8
+KUNCI: C
+PEMBAHASAN:
+10 : 2 = 5.
+MD;
+
+        $items = $this->service->parseMarkdownContent($markdown);
+        $this->assertCount(2, $items);
+
+        $q1 = $items[0];
+        // Pastikan pilihan jawaban Q1 tetap hanya 4 opsi asli
+        $this->assertCount(4, $q1['options']);
+        $this->assertSame('4', $q1['options'][0]['option_text']);
+        $this->assertSame('5', $q1['options'][1]['option_text']);
+        $this->assertSame('6', $q1['options'][2]['option_text']);
+        $this->assertSame('7', $q1['options'][3]['option_text']);
+
+        // Pastikan seluruh teks langkah 1., 2. dan analisis A., B., C., D. masuk ke dalam explanation
+        $this->assertStringContainsString('1. Ambil bilangan 2', $q1['explanation']);
+        $this->assertStringContainsString('2. Tambahkan dengan bilangan 3', $q1['explanation']);
+        $this->assertStringContainsString('A. Pilihan A salah karena hasilnya 5 bukan 4.', $q1['explanation']);
+        $this->assertStringContainsString('B. Pilihan B benar karena 2 + 3 = 5.', $q1['explanation']);
+        $this->assertStringContainsString('C. Pilihan C salah', $q1['explanation']);
+        $this->assertStringContainsString('D. Pilihan D salah', $q1['explanation']);
+
+        // Pastikan Q2 tidak terganggu
+        $q2 = $items[1];
+        $this->assertSame('Berapakah nilai 10 dibagi 2?', $q2['prompt']);
+        $this->assertCount(4, $q2['options']);
+        $this->assertSame('2', $q2['options'][0]['option_text']);
+        $this->assertSame('5', $q2['options'][2]['option_text']);
+    }
+
+    public function test_word_docx_with_letters_and_numbers_in_explanation(): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'test_docx_expl_').'.docx';
+        $zip = new \ZipArchive;
+        $zip->open($tmp, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+
+        $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+    <w:body>
+        <w:p><w:r><w:t>1. Manakah organ ekskresi yang menyaring darah?</w:t></w:r></w:p>
+        <w:p><w:r><w:t>A. Jantung</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Ginjal</w:t></w:r></w:p>
+        <w:p><w:r><w:t>C. Paru-paru</w:t></w:r></w:p>
+        <w:p><w:r><w:t>D. Lambung</w:t></w:r></w:p>
+        <w:p><w:r><w:t>KUNCI: B</w:t></w:r></w:p>
+        <w:p><w:r><w:t>PEMBAHASAN:</w:t></w:r></w:p>
+        <w:p><w:r><w:t>Tahapan filtrasi darah:</w:t></w:r></w:p>
+        <w:p><w:r><w:t>1. Darah masuk ke glomerulus</w:t></w:r></w:p>
+        <w:p><w:r><w:t>2. Terjadi penyaringan urin primer</w:t></w:r></w:p>
+        <w:p><w:r><w:t>Analisis opsi:</w:t></w:r></w:p>
+        <w:p><w:r><w:t>A. Jantung memompa darah</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Ginjal menyaring darah</w:t></w:r></w:p>
+        <w:p><w:r><w:t>C. Paru-paru pertukaran gas</w:t></w:r></w:p>
+        <w:p><w:r><w:t>D. Lambung mencerna makanan</w:t></w:r></w:p>
+        <w:p><w:r><w:t>2. Apakah fungsi klorofil pada tumbuhan?</w:t></w:r></w:p>
+        <w:p><w:r><w:t>A. Menyerap cahaya</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Menyerap air</w:t></w:r></w:p>
+        <w:p><w:r><w:t>KUNCI: A</w:t></w:r></w:p>
+    </w:body>
+</w:document>';
+
+        $zip->addFromString('word/document.xml', $documentXml);
+        $zip->close();
+
+        $items = $this->service->parseDocx($tmp);
+        @unlink($tmp);
+
+        $this->assertCount(2, $items);
+        $q1 = $items[0];
+        $this->assertCount(4, $q1['options']);
+        $this->assertSame('Jantung', $q1['options'][0]['option_text']);
+        $this->assertSame('Ginjal', $q1['options'][1]['option_text']);
+        $this->assertStringContainsString('1. Darah masuk ke glomerulus', $q1['explanation']);
+        $this->assertStringContainsString('A. Jantung memompa darah', $q1['explanation']);
+        $this->assertStringContainsString('B. Ginjal menyaring darah', $q1['explanation']);
+
+        $q2 = $items[1];
+        $this->assertCount(2, $q2['options']);
+        $this->assertSame('Menyerap cahaya', $q2['options'][0]['option_text']);
+    }
 }

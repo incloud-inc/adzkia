@@ -1217,19 +1217,36 @@ class WordQuestionService
             } elseif ($type === 'mcq_single') {
                 $letters = ['A', 'B', 'C', 'D', 'E', 'F'];
                 $correctKey = strtoupper((string) ($currentQuestion['correct_key'] ?? 'A'));
+                $matchedCorrect = false;
                 foreach ($options as $idx => &$opt) {
                     if (empty($opt['label'])) {
                         $opt['label'] = $letters[$idx] ?? (string) ($idx + 1);
                     }
-                    $opt['is_correct'] = (strtoupper($opt['label']) === $correctKey);
-                    $opt['score'] = $opt['is_correct'] ? $points : 0.0;
+                    $isMatch = (strtoupper($opt['label']) === $correctKey);
+                    if ($isMatch && ! $matchedCorrect) {
+                        $opt['is_correct'] = true;
+                        $opt['score'] = $points;
+                        $matchedCorrect = true;
+                    } else {
+                        $opt['is_correct'] = false;
+                        $opt['score'] = 0.0;
+                    }
                 }
                 unset($opt);
+
+                // Fallback: If no option matched the key, mark the first option as correct
+                if (! $matchedCorrect && ! empty($options)) {
+                    $options[0]['is_correct'] = true;
+                    $options[0]['score'] = $points;
+                }
             } elseif ($type === 'binary_matrix') {
                 // Statements
+                $letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
                 $colLabels = $settings['labels'] ?? ['Benar', 'Salah'];
                 foreach ($options as $idx => &$opt) {
-                    $opt['label'] = (string) ($idx + 1);
+                    if (empty($opt['label']) || is_numeric($opt['label'])) {
+                        $opt['label'] = $letters[$idx] ?? chr(65 + $idx);
+                    }
                     $opt['is_correct'] = true;
                     $opt['score'] = 1.0;
                     if (empty($opt['match_key'])) {
@@ -1239,15 +1256,21 @@ class WordQuestionService
                 unset($opt);
             } elseif ($type === 'matching') {
                 // Matching pairs
+                $letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
                 foreach ($options as $idx => &$opt) {
-                    $opt['label'] = (string) ($idx + 1);
+                    if (empty($opt['label']) || is_numeric($opt['label'])) {
+                        $opt['label'] = $letters[$idx] ?? chr(65 + $idx);
+                    }
                     $opt['is_correct'] = true;
                     $opt['score'] = 1.0;
                 }
                 unset($opt);
             } elseif ($type === 'ordering') {
+                $letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
                 foreach ($options as $idx => &$opt) {
-                    $opt['label'] = (string) ($idx + 1);
+                    if (empty($opt['label']) || is_numeric($opt['label'])) {
+                        $opt['label'] = $letters[$idx] ?? chr(65 + $idx);
+                    }
                     $opt['order'] = $idx + 1;
                     $opt['is_correct'] = true;
                     $opt['score'] = 1.0;
@@ -1312,7 +1335,65 @@ class WordQuestionService
             }
         };
 
-        foreach ($paragraphs as $line) {
+        $isLineFollowedByQuestionIndicators = function (int $fromIndex) use ($paragraphs): bool {
+            $count = count($paragraphs);
+            for ($j = $fromIndex + 1; $j < min($count, $fromIndex + 15); $j++) {
+                $checkLine = trim(str_replace(['**', '*', '<u>', '</u>'], '', $paragraphs[$j]));
+                if ($checkLine === '') {
+                    continue;
+                }
+                // If we encounter another numbered line (potential next question), stop! The options belong to it, not to $fromIndex.
+                if (preg_match('/^(?:#+\s*)?(?:[-*]\s+)?(?:\d+[\.\)]|(?:Soal|Nomor|No\.)\s*\d+)/i', $checkLine)) {
+                    return false;
+                }
+                if (preg_match('/^(?:\[|\b)(?:TKP|BERBOBOT|KOMPLEKS|BENAR[- ]SALAH|MENJODOHKAN|MENGURUTKAN|ISIAN|ESAI|NARASI|STIMULUS)(?:\]|\b)/i', $checkLine)) {
+                    return true;
+                }
+                if (preg_match('/^(?:[-*]\s+)?[A-J][\.\)]\s*\S/iu', $checkLine)) {
+                    return true;
+                }
+                if (preg_match('/^(?:KUNCI(?:\s*JAWABAN)?|JAWABAN)\s*:/i', $checkLine)) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        $isNextQuestionFromExplanation = function (int $fromIndex, int $candidateNumber, int $currentQuestionNumber) use ($paragraphs): bool {
+            // Nomor soal kandidat harus lebih besar dari nomor soal aktif
+            if ($candidateNumber <= $currentQuestionNumber) {
+                return false;
+            }
+
+            $count = count($paragraphs);
+            for ($j = $fromIndex + 1; $j < min($count, $fromIndex + 30); $j++) {
+                $checkLine = trim(str_replace(['**', '*', '<u>', '</u>'], '', $paragraphs[$j]));
+                if ($checkLine === '') {
+                    continue;
+                }
+
+                // Jika bertemu baris berangka/soal lain sebelum menemukan kunci atau tag tipe,
+                // berarti kunci/tipe di bawahnya adalah milik soal berikutnya tersebut, bukan milik $fromIndex!
+                if (preg_match('/^(?:#+\s*)?(?:[-*]\s+)?(?:\d+[\.\)]|(?:Soal|Nomor|No\.)\s*\d+)/i', $checkLine)) {
+                    return false;
+                }
+
+                // Jika ada tag tipe eksplisit baru sebelum nomor soal lain, berarti ini soal baru
+                if (preg_match('/^(?:\[|\b)(?:TKP|BERBOBOT|KOMPLEKS|BENAR[- ]SALAH|MENJODOHKAN|MENGURUTKAN|ISIAN|ESAI|NARASI|STIMULUS)(?:\]|\b)/i', $checkLine)) {
+                    return true;
+                }
+
+                // Jika ada kunci jawaban baru sebelum nomor soal lain, berarti ini soal baru
+                if (preg_match('/^(?:KUNCI(?:\s*JAWABAN)?|JAWABAN)\s*:/i', $checkLine)) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        foreach ($paragraphs as $pIdx => $line) {
             $upperLine = strtoupper($line);
             $cleanLine = trim(str_replace(['**', '*', '<u>', '</u>'], '', $line));
             $cleanUpper = strtoupper($cleanLine);
@@ -1477,24 +1558,39 @@ class WordQuestionService
             // Explanation / Pembahasan: "PEMBAHASAN: ..." or "RUBRIK: ..."
             if ($currentQuestion && preg_match('/^(?:PEMBAHASAN|PENJELASAN|KETERANGAN|RUBRIK)\s*:\s*(.*)$/i', $cleanLine, $matchesClean)) {
                 preg_match('/^(?:(?:\*\*|\*|<u>)?(?:PEMBAHASAN|PENJELASAN|KETERANGAN|RUBRIK)\s*:(?:\*\*|\*|<\/u>)?\s*)(.*)$/i', $line, $matchesLine);
-                $currentQuestion['explanation'] = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : trim($matchesClean[1]);
-                $inExplanation = true;
+                $newExplText = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : trim($matchesClean[1]);
+
+                if ($inExplanation) {
+                    $currentQuestion['explanation'] .= "\n".$line;
+                } else {
+                    $currentQuestion['explanation'] = $newExplText;
+                    $inExplanation = true;
+                }
+
+                continue;
+            }
+
+            // ATURAN KHUSUS PEMBAHASAN:
+            // Jika parser sedang berada di dalam blok PEMBAHASAN, jangan lempar "A.", "B.", dst. menjadi pilihan jawaban.
+            // Baris A., B., C... dalam pembahasan harus selalu dimasukkan ke dalam penjelasan (explanation).
+            if ($currentQuestion && $inExplanation && preg_match('/^(?:[-*]\s+)?[A-J][\.\)]/iu', $cleanLine)) {
+                $currentQuestion['explanation'] .= "\n".$line;
 
                 continue;
             }
 
             // Option Check for Binary Matrix statements:
-            // "1) Pernyataan... [BENAR]" or "1. Pernyataan... [SALAH]" or "- Pernyataan... [BENAR]"
-            if ($currentQuestion && ($currentQuestion['type'] === 'binary_matrix' || preg_match('/\[(?:BENAR|SALAH|YA|TIDAK|SESUAI|TIDAK SESUAI)\]\s*$/i', $cleanLine))) {
-                if (preg_match('/^(?:(?:\d+|[A-Z])[\.\)]|-|\*)\s*(.*?)\s*\[(BENAR|SALAH|YA|TIDAK|SESUAI|TIDAK SESUAI)\]\s*$/i', $cleanLine, $mBinary)) {
+            // MUST start with letter: "A. Pernyataan... [BENAR]" or "A) Pernyataan... [SALAH]"
+            if (! $inExplanation && $currentQuestion && ($currentQuestion['type'] === 'binary_matrix' || preg_match('/\[(?:BENAR|SALAH|YA|TIDAK|SESUAI|TIDAK SESUAI)\]\s*$/iu', $cleanLine))) {
+                if (preg_match('/^(?:[-*]\s+)?([A-J])[\.\)]\s*(.*?)\s*\[(BENAR|SALAH|YA|TIDAK|SESUAI|TIDAK SESUAI)\]\s*$/iu', $cleanLine, $mBinary)) {
                     $currentQuestion['type'] = 'binary_matrix';
-                    $stmtText = trim($mBinary[1]);
-                    $stmtKey = ucfirst(strtolower(trim($mBinary[2])));
+                    $letter = strtoupper($mBinary[1]);
+                    $stmtText = trim($mBinary[2]);
+                    $stmtKey = ucfirst(strtolower(trim($mBinary[3])));
 
-                    $idx = count($currentQuestion['options']) + 1;
                     $currentQuestion['options'][] = [
-                        'id' => 'stmt_imp_'.uniqid().'_'.$idx,
-                        'label' => (string) $idx,
+                        'id' => 'stmt_imp_'.uniqid().'_'.$letter,
+                        'label' => $letter,
                         'option_text' => $stmtText,
                         'is_correct' => true,
                         'score' => 1.0,
@@ -1506,17 +1602,17 @@ class WordQuestionService
             }
 
             // Option Check for Matching pairs:
-            // "1) Premis Kiri -> Pasangan Kanan" or "1. Premis => Pasangan"
-            if ($currentQuestion && ($currentQuestion['type'] === 'matching' || preg_match('/(?:->|=>|==>|\bpasangan\s*:)\s*(.+)$/i', $cleanLine))) {
-                if (preg_match('/^(?:(?:\d+|[A-Z])[\.\)]|-|\*)\s*(.*?)\s*(?:->|=>|==>)\s*(.+)$/i', $cleanLine, $mPair)) {
+            // MUST start with letter: "A. Premis Kiri -> Pasangan Kanan" or "A) Premis => Pasangan"
+            if (! $inExplanation && $currentQuestion && ($currentQuestion['type'] === 'matching' || preg_match('/(?:->|=>|==>|\bpasangan\s*:)\s*(.+)$/iu', $cleanLine))) {
+                if (preg_match('/^(?:[-*]\s+)?([A-J])[\.\)]\s*(.*?)\s*(?:->|=>|==>)\s*(.+)$/iu', $cleanLine, $mPair)) {
                     $currentQuestion['type'] = 'matching';
-                    $leftItem = trim($mPair[1]);
-                    $rightItem = trim($mPair[2]);
+                    $letter = strtoupper($mPair[1]);
+                    $leftItem = trim($mPair[2]);
+                    $rightItem = trim($mPair[3]);
 
-                    $idx = count($currentQuestion['options']) + 1;
                     $currentQuestion['options'][] = [
-                        'id' => 'pair_imp_'.uniqid().'_'.$idx,
-                        'label' => (string) $idx,
+                        'id' => 'pair_imp_'.uniqid().'_'.$letter,
+                        'label' => $letter,
                         'option_text' => $leftItem,
                         'is_correct' => true,
                         'score' => 1.0,
@@ -1527,50 +1623,17 @@ class WordQuestionService
                 }
             }
 
-            // Option Check for MCQ:
-            // "A. Opsi teks" or TKP Format 2: "A. [5] Opsi teks" or "A. [skor: 5] Opsi teks" or "- A. Opsi teks"
-            if ($currentQuestion && preg_match('/^(?:[-*]\s+)?([A-E])[\.\)]\s*(?:\[(?:(?:skor|bobot|poin)\s*:\s*)?(\d+(?:\.\d+)?)\]|\((?:skor|bobot|poin)\s*:\s*(\d+(?:\.\d+)?)\))?\s*(.*)$/i', $cleanLine, $matchesOpt)) {
-                $letter = strtoupper($matchesOpt[1]);
-                $scoreCandidate = $matchesOpt[2] ?: ($matchesOpt[3] ?: null);
-
-                preg_match('/^(?:[-*]\s+)?(?:(?:\*\*|\*|<u>)?[A-E][\.\)](?:\*\*|\*|<\/u>)?\s*)(?:\[(?:(?:skor|bobot|poin)\s*:\s*)?\d+(?:\.\d+)?\]|\((?:skor|bobot|poin)\s*:\s*\d+(?:\.\d+)?\))?\s*(.*)$/i', $line, $matchesLine);
-                $optText = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : trim($matchesOpt[4] ?? '');
-
-                // Guard: If [X] was matched without explicit "skor:", but remaining text is empty or starts with punctuation/conjunctions (e.g. A. [1], or A. [1], [2], dan [3]), it is a statement reference, not a score!
-                if ($scoreCandidate !== null && ! preg_match('/(?:skor|bobot|poin)\s*:\s*\d+/i', $cleanLine)) {
-                    if ($optText === '' || preg_match('/^([,;.\-]|\b(?:dan|atau|and|or)\b)/i', $optText)) {
-                        $optText = '['.$scoreCandidate.']'.($optText !== '' ? ' '.$optText : '');
-                        $scoreCandidate = null;
-                    }
-                }
-
-                $optScore = 0.0;
-                if ($scoreCandidate !== null) {
-                    $optScore = (float) $scoreCandidate;
-                    $currentQuestion['type'] = 'mcq_weighted';
-                }
-
-                $currentQuestion['options'][] = [
-                    'id' => 'opt_imp_'.uniqid().'_'.$letter,
-                    'label' => $letter,
-                    'option_text' => $optText,
-                    'is_correct' => ($optScore > 0.0),
-                    'score' => $optScore,
-                    'match_key' => null,
-                ];
-
-                continue;
-            }
-
             // Option Check for Ordering steps:
-            // When current question is ordering and line is a sequence step
-            if ($currentQuestion && $currentQuestion['type'] === 'ordering') {
-                if (preg_match('/^(?:(?:\d+|[A-Z])[\.\)]|-|\*)\s*(.+)$/i', $cleanLine, $mOrder)) {
-                    $orderText = trim($mOrder[1]);
+            // MUST start with letter: "A. Langkah pertama" or "B) Langkah kedua"
+            if (! $inExplanation && $currentQuestion && in_array($currentQuestion['type'], ['ordering', 'reorder'], true)) {
+                if (preg_match('/^(?:[-*]\s+)?([A-J])[\.\)]\s*(.+)$/iu', $cleanLine, $mOrder)) {
+                    $letter = strtoupper($mOrder[1]);
+                    $orderText = trim($mOrder[2]);
                     $idx = count($currentQuestion['options']) + 1;
+
                     $currentQuestion['options'][] = [
-                        'id' => 'ord_imp_'.uniqid().'_'.$idx,
-                        'label' => (string) $idx,
+                        'id' => 'ord_imp_'.uniqid().'_'.$letter,
+                        'label' => $letter,
                         'option_text' => $orderText,
                         'is_correct' => true,
                         'score' => 1.0,
@@ -1579,6 +1642,63 @@ class WordQuestionService
 
                     continue;
                 }
+            }
+
+            // Option Check for MCQ / TKP / MCQ Multiple:
+            // "A. Opsi teks" or TKP at END: "A. Opsi teks [5]" or TKP at START: "A. [5] Opsi teks"
+            if (! $inExplanation && $currentQuestion && preg_match('/^(?:[-*]\s+)?([A-J])[\.\)]\s*(.*)$/iu', $cleanLine, $matchesOpt)) {
+                $letter = strtoupper($matchesOpt[1]);
+                $rawOptText = trim($matchesOpt[2]);
+                $optScore = 0.0;
+                $scoreCandidate = null;
+
+                // 1. Check for Score at the END of option (Preferred TKP format: "A. Opsi teks... [5]")
+                // Square brackets: [5] or [skor: 5]
+                // Parentheses: (skor: 5) or (poin: 5) -- NEVER bare (4) because (4) is a statement reference!
+                if (preg_match('/^(.*?)\s*(?:\[(?:(?:skor|bobot|poin)\s*:\s*)?(\d+(?:\.\d+)?)\]|\((?:skor|bobot|poin)\s*:\s*(\d+(?:\.\d+)?)\))\s*$/iu', $rawOptText, $mScoreEnd)) {
+                    $scoreVal = (float) ($mScoreEnd[2] !== '' ? $mScoreEnd[2] : $mScoreEnd[3]);
+                    $candidateText = trim($mScoreEnd[1]);
+                    if ($candidateText !== '') {
+                        $rawOptText = $candidateText;
+                        $scoreCandidate = $scoreVal;
+                    }
+                }
+                // 2. Fallback: Check for Score at the START of option (e.g. "A. [5] Opsi teks...")
+                elseif (preg_match('/^(?:\[(?:(?:skor|bobot|poin)\s*:\s*)?(\d+(?:\.\d+)?)\]|\((?:skor|bobot|poin)\s*:\s*(\d+(?:\.\d+)?)\))\s*(.+)$/iu', $rawOptText, $mScoreStart)) {
+                    $scoreVal = (float) ($mScoreStart[1] !== '' ? $mScoreStart[1] : $mScoreStart[2]);
+                    $candidateText = trim($mScoreStart[3]);
+                    $isExplicitScore = (bool) preg_match('/(?:skor|bobot|poin)\s*:\s*\d+/iu', $cleanLine);
+                    if ($isExplicitScore || ($candidateText !== '' && ! preg_match('/^([,;.\-]|\b(?:dan|atau|and|or)\b)/iu', $candidateText))) {
+                        $rawOptText = $candidateText;
+                        $scoreCandidate = $scoreVal;
+                    }
+                }
+
+                if ($scoreCandidate !== null) {
+                    $optScore = (float) $scoreCandidate;
+                    $currentQuestion['type'] = 'mcq_weighted';
+                }
+
+                // Preserve formatting if original line had markdown / HTML tags
+                preg_match('/^(?:[-*]\s+)?(?:(?:\*\*|\*|<u>)?[A-J][\.\)](?:\*\*|\*|<\/u>)?\s*)(.*)$/iu', $line, $matchesLine);
+                $formattedOptText = isset($matchesLine[1]) && trim($matchesLine[1]) !== '' ? trim($matchesLine[1]) : $rawOptText;
+
+                if ($scoreCandidate !== null) {
+                    $formattedOptText = preg_replace('/\s*(?:\[(?:(?:skor|bobot|poin)\s*:\s*)?\d+(?:\.\d+)?\]|\((?:skor|bobot|poin)\s*:\s*\d+(?:\.\d+)?\))\s*$/iu', '', $formattedOptText);
+                    $formattedOptText = preg_replace('/^(?:\[(?:(?:skor|bobot|poin)\s*:\s*)?\d+(?:\.\d+)?\]|\((?:skor|bobot|poin)\s*:\s*\d+(?:\.\d+)?\))\s*/iu', '', $formattedOptText);
+                    $formattedOptText = trim($formattedOptText);
+                }
+
+                $currentQuestion['options'][] = [
+                    'id' => 'opt_imp_'.uniqid().'_'.$letter,
+                    'label' => $letter,
+                    'option_text' => $formattedOptText ?: $rawOptText,
+                    'is_correct' => ($optScore > 0.0),
+                    'score' => $optScore,
+                    'match_key' => null,
+                ];
+
+                continue;
             }
 
             // If in narrative but not question yet, check for Title / Teks
@@ -1603,8 +1723,68 @@ class WordQuestionService
                 }
             }
 
+            // Guard: Number lines that are strictly prompt or explanation (BAGIAN DARI SOAL), NEVER a question number:
+            // 1. Parenthesized number: e.g. "(1) Toko A", "(2) Toko B"
+            if ($currentQuestion && preg_match('/^\s*\(\d+\)/u', $cleanLine)) {
+                if ($inExplanation) {
+                    $currentQuestion['explanation'] .= "\n".$line;
+                } else {
+                    $currentQuestion['prompt'] .= "\n".$line;
+                }
+
+                continue;
+            }
+
+            // 2. Number with closing parenthesis without explicit question keyword while a question is active:
+            // E.g. "1) Toko A dan Toko B", "2) Toko B dan Toko C"
+            // Numbers can NEVER be options/answers, and "1)", "2)" without "Soal" is always prompt/explanation text!
+            if ($currentQuestion && ! preg_match('/^(?:#+\s*)?(?:[-*]\s+)?(?:Soal|Nomor|No\.)\s*\d+/i', $cleanLine) && preg_match('/^\s*(?:[-*]\s+)?\d+\)\s*/', $cleanLine)) {
+                if ($inExplanation) {
+                    $currentQuestion['explanation'] .= "\n".$line;
+                } else {
+                    $currentQuestion['prompt'] .= "\n".$line;
+                }
+
+                continue;
+            }
+
             // Question Prompt Check: "1. Teks soal..." or "1) Teks soal..." or "Soal 1. ..." or "### 1. Teks soal..."
             if (preg_match('/^(?:#+\s*)?(?:[-*]\s+)?(?:Soal\s*)?(\d+)[\.\)]\s*(.*)$/i', $cleanLine, $matchesClean)) {
+                $candidateNumber = (int) $matchesClean[1];
+                $isExplicitQuestion = (bool) preg_match('/^(?:#+\s*)?(?:[-*]\s+)?(?:Soal|Nomor|No\.)\s*\d+/i', $cleanLine);
+                $hasExplicitTypeTag = (bool) preg_match('/\[(?:TKP|BERBOBOT|KOMPLEKS|BENAR[- ]SALAH|MENJODOHKAN|MENGURUTKAN|ISIAN|ESAI|URAIAN)\]/i', $cleanLine);
+
+                // Check if this line is actually part of an ongoing question's prompt (e.g. statements 1), 2), 3. before options appear):
+                if ($currentQuestion && ! $isExplicitQuestion && ! $hasExplicitTypeTag) {
+                    $hasOptions = ! empty($currentQuestion['options']);
+                    $hasKeyOrExpl = ! empty($currentQuestion['explanation']) || ($currentQuestion['correct_key'] ?? '') !== 'A';
+                    $isOptionBasedType = ! in_array($currentQuestion['type'], ['essay', 'short_answer'], true);
+
+                    // ATURAN KHUSUS PEMBAHASAN:
+                    // Jika parser sedang berada di dalam PEMBAHASAN:
+                    // Baris berangka (1., 2., 3., dst.) HANYA boleh memecah soal jika baris tersebut BENAR-BENAR soal baru berikutnya.
+                    // Jika bukan soal baru (misal langkah pengerjaan 1., 2., 3... dalam pembahasan), baris harus tetap berada di explanation!
+                    if ($inExplanation) {
+                        $currentQNum = (int) ($currentQuestion['number'] ?? (count($items) + count($currentNarrative['questions'] ?? [])));
+                        if (! $isNextQuestionFromExplanation($pIdx, $candidateNumber, $currentQNum)) {
+                            $currentQuestion['explanation'] .= "\n".$line;
+
+                            continue;
+                        }
+                    }
+
+                    // If question requires options and has none yet, or candidate number is <= current question number:
+                    if (($isOptionBasedType && ! $hasOptions && ! $hasKeyOrExpl) || ($candidateNumber <= (int) ($currentQuestion['number'] ?? 0))) {
+                        if ($inExplanation) {
+                            $currentQuestion['explanation'] .= "\n".$line;
+                        } else {
+                            $currentQuestion['prompt'] .= "\n".$line;
+                        }
+
+                        continue;
+                    }
+                }
+
                 $saveCurrentQuestion();
                 $inExplanation = false;
                 preg_match('/^(?:#+\s*)?(?:[-*]\s+)?(?:(?:\*\*|\*|<u>)?(?:Soal\s*)?\d+[\.\)](?:\*\*|\*|<\/u>)?\s*)(.*)$/i', $line, $matchesLine);
@@ -1769,18 +1949,18 @@ class WordQuestionService
         <w:p><w:r><w:t></w:t></w:r></w:p>
 
         <!-- ======================================================== -->
-        <!-- BAGIAN 2: TKP / PILIHAN GANDA BERBOBOT (FORMAT 2: SKOR)  -->
+        <!-- BAGIAN 2: TKP / PILIHAN GANDA BERBOBOT (SKOR DI AKHIR OPSI)  -->
         <!-- ======================================================== -->
-        <w:p><w:r><w:rPr><w:b/><w:color w:val="2f9e44"/></w:rPr><w:t>--- CONTOH 2: TKP / PILIHAN GANDA BERBOBOT (SKOR DI AWAL OPSI) ---</w:t></w:r></w:p>
+        <w:p><w:r><w:rPr><w:b/><w:color w:val="2f9e44"/></w:rPr><w:t>--- CONTOH 2: TKP / PILIHAN GANDA BERBOBOT (SKOR DI AKHIR OPSI) ---</w:t></w:r></w:p>
         <w:p><w:r><w:rPr><w:b/><w:color w:val="2f9e44"/></w:rPr><w:t>[TKP]</w:t></w:r></w:p>
         <w:p>
             <w:r><w:t>2. Anda sedang melayani antrean masyarakat yang cukup padat di loket pelayanan kantor. Tiba-tiba seorang rekan kerja Anda datang dan meminta untuk dilayani terlebih dahulu karena sedang terburu-buru. Sikap yang paling tepat Anda lakukan adalah ...</w:t></w:r>
         </w:p>
-        <w:p><w:r><w:t>A. [5] Menolak secara santun dan ramah, serta memintanya mengambil nomor antrean sesuai prosedur demi menjaga keadilan bagi seluruh warga.</w:t></w:r></w:p>
-        <w:p><w:r><w:t>B. [4] Menjelaskan bahwa sistem antrean bersifat digital dan otomatis terpantau sehingga tidak memungkinkan adanya pengistimewaan.</w:t></w:r></w:p>
-        <w:p><w:r><w:t>C. [3] Memintanya menunggu hingga waktu istirahat kantor tiba agar bisa dibantu tanpa mengorbankan waktu antrean warga.</w:t></w:r></w:p>
-        <w:p><w:r><w:t>D. [2] Membantu rekan kerja tersebut secara cepat setelah melayani warga yang sedang berada persis di depan loket.</w:t></w:r></w:p>
-        <w:p><w:r><w:t>E. [1] Langsung mendahulukan rekan kerja tersebut karena merasa sungkan dan khawatir hubungan kerja menjadi canggung.</w:t></w:r></w:p>
+        <w:p><w:r><w:t>A. Menolak secara santun dan ramah, serta memintanya mengambil nomor antrean sesuai prosedur demi menjaga keadilan bagi seluruh warga [5]</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Menjelaskan bahwa sistem antrean bersifat digital dan otomatis terpantau sehingga tidak memungkinkan adanya pengistimewaan [4]</w:t></w:r></w:p>
+        <w:p><w:r><w:t>C. Memintanya menunggu hingga waktu istirahat kantor tiba agar bisa dibantu tanpa mengorbankan waktu antrean warga [3]</w:t></w:r></w:p>
+        <w:p><w:r><w:t>D. Membantu rekan kerja tersebut secara cepat setelah melayani warga yang sedang berada persis di depan loket [2]</w:t></w:r></w:p>
+        <w:p><w:r><w:t>E. Langsung mendahulukan rekan kerja tersebut karena merasa sungkan dan khawatir hubungan kerja menjadi canggung [1]</w:t></w:r></w:p>
         <w:p>
             <w:r><w:rPr><w:i/></w:rPr><w:t>PEMBAHASAN: Indikator Pelayanan Publik &amp; Integritas: Opsi A memiliki skor tertinggi (5) karena menjunjung tinggi asas keadilan, transparansi, dan profesionalitas kerja tanpa diskriminasi.</w:t></w:r>
         </w:p>
@@ -1814,9 +1994,9 @@ class WordQuestionService
             <w:r><w:t>4. Analisislah pernyataan-pernyataan berikut mengenai biologi sel dan fotosintesis pada tumbuhan hijau!</w:t></w:r>
         </w:p>
         <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KOLOM: Benar | Salah</w:t></w:r></w:p>
-        <w:p><w:r><w:t>1) Fotosintesis menghasilkan senyawa glukosa dan melepaskan gas oksigen ke atmosfer [BENAR]</w:t></w:r></w:p>
-        <w:p><w:r><w:t>2) Reaksi terang fotosintesis berlangsung di dalam stroma kloroplas tanpa bantuan cahaya [SALAH]</w:t></w:r></w:p>
-        <w:p><w:r><w:t>3) Klorofil merupakan pigmen hijau daun penyerap spektrum cahaya matahari [BENAR]</w:t></w:r></w:p>
+        <w:p><w:r><w:t>A. Fotosintesis menghasilkan senyawa glukosa dan melepaskan gas oksigen ke atmosfer [BENAR]</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Reaksi terang fotosintesis berlangsung di dalam stroma kloroplas tanpa bantuan cahaya [SALAH]</w:t></w:r></w:p>
+        <w:p><w:r><w:t>C. Klorofil merupakan pigmen hijau daun penyerap spektrum cahaya matahari [BENAR]</w:t></w:r></w:p>
         <w:p><w:r><w:rPr><w:b/><w:color w:val="d9480f"/></w:rPr><w:t>BOBOT: 3.0</w:t></w:r></w:p>
         <w:p><w:r><w:t></w:t></w:r></w:p>
 
@@ -1828,10 +2008,10 @@ class WordQuestionService
         <w:p>
             <w:r><w:t>5. Pasangkanlah konsep organisasi internasional berikut dengan lokasi markas besarnya!</w:t></w:r>
         </w:p>
-        <w:p><w:r><w:t>1) Perserikatan Bangsa-Bangsa (PBB) -> New York, Amerika Serikat</w:t></w:r></w:p>
-        <w:p><w:r><w:t>2) Organisasi Kesehatan Dunia (WHO) -> Jenewa, Swiss</w:t></w:r></w:p>
-        <w:p><w:r><w:t>3) Sekretariat Jenderal ASEAN -> Jakarta, Indonesia</w:t></w:r></w:p>
-        <w:p><w:r><w:t>4) UNESCO (Pendidikan &amp; Budaya) -> Paris, Prancis</w:t></w:r></w:p>
+        <w:p><w:r><w:t>A. Perserikatan Bangsa-Bangsa (PBB) -> New York, Amerika Serikat</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Organisasi Kesehatan Dunia (WHO) -> Jenewa, Swiss</w:t></w:r></w:p>
+        <w:p><w:r><w:t>C. Sekretariat Jenderal ASEAN -> Jakarta, Indonesia</w:t></w:r></w:p>
+        <w:p><w:r><w:t>D. UNESCO (Pendidikan &amp; Budaya) -> Paris, Prancis</w:t></w:r></w:p>
         <w:p><w:r><w:rPr><w:b/><w:color w:val="d9480f"/></w:rPr><w:t>BOBOT: 4.0</w:t></w:r></w:p>
         <w:p><w:r><w:t></w:t></w:r></w:p>
 
@@ -1843,11 +2023,11 @@ class WordQuestionService
         <w:p>
             <w:r><w:t>6. Urutkan tahapan metode ilmiah berikut mulai dari langkah paling awal hingga perumusan kesimpulan!</w:t></w:r>
         </w:p>
-        <w:p><w:r><w:t>1) Merumuskan masalah dan pertanyaan penelitian</w:t></w:r></w:p>
-        <w:p><w:r><w:t>2) Mengumpulkan data melalui observasi awal</w:t></w:r></w:p>
-        <w:p><w:r><w:t>3) Menyusun hipotesis ilmiah</w:t></w:r></w:p>
-        <w:p><w:r><w:t>4) Melakukan eksperimen atau pengujian terukur</w:t></w:r></w:p>
-        <w:p><w:r><w:t>5) Menganalisis data dan menarik kesimpulan</w:t></w:r></w:p>
+        <w:p><w:r><w:t>A. Merumuskan masalah dan pertanyaan penelitian</w:t></w:r></w:p>
+        <w:p><w:r><w:t>B. Mengumpulkan data melalui observasi awal</w:t></w:r></w:p>
+        <w:p><w:r><w:t>C. Menyusun hipotesis ilmiah</w:t></w:r></w:p>
+        <w:p><w:r><w:t>D. Melakukan eksperimen atau pengujian terukur</w:t></w:r></w:p>
+        <w:p><w:r><w:t>E. Menganalisis data dan menarik kesimpulan</w:t></w:r></w:p>
         <w:p><w:r><w:rPr><w:b/><w:color w:val="d9480f"/></w:rPr><w:t>BOBOT: 3.0</w:t></w:r></w:p>
         <w:p><w:r><w:t></w:t></w:r></w:p>
 
@@ -1943,14 +2123,14 @@ KUNCI: A
 BOBOT: 2.5
 PEMBAHASAN: Nilai D = 25. Maka $x = \frac{7 \pm 5}{4}$, sehingga $x_1 = 3$ dan $x_2 = \frac{1}{2}$.
 
---- CONTOH 2: TKP / PILIHAN GANDA BERBOBOT (SKOR DI AWAL OPSI) ---
+--- CONTOH 2: TKP / PILIHAN GANDA BERBOBOT (SKOR DI AKHIR OPSI) ---
 [TKP]
 2. Anda sedang melayani antrean masyarakat yang cukup padat di loket pelayanan kantor. Tiba-tiba seorang rekan kerja Anda datang dan meminta untuk dilayani terlebih dahulu karena sedang terburu-buru. Sikap yang paling tepat Anda lakukan adalah ...
-A. [5] Menolak secara santun dan ramah, serta memintanya mengambil nomor antrean sesuai prosedur demi menjaga keadilan bagi seluruh warga.
-B. [4] Menjelaskan bahwa sistem antrean bersifat digital dan otomatis terpantau sehingga tidak memungkinkan adanya pengistimewaan.
-C. [3] Memintanya menunggu hingga waktu istirahat kantor tiba agar bisa dibantu tanpa mengorbankan waktu antrean warga.
-D. [2] Membantu rekan kerja tersebut secara cepat setelah melayani warga yang sedang berada persis di depan loket.
-E. [1] Langsung mendahulukan rekan kerja tersebut karena merasa sungkan dan khawatir hubungan kerja menjadi canggung.
+A. Menolak secara santun dan ramah, serta memintanya mengambil nomor antrean sesuai prosedur demi menjaga keadilan bagi seluruh warga. [5]
+B. Menjelaskan bahwa sistem antrean bersifat digital dan otomatis terpantau sehingga tidak memungkinkan adanya pengistimewaan. [4]
+C. Memintanya menunggu hingga waktu istirahat kantor tiba agar bisa dibantu tanpa mengorbankan waktu antrean warga. [3]
+D. Membantu rekan kerja tersebut secara cepat setelah melayani warga yang sedang berada persis di depan loket. [2]
+E. Langsung mendahulukan rekan kerja tersebut karena merasa sungkan dan khawatir hubungan kerja menjadi canggung. [1]
 PEMBAHASAN: Indikator Pelayanan Publik & Integritas: Opsi A memiliki skor tertinggi (5) karena menjunjung tinggi asas keadilan.
 
 --- CONTOH 3: PILIHAN GANDA KOMPLEKS (JAWABAN BENAR LEBIH DARI SATU) ---
@@ -1968,27 +2148,27 @@ PEMBAHASAN: Energi surya (A) dan bayu/angin (C) merupakan energi terbarukan tanp
 [BENAR SALAH]
 4. Analisislah pernyataan-pernyataan berikut mengenai biologi sel dan fotosintesis pada tumbuhan hijau!
 KOLOM: Benar | Salah
-1) Fotosintesis menghasilkan senyawa glukosa dan melepaskan gas oksigen ke atmosfer [BENAR]
-2) Reaksi terang fotosintesis berlangsung di dalam stroma kloroplas tanpa bantuan cahaya [SALAH]
-3) Klorofil merupakan pigmen hijau daun penyerap spektrum cahaya matahari [BENAR]
+A. Fotosintesis menghasilkan senyawa glukosa dan melepaskan gas oksigen ke atmosfer [BENAR]
+B. Reaksi terang fotosintesis berlangsung di dalam stroma kloroplas tanpa bantuan cahaya [SALAH]
+C. Klorofil merupakan pigmen hijau daun penyerap spektrum cahaya matahari [BENAR]
 BOBOT: 3.0
 
 --- CONTOH 5: MENJODOHKAN (PREMIS ↔ PASANGAN) ---
 [MENJODOHKAN]
 5. Jodohkanlah organ ekskresi manusia berikut dengan zat sisa metabolisme yang dihasilkannya secara tepat!
-1) Ginjal -> Urine dan zat sisa penyaringan darah
-2) Paru-paru -> Karbon dioksida (CO2) dan uap air (H2O)
-3) Kulit -> Keringat, garam mineral, dan sedikit urea
-4) Hati -> Empedu dan perombakan sel darah merah
+A. Ginjal -> Urine dan zat sisa penyaringan darah
+B. Paru-paru -> Karbon dioksida (CO2) dan uap air (H2O)
+C. Kulit -> Keringat, garam mineral, dan sedikit urea
+D. Hati -> Empedu dan perombakan sel darah merah
 BOBOT: 3.0
 
 --- CONTOH 6: MENGURUTKAN (SEQUENCING) ---
 [MENGURUTKAN]
 6. Urutkanlah tahapan siklus metamorfosis sempurna pada kupu-kupu dari awal hingga dewasa!
-1) Telur (ovum) menetas di permukaan daun
-2) Ulat (larva) memakan dedaunan secara aktif
-3) Kepompong (pupa) membungkus diri dalam kokon
-4) Kupu-kupu dewasa (imago) keluar dan mengeringkan sayap
+A. Telur (ovum) menetas di permukaan daun
+B. Ulat (larva) memakan dedaunan secara aktif
+C. Kepompong (pupa) membungkus diri dalam kokon
+D. Kupu-kupu dewasa (imago) keluar dan mengeringkan sayap
 BOBOT: 2.0
 
 --- CONTOH 7: ISIAN SINGKAT ---
@@ -2260,7 +2440,7 @@ MARKDOWN;
                 $lbl = htmlspecialchars($opt['label'] ?? 'A', ENT_QUOTES | ENT_XML1, 'UTF-8');
                 $score = (int) ($opt['score'] ?? 0);
                 $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. ['.$score.'] '.$text.'</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:t>'.$lbl.'. '.$text.' ['.$score.']</w:t></w:r></w:p>';
             }
         } elseif ($type === 'mcq_single') {
             $correctLetter = 'A';
@@ -2286,23 +2466,23 @@ MARKDOWN;
             $bodyXml .= '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>KUNCI: '.implode(', ', $correctLetters).'</w:t></w:r></w:p>';
         } elseif ($type === 'binary_matrix') {
             foreach ($options as $idx => $opt) {
-                $iNum = $idx + 1;
+                $letter = chr(65 + $idx);
                 $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
                 $key = htmlspecialchars(strtoupper($opt['match_key'] ?? 'BENAR'), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.' ['.$key.']</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:t>'.$letter.'. '.$text.' ['.$key.']</w:t></w:r></w:p>';
             }
         } elseif ($type === 'matching') {
             foreach ($options as $idx => $opt) {
-                $iNum = $idx + 1;
+                $letter = chr(65 + $idx);
                 $left = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
                 $right = htmlspecialchars(trim($opt['match_key'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$left.' -&gt; '.$right.'</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:t>'.$letter.'. '.$left.' -&gt; '.$right.'</w:t></w:r></w:p>';
             }
         } elseif ($type === 'ordering') {
             foreach ($options as $idx => $opt) {
-                $iNum = $idx + 1;
+                $letter = chr(65 + $idx);
                 $text = htmlspecialchars(trim($opt['option_text'] ?? ''), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                $bodyXml .= '<w:p><w:r><w:t>'.$iNum.') '.$text.'</w:t></w:r></w:p>';
+                $bodyXml .= '<w:p><w:r><w:t>'.$letter.'. '.$text.'</w:t></w:r></w:p>';
             }
         } elseif ($type === 'short_answer') {
             $key = htmlspecialchars(trim($options[0]['option_text'] ?? 'Jawaban'), ENT_QUOTES | ENT_XML1, 'UTF-8');

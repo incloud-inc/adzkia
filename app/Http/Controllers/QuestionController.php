@@ -81,6 +81,20 @@ class QuestionController extends Controller
                     $correctChoice = $request->input('correct_option');
                     $receivedIds = [];
 
+                    $mcqSingleFound = false;
+                    $targetSingleIndex = null;
+                    if ($question->type === 'mcq_single' && $correctChoice === null) {
+                        foreach ($validated['options'] as $i => $od) {
+                            if (! empty($od['is_correct'])) {
+                                $targetSingleIndex = $i;
+                                break;
+                            }
+                        }
+                        if ($targetSingleIndex === null && count($validated['options']) > 0) {
+                            $targetSingleIndex = 0;
+                        }
+                    }
+
                     foreach ($validated['options'] as $idx => $optData) {
                         $label = $optData['label'] ?? chr(65 + $idx);
                         $optText = $optData['option_text'] ?? '';
@@ -89,11 +103,15 @@ class QuestionController extends Controller
                         $isCorrect = false;
                         if ($question->type === 'mcq_single') {
                             if ($correctChoice !== null) {
-                                $isCorrect = ((string) $correctChoice === (string) $idx)
+                                $isCandidate = ((string) $correctChoice === (string) $idx)
                                     || (strtoupper((string) $correctChoice) === strtoupper((string) $label))
                                     || (! empty($optData['id']) && (string) $correctChoice === (string) $optData['id']);
+                                $isCorrect = $isCandidate && ! $mcqSingleFound;
                             } else {
-                                $isCorrect = ! empty($optData['is_correct']);
+                                $isCorrect = ($idx === $targetSingleIndex);
+                            }
+                            if ($isCorrect) {
+                                $mcqSingleFound = true;
                             }
                             $score = $isCorrect ? (float) ($question->points ?? 1.0) : 0.0;
                         } elseif ($question->type === 'mcq_weighted') {

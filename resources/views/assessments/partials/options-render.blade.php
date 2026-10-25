@@ -40,7 +40,7 @@
                 @foreach($question->options as $stmt)
                     <tr class="hover:bg-blue-50/20 transition-colors">
                         <td class="py-3 px-4 text-slate-800 font-medium">
-                            <span class="font-bold text-gray-500 mr-1.5">{{ $loop->iteration }}.</span>
+                            <span class="font-bold text-gray-700 mr-1.5">{{ $stmt->label ? $stmt->label . '.' : $loop->iteration . '.' }}</span>
                             <div class="inline-block prose prose-sm max-w-none align-top text-slate-800 leading-relaxed">
                                 {!! \App\Support\MarkdownRenderer::render($stmt->option_text) !!}
                             </div>
@@ -70,6 +70,11 @@
         <span class="text-xs font-bold text-gray-700 block mb-1">Kunci Pasangan Menjodohkan:</span>
         @foreach($question->options as $pair)
             <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs">
+                @if($pair->label)
+                    <span class="w-6 h-6 rounded-md bg-gray-200 text-gray-700 font-mono font-bold flex items-center justify-center text-xs shrink-0">
+                        {{ $pair->label }}
+                    </span>
+                @endif
                 <div class="font-medium text-slate-800 flex-1 prose prose-sm max-w-none bg-white p-2.5 rounded-lg border border-gray-200">
                     {!! \App\Support\MarkdownRenderer::render($pair->option_text) !!}
                 </div>
@@ -93,12 +98,15 @@
         <div class="space-y-2">
             @foreach($question->options as $step)
                 <div class="flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-200 text-xs shadow-2xs">
-                    <span class="w-6 h-6 rounded-md bg-blue-600 text-white font-mono font-bold flex items-center justify-center text-xs shrink-0">
-                        {{ $step->order }}
+                    <span class="w-6 h-6 rounded-md bg-blue-600 text-white font-mono font-bold flex items-center justify-center text-xs shrink-0" title="Urutan ke-{{ $step->order }}">
+                        {{ $step->label ?? $step->order }}
                     </span>
                     <div class="font-medium text-slate-800 flex-1 prose prose-sm max-w-none leading-relaxed">
                         {!! \App\Support\MarkdownRenderer::render($step->option_text) !!}
                     </div>
+                    <span class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+                        Tahap {{ $step->order }}
+                    </span>
                 </div>
             @endforeach
         </div>

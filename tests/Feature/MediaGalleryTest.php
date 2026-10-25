@@ -111,26 +111,55 @@ class MediaGalleryTest extends TestCase
         $this->assertTrue(Storage::disk('r2')->exists($path));
     }
 
-    public function test_delete_strictly_removes_from_asesmen_folder_and_cannot_escape(): void
+    public function test_tenant_admin_cannot_delete_media_and_does_not_see_delete_button(): void
     {
         Storage::fake('r2');
         Storage::disk('r2')->put('asesmen/sample_soal.jpg', 'content');
-        Storage::disk('r2')->put('avatars/secret.jpg', 'secret content');
 
         $tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
         $admin = User::factory()->create(['current_tenant_id' => $tenant->id]);
         $admin->tenants()->attach($tenant->id, ['role' => 'A']);
 
-        // Hapus file valid di asesmen
+        // 1. Tampilan Galeri untuk Tenant Admin tidak boleh memuat tombol hapus
+        $viewResponse = $this->actingAs($admin)->get(route('media.gallery.index'));
+        $viewResponse->assertOk();
+        $viewResponse->assertDontSee('promptDelete');
+        $viewResponse->assertDontSee('Konfirmasi Hapus Media R2');
+
+        // 2. Direct request DELETE oleh Tenant Admin harus ditolak dengan 403 Forbidden
         $response = $this->actingAs($admin)->deleteJson(route('media.gallery.delete'), [
+            'path' => 'sample_soal.jpg',
+        ]);
+
+        $response->assertForbidden();
+        $this->assertTrue(Storage::disk('r2')->exists('asesmen/sample_soal.jpg'));
+    }
+
+    public function test_owner_super_user_sees_confirmation_modal_and_can_delete_media(): void
+    {
+        Storage::fake('r2');
+        Storage::disk('r2')->put('asesmen/sample_soal.jpg', 'content');
+        Storage::disk('r2')->put('avatars/secret.jpg', 'secret content');
+        $ownerTenant = Tenant::factory()->create();
+        $owner = User::factory()->create(['current_tenant_id' => $ownerTenant->id]);
+        $owner->tenants()->attach($ownerTenant->id, ['role' => 'S']);
+
+        // 1. Tampilan Galeri untuk Owner harus memuat tombol hapus dan modal konfirmasi
+        $viewResponse = $this->actingAs($owner)->get(route('media.gallery.index'));
+        $viewResponse->assertOk();
+        $viewResponse->assertSee('promptDelete');
+        $viewResponse->assertSee('Konfirmasi Hapus Media R2');
+
+        // 2. Owner berhasil menghapus berkas di folder asesmen
+        $response = $this->actingAs($owner)->deleteJson(route('media.gallery.delete'), [
             'path' => 'sample_soal.jpg',
         ]);
 
         $response->assertOk();
         $this->assertFalse(Storage::disk('r2')->exists('asesmen/sample_soal.jpg'));
 
-        // Coba manipulasi path untuk menghapus file di luar asesmen (directory traversal attempt)
-        $this->actingAs($admin)->deleteJson(route('media.gallery.delete'), [
+        // 3. Path traversal attack dicegah
+        $this->actingAs($owner)->deleteJson(route('media.gallery.delete'), [
             'path' => '../avatars/secret.jpg',
         ]);
 

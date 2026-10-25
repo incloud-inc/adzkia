@@ -28,14 +28,16 @@ class ExamGateController extends Controller
      */
     public function resolve(Request $request, string $token): RedirectResponse
     {
-        // 1) Cek apakah token adalah uuid sesi aktif milik user → resume
-        $session = ExamSession::query()
-            ->where('uuid', $token)
-            ->where('user_id', Auth::id())
-            ->first();
+        // 1) Cek apakah token adalah uuid sesi aktif milik user → resume jika user sedang login
+        if (Auth::check()) {
+            $session = ExamSession::query()
+                ->where('uuid', $token)
+                ->where('user_id', Auth::id())
+                ->first();
 
-        if ($session) {
-            return redirect()->route('exam.gate.show', ['assessment' => $session->assessment]);
+            if ($session) {
+                return redirect()->route('exam.gate.show', ['assessment' => $session->assessment]);
+            }
         }
 
         // 2) Cari assessment berdasarkan token di dalam settings JSON
@@ -45,7 +47,9 @@ class ExamGateController extends Controller
             ->first();
 
         if (! $assessment) {
-            return redirect()->route('dashboard')
+            $fallback = Auth::check() ? route('dashboard') : route('home');
+
+            return redirect($fallback)
                 ->with('error', 'Token ujian tidak valid atau sudah tidak aktif.');
         }
 
@@ -72,91 +76,96 @@ class ExamGateController extends Controller
             return $this->bail('Ujian belum dipublikasikan atau sudah diarsipkan.');
         }
 
-        // ── Tenant scoping & hak partisipasi ────────────────────────
-        $this->ensureParticipantAuthorized($user, $assessment);
-
         // ── Validasi periode aktif ───────────────────────────────────
         $window = $this->resolveWindow($assessment);
         if (! $window['active']) {
             return $this->bail($window['message'] ?? 'Ujian sedang di luar periode aktif.');
         }
 
-        // ── Validasi Pembelian Asesmen Berbayar ──────────────────────
-        $isStaff = $user->isSuperUser() || $user->isAdmin() || $user->isTeacher();
-        if ($assessment->price_type === 'paid' && (float) $assessment->price > 0 && ! $isStaff) {
-            $access = $user->getAssessmentAccess($assessment);
+        $session = null;
 
-            if (! $access) {
-                $lastSettledOrder = $user->orders()
-                    ->where('assessment_id', $assessment->id)
-                    ->where('status', 'settled')
-                    ->latest('paid_at')
-                    ->first();
+        // ── Validasi & Scoping Khusus Pengguna Terautentikasi ────────
+        if ($user) {
+            // Tenant scoping & hak partisipasi
+            $this->ensureParticipantAuthorized($user, $assessment);
 
-                if ($lastSettledOrder) {
-                    $validityDays = $lastSettledOrder->package_validity_days ?: ($assessment->access_validity_days ?: 35);
-                    $paidAt = $lastSettledOrder->paid_at ?: now();
-                    $access = UserAssessmentAccess::create([
-                        'user_id' => $user->id,
-                        'assessment_id' => $assessment->id,
-                        'quota_attempts' => $lastSettledOrder->package_attempts ?: ($assessment->max_attempts ?: 1),
-                        'attempts_used' => 0,
-                        'expires_at' => $paidAt->copy()->addDays($validityDays),
-                        'last_purchased_at' => $paidAt,
-                        'last_order_id' => $lastSettledOrder->id,
-                    ]);
+            // Validasi Pembelian Asesmen Berbayar
+            $isStaff = $user->isSuperUser() || $user->isAdmin() || $user->isTeacher();
+            if ($assessment->price_type === 'paid' && (float) $assessment->price > 0 && ! $isStaff) {
+                $access = $user->getAssessmentAccess($assessment);
+
+                if (! $access) {
+                    $lastSettledOrder = $user->orders()
+                        ->where('assessment_id', $assessment->id)
+                        ->where('status', 'settled')
+                        ->latest('paid_at')
+                        ->first();
+
+                    if ($lastSettledOrder) {
+                        $validityDays = $lastSettledOrder->package_validity_days ?: ($assessment->access_validity_days ?: 35);
+                        $paidAt = $lastSettledOrder->paid_at ?: now();
+                        $access = UserAssessmentAccess::create([
+                            'user_id' => $user->id,
+                            'assessment_id' => $assessment->id,
+                            'quota_attempts' => $lastSettledOrder->package_attempts ?: ($assessment->max_attempts ?: 1),
+                            'attempts_used' => 0,
+                            'expires_at' => $paidAt->copy()->addDays($validityDays),
+                            'last_purchased_at' => $paidAt,
+                            'last_order_id' => $lastSettledOrder->id,
+                        ]);
+                    }
+                }
+
+                if (! $access || ! $access->isValid()) {
+                    $msg = ($access && $access->isExpired())
+                        ? 'Masa aktif akses ujian Anda (35 hari) telah berakhir. Silakan beli paket baru untuk memperpanjang dan mengakumulasikan kuota Anda.'
+                        : ($access && $access->availableAttempts() <= 0
+                            ? 'Kuota kesempatan percobaan ujian Anda telah habis. Silakan beli paket kuota baru untuk melanjutkan.'
+                            : 'Asesmen ini berbayar (Rp '.number_format($assessment->price, 0, ',', '.').'). Silakan selesaikan pembayaran untuk mulai mengerjakan ujian CBT.');
+
+                    return redirect()->route('orders.checkout', $assessment)->with('info', $msg);
                 }
             }
 
-            if (! $access || ! $access->isValid()) {
-                $msg = ($access && $access->isExpired())
-                    ? 'Masa aktif akses ujian Anda (35 hari) telah berakhir. Silakan beli paket baru untuk memperpanjang dan mengakumulasikan kuota Anda.'
-                    : ($access && $access->availableAttempts() <= 0
-                        ? 'Kuota kesempatan percobaan ujian Anda telah habis. Silakan beli paket kuota baru untuk melanjutkan.'
-                        : 'Asesmen ini berbayar (Rp '.number_format($assessment->price, 0, ',', '.').'). Silakan selesaikan pembayaran untuk mulai mengerjakan ujian CBT.');
+            // Sesi yang sudah ada
+            $session = ExamSession::query()
+                ->where('assessment_id', $assessment->id)
+                ->where('user_id', $user->id)
+                ->latest('id')
+                ->first();
 
-                return redirect()->route('orders.checkout', $assessment)->with('info', $msg);
-            }
-        }
+            // Habis waktu → expired
+            if ($session && $session->isInProgress() && $session->isExpired()) {
+                $session->update(['status' => 'completed', 'completed_at' => now()]);
+                app(ExamGradingService::class)->autoGradeSession($session);
 
-        // ── Sesi yang sudah ada ──────────────────────────────────────
-        $session = ExamSession::query()
-            ->where('assessment_id', $assessment->id)
-            ->where('user_id', $user->id)
-            ->latest('id')
-            ->first();
-
-        // Habis waktu → expired
-        if ($session && $session->isInProgress() && $session->isExpired()) {
-            $session->update(['status' => 'completed', 'completed_at' => now()]);
-            app(ExamGradingService::class)->autoGradeSession($session);
-
-            $accessRecord = $user->getAssessmentAccess($assessment);
-            if ($accessRecord) {
-                $accessRecord->increment('attempts_used');
-            }
-
-            return redirect()->route('exam.analysis', ['session' => $session->uuid])
-                ->with('info', 'Waktu ujian Anda telah habis dan sesi telah dikumpulkan otomatis.');
-        }
-
-        // Sesi sudah selesai → cek apakah siswa masih boleh mencoba lagi
-        if ($session && $session->isCompleted()) {
-            $attemptCheck = $this->canStartNewAttempt($user, $assessment);
-            if (! $attemptCheck['allowed']) {
-                if (in_array($attemptCheck['reason'], ['expired', 'quota_empty'], true)) {
-                    return redirect()->route('orders.checkout', $assessment)->with('info', $attemptCheck['message']);
+                $accessRecord = $user->getAssessmentAccess($assessment);
+                if ($accessRecord) {
+                    $accessRecord->increment('attempts_used');
                 }
 
-                $isStaff = $user->isTeacher() || $user->isAdmin() || $user->isSuperUser();
-                $targetRoute = (! $isStaff && $assessment->isEnglishTest()) ? 'exam.analysis' : 'exam.result';
-
-                return redirect()->route($targetRoute, ['session' => $session->uuid])
-                    ->with('info', $attemptCheck['message'] ?? 'Anda sudah menyelesaikan ujian ini.');
+                return redirect()->route('exam.analysis', ['session' => $session->uuid])
+                    ->with('info', 'Waktu ujian Anda telah habis dan sesi telah dikumpulkan otomatis.');
             }
 
-            // Siswa berhak mencoba kembali (unlimited atau masih ada sisa percobaan)
-            $session = null;
+            // Sesi sudah selesai → cek apakah siswa masih boleh mencoba lagi
+            if ($session && $session->isCompleted()) {
+                $attemptCheck = $this->canStartNewAttempt($user, $assessment);
+                if (! $attemptCheck['allowed']) {
+                    if (in_array($attemptCheck['reason'], ['expired', 'quota_empty'], true)) {
+                        return redirect()->route('orders.checkout', $assessment)->with('info', $attemptCheck['message']);
+                    }
+
+                    $isStaff = $user->isTeacher() || $user->isAdmin() || $user->isSuperUser();
+                    $targetRoute = (! $isStaff && $assessment->isEnglishTest()) ? 'exam.analysis' : 'exam.result';
+
+                    return redirect()->route($targetRoute, ['session' => $session->uuid])
+                        ->with('info', $attemptCheck['message'] ?? 'Anda sudah menyelesaikan ujian ini.');
+                }
+
+                // Siswa berhak mencoba kembali (unlimited atau masih ada sisa percobaan)
+                $session = null;
+            }
         }
 
         $stats = $this->buildStats($assessment);
@@ -176,6 +185,10 @@ class ExamGateController extends Controller
     public function start(Request $request, Assessment $assessment): RedirectResponse
     {
         $user = $request->user();
+        if (! $user) {
+            return redirect()->guest(route('login'))
+                ->with('error', 'Silakan masuk ke akun Anda terlebih dahulu untuk memulai pengerjaan ujian.');
+        }
 
         // ── Canonical Token URL Enforcement ─────────────────────────
         $rawParam = (string) ($request->segment(3) ?: ($request->route()->originalParameter('assessment') ?? ''));
@@ -409,9 +422,9 @@ class ExamGateController extends Controller
     /**
      * Memastikan peserta berhak mengakses dan memulai asesmen / ujian ini.
      */
-    protected function ensureParticipantAuthorized(User $user, Assessment $assessment): void
+    protected function ensureParticipantAuthorized(?User $user, Assessment $assessment): void
     {
-        if ($user->isSuperUser()) {
+        if ($user === null || $user->isSuperUser()) {
             return;
         }
 

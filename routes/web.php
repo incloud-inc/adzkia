@@ -56,6 +56,13 @@ Route::middleware('web')->group(function () {
     Route::get('/@{username}', [ProfileController::class, 'redirectPublicGlobal'])->name('global.student.profile');
     Route::get('/portal/{subdomain}', [TenantController::class, 'showPublic'])->name('tenant.portal.direct');
     Route::get('/sso/verify', [TenantSsoController::class, 'verify'])->name('tenant.sso.verify');
+
+    // CBT Exam Gate (Publik & OpenGraph Unfurling WhatsApp)
+    Route::get('/exam/{token}', [ExamGateController::class, 'resolve'])
+        ->name('exam.resolve')
+        ->where('token', '[A-Za-z0-9\-]{4,64}');
+    Route::get('/exam/start/{assessment}', [ExamGateController::class, 'show'])
+        ->name('exam.gate.show');
 });
 
 // 3. API Pencarian Kodepos Lokal (AJAX Throttled)
@@ -212,16 +219,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('assessments/{assessment}/analytics/export', [AssessmentAnalyticsController::class, 'exportExcel'])->name('assessments.analytics.export');
 
     // ─── CBT Exam Engine ────────────────────────────────────────
-    // Token shortcut: /exam/ADZ456 → resolve ke gate
-    Route::get('/exam/{token}', [ExamGateController::class, 'resolve'])
-        ->name('exam.resolve')
-        ->where('token', '[A-Za-z0-9\-]{4,64}');
-
-    // Gate: tampilkan halaman verifikasi peserta
-    Route::get('/exam/start/{assessment}', [ExamGateController::class, 'show'])
-        ->name('exam.gate.show');
-
-    // Mulai / resume ujian
+    // Mulai / resume ujian (Wajib Login)
     Route::post('/exam/start/{assessment}', [ExamGateController::class, 'start'])
         ->name('exam.start')
         ->middleware('throttle:exam-start');

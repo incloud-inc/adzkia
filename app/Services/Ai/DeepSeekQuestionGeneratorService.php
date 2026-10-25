@@ -1506,7 +1506,7 @@ PROMPT;
                 $lbl = $opt['label'] ?? 'A';
                 $score = (int) ($opt['score'] ?? 0);
                 $text = trim($opt['option_text'] ?? '');
-                $lines[] = "{$lbl}. [{$score}] {$text}";
+                $lines[] = "{$lbl}. {$text} [{$score}]";
             }
         } elseif ($type === 'mcq_single') {
             $correctLetter = 'A';
@@ -1532,23 +1532,23 @@ PROMPT;
             $lines[] = 'KUNCI: '.implode(', ', $correctLetters);
         } elseif ($type === 'binary_matrix') {
             foreach ($options as $idx => $opt) {
-                $iNum = $idx + 1;
+                $letter = chr(65 + $idx);
                 $text = trim($opt['option_text'] ?? '');
                 $key = strtoupper($opt['match_key'] ?? 'BENAR');
-                $lines[] = "{$iNum}) {$text} [{$key}]";
+                $lines[] = "{$letter}. {$text} [{$key}]";
             }
         } elseif ($type === 'matching') {
             foreach ($options as $idx => $opt) {
-                $iNum = $idx + 1;
+                $letter = chr(65 + $idx);
                 $left = trim($opt['option_text'] ?? '');
                 $right = trim($opt['match_key'] ?? '');
-                $lines[] = "{$iNum}) {$left} -> {$right}";
+                $lines[] = "{$letter}. {$left} -> {$right}";
             }
         } elseif ($type === 'ordering') {
             foreach ($options as $idx => $opt) {
-                $iNum = $idx + 1;
+                $letter = chr(65 + $idx);
                 $text = trim($opt['option_text'] ?? '');
-                $lines[] = "{$iNum}) {$text}";
+                $lines[] = "{$letter}. {$text}";
             }
         } elseif ($type === 'short_answer') {
             $key = trim($options[0]['option_text'] ?? 'Jawaban');

@@ -511,13 +511,33 @@ class AssessmentWizardController extends Controller
         ]);
 
         if (! empty($qData['options']) && is_array($qData['options'])) {
+            $singleCorrectIdx = null;
+            if ($question->type === 'mcq_single') {
+                foreach ($qData['options'] as $idx => $optData) {
+                    if (! empty($optData['is_correct'])) {
+                        $singleCorrectIdx = $idx;
+                        break;
+                    }
+                }
+                if ($singleCorrectIdx === null && count($qData['options']) > 0) {
+                    $singleCorrectIdx = 0;
+                }
+            }
+
             foreach ($qData['options'] as $optIndex => $optData) {
+                $isCorrect = $singleCorrectIdx !== null
+                    ? ($optIndex === $singleCorrectIdx)
+                    : (bool) ($optData['is_correct'] ?? false);
+                $optScore = $question->type === 'mcq_single'
+                    ? ($isCorrect ? (float) ($question->points ?? 1.00) : 0.00)
+                    : ($optData['score'] ?? 0.00);
+
                 QuestionOption::create([
                     'question_id' => $question->id,
                     'label' => $optData['label'] ?? null,
                     'option_text' => $optData['option_text'] ?? '',
-                    'is_correct' => (bool) ($optData['is_correct'] ?? false),
-                    'score' => $optData['score'] ?? 0.00,
+                    'is_correct' => $isCorrect,
+                    'score' => $optScore,
                     'match_key' => $optData['match_key'] ?? null,
                     'order' => $optIndex + 1,
                 ]);

@@ -10,6 +10,7 @@
         $currentTenant = $user?->currentTenant ?? $user?->tenants()->first();
         $canCreate = $user && ($isSuper || ($currentTenant && $currentTenant->canCreateAssessments()));
         $canAccessStudioAi = $user && ($isSuper || ($currentTenant && $currentTenant->canAccessStudioAi()));
+        $isTenantStaff = ! $isSuper && ($isAdmin || $isTeacher);
     @endphp
 
     <div class="space-y-6">
@@ -259,6 +260,23 @@
                                                 </span>
                                             </a>
 
+                                            @if($isTenantStaff)
+                                                <!-- Tombol Bagikan WhatsApp (Khusus Tenant) -->
+                                                <button type="button"
+                                                        @click="$dispatch('open-share-whatsapp-modal', {{ json_encode($item->toWhatsAppPayload($currentTenant)) }})"
+                                                        class="relative group p-2 rounded-lg transition-all hover:opacity-90 active:scale-95 shadow-2xs inline-flex items-center justify-center cursor-pointer border border-[#25d366]/40"
+                                                        style="background-color: #dcfce7; color: #15803d;"
+                                                        title="Bagikan Link Asesmen ke WhatsApp"
+                                                        aria-label="Bagikan ke WhatsApp">
+                                                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                                                        <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c4.54 0 8.24 3.7 8.24 8.24 0 2.2-.86 4.27-2.42 5.82-1.56 1.55-3.63 2.41-5.83 2.41-1.42 0-2.82-.37-4.06-1.07l-.29-.17-3.02.79.81-2.94-.19-.3a8.216 8.216 0 0 1-1.26-4.54c0-4.54 3.7-8.24 8.24-8.24m4.51 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.88 2.38 1 2.54c.12.17 1.73 2.64 4.2 3.7 2.46 1.07 2.46.71 2.9.67.44-.04 1.47-.6 1.68-1.18.2-.59.2-1.09.14-1.19-.06-.1-.23-.16-.48-.28"/>
+                                                    </svg>
+                                                    <span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-gray-900 text-white text-[11px] font-medium rounded-md px-2 py-1 shadow-lg whitespace-nowrap z-50">
+                                                        Bagikan ke WhatsApp
+                                                    </span>
+                                                </button>
+                                            @endif
+
                                             <!-- Tombol Detail -->
                                             <a href="{{ route('assessments.show', $item) }}" 
                                                class="relative group p-2 rounded-lg bg-gray-3 hover:bg-gray-4 text-gray-12 transition-all active:scale-95 shadow-2xs inline-flex items-center justify-center cursor-pointer"
@@ -339,4 +357,8 @@
             @endif
         </div>
     </div>
+
+    @if($isTenantStaff)
+        @include('assessments.partials.share-whatsapp-modal')
+    @endif
 </x-layouts.app>

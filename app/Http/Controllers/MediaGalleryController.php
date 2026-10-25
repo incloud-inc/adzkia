@@ -269,6 +269,9 @@ class MediaGalleryController extends Controller
     {
         $this->authorizeAccess();
 
+        // Khusus Pengelola Utama (Owner) yang diizinkan menghapus media dari Cloudflare R2
+        abort_unless(auth()->user()?->isSuperUser(), 403, 'Akses ditolak: Hanya Pengelola Utama (Owner) yang berhak menghapus berkas dari Cloudflare R2.');
+
         $request->validate([
             'path' => 'required|string',
         ]);

@@ -100,7 +100,7 @@ class SectionTimerAndOrderingTest extends TestCase
         $this->assertNotEmpty($payload['questions']);
         $firstQ = $payload['questions'][0];
         $this->assertSame('ordering', $firstQ['type']);
-        $this->assertSame(15, $firstQ['section_duration_minutes']);
+        $this->assertEquals(15, $firstQ['section_duration_minutes']);
         $this->assertSame($this->section->id, $firstQ['section_id']);
 
         $options = $firstQ['options'];
@@ -151,7 +151,7 @@ class SectionTimerAndOrderingTest extends TestCase
         $createdSection = AssessmentSection::where('assessment_id', $assessmentId)->first();
 
         $this->assertNotNull($createdSection);
-        $this->assertSame(20, $createdSection->duration_minutes);
+        $this->assertEquals(20, $createdSection->duration_minutes);
     }
 
     public function test_saving_answer_for_expired_section_is_rejected(): void
@@ -185,5 +185,68 @@ class SectionTimerAndOrderingTest extends TestCase
             ]);
 
         $response->assertStatus(403);
+    }
+
+    public function test_binary_matrix_questions_are_always_shuffled_in_workspace(): void
+    {
+        $question = Question::create([
+            'assessment_section_id' => $this->section->id,
+            'type' => 'binary_matrix',
+            'prompt' => 'Analisis pernyataan biologi berikut:',
+            'points' => 10,
+            'order' => 2,
+        ]);
+
+        $statements = [
+            'Pernyataan 1: Mitokondria adalah pusat respirasi',
+            'Pernyataan 2: Klorofil menyerap cahaya matahari',
+            'Pernyataan 3: Ribosom mensintesis protein',
+            'Pernyataan 4: Vakuola menyimpan cadangan makanan',
+        ];
+
+        foreach ($statements as $idx => $stmt) {
+            QuestionOption::create([
+                'question_id' => $question->id,
+                'label' => chr(65 + $idx),
+                'option_text' => $stmt,
+                'is_correct' => true,
+                'score' => 2.5,
+                'order' => $idx + 1,
+                'match_key' => 'Benar',
+            ]);
+        }
+
+        $session = ExamSession::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->student->id,
+            'assessment_id' => $this->assessment->id,
+            'status' => 'in_progress',
+            'started_at' => now(),
+            'expires_at' => now()->addMinutes(90),
+            'schedule_snapshot' => [
+                'randomize_questions' => false,
+                'randomize_options' => false, // Opsi dimatikan, tapi binary_matrix HARUS tetap teracak
+            ],
+            'question_count' => 1,
+            'total_points' => 10,
+        ]);
+
+        $response = $this->actingAs($this->student)
+            ->get(route('exam.workspace', ['session' => $session->uuid]));
+
+        $response->assertOk();
+        $payload = $response->viewData('payload');
+
+        $bmQ = collect($payload['questions'])->firstWhere('type', 'binary_matrix');
+        $this->assertNotNull($bmQ);
+
+        $options = $bmQ['options'];
+        $this->assertCount(4, $options);
+
+        // Ambil urutan teks opsi yang disajikan ke siswa
+        $optionTexts = array_map(fn ($o) => $o['content'], $options);
+
+        // Harus TIDAK sama persis dengan urutan kunci jawaban awal
+        $this->assertNotSame($statements, $optionTexts);
     }
 }

@@ -14,6 +14,17 @@
         previewIsVideo: false,
         previewIsAudio: false,
         copiedPath: null,
+        @if(auth()->user()?->isSuperUser())
+        confirmDeleteModal: false,
+        deletePath: '',
+        deleteName: '',
+
+        promptDelete(path, name) {
+            this.deletePath = path;
+            this.deleteName = name;
+            this.confirmDeleteModal = true;
+        },
+        @endif
 
         copyToClipboard(text, path, type = 'markdown') {
             navigator.clipboard.writeText(text).then(() => {
@@ -328,18 +339,15 @@
                                     <span class="truncate" x-text="copiedPath === '{{ $item['path'] }}-url' ? 'Tersalin' : 'URL'"></span>
                                 </button>
 
-                                <!-- Hapus Berkas -->
-                                <form method="POST" action="{{ route('media.gallery.delete') }}"
-                                      class="shrink-0"
-                                      onsubmit="return confirm('Hapus media ini dari Cloudflare R2? Berkas yang telah ditautkan ke soal akan hilang.');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <input type="hidden" name="path" value="{{ $item['path'] }}">
-                                    <button type="submit" title="Hapus Berkas dari R2"
-                                            class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-200 flex items-center justify-center">
+                                @if(auth()->user()?->isSuperUser())
+                                    <!-- Hapus Berkas (Khusus Owner dengan Modal Konfirmasi) -->
+                                    <button type="button"
+                                            @click="promptDelete('{{ $item['path'] }}', '{{ addslashes($item['name']) }}')"
+                                            title="Hapus Berkas dari R2 (Khusus Owner)"
+                                            class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-200 flex items-center justify-center shrink-0">
                                         <x-radix-icon name="trash" class="w-3.5 h-3.5" />
                                     </button>
-                                </form>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -426,7 +434,51 @@
                     </button>
                 </div>
             </div>
-        </div>
+        @if(auth()->user()?->isSuperUser())
+            <!-- Modal Konfirmasi Hapus Media R2 (Khusus Owner) -->
+            <div x-show="confirmDeleteModal" x-cloak
+                 class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4"
+                 @keydown.escape.window="confirmDeleteModal = false">
+                <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4 border border-slate-200 text-left"
+                     @click.away="confirmDeleteModal = false">
+                    
+                    <div class="flex items-start gap-4">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-200">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="space-y-1">
+                            <h3 class="text-base font-bold text-slate-900">Konfirmasi Hapus Media R2</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Tindakan ini permanen. Berkas yang dihapus dari Cloudflare R2 tidak dapat dipulihkan dan butir soal yang menautkan berkas ini akan kehilangan medianya.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                        <div class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Berkas yang akan dihapus:</div>
+                        <div class="text-xs font-mono font-bold text-slate-800 break-all mt-0.5" x-text="deleteName"></div>
+                    </div>
+
+                    <form method="POST" action="{{ route('media.gallery.delete') }}" class="flex items-center justify-end gap-2.5 pt-2">
+                        @csrf
+                        @method('DELETE')
+                        <input type="hidden" name="path" :value="deletePath">
+                        
+                        <button type="button" @click="confirmDeleteModal = false"
+                                class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition active:scale-95 cursor-pointer">
+                            Batalkan
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs active:scale-95 cursor-pointer flex items-center gap-1.5">
+                            <x-radix-icon name="trash" class="w-3.5 h-3.5" />
+                            <span>Ya, Hapus Berkas</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @endif
 
     </div>
 </x-layouts.app>

@@ -1017,10 +1017,13 @@
                                 opt.label = letters[idx] || (idx + 1);
                             });
                             if (q.type === 'mcq_single') {
-                                const hasCorrect = q.options.some(o => o.is_correct === true || o.is_correct === 1 || o.is_correct === '1');
-                                if (!hasCorrect && q.options.length > 0) {
-                                    q.options[0].is_correct = true;
-                                }
+                                let firstCorrectIdx = q.options.findIndex(o => o.is_correct === true || o.is_correct === 1 || o.is_correct === '1' || o.is_correct === 'true');
+                                if (firstCorrectIdx === -1) firstCorrectIdx = 0;
+                                const qPoints = parseFloat(q.points) || 1.0;
+                                q.options.forEach((opt, idx) => {
+                                    opt.is_correct = (idx === firstCorrectIdx);
+                                    opt.score = (idx === firstCorrectIdx) ? qPoints : 0.0;
+                                });
                             }
                         }
                     } else if (q.type === 'binary_matrix') {
@@ -1428,7 +1431,33 @@
                     }, 6000);
                 },
 
+                normalizeMcqSingleOptions() {
+                    const sanitizeItem = (q) => {
+                        if (!q) return;
+                        if (q.type === 'mcq_single' && Array.isArray(q.options) && q.options.length > 0) {
+                            let correctIdx = q.options.findIndex(o => o.is_correct === true || o.is_correct === 1 || o.is_correct === '1' || o.is_correct === 'true');
+                            if (correctIdx === -1) correctIdx = 0;
+                            const qPoints = parseFloat(q.points) || 1.0;
+                            q.options.forEach((opt, idx) => {
+                                opt.is_correct = (idx === correctIdx);
+                                opt.score = (idx === correctIdx) ? qPoints : 0.0;
+                            });
+                        }
+                    };
+
+                    (this.form.sections || []).forEach(sec => {
+                        (sec.items || []).forEach(item => {
+                            if (item.is_group && Array.isArray(item.questions)) {
+                                item.questions.forEach(q => sanitizeItem(q));
+                            } else {
+                                sanitizeItem(item);
+                            }
+                        });
+                    });
+                },
+
                 saveDraft() {
+                    this.normalizeMcqSingleOptions();
                     fetch('{{ route("assessments.draft.save") }}', {
                         method: 'POST',
                         headers: {
@@ -1441,6 +1470,7 @@
                 },
 
                 submitWizard() {
+                    this.normalizeMcqSingleOptions();
                     for (let i = 2; i <= 6; i++) {
                         if (!this.validateStep(i)) {
                             this.currentStep = i;
@@ -3748,16 +3778,16 @@ PEMBAHASAN: Nilai D = 25. Maka $x = \frac{7 \pm 5}{4}$, sehingga $x_1 = 3$ dan $
 
                         <div class="space-y-1.5">
                             <div class="flex items-center justify-between">
-                                <span class="font-bold text-green-11">2. TKP / PG Berbobot (Format 2: Skor di Awal Opsi):</span>
+                                <span class="font-bold text-green-11">2. TKP / PG Berbobot (Skor di Akhir Opsi):</span>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-3 text-green-11 font-mono">[TKP]</span>
                             </div>
                             <pre class="p-3.5 rounded-xl bg-green-2/30 border border-green-6/50 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[TKP]
 2. Rekan kerja meminta dilayani terlebih dahulu saat antrean warga sangat padat. Sikap Anda ...
-A. [5] Menolak santun dan memintanya mengambil nomor antrean sesuai prosedur.
-B. [4] Menjelaskan bahwa sistem antrean digital otomatis terpantau.
-C. [3] Memintanya menunggu hingga jam istirahat kantor.
-D. [2] Membantu cepat setelah warga yang di depan loket selesai.
-E. [1] Langsung mendahulukan rekan kerja karena sungkan.
+A. Menolak santun dan memintanya mengambil nomor antrean sesuai prosedur. [5]
+B. Menjelaskan bahwa sistem antrean digital otomatis terpantau. [4]
+C. Memintanya menunggu hingga jam istirahat kantor. [3]
+D. Membantu cepat setelah warga yang di depan loket selesai. [2]
+E. Langsung mendahulukan rekan kerja karena sungkan. [1]
 PEMBAHASAN: Menjunjung asas integritas dan transparansi publik tanpa diskriminasi.</pre>
                         </div>
                     </div>
@@ -3787,9 +3817,9 @@ BOBOT: 2.0</pre>
                             <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[BENAR SALAH]
 4. Analisislah pernyataan mengenai fotosintesis tumbuhan berikut!
 KOLOM: Benar | Salah
-1) Fotosintesis menghasilkan glukosa dan oksigen [BENAR]
-2) Reaksi terang berlangsung di stroma tanpa cahaya [SALAH]
-3) Klorofil merupakan pigmen penyerap cahaya matahari [BENAR]
+A. Fotosintesis menghasilkan glukosa dan oksigen [BENAR]
+B. Reaksi terang berlangsung di stroma tanpa cahaya [SALAH]
+C. Klorofil merupakan pigmen penyerap cahaya matahari [BENAR]
 BOBOT: 3.0</pre>
                         </div>
                     </div>
@@ -3803,9 +3833,9 @@ BOBOT: 3.0</pre>
                             </div>
                             <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[MENJODOHKAN]
 5. Pasangkan organisasi internasional berikut dengan lokasi markas besarnya!
-1) Perserikatan Bangsa-Bangsa (PBB) -> New York, AS
-2) Organisasi Kesehatan Dunia (WHO) -> Jenewa, Swiss
-3) Sekretariat Jenderal ASEAN -> Jakarta, Indonesia
+A. Perserikatan Bangsa-Bangsa (PBB) -> New York, AS
+B. Organisasi Kesehatan Dunia (WHO) -> Jenewa, Swiss
+C. Sekretariat Jenderal ASEAN -> Jakarta, Indonesia
 BOBOT: 3.0</pre>
                         </div>
 
@@ -3816,11 +3846,11 @@ BOBOT: 3.0</pre>
                             </div>
                             <pre class="p-3.5 rounded-xl bg-gray-2 border border-gray-6 font-mono text-[11px] text-gray-12 whitespace-pre-wrap leading-relaxed select-all">[MENGURUTKAN]
 6. Urutkan tahapan metode ilmiah berikut mulai dari awal hingga kesimpulan!
-1) Merumuskan masalah penelitian
-2) Mengumpulkan data observasi awal
-3) Menyusun hipotesis ilmiah
-4) Melakukan eksperimen teruji
-5) Menarik kesimpulan
+A. Merumuskan masalah penelitian
+B. Mengumpulkan data observasi awal
+C. Menyusun hipotesis ilmiah
+D. Melakukan eksperimen teruji
+E. Menarik kesimpulan
 BOBOT: 3.0</pre>
                         </div>
                     </div>

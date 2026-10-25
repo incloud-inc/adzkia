@@ -459,4 +459,34 @@ class Assessment extends Model
 
         return $this->questions()->count();
     }
+
+    /**
+     * Payload terstruktur untuk keperluan pembagian link WhatsApp di sisi tenant.
+     *
+     * @return array<string, mixed>
+     */
+    public function toWhatsAppPayload(?Tenant $tenant = null): array
+    {
+        $tenantObj = $tenant ?? $this->tenant;
+        $tenantName = $tenantObj?->name ?? config('app.name', 'ADZKIA CBT');
+        $tenantLogo = $tenantObj?->logo_path ? $tenantObj->logo_url : null;
+        $subjectName = $this->subject?->name ?? 'Umum';
+        $grade = $this->grade_level ? "Kelas {$this->grade_level}" : 'Semua Jenjang';
+        $token = $this->token;
+        $url = url('/exam/'.$token);
+
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'tenant_name' => $tenantName,
+            'tenant_logo' => $tenantLogo,
+            'subject' => $subjectName,
+            'grade' => $grade,
+            'duration' => (int) ($this->duration_minutes ?: 60),
+            'questions_count' => $this->questions_count,
+            'token' => $token,
+            'url' => $url,
+            'price_formatted' => $this->formatted_price,
+        ];
+    }
 }
