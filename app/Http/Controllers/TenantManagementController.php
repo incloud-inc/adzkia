@@ -36,7 +36,17 @@ class TenantManagementController extends Controller
         }
 
         if ($request->filled('plan')) {
-            $query->where('plan', $request->plan);
+            if ($request->plan === 'nonaktif') {
+                $query->where(function ($q) {
+                    $q->where('status', 'inactive')
+                        ->orWhereIn('plan', ['nonaktif', 'inactive']);
+                });
+            } else {
+                $query->where(function ($q) {
+                    $q->whereNull('status')
+                        ->orWhere('status', 'active');
+                })->where('plan', $request->plan);
+            }
         }
 
         $tenants = $query->orderBy('name')->paginate(10)->withQueryString();
@@ -64,7 +74,7 @@ class TenantManagementController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'subdomain' => 'required|string|max:50|alpha_dash|unique:tenants,subdomain',
-            'plan' => 'required|string|in:gratis,premium,whitelabel',
+            'plan' => 'required|string|in:gratis,premium,whitelabel,nonaktif,inactive',
             'admin_name' => 'nullable|string|max:255',
             'admin_email' => 'nullable|email|max:255|unique:users,email',
             'admin_password' => 'nullable|string|min:6',
@@ -131,7 +141,7 @@ class TenantManagementController extends Controller
 
         $rules = [
             'name' => 'required|string|max:255',
-            'plan' => 'required|string|in:gratis,premium,whitelabel',
+            'plan' => 'required|string|in:gratis,premium,whitelabel,nonaktif,inactive',
         ];
 
         // Only Super User can change subdomain
@@ -141,10 +151,15 @@ class TenantManagementController extends Controller
 
         $validated = $request->validate($rules);
 
+        $isDeactivating = in_array($validated['plan'], ['nonaktif', 'inactive'], true);
         $updateData = [
             'name' => $validated['name'],
-            'plan' => $validated['plan'],
+            'status' => $isDeactivating ? 'inactive' : 'active',
         ];
+
+        if (! $isDeactivating) {
+            $updateData['plan'] = $validated['plan'];
+        }
 
         if (isset($validated['subdomain'])) {
             $updateData['subdomain'] = Str::lower($validated['subdomain']);
@@ -153,15 +168,23 @@ class TenantManagementController extends Controller
         // Simpan Checklist Jenjang Pendidikan (SD, SMP, SMA, TKA, dll) ke settings
         $settings = $tenant->settings ?? [];
         if ($request->has('grade_settings_submitted') || $request->has('show_grade_sd') || $request->has('show_grade_smp') || $request->has('show_grade_sma')) {
-            $settings['show_grade_sd'] = (bool) $request->input('show_grade_sd', false);
-            $settings['show_grade_smp'] = (bool) $request->input('show_grade_smp', false);
-            $settings['show_grade_sma'] = (bool) $request->input('show_grade_sma', false);
-            $settings['show_grade_tka_sd'] = (bool) $request->input('show_grade_tka_sd', false);
-            $settings['show_grade_tka_smp'] = (bool) $request->input('show_grade_tka_smp', false);
-            $settings['show_grade_tka_sma'] = (bool) $request->input('show_grade_tka_sma', false);
-            $settings['show_grade_utbk'] = (bool) $request->input('show_grade_utbk', false);
-            $settings['show_grade_skd'] = (bool) $request->input('show_grade_skd', false);
+            $gradeSettings = [
+                'show_grade_sd' => (bool) $request->input('show_grade_sd', false),
+                'show_grade_smp' => (bool) $request->input('show_grade_smp', false),
+                'show_grade_sma' => (bool) $request->input('show_grade_sma', false),
+                'show_grade_tka_sd' => (bool) $request->input('show_grade_tka_sd', false),
+                'show_grade_tka_smp' => (bool) $request->input('show_grade_tka_smp', false),
+                'show_grade_tka_sma' => (bool) $request->input('show_grade_tka_sma', false),
+                'show_grade_utbk' => (bool) $request->input('show_grade_utbk', false),
+                'show_grade_skd' => (bool) $request->input('show_grade_skd', false),
+            ];
+
+            foreach ($gradeSettings as $k => $v) {
+                $settings[$k] = $v;
+            }
             $updateData['settings'] = $settings;
+
+            $tenant->setting()->updateOrCreate([], $gradeSettings);
         }
 
         $tenant->update($updateData);
@@ -194,23 +217,37 @@ class TenantManagementController extends Controller
         Gate::authorize('update', $tenant);
 
         $validated = $request->validate([
-            'plan' => 'required|string|in:gratis,premium,whitelabel',
+            'plan' => 'required|string|in:gratis,premium,whitelabel,nonaktif,inactive',
         ]);
 
-        $tenant->update([
-            'plan' => $validated['plan'],
-        ]);
+        $isDeactivating = in_array($validated['plan'], ['nonaktif', 'inactive'], true);
+        if ($isDeactivating) {
+            $tenant->update([
+                'status' => 'inactive',
+            ]);
+        } else {
+            $tenant->update([
+                'plan' => $validated['plan'],
+                'status' => 'active',
+            ]);
+        }
+
+        $message = $tenant->isInactive()
+            ? 'Tenant '.$tenant->name.' berhasil dinonaktifkan.'
+            : 'Level tenant '.$tenant->name.' berhasil diubah ke '.$tenant->level_label.'.';
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Level tenant '.$tenant->name.' berhasil diubah ke '.$tenant->level_label.'.',
-                'plan' => $tenant->plan,
+                'message' => $message,
+                'plan' => $tenant->isInactive() ? 'nonaktif' : $tenant->plan,
+                'status' => $tenant->status,
+                'is_inactive' => $tenant->isInactive(),
                 'level_label' => $tenant->level_label,
                 'revenue_share' => $tenant->revenue_share_ratio,
             ]);
         }
 
-        return redirect()->back()->with('success', 'Level tenant '.$tenant->name.' berhasil diubah ke '.$tenant->level_label.'.');
+        return redirect()->back()->with('success', $message);
     }
 }

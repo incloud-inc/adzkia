@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('tenants', function (Blueprint $table) {
             $table->string('subdomain')->nullable()->unique()->after('name');
-            $table->enum('plan', ['gratis', 'premium', 'whitelabel'])->default('gratis')->after('domain');
+            $table->string('plan', 50)->default('gratis')->after('domain');
         });
     }
 

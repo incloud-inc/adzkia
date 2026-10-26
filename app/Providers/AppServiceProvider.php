@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\ExamSession;
+use App\Models\PayoutRequest;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,15 +57,20 @@ class AppServiceProvider extends ServiceProvider
             $user = Auth::user();
             $pendingGradingCount = 0;
             $activeExamCount = 0;
+            $pendingPayoutCount = 0;
             if ($user && ($user->isTeacher() || $user->isAdmin() || $user->isSuperUser())) {
                 $tenantId = $user->current_tenant_id ?? $user->currentTenant?->id ?? $user->tenants()->first()?->id;
                 $pendingGradingCount = ExamSession::pendingManualGradingQuery($tenantId, $user)->count();
                 $activeExamCount = ExamSession::activeExamQuery($tenantId, $user)->count();
+                if ($user->isSuperUser()) {
+                    $pendingPayoutCount = PayoutRequest::where('status', 'pending')->count();
+                }
             }
 
             $view->with([
                 'pendingGradingCount' => $pendingGradingCount,
                 'activeExamCount' => $activeExamCount,
+                'pendingPayoutCount' => $pendingPayoutCount,
             ]);
         });
     }

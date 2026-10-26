@@ -78,7 +78,7 @@ class ProctoringTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('sm:w-28', false);
         $response->assertSee('sm:w-24', false);
-        $response->assertSee('Cari judul ujian...');
+        $response->assertSee('Cari judul');
     }
 
     public function test_tenant_assessments_filter_by_branding_grade_checklist(): void

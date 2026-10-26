@@ -27,6 +27,10 @@ class TenantController extends Controller
 
         $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
 
+        if ($tenant->isInactive()) {
+            abort(403, 'Akses ke institusi / tenant ini sedang dinonaktifkan.');
+        }
+
         // 1. Ambil asesmen terkelompok dari database
         $rawAssessments = Assessment::withoutGlobalScopes()
             ->whereIn('status', ['published', 'active'])
@@ -591,6 +595,10 @@ class TenantController extends Controller
         }
 
         $tenantModel = Tenant::findOrFail($tenant);
+
+        if ($tenantModel->isInactive() && ! $user->isSuperUser()) {
+            return redirect()->back()->with('error', 'Institusi / tenant ini sedang dinonaktifkan.');
+        }
 
         // Ensure the user actually belongs to this tenant, or is Super User
         if (! $user->isSuperUser() && ! $user->tenants()->where('tenant_id', $tenantModel->id)->exists()) {

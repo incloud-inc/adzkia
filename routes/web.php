@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AssessmentAnalyticsController;
 use App\Http\Controllers\AssessmentExplanationController;
+use App\Http\Controllers\AssessmentSessionHistoryController;
 use App\Http\Controllers\AssessmentWizardController;
 use App\Http\Controllers\Auth\ForceChangePasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -217,6 +218,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('assessments/{assessment}/analytics', [AssessmentAnalyticsController::class, 'index'])->name('assessments.analytics');
     Route::get('assessments/{assessment}/analytics/preview', [AssessmentAnalyticsController::class, 'previewMatrix'])->name('assessments.analytics.preview');
     Route::get('assessments/{assessment}/analytics/export', [AssessmentAnalyticsController::class, 'exportExcel'])->name('assessments.analytics.export');
+
+    // Monitoring & Riwayat Semua Sesi Asesmen (Master Monitoring Guru / Admin / Owner)
+    Route::get('assessment-sessions', [AssessmentSessionHistoryController::class, 'index'])->name('assessment-sessions.index');
+    Route::get('assessment-sessions/search-assessments', [AssessmentSessionHistoryController::class, 'searchAssessments'])->name('assessment-sessions.search-assessments');
+    Route::get('assessment-sessions/search-tenants', [AssessmentSessionHistoryController::class, 'searchTenants'])->name('assessment-sessions.search-tenants');
 
     // ─── CBT Exam Engine ────────────────────────────────────────
     // Mulai / resume ujian (Wajib Login)

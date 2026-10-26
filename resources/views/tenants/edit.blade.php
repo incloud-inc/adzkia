@@ -84,6 +84,7 @@
                             <option value="gratis" {{ old('plan', $tenant->plan) === 'gratis' ? 'selected' : '' }}>🌱 STARTER (Gratis, Subdomain & Pengawasan Ujian ADZKIA)</option>
                             <option value="premium" {{ old('plan', $tenant->plan) === 'premium' ? 'selected' : '' }}>⚡ PRO (Custom Domain & Bank Soal Mandiri)</option>
                             <option value="whitelabel" {{ old('plan', $tenant->plan) === 'whitelabel' ? 'selected' : '' }}>👑 ENTERPRISE (Full White Label & Multi-Domain)</option>
+                            <option value="nonaktif" {{ in_array(old('plan', $tenant->plan), ['nonaktif', 'inactive']) ? 'selected' : '' }}>⛔ NONAKTIF (Tenant Dinonaktifkan)</option>
                         </select>
                     @else
                         <input type="hidden" name="plan" value="{{ $tenant->plan ?? 'gratis' }}">
@@ -96,8 +97,8 @@
                                     Bagi Hasil: {{ $tenant->revenue_share_ratio }} (ADZKIA : TENANT)
                                 </span>
                             </div>
-                            <span class="text-[11px] font-bold px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                Tingkat Aktif
+                            <span class="text-[11px] font-bold px-3 py-1 rounded-full {{ $tenant->isInactive() ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200' }}">
+                                {{ $tenant->isInactive() ? 'Dinonaktifkan' : 'Tingkat Aktif' }}
                             </span>
                         </div>
                     @endif

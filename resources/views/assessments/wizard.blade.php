@@ -485,37 +485,21 @@
                         return prefix + savePlaceholder(math.trim(), 'MATH_INLINE');
                     });
 
-                    // 4. Transformasi Teks Biasa (di luar blok matematika resmi):
-                    // A. Akar pangkat verbal: "akar pangkat 3 dari 8" -> $\sqrt[3]{8}$
-                    // Batasi dengan (^|[^a-zA-Z0-9_\$\\]) agar tidak memotong kata lain seperti "lokakarya", "jakarta", "yogyakarta", dll.
-                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])akar\s+pangkat\s+([0-9a-zA-Z]+)\s+dari\s+([^\s,\.\?!;:]+)/gi, '$1$\\sqrt[$2]{$3}$');
+                    // 4. Strict Delimiter Isolation:
+                    // A. Simbol akar Unicode matematika murni: ∜x, ∛x, √x (dengan angka/kurung)
+                    processed = processed.replace(/(^|[^\$\\])∜\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[4]{' + (e1 || e2 || e3) + '}$'; });
+                    processed = processed.replace(/(^|[^\$\\])∛\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[3]{' + (e1 || e2 || e3) + '}$'; });
+                    processed = processed.replace(/(^|[^\$\\])√\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt{' + (e1 || e2 || e3) + '}$'; });
 
-                    // B. Akar derajat kurung siku: sqrt[3]{8}, akar[3]{8}, sqrt[3](8), akar[3](8)
-                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])(?:sqrt|akar)\s*\[([^\]]+)\]\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9]+(?:\.[0-9]+)?))/gi, function(m, p, deg, e1, e2, e3) {
-                        return p + '$\\sqrt[' + deg + ']{' + (e1 || e2 || e3) + '}$';
-                    });
-
-                    // C. Akar biasa: sqrt{x}, sqrt(x), akar{x}, akar(x), dan sqrt dengan angka: sqrt 25, sqrt 16
-                    // PENTING: Kata "akar" dalam bahasa Indonesia TIDAK BOLEH diubah jika bukan kurung kurawal/biasa {x} atau (x).
-                    // Ini mencegah kata seperti "lokakarya", "jakarta", "yogyakarta", "kebakaran", "pakar", "akar pohon", "akar masalah" rusak menjadi \sqrt.
-                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])(?:(?:sqrt|akar)\s*(?:\{([^}]+)\}|\(([^\)]+)\))|sqrt\s*([0-9]+(?:\.[0-9]+)?))/gi, function(m, p, e1, e2, e3) {
-                        const expr = (e1 || e2 || e3);
-                        return p + '$\\sqrt{' + expr + '}$';
-                    });
-
-                    // D. Simbol akar Unicode: ∜x, ∛x, √x
-                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])∜\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[4]{' + (e1 || e2 || e3) + '}$'; });
-                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])∛\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt[3]{' + (e1 || e2 || e3) + '}$'; });
-                    processed = processed.replace(/(^|[^a-zA-Z0-9_\$\\])√\s*(?:\{([^}]+)\}|\(([^\)]+)\)|([0-9a-zA-Z]+))/g, function(m, p, e1, e2, e3) { return p + '$\\sqrt{' + (e1 || e2 || e3) + '}$'; });
-
-                    // E. Makro LaTeX terbuka tanpa $ di teks biasa: \sqrt[n]{x}, \sqrt{x}, \frac{a}{b}, dsb.
+                    // B. Makro LaTeX matematika terbuka yang diawali backslash (\frac, \sqrt, \sum, \int, \begin{matrix}, dsb.)
+                    // Backslash memastikan teks dijamin 100% adalah rumus LaTeX dan BUKAN kata bahasa Indonesia.
                     processed = processed.replace(/(^|[^\$\\])(\\sqrt\[[^\]]+\]\{[^{}]+\})(?!\$)/g, '$1$$$2$$');
                     processed = processed.replace(/(^|[^\$\\])(\\sqrt\{[^{}]+\})(?!\$)/g, '$1$$$2$$');
                     processed = processed.replace(/(^|[^\$\\])(\\(?:frac|dfrac|binom)\{[^{}]+\}\{[^{}]+\})(?!\$)/g, '$1$$$2$$');
                     processed = processed.replace(/(^|[^\$\\])(\\begin\{(?:matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases)\}[\s\S]*?\\end\{(?:matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases)\})(?!\$)/g, '$1$$$2$$');
                     processed = processed.replace(/(^|[^\$\\])(\\(?:sum|int|iint|iiint|oint|prod|coprod|lim)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+)?(?:\^\{[^{}]+\}|\^[0-9a-zA-Z]+)?(?:\s*\{[^{}]+\}|\s+[a-zA-Z0-9]+)?)(?!\$)/g, '$1$$$2$$');
 
-                    // F. Amankan juga rumus inline matematika baru yang dihasilkan dari langkah 4
+                    // C. Amankan juga rumus inline matematika baru yang dihasilkan dari langkah di atas
                     processed = processed.replace(/(^|[^\\])\$([^\$\n]+?)\$(?!\$)/g, function(match, prefix, math) {
                         return prefix + savePlaceholder(math.trim(), 'MATH_INLINE');
                     });

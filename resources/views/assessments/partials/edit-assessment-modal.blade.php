@@ -63,7 +63,7 @@
          x-transition:leave="ease-in duration-150"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+         class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
          @click="closeModal()"></div>
 
     <!-- Modal Content Container -->
@@ -75,28 +75,28 @@
              x-transition:leave="ease-in duration-150"
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
              x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-             class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-xl border border-gray-200">
+             class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-xl border border-gray-200">
 
             <form method="POST" action="{{ route('assessments.update', $assessment) }}" @submit="submitForm($event)">
                 @csrf
                 @method('PUT')
 
                 <!-- Header -->
-                <div class="px-6 py-5 bg-gradient-to-r from-blue-50/80 via-white to-indigo-50/40 border-b border-gray-200 flex items-center justify-between">
+                <div class="bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-4 flex items-center justify-between text-white border-b border-slate-700/60">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md">
-                            <x-radix-icon name="pencil-2" class="w-5 h-5 text-white" />
+                        <div class="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 shadow-inner">
+                            <x-radix-icon name="pencil-2" class="w-4 h-4" />
                         </div>
                         <div>
-                            <h3 class="text-base font-extrabold text-gray-900 font-display tracking-tight" id="modal-title">
+                            <h3 class="font-display font-bold text-base text-white tracking-tight" id="modal-title">
                                 Edit Judul &amp; Deskripsi Asesmen
                             </h3>
-                            <p class="text-xs text-gray-600 mt-0.5">
+                            <p class="text-[11px] text-slate-300">
                                 Perbarui informasi utama asesmen tanpa memengaruhi butir soal atau sesi ujian.
                             </p>
                         </div>
                     </div>
-                    <button type="button" @click="closeModal()" class="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer">
+                    <button type="button" @click="closeModal()" class="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer">
                         <x-radix-icon name="cross-2" class="w-5 h-5" />
                     </button>
                 </div>
@@ -149,7 +149,7 @@
                 </div>
 
                 <!-- Footer Actions -->
-                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3 rounded-b-3xl">
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3 rounded-b-2xl">
                     <button type="button"
                             @click="closeModal()"
                             :disabled="submitting"

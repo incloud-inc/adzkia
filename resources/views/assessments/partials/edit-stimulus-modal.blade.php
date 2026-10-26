@@ -362,12 +362,21 @@
                             <button type="button" @click="wrapText('*', '*')" class="px-2 py-1 rounded hover:bg-gray-200 text-xs italic font-serif transition-colors" title="Miring (Italic)">I</button>
                             <button type="button" @click="wrapText('<u>', '</u>')" class="px-2 py-1 rounded hover:bg-gray-200 text-xs underline transition-colors" title="Garis Bawah (Underline)">U</button>
                             <div class="w-px h-4 bg-gray-300 mx-1"></div>
-                            <button type="button" @click="wrapText('$$', '$$')" class="px-2 py-1 rounded hover:bg-gray-200 text-xs font-mono font-bold transition-colors" title="Rumus LaTeX ($$...$$)">Σ</button>
+                            <!-- Quick KaTeX Math -->
+                            <button type="button" @click="wrapText('$', '$')" class="px-1.5 py-0.5 rounded hover:bg-emerald-100 text-xs font-mono font-bold text-emerald-800 transition-colors" title="Rumus Inline ($...$)">$</button>
+                            <button type="button" @click="wrapText('$$', '$$')" class="px-1.5 py-0.5 rounded hover:bg-emerald-100 text-xs font-mono font-bold text-emerald-800 transition-colors" title="Rumus Display ($$...$$)">$$</button>
+                            <button type="button" @click="wrapText('$\\frac{', '}{b}$')" class="px-1.5 py-0.5 rounded hover:bg-gray-200 text-xs font-serif font-bold transition-colors" title="Pecahan">a/b</button>
+                            <button type="button" @click="wrapText('$\\sqrt{', '}$')" class="px-1.5 py-0.5 rounded hover:bg-gray-200 text-xs font-serif font-bold transition-colors" title="Akar">√</button>
                             <button type="button" @click="insertTable()" class="px-2 py-1 rounded hover:bg-gray-200 text-xs font-semibold transition-colors flex items-center gap-1" title="Sisipkan Tabel">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-10v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
                                 <span>Tabel</span>
                             </button>
                             <button type="button" @click="wrapText('> ', '\n')" class="px-2 py-1 rounded hover:bg-gray-200 text-xs font-serif transition-colors" title="Kutipan (Quote)">”</button>
+
+                            <button type="button" @click="window.dispatchEvent(new CustomEvent('open-math-cheatsheet', { detail: { textarea: $refs.stimulusTextarea } }))" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold transition-colors cursor-pointer ml-auto" title="Buka Kamus Rumus KaTeX">
+                                <span>📐</span>
+                                <span>Kamus Rumus</span>
+                            </button>
                         </div>
 
                         <!-- Textarea -->

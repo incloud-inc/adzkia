@@ -105,5 +105,8 @@
             </main>
         </div>
     </div>
+
+    <!-- Global Math KaTeX Cheatsheet Drawer -->
+    <x-math-cheatsheet-drawer />
 </body>
 </html>

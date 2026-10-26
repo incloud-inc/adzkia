@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\TenantScope;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Cache;
 
 class Tenant extends Model
 {
@@ -26,6 +28,7 @@ class Tenant extends Model
         'subdomain',
         'domain',
         'plan',
+        'status',
         'tagline',
         'logo_path',
         'favicon_path',
@@ -43,6 +46,108 @@ class Tenant extends Model
         return [
             'settings' => 'array',
         ];
+    }
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Tenant $tenant) {
+            $tenant->setting()->firstOrCreate([], [
+                'show_grade_sd' => true,
+                'show_grade_smp' => true,
+                'show_grade_sma' => true,
+                'show_grade_tka_sd' => true,
+                'show_grade_tka_smp' => true,
+                'show_grade_tka_sma' => true,
+                'show_grade_utbk' => true,
+                'show_grade_skd' => true,
+                'hide_adzkia_branding' => true,
+            ]);
+            $tenant->unsetRelation('setting');
+        });
+
+        static::saved(function (Tenant $tenant) {
+            Cache::forget("tenant:model:{$tenant->id}");
+            Cache::forget("tenant:slug:{$tenant->slug}");
+            if (! empty($tenant->domain)) {
+                Cache::forget("tenant:domain:{$tenant->domain}");
+            }
+            TenantScope::clearCache();
+
+            // Sync legacy JSON settings to relational setting if provided in array
+            if (is_array($tenant->settings) && ! empty($tenant->settings)) {
+                $settings = $tenant->settings;
+                $existing = $tenant->setting;
+
+                $data = [
+                    'extra_settings' => $settings,
+                ];
+
+                $booleanKeys = [
+                    'show_grade_sd',
+                    'show_grade_smp',
+                    'show_grade_sma',
+                    'show_grade_tka_sd',
+                    'show_grade_tka_smp',
+                    'show_grade_tka_sma',
+                    'show_grade_utbk',
+                    'show_grade_skd',
+                    'hide_adzkia_branding',
+                ];
+
+                foreach ($booleanKeys as $key) {
+                    if (array_key_exists($key, $settings)) {
+                        $data[$key] = (bool) $settings[$key];
+                    } elseif (! $existing) {
+                        $data[$key] = true;
+                    }
+                }
+
+                $stringKeys = [
+                    'app_name',
+                    'theme_color',
+                    'theme_palette',
+                    'sender_email',
+                    'sender_name',
+                    'certificate_title',
+                    'certificate_subtitle',
+                ];
+
+                foreach ($stringKeys as $key) {
+                    if (array_key_exists($key, $settings)) {
+                        $data[$key] = $settings[$key];
+                    }
+                }
+
+                if (array_key_exists('adzkia_assessments_enabled', $settings)) {
+                    $data['adzkia_assessments_enabled'] = $settings['adzkia_assessments_enabled'];
+                }
+
+                $tenant->setting()->updateOrCreate([], $data);
+                $tenant->unsetRelation('setting');
+            }
+        });
+
+        static::deleted(function (Tenant $tenant) {
+            Cache::forget("tenant:model:{$tenant->id}");
+            Cache::forget("tenant:slug:{$tenant->slug}");
+            if (! empty($tenant->domain)) {
+                Cache::forget("tenant:domain:{$tenant->domain}");
+            }
+            TenantScope::clearCache();
+        });
+    }
+
+    /**
+     * Settings profile associated with this tenant.
+     *
+     * @return HasOne<TenantSetting, $this>
+     */
+    public function setting(): HasOne
+    {
+        return $this->hasOne(TenantSetting::class);
     }
 
     /**
@@ -91,21 +196,35 @@ class Tenant extends Model
 
     public function isStarter(): bool
     {
-        return empty($this->plan) || $this->plan === 'gratis';
+        return ! $this->isInactive() && (empty($this->plan) || $this->plan === 'gratis');
     }
 
     public function isPro(): bool
     {
-        return $this->plan === 'premium';
+        return ! $this->isInactive() && $this->plan === 'premium';
     }
 
     public function isEnterprise(): bool
     {
-        return $this->plan === 'whitelabel' || $this->plan === 'enterprise';
+        return ! $this->isInactive() && ($this->plan === 'whitelabel' || $this->plan === 'enterprise');
+    }
+
+    public function isInactive(): bool
+    {
+        return ($this->status ?? 'active') === 'inactive' || in_array($this->plan, ['nonaktif', 'inactive'], true);
+    }
+
+    public function isActive(): bool
+    {
+        return ! $this->isInactive();
     }
 
     public function getLevelLabelAttribute(): string
     {
+        if ($this->isInactive()) {
+            return 'NONAKTIF';
+        }
+
         return match ($this->plan) {
             'whitelabel', 'enterprise' => 'ENTERPRISE',
             'premium' => 'PRO',
@@ -122,9 +241,14 @@ class Tenant extends Model
      * - STARTER: 75%
      * - PRO: 50%
      * - ENTERPRISE: 25%
+     * - NONAKTIF: 0%
      */
     public function getRevenueSharePlatformPct(): int
     {
+        if ($this->isInactive()) {
+            return 0;
+        }
+
         return match ($this->plan) {
             'whitelabel', 'enterprise' => 25,
             'premium' => 50,
@@ -137,9 +261,14 @@ class Tenant extends Model
      * - STARTER: 25%
      * - PRO: 50%
      * - ENTERPRISE: 75%
+     * - NONAKTIF: 0%
      */
     public function getRevenueShareTenantPct(): int
     {
+        if ($this->isInactive()) {
+            return 0;
+        }
+
         return match ($this->plan) {
             'whitelabel', 'enterprise' => 75,
             'premium' => 50,
@@ -149,6 +278,10 @@ class Tenant extends Model
 
     public function getRevenueShareRatioAttribute(): string
     {
+        if ($this->isInactive()) {
+            return '-';
+        }
+
         return match ($this->plan) {
             'whitelabel', 'enterprise' => '25:75',
             'premium' => '50:50',
@@ -393,6 +526,14 @@ class Tenant extends Model
             return false;
         }
 
+        if ($this->relationLoaded('setting') && $this->setting) {
+            return (bool) $this->setting->hide_adzkia_branding;
+        }
+
+        if ($this->setting) {
+            return (bool) $this->setting->hide_adzkia_branding;
+        }
+
         return (bool) ($this->settings['hide_adzkia_branding'] ?? true);
     }
 
@@ -403,8 +544,16 @@ class Tenant extends Model
 
     public function getAppNameAttribute(): string
     {
-        if ($this->isEnterprise() && ! empty($this->settings['app_name'])) {
-            return $this->settings['app_name'];
+        if ($this->isEnterprise()) {
+            if ($this->relationLoaded('setting') && $this->setting && ! empty($this->setting->app_name)) {
+                return $this->setting->app_name;
+            }
+            if ($this->setting && ! empty($this->setting->app_name)) {
+                return $this->setting->app_name;
+            }
+            if (! empty($this->settings['app_name'])) {
+                return $this->settings['app_name'];
+            }
         }
 
         return $this->name;
@@ -412,8 +561,16 @@ class Tenant extends Model
 
     public function getThemeColorAttribute(): string
     {
-        if ($this->isEnterprise() && ! empty($this->settings['theme_color'])) {
-            return $this->settings['theme_color'];
+        if ($this->isEnterprise()) {
+            if ($this->relationLoaded('setting') && $this->setting && ! empty($this->setting->theme_color)) {
+                return $this->setting->theme_color;
+            }
+            if ($this->setting && ! empty($this->setting->theme_color)) {
+                return $this->setting->theme_color;
+            }
+            if (! empty($this->settings['theme_color'])) {
+                return $this->settings['theme_color'];
+            }
         }
 
         return '#0284c7';
@@ -448,6 +605,13 @@ class Tenant extends Model
      */
     public function getThemePalette(): string
     {
+        if ($this->relationLoaded('setting') && $this->setting && ! empty($this->setting->theme_palette)) {
+            return $this->setting->theme_palette;
+        }
+        if ($this->setting && ! empty($this->setting->theme_palette)) {
+            return $this->setting->theme_palette;
+        }
+
         return $this->settings['theme_palette'] ?? 'light';
     }
 
@@ -514,6 +678,14 @@ class Tenant extends Model
      */
     public function showGrade(string $grade): bool
     {
+        if ($this->relationLoaded('setting') && $this->setting) {
+            return $this->setting->showGrade($grade);
+        }
+
+        if ($this->setting) {
+            return $this->setting->showGrade($grade);
+        }
+
         $settings = $this->settings ?? [];
         $lower = strtolower(str_replace('_', '', $grade));
         $key = 'show_grade_'.strtolower($grade);

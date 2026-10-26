@@ -380,6 +380,12 @@
                             Isi Teks Pertanyaan / Soal <span class="text-rose-500">*</span>
                         </label>
                         <div class="flex items-center gap-2">
+                            <!-- Buka Kamus Rumus KaTeX -->
+                            <button type="button" @click="window.dispatchEvent(new CustomEvent('open-math-cheatsheet', { detail: { textarea: $el.closest('.space-y-2').querySelector('textarea') } }))" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 text-[11px] font-bold transition-colors cursor-pointer" title="Buka Kamus Rumus & KaTeX">
+                                <span>📐</span>
+                                <span>Kamus Rumus</span>
+                            </button>
+
                             <!-- Select from Cloudflare R2 Gallery -->
                             <button type="button" @click="openR2Picker()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold transition-colors cursor-pointer" title="Pilih gambar yang sudah ada dari Galeri R2">
                                 <x-radix-icon name="image" class="w-3.5 h-3.5 text-emerald-700" />

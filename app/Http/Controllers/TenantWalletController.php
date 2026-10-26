@@ -24,14 +24,13 @@ class TenantWalletController extends Controller
             return redirect()->route('login');
         }
 
-        $tenantId = $request->query('tenant_id') ?? $user->current_tenant_id ?? $user->tenants()->first()?->id;
-
-        // If Super User, allow viewing specific tenant or defaulting to first tenant
-        if ($user->isSuperUser() && ! $tenantId) {
-            $tenant = Tenant::first();
-        } else {
-            $tenant = Tenant::find($tenantId);
+        // If Super User accesses wallet without specifying a tenant, redirect to admin payouts
+        if ($user->isSuperUser() && ! $request->filled('tenant_id') && ! $user->current_tenant_id) {
+            return redirect()->route('wallet.admin.payouts');
         }
+
+        $tenantId = $request->query('tenant_id') ?? $user->current_tenant_id ?? $user->tenants()->first()?->id;
+        $tenant = Tenant::find($tenantId);
 
         if (! $tenant) {
             return redirect()->route('dashboard')->with('error', 'Tenant tidak ditemukan.');

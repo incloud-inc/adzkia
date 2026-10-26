@@ -182,4 +182,78 @@ class TenantManagementTest extends TestCase
         $responseU->assertSee('Riwayat Ujian');
         $responseU->assertDontSee('Manajemen Tenant');
     }
+
+    public function test_super_user_can_deactivate_tenant_via_update_plan(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'Tenant Aktif', 'plan' => 'premium']);
+        $superUser = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $superUser->tenants()->attach($tenant->id, ['role' => 'S']);
+
+        $response = $this->actingAs($superUser)->patchJson(route('tenants.update-plan', $tenant), [
+            'plan' => 'nonaktif',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson([
+            'success' => true,
+            'plan' => 'nonaktif',
+            'level_label' => 'NONAKTIF',
+        ]);
+
+        $this->assertDatabaseHas('tenants', [
+            'id' => $tenant->id,
+            'status' => 'inactive',
+            'plan' => 'premium',
+        ]);
+
+        $fresh = $tenant->fresh();
+        $this->assertTrue($fresh->isInactive());
+        $this->assertFalse($fresh->isActive());
+        $this->assertFalse($fresh->isStarter());
+        $this->assertEquals('NONAKTIF', $fresh->level_label);
+
+        // Reactivate tenant
+        $responseReactivate = $this->actingAs($superUser)->patchJson(route('tenants.update-plan', $tenant), [
+            'plan' => 'whitelabel',
+        ]);
+        $responseReactivate->assertOk();
+        $this->assertDatabaseHas('tenants', [
+            'id' => $tenant->id,
+            'status' => 'active',
+            'plan' => 'whitelabel',
+        ]);
+        $this->assertTrue($tenant->fresh()->isActive());
+        $this->assertTrue($tenant->fresh()->isEnterprise());
+    }
+
+    public function test_tenants_index_shows_deactivate_option(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'Sekolah ABC', 'plan' => 'gratis']);
+        $superUser = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $superUser->tenants()->attach($tenant->id, ['role' => 'S']);
+
+        $response = $this->actingAs($superUser)->get(route('tenants.index'));
+
+        $response->assertOk();
+        $response->assertSee('NONAKTIF (Nonaktifkan Tenant)');
+        $response->assertSee('value="nonaktif"', false);
+    }
+
+    public function test_inactive_tenant_portal_and_switch_are_blocked_for_non_superuser(): void
+    {
+        $tenant = Tenant::factory()->create([
+            'name' => 'Sekolah Tutup',
+            'subdomain' => 'sekolahtutup',
+            'plan' => 'nonaktif',
+        ]);
+
+        $student = User::factory()->create();
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $portalResponse = $this->actingAs($student)->get(route('tenant.portal.direct', $tenant->subdomain));
+        $portalResponse->assertStatus(403);
+
+        $switchResponse = $this->actingAs($student)->post(route('tenant.switch', $tenant->id));
+        $switchResponse->assertSessionHas('error');
+    }
 }

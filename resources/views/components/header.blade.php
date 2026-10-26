@@ -16,6 +16,7 @@
             str_starts_with($routeName, 'reports.')         => 'Laporan Penjualan',
             str_starts_with($routeName, 'exam.')            => 'Ujian',
             str_starts_with($routeName, 'dashboard.users.') => 'Detail Pengguna',
+            str_starts_with($routeName, 'assessment-sessions.') => 'Monitoring Sesi Asesmen',
             str_starts_with($routeName, 'exam-history.')    => 'Riwayat Ujian',
             default                                          => config('app.name', 'ADZKIA'),
         };

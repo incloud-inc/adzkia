@@ -22,7 +22,11 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    this.triggerToast(`${tenantName} dialihkan ke level ${data.level_label} (Bagi hasil: ${data.revenue_share})`, 'success');
+                    if (data.plan === 'nonaktif' || data.plan === 'inactive') {
+                        this.triggerToast(`${tenantName} berhasil dinonaktifkan`, 'success');
+                    } else {
+                        this.triggerToast(`${tenantName} dialihkan ke level ${data.level_label} (Bagi hasil: ${data.revenue_share})`, 'success');
+                    }
                 } else {
                     this.triggerToast(data.message || 'Gagal mengubah level tenant', 'error');
                 }
@@ -91,6 +95,7 @@
                         <option value="gratis" {{ request('plan') === 'gratis' ? 'selected' : '' }}>Starter</option>
                         <option value="premium" {{ request('plan') === 'premium' ? 'selected' : '' }}>Pro</option>
                         <option value="whitelabel" {{ request('plan') === 'whitelabel' ? 'selected' : '' }}>Enterprise</option>
+                        <option value="nonaktif" {{ request('plan') === 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
                     </select>
                 </div>
 
@@ -148,9 +153,16 @@
                                 <!-- Kolom Inline Dropdown Level Tenant & Skema Bagi Hasil -->
                                 <td class="py-2.5 px-4">
                                     @can('update', $tenant)
-                                        <div class="inline-block w-48">
-                                            <select @change="updateTenantPlan({{ $tenant->id }}, $event.target.value, '{{ addslashes($tenant->name) }}')"
-                                                    class="w-full text-xs font-bold py-1.5 px-2.5 rounded-lg border transition-all cursor-pointer outline-none shadow-sm {{ $tenant->isEnterprise() ? 'bg-purple-50 border-purple-300 text-purple-900 focus:ring-1 focus:ring-purple-400' : ($tenant->isPro() ? 'bg-emerald-50 border-emerald-300 text-emerald-900 focus:ring-1 focus:ring-emerald-400' : 'bg-gray-50 border-gray-300 text-gray-800 focus:ring-1 focus:ring-gray-400') }}">
+                                        <div class="inline-block w-52" x-data="{ currentPlan: '{{ $tenant->plan ?? 'gratis' }}' }">
+                                            <select x-model="currentPlan"
+                                                    @change="updateTenantPlan({{ $tenant->id }}, $event.target.value, '{{ addslashes($tenant->name) }}')"
+                                                    :class="{
+                                                        'bg-red-50 border-red-300 text-red-900 focus:ring-1 focus:ring-red-400': currentPlan === 'nonaktif' || currentPlan === 'inactive',
+                                                        'bg-purple-50 border-purple-300 text-purple-900 focus:ring-1 focus:ring-purple-400': currentPlan === 'whitelabel' || currentPlan === 'enterprise',
+                                                        'bg-emerald-50 border-emerald-300 text-emerald-900 focus:ring-1 focus:ring-emerald-400': currentPlan === 'premium',
+                                                        'bg-gray-50 border-gray-300 text-gray-800 focus:ring-1 focus:ring-gray-400': currentPlan === 'gratis' || !currentPlan
+                                                    }"
+                                                    class="w-full text-xs font-bold py-1.5 px-2.5 rounded-lg border transition-all cursor-pointer outline-none shadow-sm">
                                                 <option value="gratis" {{ ($tenant->plan ?? 'gratis') === 'gratis' ? 'selected' : '' }}>
                                                     🥉 STARTER (75:25)
                                                 </option>
@@ -160,11 +172,14 @@
                                                 <option value="whitelabel" {{ ($tenant->plan ?? '') === 'whitelabel' ? 'selected' : '' }}>
                                                     🥇 ENTERPRISE (25:75)
                                                 </option>
+                                                <option value="nonaktif" {{ in_array($tenant->plan ?? '', ['nonaktif', 'inactive']) ? 'selected' : '' }}>
+                                                    ⛔ NONAKTIF (Nonaktifkan Tenant)
+                                                </option>
                                             </select>
                                         </div>
                                     @else
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-md font-bold uppercase text-[10px] {{ $tenant->isEnterprise() ? 'bg-purple-100 text-purple-800 border border-purple-300' : ($tenant->isPro() ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-gray-100 text-gray-700 border border-gray-300') }}">
-                                            {{ $tenant->level_label }} ({{ $tenant->revenue_share_ratio }})
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-md font-bold uppercase text-[10px] {{ $tenant->isInactive() ? 'bg-red-100 text-red-800 border border-red-300' : ($tenant->isEnterprise() ? 'bg-purple-100 text-purple-800 border border-purple-300' : ($tenant->isPro() ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-gray-100 text-gray-700 border border-gray-300')) }}">
+                                            {{ $tenant->level_label }} {{ $tenant->isInactive() ? '' : '('.$tenant->revenue_share_ratio.')' }}
                                         </span>
                                     @endcan
                                 </td>

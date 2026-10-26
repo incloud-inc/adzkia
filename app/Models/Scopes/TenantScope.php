@@ -8,34 +8,69 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class TenantScope implements Scope
 {
+    /**
+     * In-memory cache to prevent redundant Tenant::find queries across multiple Eloquent executions.
+     *
+     * @var array<int, ?Tenant>
+     */
+    protected static array $tenantCache = [];
+
+    /**
+     * Clear the memoized tenant cache (useful for testing or tenant switching).
+     */
+    public static function clearCache(): void
+    {
+        static::$tenantCache = [];
+    }
+
+    /**
+     * Resolve and memoize tenant instance with multi-layer distributed caching.
+     * Layer 1: In-memory PHP request cache ($tenantCache) -> 0ms
+     * Layer 2: Distributed Cache (Redis / Database / File via Cache facade) -> fast
+     * Layer 3: Database query fallback with setting relation eager loaded
+     */
+    protected function resolveTenant(int $tenantId): ?Tenant
+    {
+        if (! array_key_exists($tenantId, static::$tenantCache)) {
+            static::$tenantCache[$tenantId] = Cache::remember("tenant:model:{$tenantId}", 3600, function () use ($tenantId) {
+                return Tenant::with('setting')->find($tenantId);
+            });
+        }
+
+        return static::$tenantCache[$tenantId];
+    }
+
     /**
      * Apply the scope to a given Eloquent query builder.
      */
     public function apply(Builder $builder, Model $model): void
     {
         if (Auth::hasUser() && Auth::user()->current_tenant_id) {
-            $tenantId = Auth::user()->current_tenant_id;
+            $tenantId = (int) Auth::user()->current_tenant_id;
 
             if (get_class($model) === Assessment::class) {
-                $builder->where(function ($query) use ($model, $tenantId) {
+                $tenant = $this->resolveTenant($tenantId);
+
+                $builder->where(function ($query) use ($model, $tenantId, $tenant) {
                     // 1. Asesmen milik tenant sendiri
                     $query->where($model->getTable().'.tenant_id', '=', $tenantId);
 
                     // 2. Asesmen dari Owner (Adzkia)
-                    $tenant = Tenant::find($tenantId);
                     if ($tenant) {
                         $query->orWhere(function ($q) use ($model, $tenant) {
                             $q->where(function ($subQ) use ($model) {
-                                $subQ->where($model->getTable().'.is_mandatory', true)
-                                    ->orWhere($model->getTable().'.is_global', true)
-                                    ->orWhereNull($model->getTable().'.tenant_id')
-                                    ->orWhere(function ($ownerQ) use ($model) {
-                                        $ownerQ->where($model->getTable().'.tenant_id', 1)
-                                            ->whereRaw('EXISTS (SELECT 1 FROM tenant_user WHERE tenant_user.tenant_id = 1 AND tenant_user.role = \'S\')');
-                                    });
+                                $subQ->where(function ($ownerQ) use ($model) {
+                                    $ownerQ->whereNull($model->getTable().'.tenant_id')
+                                        ->orWhere($model->getTable().'.tenant_id', 1)
+                                        ->orWhereRaw('EXISTS (SELECT 1 FROM tenant_user WHERE tenant_user.tenant_id = '.$model->getTable().'.tenant_id AND tenant_user.role = \'S\')');
+                                })->where(function ($mandQ) use ($model) {
+                                    $mandQ->where($model->getTable().'.is_mandatory', true)
+                                        ->orWhere($model->getTable().'.is_global', true);
+                                });
                             });
 
                             // Jika Enterprise, filter by is_mandatory ATAU yang diaktifkan di settings
@@ -55,7 +90,6 @@ class TenantScope implements Scope
                 });
 
                 // 3. Filter Jenjang berdasarkan Pengaturan Tenant (Bank Soal & Profile)
-                $tenant = Tenant::find($tenantId);
                 if ($tenant) {
                     $showSd = $tenant->showGrade('sd');
                     $showSmp = $tenant->showGrade('smp');

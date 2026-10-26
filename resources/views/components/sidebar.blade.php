@@ -93,6 +93,27 @@
                 </span>
             </a>
 
+            <a href="{{ route('assessment-sessions.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('assessment-sessions.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Monitoring Seluruh Sesi Asesmen">
+                <div class="relative shrink-0">
+                    <x-radix-icon name="activity-log" class="w-6 h-6" />
+                    @if(isset($activeExamCount) && $activeExamCount > 0)
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white animate-pulse" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $activeExamCount }} siswa sedang ujian"></span>
+                    @endif
+                </div>
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Monitoring Sesi</span>
+                    @if(isset($activeExamCount) && $activeExamCount > 0)
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            {{ $activeExamCount }}
+                        </span>
+                    @endif
+                </span>
+            </a>
+
             <a href="{{ route('media.gallery.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('media.gallery.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
@@ -134,11 +155,24 @@
                 <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Laporan Penjualan</span>
             </a>
 
-            <a href="{{ route('wallet.index') }}" 
-               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('wallet.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
-               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
-                <x-radix-icon name="card-stack" class="w-6 h-6 shrink-0" />
-                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Dompet Saldo</span>
+            <a href="{{ route('wallet.admin.payouts') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('wallet.admin.payouts*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Verifikasi & Pencairan Dana Tenant">
+                <div class="relative shrink-0">
+                    <x-radix-icon name="card-stack" class="w-6 h-6" />
+                    @if(isset($pendingPayoutCount) && $pendingPayoutCount > 0)
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border border-white" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $pendingPayoutCount }} pengajuan pencairan"></span>
+                    @endif
+                </div>
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Pencairan Dana</span>
+                    @if(isset($pendingPayoutCount) && $pendingPayoutCount > 0)
+                        <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-300 rounded-md" title="{{ $pendingPayoutCount }} pengajuan pencairan">
+                            {{ $pendingPayoutCount }}
+                        </span>
+                    @endif
+                </span>
             </a>
 
             <a href="{{ route('settings.index') }}" 
@@ -201,6 +235,27 @@
                             </span>
                         @endif
                     </div>
+                </span>
+            </a>
+
+            <a href="{{ route('assessment-sessions.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('assessment-sessions.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Monitoring Sesi Asesmen Murid">
+                <div class="relative shrink-0">
+                    <x-radix-icon name="activity-log" class="w-6 h-6" />
+                    @if(isset($activeExamCount) && $activeExamCount > 0)
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white animate-pulse" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $activeExamCount }} siswa sedang ujian"></span>
+                    @endif
+                </div>
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Monitoring Sesi</span>
+                    @if(isset($activeExamCount) && $activeExamCount > 0)
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            {{ $activeExamCount }}
+                        </span>
+                    @endif
                 </span>
             </a>
 
@@ -314,6 +369,27 @@
                             </span>
                         @endif
                     </div>
+                </span>
+            </a>
+
+            <a href="{{ route('assessment-sessions.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('assessment-sessions.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Monitoring Sesi Asesmen Siswa">
+                <div class="relative shrink-0">
+                    <x-radix-icon name="activity-log" class="w-6 h-6" />
+                    @if(isset($activeExamCount) && $activeExamCount > 0)
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white animate-pulse" :class="sidebarOpen ? 'hidden' : 'block'" title="{{ $activeExamCount }} siswa sedang ujian"></span>
+                    @endif
+                </div>
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>Monitoring Sesi</span>
+                    @if(isset($activeExamCount) && $activeExamCount > 0)
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            {{ $activeExamCount }}
+                        </span>
+                    @endif
                 </span>
             </a>
 
