@@ -5,6 +5,8 @@ nixPkgs = [
     "php83Packages.composer",
     "nodejs_20",
     "php83Extensions.pdo_mysql",
+    "php83Extensions.pdo_pgsql",
+    "php83Extensions.pgsql",
     "php83Extensions.redis",
     "php83Extensions.bcmath",
     "php83Extensions.zip",

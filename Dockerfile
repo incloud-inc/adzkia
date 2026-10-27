@@ -44,6 +44,8 @@ FROM dunglas/frankenphp:1-php8.3-bookworm AS runner
 # Install essential PHP extensions for Laravel CBT (MySQL, Redis, Math, Zip, Media)
 RUN install-php-extensions \
     pdo_mysql \
+    pdo_pgsql \
+    pgsql \
     redis \
     bcmath \
     pcntl \
