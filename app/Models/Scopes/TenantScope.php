@@ -36,9 +36,22 @@ class TenantScope implements Scope
     protected function resolveTenant(int $tenantId): ?Tenant
     {
         if (! array_key_exists($tenantId, static::$tenantCache)) {
-            static::$tenantCache[$tenantId] = Cache::remember("tenant:model:{$tenantId}", 3600, function () use ($tenantId) {
-                return Tenant::with('setting')->find($tenantId);
-            });
+            $cached = null;
+            try {
+                $cached = Cache::remember("tenant:model:{$tenantId}", 3600, function () use ($tenantId) {
+                    return Tenant::with('setting')->find($tenantId);
+                });
+            } catch (\Throwable) {
+                Cache::forget("tenant:model:{$tenantId}");
+            }
+
+            // Self-healing: jika cache mengembalikan __PHP_Incomplete_Class atau data korup
+            if (! ($cached instanceof Tenant)) {
+                Cache::forget("tenant:model:{$tenantId}");
+                $cached = Tenant::with('setting')->find($tenantId);
+            }
+
+            static::$tenantCache[$tenantId] = $cached;
         }
 
         return static::$tenantCache[$tenantId];

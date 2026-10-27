@@ -260,8 +260,11 @@ class ExamSession extends Model
                     })
                     ->orWhere(function ($q3) {
                         $q3->whereHas('assessment', function ($aq) {
-                            $aq->whereHas('sections.questions', fn ($qq) => $qq->where('type', 'essay'))
-                                ->orWhereHas('sections.questionGroups.questions', fn ($qq) => $qq->where('type', 'essay'));
+                            $aq->withoutGlobalScopes()
+                                ->where(function ($subAq) {
+                                    $subAq->whereHas('sections.questions', fn ($qq) => $qq->where('type', 'essay'))
+                                        ->orWhereHas('sections.questionGroups.questions', fn ($qq) => $qq->where('type', 'essay'));
+                                });
                         })->where(function ($q4) {
                             $q4->whereNull('meta->is_score_released')
                                 ->orWhere('meta->is_score_released', false);

@@ -433,7 +433,7 @@ class Assessment extends Model
     }
 
     /**
-     * Format harga asesmen (Gratis atau Rp XX.XXX).
+     * Format harga asesmen (Gratis atau Rp [nominal]).
      */
     public function getFormattedPriceAttribute(): string
     {
