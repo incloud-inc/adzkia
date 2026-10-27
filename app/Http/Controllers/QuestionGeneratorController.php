@@ -52,7 +52,6 @@ class QuestionGeneratorController extends Controller
         $syllabus = config('curriculum_syllabus');
         $subjects = Subject::orderBy('name')->get();
         $isDeepSeekConfigured = filled(config('services.deepseek.api_key'));
-        $isGeminiConfigured = filled(config('services.gemini.api_key'));
         $modelsByProvider = DeepSeekQuestionGeneratorService::getModelsByProvider();
         $supportedModels = DeepSeekQuestionGeneratorService::getSupportedModels();
         $defaultModel = config('services.question_generator.default_model', 'deepseek-reasoner');
@@ -61,7 +60,6 @@ class QuestionGeneratorController extends Controller
             'syllabus',
             'subjects',
             'isDeepSeekConfigured',
-            'isGeminiConfigured',
             'modelsByProvider',
             'supportedModels',
             'defaultModel'
@@ -69,7 +67,7 @@ class QuestionGeneratorController extends Controller
     }
 
     /**
-     * Generate questions using DeepSeek or Google Gemini AI.
+     * Generate questions using DeepSeek AI.
      */
     public function generate(Request $request, DeepSeekQuestionGeneratorService $aiService): JsonResponse
     {
@@ -106,8 +104,8 @@ class QuestionGeneratorController extends Controller
         try {
             $package = $aiService->generate($validated);
             $wordText = $aiService->formatAsWordDocxText($package);
-            $modelUsed = $package['model_used'] ?? ($validated['ai_model'] ?? 'AI Engine');
-            $providerLabel = str_starts_with(strtolower((string) $modelUsed), 'gemini') ? 'Google Gemini' : 'DeepSeek AI';
+            $modelUsed = $package['model_used'] ?? ($validated['ai_model'] ?? 'deepseek-reasoner');
+            $providerLabel = 'DeepSeek AI';
 
             return response()->json([
                 'status' => 'success',

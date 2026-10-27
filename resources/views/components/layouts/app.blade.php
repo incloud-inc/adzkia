@@ -1,3 +1,7 @@
+@props([
+    'title' => null,
+    'sidebarOpen' => null,
+])
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -73,7 +77,7 @@
 </head>
 <body class="font-sans antialiased bg-gray-2 text-gray-12 overflow-hidden" 
       x-data="{ 
-          sidebarOpen: window.innerWidth >= 1024, 
+          sidebarOpen: {{ isset($sidebarOpen) && $sidebarOpen !== null ? ($sidebarOpen ? 'true' : 'false') : 'window.innerWidth >= 1024' }}, 
           isMobile: window.innerWidth < 1024 
       }" 
       @resize.window="isMobile = window.innerWidth < 1024; if (isMobile && sidebarOpen) sidebarOpen = false;">
@@ -105,8 +109,5 @@
             </main>
         </div>
     </div>
-
-    <!-- Global Math KaTeX Cheatsheet Drawer -->
-    <x-math-cheatsheet-drawer />
 </body>
 </html>

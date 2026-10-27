@@ -14,11 +14,11 @@ class QuestionGroupUpdateTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_assessment_detail_displays_edit_stimulus_button_for_teacher(): void
+    public function test_assessment_detail_displays_edit_stimulus_button_for_owner(): void
     {
         $tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
-        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
-        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+        $owner = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $owner->tenants()->attach($tenant->id, ['role' => 'S']);
 
         $assessment = Assessment::factory()->create([
             'tenant_id' => $tenant->id,
@@ -38,13 +38,47 @@ class QuestionGroupUpdateTest extends TestCase
             'order' => 1,
         ]);
 
-        $response = $this->actingAs($teacher)->get(route('assessments.show', $assessment));
+        $response = $this->actingAs($owner)->get(route('assessments.show', $assessment));
 
         $response->assertStatus(200);
         $response->assertSee('Stimulus Narasi: Teks Bacaan 1');
         $response->assertSee('Edit Stimulus');
         $response->assertSee('open-edit-stimulus-modal');
         $response->assertSee('Ini adalah teks wacana tentang konservasi laut.');
+    }
+
+    public function test_tenant_teacher_does_not_see_questions_or_stimulus_on_assessment_detail(): void
+    {
+        $tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
+        $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $teacher->tenants()->attach($tenant->id, ['role' => 'T']);
+
+        $assessment = Assessment::factory()->create([
+            'tenant_id' => $tenant->id,
+            'title' => 'Ujian Bahasa Indonesia Literasi',
+        ]);
+
+        $section = AssessmentSection::create([
+            'assessment_id' => $assessment->id,
+            'title' => 'Bagian Wacana',
+            'order' => 1,
+        ]);
+
+        QuestionGroup::create([
+            'assessment_section_id' => $section->id,
+            'title' => 'Teks Bacaan 1',
+            'stimulus_content' => 'Ini adalah teks wacana tentang konservasi laut.',
+            'order' => 1,
+        ]);
+
+        $response = $this->actingAs($teacher)->get(route('assessments.show', $assessment));
+
+        $response->assertStatus(200);
+        $response->assertDontSee('Stimulus Narasi: Teks Bacaan 1');
+        $response->assertDontSee('Edit Stimulus');
+        $response->assertDontSee('Ini adalah teks wacana tentang konservasi laut.');
+        $response->assertDontSee('Struktur Bagian & Butir Soal Ujian');
+        $response->assertSee('Kerahasiaan Naskah Soal Terproteksi');
     }
 
     public function test_student_does_not_see_edit_stimulus_button(): void

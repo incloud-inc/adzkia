@@ -391,8 +391,8 @@ class AssessmentWizardController extends Controller
                 'access_validity_days' => ! empty($validated['access_validity_days']) ? (int) $validated['access_validity_days'] : 35,
                 'revenue_share_tenant_pct' => $revenueShareTenant,
                 'revenue_share_platform_pct' => $revenueSharePlatform,
-                'is_mandatory' => true,
-                'is_global' => true,
+                'is_mandatory' => Auth::user()?->isSuperUser() ?? false,
+                'is_global' => Auth::user()?->isSuperUser() ?? false,
             ]);
 
             // Create assessment packages if paid
@@ -552,12 +552,21 @@ class AssessmentWizardController extends Controller
      */
     public function show(Assessment $assessment): View
     {
-        $assessment->load([
-            'subject',
-            'creator',
-            'sections.questionGroups.questions.options',
-            'sections.questions' => fn ($q) => $q->whereNull('question_group_id')->with('options'),
-        ]);
+        $user = Auth::user();
+        if ($user && $user->isSuperUser()) {
+            $assessment->load([
+                'subject',
+                'creator',
+                'sections.questionGroups.questions.options',
+                'sections.questions' => fn ($q) => $q->whereNull('question_group_id')->with('options'),
+            ]);
+        } else {
+            $assessment->load([
+                'subject',
+                'creator',
+                'sections',
+            ]);
+        }
 
         // Leaderboard lintas tenant: diaktifkan jika asesmen sudah dikerjakan minimal 10 kali
         $completedSessionsQuery = ExamSession::query()
@@ -598,10 +607,10 @@ class AssessmentWizardController extends Controller
             abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk mengubah data asesmen.');
         }
 
-        if (! $user->isSuperUser() && $assessment->tenant_id !== null) {
+        if (! $user->isSuperUser()) {
             $userTenantIds = $user->tenants->pluck('id')->all();
-            if (! in_array($assessment->tenant_id, $userTenantIds, true) && $user->current_tenant_id !== $assessment->tenant_id) {
-                abort(403, 'Akses ditolak: Anda tidak memiliki wewenang mengedit asesmen milik institusi lain.');
+            if ($assessment->isOwnerCreated() || ! in_array($assessment->tenant_id, $userTenantIds, true)) {
+                abort(403, 'Akses ditolak: Asesmen kurasi ADZKIA (Owner) atau milik institusi lain tidak dapat diedit oleh tenant.');
             }
         }
 
@@ -813,6 +822,19 @@ class AssessmentWizardController extends Controller
      */
     public function destroy(Assessment $assessment): RedirectResponse
     {
+        $user = Auth::user();
+        if (! $user) {
+            abort(403);
+        }
+
+        // Jika bukan Super User, tenant tidak diizinkan menghapus asesmen kurasi Owner ADZKIA atau milik institusi lain
+        if (! $user->isSuperUser()) {
+            $userTenantIds = $user->tenants->pluck('id')->all();
+            if ($assessment->isOwnerCreated() || ! in_array($assessment->tenant_id, $userTenantIds, true)) {
+                abort(403, 'Akses ditolak: Asesmen kurasi ADZKIA (Owner) tidak dapat dihapus oleh tenant.');
+            }
+        }
+
         $title = $assessment->title;
         $assessment->delete();
 
@@ -985,6 +1007,13 @@ class AssessmentWizardController extends Controller
         $user = Auth::user();
         if (! $user || (! $user->isTeacher() && ! $user->isAdmin() && ! $user->isSuperUser())) {
             abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk mengubah status asesmen.');
+        }
+
+        if (! $user->isSuperUser()) {
+            $userTenantIds = $user->tenants->pluck('id')->all();
+            if ($assessment->isOwnerCreated() || ! in_array($assessment->tenant_id, $userTenantIds, true)) {
+                abort(403, 'Akses ditolak: Status tayang asesmen kurasi ADZKIA (Owner) tidak dapat diubah oleh tenant.');
+            }
         }
 
         $newStatus = $request->input('status');

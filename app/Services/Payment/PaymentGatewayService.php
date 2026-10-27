@@ -48,6 +48,16 @@ class PaymentGatewayService
             return $this->createTripayPayment($order, $methodCode, $methodConfig);
         }
 
+        if ($driver === 'midtrans') {
+            $serverKey = config('payment.gateways.midtrans.server_key');
+
+            if (blank($serverKey)) {
+                return $this->createSandboxPayment($order, $methodCode);
+            }
+
+            return $this->createMidtransPayment($order, $methodCode, $methodConfig);
+        }
+
         $merchantCode = config('payment.gateways.duitku.merchant_code');
         $apiKey = config('payment.gateways.duitku.api_key');
 
@@ -130,6 +140,88 @@ class PaymentGatewayService
             ]);
         } catch (\Throwable $e) {
             Log::error('Tripay API connection failed: '.$e->getMessage());
+        }
+
+        return $this->createSandboxPayment($order, $methodCode);
+    }
+
+    /**
+     * Create payment using Midtrans Snap API.
+     */
+    protected function createMidtransPayment(Order $order, string $methodCode, ?array $methodConfig): array
+    {
+        $serverKey = config('payment.gateways.midtrans.server_key');
+        $grossAmount = (int) round($order->total_amount);
+        $orderId = $order->order_number;
+
+        $channelMidtrans = $methodConfig['channel_midtrans'] ?? null;
+        $enabledPayments = $channelMidtrans ? [$channelMidtrans] : null;
+
+        $payload = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $grossAmount,
+            ],
+            'customer_details' => [
+                'first_name' => substr($order->user?->name ?? 'Siswa ADZKIA', 0, 50),
+                'email' => $order->user?->email ?? 'student@adzkia.test',
+                'phone' => $order->user?->phone ?? '081234567890',
+            ],
+            'item_details' => [
+                [
+                    'id' => 'ASSESSMENT-'.$order->assessment_id,
+                    'price' => (int) round($order->price_amount),
+                    'quantity' => 1,
+                    'name' => substr($order->assessment?->title ?? 'Asesmen CBT', 0, 50),
+                ],
+            ],
+            'callbacks' => [
+                'finish' => route('orders.show', $order),
+            ],
+            'expiry' => [
+                'start_time' => now()->format('Y-m-d H:i:s O'),
+                'unit' => 'minute',
+                'duration' => (int) config('payment.gateways.midtrans.expiry_period', 1440),
+            ],
+        ];
+
+        if ($enabledPayments) {
+            $payload['enabled_payments'] = $enabledPayments;
+        }
+
+        try {
+            $url = config('payment.gateways.midtrans.snap_url');
+            $response = Http::withBasicAuth($serverKey, '')
+                ->timeout(20)
+                ->post($url, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if (! empty($data['token']) || ! empty($data['redirect_url'])) {
+                    $order->update([
+                        'payment_gateway' => 'midtrans',
+                        'payment_reference' => $data['token'] ?? null,
+                        'payment_url' => $data['redirect_url'] ?? null,
+                        'gateway_payload' => $data,
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'gateway' => 'midtrans',
+                        'payment_url' => $data['redirect_url'] ?? null,
+                        'token' => $data['token'] ?? null,
+                        'reference' => $data['token'] ?? null,
+                    ];
+                }
+            }
+
+            Log::warning('Midtrans Snap API returned error', [
+                'order' => $order->order_number,
+                'response' => $response->body(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Midtrans API connection failed: '.$e->getMessage());
         }
 
         return $this->createSandboxPayment($order, $methodCode);
@@ -305,17 +397,42 @@ class PaymentGatewayService
     }
 
     /**
-     * Process webhook notification from Duitku, Tripay, or generic gateway.
+     * Verify Midtrans webhook callback signature.
+     * Formula: SHA512(order_id + status_code + gross_amount + server_key)
+     */
+    public function verifyMidtransWebhook(Request $request): bool
+    {
+        $serverKey = config('payment.gateways.midtrans.server_key');
+
+        // When in sandbox simulation with empty keys, allow testing webhook
+        if (blank($serverKey) && app()->environment('local', 'testing')) {
+            return true;
+        }
+
+        $orderId = (string) $request->input('order_id', '');
+        $statusCode = (string) $request->input('status_code', '');
+        $grossAmount = (string) $request->input('gross_amount', '');
+        $signatureKey = (string) $request->input('signature_key', '');
+
+        $expectedSignature = hash('sha512', $orderId.$statusCode.$grossAmount.$serverKey);
+
+        return hash_equals($expectedSignature, $signatureKey);
+    }
+
+    /**
+     * Process webhook notification from Duitku, Tripay, Midtrans, or generic gateway.
      */
     public function processWebhook(array $payload): array
     {
-        $orderNumber = $payload['merchantOrderId'] ?? $payload['merchant_ref'] ?? $payload['order_number'] ?? null;
+        $orderNumber = $payload['order_id'] ?? $payload['merchantOrderId'] ?? $payload['merchant_ref'] ?? $payload['order_number'] ?? null;
         $resultCode = $payload['resultCode'] ?? $payload['status_code'] ?? null;
         $status = strtoupper((string) ($payload['status'] ?? ''));
-        $reference = $payload['reference'] ?? null;
+        $trxStatus = strtolower((string) ($payload['transaction_status'] ?? ''));
+        $fraudStatus = strtolower((string) ($payload['fraud_status'] ?? 'accept'));
+        $reference = $payload['transaction_id'] ?? $payload['reference'] ?? null;
 
         if (! $orderNumber) {
-            return ['status' => 'error', 'message' => 'Missing merchantOrderId / merchant_ref'];
+            return ['status' => 'error', 'message' => 'Missing order_id / merchantOrderId / merchant_ref'];
         }
 
         $order = Order::where('order_number', $orderNumber)->first();
@@ -323,8 +440,14 @@ class PaymentGatewayService
             return ['status' => 'error', 'message' => "Order {$orderNumber} not found"];
         }
 
-        // Result code 00 = Success (Duitku), PAID = Success (Tripay), SUCCESS = Generic
-        $isSuccess = $resultCode === '00' || in_array($status, ['SUCCESS', 'PAID'], true);
+        // Success condition:
+        // Duitku: resultCode === '00'
+        // Tripay / Generic: status === 'PAID' or 'SUCCESS'
+        // Midtrans: transaction_status === 'settlement' OR (transaction_status === 'capture' AND fraud_status === 'accept')
+        $isSuccess = $resultCode === '00'
+            || in_array($status, ['SUCCESS', 'PAID'], true)
+            || $trxStatus === 'settlement'
+            || ($trxStatus === 'capture' && $fraudStatus === 'accept');
 
         if ($isSuccess) {
             if ($order->status !== 'settled') {
@@ -353,12 +476,14 @@ class PaymentGatewayService
         }
 
         // Check if transaction is still pending / unpaid
-        if ($status === 'UNPAID') {
+        if ($status === 'UNPAID' || $trxStatus === 'pending') {
             return ['status' => 'success', 'message' => 'Payment still pending'];
         }
 
-        // Result code 01 = Failed, 02 = Expired (Duitku) / EXPIRED (Tripay)
-        $isExpired = ($resultCode === '02' || $status === 'EXPIRED');
+        // Failed / Expired condition:
+        // Duitku: resultCode === '02', Tripay: status === 'EXPIRED'
+        // Midtrans: transaction_status in ['expire', 'cancel', 'deny']
+        $isExpired = ($resultCode === '02' || $status === 'EXPIRED' || in_array($trxStatus, ['expire', 'cancel'], true));
         $newStatus = $isExpired ? 'expired' : 'failed';
         $order->update([
             'status' => $newStatus,

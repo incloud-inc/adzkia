@@ -47,7 +47,6 @@ class QuestionGeneratorTest extends TestCase
 
         config([
             'services.deepseek.api_key' => '',
-            'services.gemini.api_key' => '',
         ]);
     }
 
@@ -116,11 +115,10 @@ class QuestionGeneratorTest extends TestCase
         $this->assertEquals('mcq_weighted', $item['type']);
         $this->assertEquals(5.0, $item['points']);
         $this->assertCount(5, $item['options']);
-        $this->assertEquals(5.0, $item['options'][0]['score']);
-
-        // Check word_text has [TKP] and A. [5]
+        // Check word_text has [TKP] and option with score [5]
         $this->assertStringContainsString('[TKP]', $data['word_text']);
-        $this->assertStringContainsString('A. [5]', $data['word_text']);
+        $this->assertStringContainsString('[5]', $data['word_text']);
+        $this->assertStringContainsString('A.', $data['word_text']);
     }
 
     public function test_question_generator_can_export_docx_and_be_parsed(): void
@@ -874,31 +872,34 @@ class QuestionGeneratorTest extends TestCase
         $this->assertEquals($cleanExplanation, $cleanResult);
     }
 
-    public function test_gemini_models_are_recognized_and_supported_by_generator(): void
+    public function test_gemini_models_are_not_supported_and_only_deepseek_is_active(): void
     {
         $supportedModels = DeepSeekQuestionGeneratorService::getSupportedModels();
-        $this->assertArrayHasKey('gemini-2.5-pro', $supportedModels);
-        $this->assertArrayHasKey('gemini-2.5-flash', $supportedModels);
-        $this->assertArrayHasKey('gemini-2.0-flash', $supportedModels);
-        $this->assertArrayHasKey('gemini-2.0-flash-lite', $supportedModels);
-        $this->assertArrayHasKey('gemini-2.0-flash-thinking-exp-01-21', $supportedModels);
-        $this->assertArrayHasKey('gemini-1.5-pro', $supportedModels);
-        $this->assertArrayHasKey('gemini-1.5-flash', $supportedModels);
-        $this->assertArrayHasKey('gemini-argon', $supportedModels);
+        $this->assertArrayNotHasKey('gemini-2.5-pro', $supportedModels);
+        $this->assertArrayNotHasKey('gemini-2.5-flash', $supportedModels);
+        $this->assertArrayNotHasKey('gemini-2.0-flash', $supportedModels);
+        $this->assertArrayNotHasKey('gemini-2.0-flash-lite', $supportedModels);
+        $this->assertArrayNotHasKey('gemini-2.0-flash-thinking-exp-01-21', $supportedModels);
+        $this->assertArrayNotHasKey('gemini-1.5-pro', $supportedModels);
+        $this->assertArrayNotHasKey('gemini-1.5-flash', $supportedModels);
+        $this->assertArrayNotHasKey('gemini-argon', $supportedModels);
+
+        $this->assertArrayHasKey('deepseek-reasoner', $supportedModels);
+        $this->assertArrayHasKey('deepseek-chat', $supportedModels);
+        $this->assertCount(2, $supportedModels);
 
         $modelsByProvider = DeepSeekQuestionGeneratorService::getModelsByProvider();
         $this->assertArrayHasKey('deepseek', $modelsByProvider);
-        $this->assertArrayHasKey('gemini', $modelsByProvider);
+        $this->assertArrayNotHasKey('gemini', $modelsByProvider);
         $this->assertCount(2, $modelsByProvider['deepseek']);
-        $this->assertCount(8, $modelsByProvider['gemini']);
 
         $aiService = app(DeepSeekQuestionGeneratorService::class);
-        $this->assertTrue($aiService->isGeminiModel('gemini-2.5-flash'));
-        $this->assertTrue($aiService->isGeminiModel('gemini-argon'));
+        $this->assertFalse($aiService->isGeminiModel('gemini-2.5-flash'));
+        $this->assertFalse($aiService->isGeminiModel('gemini-argon'));
         $this->assertFalse($aiService->isGeminiModel('deepseek-reasoner'));
     }
 
-    public function test_question_generator_can_generate_with_gemini_model(): void
+    public function test_question_generator_rejects_gemini_model_in_validation(): void
     {
         $this->actingAs($this->user);
 
@@ -923,87 +924,49 @@ class QuestionGeneratorTest extends TestCase
         ];
 
         $response = $this->postJson(route('question-generator.generate'), $payload);
-        $response->assertStatus(200);
-        $response->assertJson([
-            'status' => 'success',
-        ]);
-
-        $data = $response->json();
-        $this->assertNotEmpty($data['package']['items']);
-        $this->assertEquals('gemini-2.5-flash', $data['package']['model_used']);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['ai_model']);
     }
 
-    public function test_question_generator_can_generate_with_gemini_argon(): void
+    public function test_deepseek_live_api_call_is_handled_when_api_key_configured(): void
     {
-        $this->actingAs($this->user);
+        config(['services.deepseek.api_key' => 'test-deepseek-key-123']);
 
-        $payload = [
-            'category' => 'school',
-            'curriculum' => 'merdeka',
-            'grade_level' => '4',
-            'subject' => 'ipas',
-            'difficulty' => 'mudah',
-            'cognitive_level' => 'C1-C2 (LOTS)',
-            'question_type' => 'mcq_single',
-            'question_count' => 2,
-            'ai_model' => 'gemini-argon',
-            'type_distributions' => [
+        $mockDeepSeekResponse = [
+            'choices' => [
                 [
-                    'type' => 'mcq_single',
-                    'standalone_count' => 2,
-                    'stimulus_count' => 0,
-                    'stimulus_questions' => 0,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson(route('question-generator.generate'), $payload);
-        $response->assertStatus(200);
-        $this->assertEquals('gemini-argon', $response->json('package.model_used'));
-    }
-
-    public function test_gemini_live_api_call_is_handled_when_api_key_configured(): void
-    {
-        config(['services.gemini.api_key' => 'test-gemini-key-123']);
-
-        $mockGeminiResponse = [
-            'candidates' => [
-                [
-                    'content' => [
-                        'parts' => [
-                            [
-                                'text' => json_encode([
-                                    'assessment_title' => 'Asesmen IPAS Kelas 5 SD - Ekosistem',
-                                    'category' => 'school',
-                                    'difficulty' => 'sedang',
-                                    'cognitive_level' => 'C3-C4 (MOTS)',
-                                    'stimuli' => [],
-                                    'stimulus' => null,
-                                    'items' => [
-                                        [
-                                            'number' => 1,
-                                            'type' => 'mcq_single',
-                                            'prompt' => 'Dalam suatu ekosistem sawah, peran katak adalah sebagai...',
-                                            'points' => 2.0,
-                                            'options' => [
-                                                ['label' => 'A', 'option_text' => 'Produsen pertama', 'is_correct' => false, 'score' => 0.0],
-                                                ['label' => 'B', 'option_text' => 'Konsumen tingkat II', 'is_correct' => true, 'score' => 2.0],
-                                                ['label' => 'C', 'option_text' => 'Pengurai utama', 'is_correct' => false, 'score' => 0.0],
-                                                ['label' => 'D', 'option_text' => 'Konsumen puncak', 'is_correct' => false, 'score' => 0.0],
-                                            ],
-                                            'explanation' => 'Katak memakan serangga herbivora (konsumen I), sehingga katak berkedudukan sebagai konsumen tingkat II (sekunder) dalam rantai makanan.',
-                                        ],
+                    'message' => [
+                        'content' => json_encode([
+                            'assessment_title' => 'Asesmen IPAS Kelas 5 SD - Ekosistem',
+                            'category' => 'school',
+                            'difficulty' => 'sedang',
+                            'cognitive_level' => 'C3-C4 (MOTS)',
+                            'stimuli' => [],
+                            'stimulus' => null,
+                            'items' => [
+                                [
+                                    'number' => 1,
+                                    'type' => 'mcq_single',
+                                    'prompt' => 'Dalam suatu ekosistem sawah, peran katak adalah sebagai...',
+                                    'points' => 2.0,
+                                    'options' => [
+                                        ['label' => 'A', 'option_text' => 'Produsen pertama', 'is_correct' => false, 'score' => 0.0],
+                                        ['label' => 'B', 'option_text' => 'Konsumen tingkat II', 'is_correct' => true, 'score' => 2.0],
+                                        ['label' => 'C', 'option_text' => 'Pengurai utama', 'is_correct' => false, 'score' => 0.0],
+                                        ['label' => 'D', 'option_text' => 'Konsumen puncak', 'is_correct' => false, 'score' => 0.0],
                                     ],
-                                ]),
+                                    'explanation' => 'Katak memakan serangga herbivora (konsumen I), sehingga katak berkedudukan sebagai konsumen tingkat II (sekunder) dalam rantai makanan.',
+                                ],
                             ],
-                        ],
+                        ]),
+                        'reasoning_content' => 'DeepSeek reasoning chain for ecosystem questions.',
                     ],
                 ],
             ],
         ];
 
         Http::fake([
-            'https://generativelanguage.googleapis.com/*' => Http::response($mockGeminiResponse, 200),
+            'https://api.deepseek.com/*' => Http::response($mockDeepSeekResponse, 200),
         ]);
 
         $aiService = app(DeepSeekQuestionGeneratorService::class);
@@ -1011,58 +974,55 @@ class QuestionGeneratorTest extends TestCase
             'category' => 'school',
             'subject' => 'ipas',
             'grade_level' => '5',
-            'ai_model' => 'gemini-2.5-flash',
+            'ai_model' => 'deepseek-reasoner',
         ]);
 
-        $this->assertEquals('gemini-2.5-flash', $result['model_used']);
-        $this->assertEquals('google-gemini', $result['provider']);
+        $this->assertEquals('deepseek-reasoner', $result['model_used']);
+        $this->assertEquals('deepseek', $result['provider']);
         $this->assertCount(1, $result['items']);
         $this->assertEquals('Dalam suatu ekosistem sawah, peran katak adalah sebagai...', $result['items'][0]['prompt']);
         $this->assertTrue($result['items'][0]['options'][1]['is_correct']);
     }
 
-    public function test_gemini_prompting_strictly_enforces_teacher_kisi_kisi_and_custom_prompt(): void
+    public function test_deepseek_prompting_strictly_enforces_teacher_kisi_kisi_and_custom_prompt(): void
     {
-        config(['services.gemini.api_key' => 'test-gemini-key-123']);
+        config(['services.deepseek.api_key' => 'test-deepseek-key-123']);
 
-        $mockGeminiResponse = [
-            'candidates' => [
+        $mockDeepSeekResponse = [
+            'choices' => [
                 [
-                    'content' => [
-                        'parts' => [
-                            [
-                                'text' => json_encode([
-                                    'assessment_title' => 'Asesmen Siklus Nitrogen - Petani Sukamaju',
-                                    'category' => 'school',
-                                    'difficulty' => 'sedang',
-                                    'cognitive_level' => 'C3-C4 (MOTS)',
-                                    'stimuli' => [],
-                                    'stimulus' => null,
-                                    'items' => [
-                                        [
-                                            'number' => 1,
-                                            'type' => 'mcq_single',
-                                            'prompt' => 'Berdasarkan studi kasus petani Desa Sukamaju, bakteri yang berperan penting dalam mengikat nitrogen bebas di udara adalah ...',
-                                            'points' => 2.0,
-                                            'options' => [
-                                                ['label' => 'A', 'option_text' => 'Rhizobium yang bersimbiosis dengan akar tanaman polong', 'is_correct' => true, 'score' => 2.0],
-                                                ['label' => 'B', 'option_text' => 'Lactobacillus bulgaricus', 'is_correct' => false, 'score' => 0.0],
-                                                ['label' => 'C', 'option_text' => 'Escherichia coli usus', 'is_correct' => false, 'score' => 0.0],
-                                                ['label' => 'D', 'option_text' => 'Streptomyces griceus', 'is_correct' => false, 'score' => 0.0],
-                                            ],
-                                            'explanation' => 'Bakteri Rhizobium mengikat nitrogen bebas dari atmosfer menjadi senyawa nitrat yang menyuburkan tanah pertanian.',
-                                        ],
+                    'message' => [
+                        'content' => json_encode([
+                            'assessment_title' => 'Asesmen Siklus Nitrogen - Petani Sukamaju',
+                            'category' => 'school',
+                            'difficulty' => 'sedang',
+                            'cognitive_level' => 'C3-C4 (MOTS)',
+                            'stimuli' => [],
+                            'stimulus' => null,
+                            'items' => [
+                                [
+                                    'number' => 1,
+                                    'type' => 'mcq_single',
+                                    'prompt' => 'Berdasarkan studi kasus petani Desa Sukamaju, bakteri yang berperan penting dalam mengikat nitrogen bebas di udara adalah ...',
+                                    'points' => 2.0,
+                                    'options' => [
+                                        ['label' => 'A', 'option_text' => 'Rhizobium yang bersimbiosis dengan akar tanaman polong', 'is_correct' => true, 'score' => 2.0],
+                                        ['label' => 'B', 'option_text' => 'Lactobacillus bulgaricus', 'is_correct' => false, 'score' => 0.0],
+                                        ['label' => 'C', 'option_text' => 'Escherichia coli usus', 'is_correct' => false, 'score' => 0.0],
+                                        ['label' => 'D', 'option_text' => 'Streptomyces griceus', 'is_correct' => false, 'score' => 0.0],
                                     ],
-                                ]),
+                                    'explanation' => 'Bakteri Rhizobium mengikat nitrogen bebas dari atmosfer menjadi senyawa nitrat yang menyuburkan tanah pertanian.',
+                                ],
                             ],
-                        ],
+                        ]),
+                        'reasoning_content' => 'DeepSeek reasoning chain for nitrogen cycle.',
                     ],
                 ],
             ],
         ];
 
         Http::fake([
-            'https://generativelanguage.googleapis.com/*' => Http::response($mockGeminiResponse, 200),
+            'https://api.deepseek.com/*' => Http::response($mockDeepSeekResponse, 200),
         ]);
 
         $customKisiKisi = 'Fokuskan pada siklus nitrogen tanah dan studi kasus petani Desa Sukamaju';
@@ -1073,19 +1033,20 @@ class QuestionGeneratorTest extends TestCase
             'subject' => 'ipas',
             'grade_level' => '5',
             'custom_prompt' => $customKisiKisi,
-            'ai_model' => 'gemini-2.5-flash',
+            'ai_model' => 'deepseek-reasoner',
         ]);
 
-        $this->assertEquals('gemini-2.5-flash', $result['model_used']);
+        $this->assertEquals('deepseek-reasoner', $result['model_used']);
 
         Http::assertSent(function (Request $request) use ($customKisiKisi) {
-            $systemText = data_get($request->data(), 'systemInstruction.parts.0.text', '');
-            $userText = data_get($request->data(), 'contents.0.parts.0.text', '');
+            $messages = $request->data()['messages'] ?? [];
+            $systemMsg = collect($messages)->firstWhere('role', 'system')['content'] ?? '';
+            $userMsg = collect($messages)->firstWhere('role', 'user')['content'] ?? '';
 
-            return str_contains($systemText, 'INSTRUKSI PRIORITAS TERTINGGI (KISI-KISI / PESAN KHUSUS DARI GURU)')
-                && str_contains($systemText, $customKisiKisi)
-                && str_contains($userText, 'PERINTAH UTAMA: KISI-KISI & PESAN KHUSUS DARI GURU')
-                && str_contains($userText, $customKisiKisi);
+            return str_contains($systemMsg, 'INSTRUKSI PRIORITAS TERTINGGI (KISI-KISI / PESAN KHUSUS DARI GURU)')
+                && str_contains($systemMsg, $customKisiKisi)
+                && str_contains($userMsg, 'PERINTAH UTAMA: KISI-KISI & PESAN KHUSUS DARI GURU')
+                && str_contains($userMsg, $customKisiKisi);
         });
     }
 

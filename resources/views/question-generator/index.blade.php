@@ -465,35 +465,17 @@
                                   class="w-full px-3 py-2.5 bg-gray-2 border border-gray-6 rounded-xl text-xs font-medium text-gray-12 focus:bg-white focus:border-indigo-9 focus:ring-2 focus:ring-indigo-9/20 transition-all resize-none overflow-hidden [field-sizing:content]"></textarea>
                     </div>
 
-                    <!-- Model Selector (DeepSeek AI & Google Gemini) -->
+                    <!-- Model Selector (DeepSeek AI) -->
                     <div class="space-y-3 pt-1">
                         <div class="flex items-center justify-between">
-                            <label class="block text-xs font-bold text-gray-11">Pilih Mesin & Model AI:</label>
-                            <span class="text-[11px] text-gray-10">Pilih provider & varian model</span>
-                        </div>
-
-                        <!-- Provider Tabs -->
-                        <div class="grid grid-cols-2 gap-2 p-1 bg-gray-3 rounded-xl border border-gray-6">
-                            <button type="button" @click="setProvider('deepseek')"
-                                    :class="ai_provider === 'deepseek' ? 'bg-white shadow-xs text-indigo-11 font-bold' : 'text-gray-11 hover:text-gray-12 font-medium'"
-                                    class="py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 transition-all cursor-pointer">
-                                <span>🧠 DeepSeek AI</span>
-                                @if($isDeepSeekConfigured)
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-100 text-emerald-800 font-bold">API Ready</span>
-                                @endif
-                            </button>
-                            <button type="button" @click="setProvider('gemini')"
-                                    :class="ai_provider === 'gemini' ? 'bg-white shadow-xs text-blue-11 font-bold' : 'text-gray-11 hover:text-gray-12 font-medium'"
-                                    class="py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 transition-all cursor-pointer">
-                                <span>✨ Google Gemini</span>
-                                @if($isGeminiConfigured)
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-100 text-emerald-800 font-bold">API Ready</span>
-                                @endif
-                            </button>
+                            <label class="block text-xs font-bold text-gray-11">Pilih Model DeepSeek AI:</label>
+                            @if($isDeepSeekConfigured)
+                                <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-bold">API Ready</span>
+                            @endif
                         </div>
 
                         <!-- DEEPSEEK MODELS GRID -->
-                        <div x-show="ai_provider === 'deepseek'" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <label :class="ai_model === 'deepseek-reasoner' ? 'border-indigo-9 bg-indigo-2/40 text-indigo-11 ring-2 ring-indigo-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
                                    @click="selectModel('deepseek-reasoner')"
                                    class="p-3.5 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-3">
@@ -520,137 +502,6 @@
                                     </div>
                                     <p class="text-[11px] text-gray-11 font-normal mt-1 leading-relaxed">
                                         Generasi ultra cepat dalam hitungan detik. Cocok untuk soal hafalan, definisi, literasi dasar, dan pembuatan draft naskah cepat.
-                                    </p>
-                                </div>
-                            </label>
-                        </div>
-
-                        <!-- GEMINI MODELS GRID -->
-                        <div x-show="ai_provider === 'gemini'" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
-                            <!-- Gemini 2.5 Flash -->
-                            <label :class="ai_model === 'gemini-2.5-flash' ? 'border-blue-9 bg-blue-2/40 text-blue-11 ring-2 ring-blue-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   @click="selectModel('gemini-2.5-flash')"
-                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
-                                <input type="radio" value="gemini-2.5-flash" x-model="ai_model" class="mt-1 text-blue-9 focus:ring-0">
-                                <div>
-                                    <div class="flex items-center gap-1.5 font-bold">
-                                        <span>✨ Gemini 2.5 Flash</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-9 text-white">Rekomendasi Utama</span>
-                                    </div>
-                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
-                                        Generasi 2.5 mutakhir: sangat cepat, efisien, dengan penalaran bawaan seimbang untuk semua mapel.
-                                    </p>
-                                </div>
-                            </label>
-
-                            <!-- Gemini 2.5 Pro -->
-                            <label :class="ai_model === 'gemini-2.5-pro' ? 'border-purple-9 bg-purple-2/40 text-purple-11 ring-2 ring-purple-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   @click="selectModel('gemini-2.5-pro')"
-                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
-                                <input type="radio" value="gemini-2.5-pro" x-model="ai_model" class="mt-1 text-purple-9 focus:ring-0">
-                                <div>
-                                    <div class="flex items-center gap-1.5 font-bold">
-                                        <span>💎 Gemini 2.5 Pro</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-purple-9 text-white">Flagship Reasoning</span>
-                                    </div>
-                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
-                                        Model flagship tercerdas Google untuk penalaran rumit, wacana bacaan kaya, dan akurasi tinggi.
-                                    </p>
-                                </div>
-                            </label>
-
-                            <!-- Gemini 2.0 Flash -->
-                            <label :class="ai_model === 'gemini-2.0-flash' ? 'border-teal-9 bg-teal-2/40 text-teal-11 ring-2 ring-teal-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   @click="selectModel('gemini-2.0-flash')"
-                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
-                                <input type="radio" value="gemini-2.0-flash" x-model="ai_model" class="mt-1 text-teal-9 focus:ring-0">
-                                <div>
-                                    <div class="flex items-center gap-1.5 font-bold">
-                                        <span>⚡ Gemini 2.0 Flash</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-teal-9 text-white">Next-Gen Speed</span>
-                                    </div>
-                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
-                                        Generasi 2.0 standar yang ultra cepat, latensi sangat rendah, dan pemahaman instruksi kurikulum presisi.
-                                    </p>
-                                </div>
-                            </label>
-
-                            <!-- Gemini 2.0 Flash Thinking -->
-                            <label :class="ai_model === 'gemini-2.0-flash-thinking-exp-01-21' ? 'border-amber-9 bg-amber-2/40 text-amber-11 ring-2 ring-amber-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   @click="selectModel('gemini-2.0-flash-thinking-exp-01-21')"
-                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
-                                <input type="radio" value="gemini-2.0-flash-thinking-exp-01-21" x-model="ai_model" class="mt-1 text-amber-9 focus:ring-0">
-                                <div>
-                                    <div class="flex items-center gap-1.5 font-bold">
-                                        <span>🧠 Gemini 2.0 Thinking</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-9 text-white">CoT Thinking</span>
-                                    </div>
-                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
-                                        Model penalaran eksplisit (thinking) khusus pemecahan masalah matematika rumit, logika, dan olimpiade.
-                                    </p>
-                                </div>
-                            </label>
-
-                            <!-- Gemini 2.0 Flash-Lite -->
-                            <label :class="ai_model === 'gemini-2.0-flash-lite' ? 'border-blue-9 bg-blue-2/40 text-blue-11 ring-2 ring-blue-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   @click="selectModel('gemini-2.0-flash-lite')"
-                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
-                                <input type="radio" value="gemini-2.0-flash-lite" x-model="ai_model" class="mt-1 text-blue-9 focus:ring-0">
-                                <div>
-                                    <div class="flex items-center gap-1.5 font-bold">
-                                        <span>🪶 Gemini 2.0 Flash-Lite</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-gray-4 text-gray-11">Super Ringan</span>
-                                    </div>
-                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
-                                        Model ultra ringan dengan kuota hemat dan kecepatan tinggi untuk draf naskah soal masif.
-                                    </p>
-                                </div>
-                            </label>
-
-                            <!-- Gemini 1.5 Pro -->
-                            <label :class="ai_model === 'gemini-1.5-pro' ? 'border-purple-9 bg-purple-2/40 text-purple-11 ring-2 ring-purple-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   @click="selectModel('gemini-1.5-pro')"
-                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
-                                <input type="radio" value="gemini-1.5-pro" x-model="ai_model" class="mt-1 text-purple-9 focus:ring-0">
-                                <div>
-                                    <div class="flex items-center gap-1.5 font-bold">
-                                        <span>📚 Gemini 1.5 Pro</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-purple-8 text-white">Konteks Panjang</span>
-                                    </div>
-                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
-                                        Kapasitas konteks masif untuk analisis dokumen panjang, wacana literasi kompleks, dan artikel ilmiah.
-                                    </p>
-                                </div>
-                            </label>
-
-                            <!-- Gemini 1.5 Flash -->
-                            <label :class="ai_model === 'gemini-1.5-flash' ? 'border-blue-9 bg-blue-2/40 text-blue-11 ring-2 ring-blue-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   @click="selectModel('gemini-1.5-flash')"
-                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
-                                <input type="radio" value="gemini-1.5-flash" x-model="ai_model" class="mt-1 text-blue-9 focus:ring-0">
-                                <div>
-                                    <div class="flex items-center gap-1.5 font-bold">
-                                        <span>🎯 Gemini 1.5 Flash</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-8 text-white">Serbaguna</span>
-                                    </div>
-                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
-                                        Model serbaguna cepat dan stabil untuk soal-soal kurikulum reguler sekolah.
-                                    </p>
-                                </div>
-                            </label>
-
-                            <!-- Gemini Argon / Custom Proxy -->
-                            <label :class="ai_model === 'gemini-argon' ? 'border-emerald-9 bg-emerald-2/40 text-emerald-11 ring-2 ring-emerald-9/20' : 'border-gray-6 text-gray-12 hover:bg-gray-2'"
-                                   @click="selectModel('gemini-argon')"
-                                   class="p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-2.5">
-                                <input type="radio" value="gemini-argon" x-model="ai_model" class="mt-1 text-emerald-9 focus:ring-0">
-                                <div>
-                                    <div class="flex items-center gap-1.5 font-bold">
-                                        <span>🛡️ Gemini Argon</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-9 text-white">Custom Gateway</span>
-                                    </div>
-                                    <p class="text-[11px] text-gray-11 font-normal mt-0.5 leading-relaxed">
-                                        Pilihan gateway khusus / custom proxy endpoint model Gemini Argon yang kompatibel dengan API Gemini.
                                     </p>
                                 </div>
                             </label>
@@ -1165,36 +1016,22 @@
 
                 include_visuals: false,
 
-                custom_prompt: '',
-                ai_provider: '{{ str_starts_with($defaultModel ?? '', 'gemini') ? 'gemini' : 'deepseek' }}',
+                ai_provider: 'deepseek',
                 ai_model: '{{ $defaultModel ?? 'deepseek-reasoner' }}',
 
                 setProvider(p) {
-                    this.ai_provider = p;
-                    if (p === 'gemini' && !this.ai_model.startsWith('gemini')) {
-                        this.ai_model = 'gemini-2.5-flash';
-                    } else if (p === 'deepseek' && !this.ai_model.startsWith('deepseek')) {
-                        this.ai_model = 'deepseek-reasoner';
-                    }
+                    this.ai_provider = 'deepseek';
                 },
 
                 selectModel(m) {
                     this.ai_model = m;
-                    this.ai_provider = m.startsWith('gemini') ? 'gemini' : 'deepseek';
+                    this.ai_provider = 'deepseek';
                 },
 
                 getSelectedModelLabel() {
                     const labels = {
                         'deepseek-reasoner': 'DeepSeek R1 Reasoner',
-                        'deepseek-chat': 'DeepSeek V3 Chat',
-                        'gemini-2.5-pro': 'Gemini 2.5 Pro',
-                        'gemini-2.5-flash': 'Gemini 2.5 Flash',
-                        'gemini-2.0-flash': 'Gemini 2.0 Flash',
-                        'gemini-2.0-flash-lite': 'Gemini 2.0 Flash-Lite',
-                        'gemini-2.0-flash-thinking-exp-01-21': 'Gemini 2.0 Flash Thinking',
-                        'gemini-1.5-pro': 'Gemini 1.5 Pro',
-                        'gemini-1.5-flash': 'Gemini 1.5 Flash',
-                        'gemini-argon': 'Gemini Argon'
+                        'deepseek-chat': 'DeepSeek V3 Chat'
                     };
                     return labels[this.ai_model] || this.ai_model;
                 },

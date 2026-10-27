@@ -80,6 +80,47 @@ class PaymentWebhookController extends Controller
     }
 
     /**
+     * Webhook handler for Midtrans payment gateway.
+     */
+    public function midtrans(Request $request): JsonResponse
+    {
+        Log::info('Midtrans Webhook Received', [
+            'order_id' => $request->input('order_id'),
+            'transaction_status' => $request->input('transaction_status'),
+            'payload' => $request->except(['signature_key', 'token', 'customer_phone', 'customer_email']),
+        ]);
+
+        // Verify webhook signature (SHA512)
+        if (! $this->paymentService->verifyMidtransWebhook($request)) {
+            Log::warning('Midtrans Webhook Invalid Signature', [
+                'ip' => $request->ip(),
+                'order_id' => $request->input('order_id'),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid signature',
+            ], 400);
+        }
+
+        $result = $this->paymentService->processWebhook($request->all());
+
+        if (($result['status'] ?? '') === 'error') {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Error processing payment',
+            ], 422);
+        }
+
+        // Midtrans expects HTTP 200 with JSON response: {"status": "OK"}
+        return response()->json([
+            'status' => 'OK',
+            'success' => true,
+            'message' => 'Notification handled',
+        ], 200);
+    }
+
+    /**
      * Generic webhook handler for fallback / other gateways.
      */
     public function generic(Request $request): JsonResponse

@@ -1567,53 +1567,66 @@
         <!-- Prefill Notice from AI Question Generator Studio / Server Draft -->
         <template x-if="prefillNotice">
             <div :class="isDraftLoaded 
-                    ? 'bg-amber-2/70 border-amber-6 text-amber-12' 
-                    : 'bg-emerald-2 border border-emerald-6 text-emerald-12'"
-                 class="p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
-                <div class="flex items-start sm:items-center gap-3">
-                    <div :class="isDraftLoaded ? 'bg-amber-4 text-amber-11' : 'bg-emerald-4 text-emerald-11'"
-                         class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base shadow-2xs shrink-0">
-                        <span x-text="isDraftLoaded ? '📝' : '✨'"></span>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h4 class="font-bold text-xs uppercase tracking-wider"
-                                :class="isDraftLoaded ? 'text-amber-11' : 'text-emerald-11'"
-                                x-text="prefillTitle || (isDraftLoaded ? 'Draft Ujian Sebelumnya Ditemukan' : 'Sinkronisasi Studio AI Berhasil')"></h4>
-                            <span :class="isDraftLoaded ? 'bg-amber-3 text-amber-11 border-amber-5' : 'bg-emerald-3 text-emerald-11 border-emerald-5'"
-                                  class="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
-                                  x-text="isDraftLoaded ? 'Draft Aktif' : 'Studio AI'"></span>
+                    ? 'border-amber-200/90 bg-amber-50/80' 
+                    : 'border-emerald-200/90 bg-emerald-50/80'"
+                 class="p-5 rounded-2xl border shadow-xs transition-all duration-200">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3.5 min-w-0">
+                        <!-- Icon Container with Glow & Ring -->
+                        <div :class="isDraftLoaded 
+                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/25 ring-4 ring-amber-100' 
+                                : 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25 ring-4 ring-emerald-100'"
+                             class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0 transition-transform">
+                            <span x-text="isDraftLoaded ? '📝' : '✨'"></span>
                         </div>
-                        <p class="text-xs mt-0.5" 
-                           :class="isDraftLoaded ? 'text-amber-12' : 'text-emerald-12'"
-                           x-text="prefillNotice"></p>
+
+                        <div class="space-y-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span :class="isDraftLoaded 
+                                        ? 'bg-amber-100/90 text-amber-900 border-amber-300' 
+                                        : 'bg-emerald-100/90 text-emerald-900 border-emerald-300'"
+                                      class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono uppercase tracking-wider border shadow-2xs">
+                                    <span class="w-1.5 h-1.5 rounded-full" 
+                                          :class="isDraftLoaded ? 'bg-amber-600 animate-pulse' : 'bg-emerald-600 animate-pulse'"></span>
+                                    <span x-text="isDraftLoaded ? 'DRAFT AKTIF' : 'STUDIO AI'"></span>
+                                </span>
+                                <h4 class="font-display font-extrabold text-sm text-slate-900 tracking-tight"
+                                    x-text="prefillTitle || (isDraftLoaded ? 'Draft Ujian Sebelumnya Ditemukan' : 'Sinkronisasi Studio AI Berhasil')"></h4>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed max-w-2xl" 
+                               x-text="prefillNotice"></p>
+                        </div>
                     </div>
-                </div>
-                <div class="flex flex-wrap items-center gap-2 shrink-0">
-                    <!-- Tombol Abaikan & Mulai dari Awal -->
-                    <button type="button" 
-                            @click="discardDraftAndStartFresh()" 
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-rose-5 hover:bg-rose-2 hover:border-rose-6 text-rose-11 hover:text-rose-12 text-xs font-bold transition-colors cursor-pointer shadow-2xs">
-                        <x-radix-icon name="trash" class="w-3.5 h-3.5 text-rose-10" />
-                        <span>Abaikan & Mulai dari Awal</span>
-                    </button>
 
-                    <!-- Tombol Lanjutkan / Lihat Butir Soal -->
-                    <button type="button" 
-                            @click="goToStep(4)" 
-                            :class="isDraftLoaded ? 'bg-amber-9 hover:bg-amber-10' : 'bg-emerald-9 hover:bg-emerald-10'"
-                            class="px-3.5 py-1.5 rounded-lg text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs">
-                        <span x-text="isDraftLoaded ? 'Lanjut Edit Soal (Langkah 4) →' : 'Lihat Butir Soal (Langkah 4) →'"></span>
-                    </button>
+                    <div class="flex flex-wrap items-center gap-2.5 shrink-0 self-end lg:self-auto">
+                        <!-- Tombol Abaikan & Mulai dari Awal -->
+                        <button type="button" 
+                                @click="discardDraftAndStartFresh()" 
+                                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/80 hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200/90 hover:border-rose-200 text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95"
+                                title="Hapus draft dan mulai ujian kosong">
+                            <x-radix-icon name="trash" class="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-600" />
+                            <span>Abaikan &amp; Mulai dari Awal</span>
+                        </button>
 
-                    <!-- Tombol Tutup Banner -->
-                    <button type="button" 
-                            @click="prefillNotice = null" 
-                            :class="isDraftLoaded ? 'text-amber-10 hover:text-amber-12' : 'text-emerald-10 hover:text-emerald-12'"
-                            class="p-1.5 transition-colors cursor-pointer rounded-lg hover:bg-black/5"
-                            title="Tutup pemberitahuan">
-                        <x-radix-icon name="cross-2" class="w-4 h-4" />
-                    </button>
+                        <!-- Tombol Lanjutkan / Lihat Butir Soal -->
+                        <button type="button" 
+                                @click="goToStep(4)" 
+                                :class="isDraftLoaded 
+                                    ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-amber-600/20 hover:shadow-amber-600/30' 
+                                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-600/20 hover:shadow-emerald-600/30'"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95">
+                            <span x-text="isDraftLoaded ? 'Lanjut Edit Soal (Langkah 4)' : 'Lihat Butir Soal (Langkah 4)'"></span>
+                            <x-radix-icon name="arrow-right" class="w-3.5 h-3.5" />
+                        </button>
+
+                        <!-- Tombol Tutup Banner -->
+                        <button type="button" 
+                                @click="prefillNotice = null" 
+                                class="p-2 transition-colors cursor-pointer rounded-xl text-slate-400 hover:text-slate-700 hover:bg-black/5"
+                                title="Tutup pemberitahuan">
+                            <x-radix-icon name="cross-2" class="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </template>
@@ -1818,7 +1831,7 @@
                             
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <x-markdown-editor model="form.description" size="big" placeholder="Tuliskan petunjuk umum untuk siswa sebelum memulai ujian... (Mendukung # Judul, ## Sub Judul, **tebal**, *miring*, <u>garis bawah</u>, dan $$LATEX$$)" minHeight="75px" />
+                            <x-markdown-editor model="form.description" size="big" placeholder="Tuliskan petunjuk umum untuk siswa sebelum memulai ujian... (Mendukung **tebal**, *miring*, <u>garis bawah</u>, tabel, dan $$LATEX$$)" minHeight="75px" />
                             <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-6 px-4 py-2.5 text-sm text-gray-12 min-h-[75px] prose prose-sm max-w-none" x-html="renderRichPreview(form.description)"></div>
                         </div>
                     </div>
@@ -2069,7 +2082,7 @@
                                         </div>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             <div>
-                                                <x-markdown-editor model="item.stimulus_content" size="big" placeholder="Ketik atau tempelkan teks narasi wacana di sini... (Mendukung # Judul, ## Sub Judul, **tebal**, *miring*, <u>garis bawah</u>, $$LATEX$$, serta upload gambar, audio, dan video)" minHeight="75px" />
+                                                <x-markdown-editor model="item.stimulus_content" size="big" placeholder="Ketik atau tempelkan teks narasi wacana di sini... (Mendukung **tebal**, *miring*, <u>garis bawah</u>, tabel, $$LATEX$$, serta upload gambar, audio, dan video)" minHeight="75px" />
                                             </div>
                                             <div style="background-color: #b2f2bb;" class="rounded-xl border border-gray-5 p-3 text-sm text-gray-12 min-h-[75px] prose prose-sm max-w-none shadow-inner" x-html="renderRichPreview(item.stimulus_content)"></div>
                                         </div>
@@ -2134,9 +2147,8 @@
                                                                     </template>
                                                                     <span class="w-6 text-xs font-mono font-bold text-gray-11" x-text="opt.label"></span>
                                                                     <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                                        <div class="relative">
+                                                                        <div>
                                                                             <x-markdown-editor model="opt.option_text" size="small" placeholder="Teks pilihan jawaban (mendukung 1 paragraf, bait puisi, LaTeX, dan media)..." minHeight="60px" />
-                                                                            <button type="button" @click="triggerMediaUpload($el.parentElement.querySelector('textarea'), opt, 'option_text')" class="absolute right-1.5 top-1.5 px-1.5 py-0.5 rounded bg-sky-2 hover:bg-sky-3 text-[10px] font-bold text-sky-11 border border-sky-5 cursor-pointer" title="Upload Media (Gambar, Audio, Video)">media</button>
                                                                         </div>
                                                                         <div style="background-color: #b2f2bb;" class="rounded-lg border border-gray-5 px-3 py-2 text-xs text-gray-12 overflow-y-auto min-h-[84px] max-h-[260px] prose prose-sm max-w-none" x-html="renderRichPreview(opt.option_text)"></div>
                                                                     </div>
@@ -2370,9 +2382,8 @@
                                                         </template>
                                                         <span class="w-6 text-xs font-mono font-bold text-gray-11" x-text="opt.label"></span>
                                                         <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                            <div class="relative editor-container">
+                                                            <div class="editor-container">
                                                                 <x-markdown-editor model="opt.option_text" size="small" placeholder="Teks pilihan jawaban (mendukung 1 paragraf, bait puisi, LaTeX, dan media)..." minHeight="60px" />
-                                                                <button type="button" @click="triggerMediaUpload($el.parentElement.querySelector('textarea'), opt, 'option_text')" class="absolute right-1.5 top-1.5 px-1.5 py-0.5 rounded bg-sky-2 hover:bg-sky-3 text-[10px] font-bold text-sky-11 border border-sky-5 cursor-pointer" title="Upload Media (Gambar, Audio, Video)">media</button>
                                                             </div>
                                                             <div style="background-color: #b2f2bb;" class="rounded-lg border border-gray-5 px-3 py-2 text-xs text-gray-12 overflow-y-auto min-h-[84px] max-h-[260px] prose prose-sm max-w-none" x-html="renderRichPreview(opt.option_text)"></div>
                                                         </div>

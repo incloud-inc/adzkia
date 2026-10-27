@@ -19,6 +19,7 @@ use App\Http\Controllers\Exam\ExamResultController;
 use App\Http\Controllers\Exam\ExamWorkspaceController;
 use App\Http\Controllers\GradeLevelController;
 use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\MathStudioController;
 use App\Http\Controllers\MediaGalleryController;
 use App\Http\Controllers\MediaProxyController;
 use App\Http\Controllers\OrderController;
@@ -72,6 +73,7 @@ Route::get('/api/postal-codes/search', [PostalCodeController::class, 'search'])-
 // 4. Payment Gateway Webhooks (B2B2C, No CSRF)
 Route::post('api/webhooks/payment/duitku', [PaymentWebhookController::class, 'duitku'])->name('payment.webhook.duitku');
 Route::post('api/webhooks/payment/tripay', [PaymentWebhookController::class, 'tripay'])->name('payment.webhook.tripay');
+Route::post('api/webhooks/payment/midtrans', [PaymentWebhookController::class, 'midtrans'])->name('payment.webhook.midtrans');
 Route::post('api/webhooks/payment/generic', [PaymentWebhookController::class, 'generic'])->name('payment.webhook.generic');
 
 // 5. Media Proxy & Cache Cloudflare R2 (Bypass blokir DNS *.r2.dev oleh ISP Indonesia)
@@ -174,6 +176,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('media-gallery/files', [MediaGalleryController::class, 'getFiles'])->name('media.gallery.files');
     Route::post('media-gallery/upload', [MediaGalleryController::class, 'upload'])->name('media.gallery.upload');
     Route::delete('media-gallery/delete', [MediaGalleryController::class, 'destroy'])->name('media.gallery.delete');
+
+    // Kamus Rumus & KaTeX Studio (Enterprise & Owner)
+    Route::get('math-studio', [MathStudioController::class, 'index'])->name('math.studio.index');
 
     // Assessment Engine & 8-Step Wizard
     Route::get('assessments/wizard', [AssessmentWizardController::class, 'create'])->name('assessments.wizard');

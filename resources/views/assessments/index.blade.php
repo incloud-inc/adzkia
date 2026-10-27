@@ -149,9 +149,16 @@
                         @forelse($assessments as $item)
                             <tr class="hover:bg-gray-2/40 transition-colors">
                                 <td class="py-3.5 px-5 font-semibold text-gray-12">
-                                    <a href="{{ route('assessments.show', $item) }}" class="hover:text-green-11 transition-colors text-sm">
-                                        {{ $item->title }}
-                                    </a>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <a href="{{ route('assessments.show', $item) }}" class="hover:text-green-11 transition-colors text-sm font-semibold">
+                                            {{ $item->title }}
+                                        </a>
+                                        @if($item->isOwnerCreated())
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shrink-0" title="Asesmen Resmi Kurasi ADZKIA (Owner)">
+                                                Kurasi ADZKIA
+                                            </span>
+                                        @endif
+                                    </div>
                                     <p class="text-[11px] text-gray-9 mt-0.5 font-normal flex items-center gap-1.5 flex-wrap">
                                         <span>Kelas {{ $item->grade_level ?? '-' }}</span>
                                         <span class="text-gray-6">•</span>
@@ -289,7 +296,10 @@
                                             </a>
 
                                             <!-- Tombol Hapus -->
-                                            @if($canCreate)
+                                            @php
+                                                $canDeleteThis = $isSuper || ($canCreate && ! $item->isOwnerCreated() && $currentTenant && $item->tenant_id === $currentTenant->id);
+                                            @endphp
+                                            @if($canDeleteThis)
                                                 <form method="POST" action="{{ route('assessments.destroy', $item) }}" class="m-0 inline-block" onsubmit="return confirm('Apakah Anda yakin ingin menghapus ujian ini?');">
                                                     @csrf
                                                     @method('DELETE')

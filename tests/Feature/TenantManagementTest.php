@@ -146,9 +146,9 @@ class TenantManagementTest extends TestCase
         $superUser->tenants()->attach($tenant->id, ['role' => 'S']);
         $responseS = $this->actingAs($superUser)->get(route('dashboard'));
         $responseS->assertStatus(200);
-        $responseS->assertSee('Manajemen Tenant');
-        $responseS->assertSee('Tingkat Kelas/Jenjang');
-        $responseS->assertSee('Bank Soal Global');
+        $responseS->assertSee('TENANT');
+        $responseS->assertSee('Kelas/Jenjang');
+        $responseS->assertSee('BANK SOAL');
         $responseS->assertDontSee('Ujian Aktif / CBT');
 
         // Admin Tenant (Sidebar: Only Dashboard & Bank Soal)
@@ -159,8 +159,8 @@ class TenantManagementTest extends TestCase
         $responseA->assertSee('Alamat Portal Publik:');
         $responseA->assertSee('Dewan Guru');
         $responseA->assertSee('Siswa Terdaftar');
-        $responseA->assertSee('Bank Soal');
-        $responseA->assertDontSee('Bank Soal Global');
+        $responseA->assertSee('BANK SOAL');
+        $responseA->assertDontSee('WITHDRAW');
 
         // Teacher
         $teacher = User::factory()->create(['current_tenant_id' => $tenant->id]);
@@ -168,9 +168,9 @@ class TenantManagementTest extends TestCase
         $responseT = $this->actingAs($teacher)->get("http://{$tenant->subdomain}.localhost/dashboard");
         $responseT->assertStatus(200);
         $responseT->assertSee('Dashboard Guru');
-        $responseT->assertSee('Bank Soal', false);
+        $responseT->assertSee('BANK SOAL', false);
         $responseT->assertDontSee('Bank Soal & Materi');
-        $responseT->assertDontSee('Manajemen Tenant');
+        $responseT->assertDontSee('WITHDRAW');
 
         // Student
         $student = User::factory()->create(['current_tenant_id' => $tenant->id]);
@@ -180,7 +180,7 @@ class TenantManagementTest extends TestCase
         $responseU->assertSee('Dashboard Siswa');
         $responseU->assertSee('Ujian Aktif / CBT');
         $responseU->assertSee('Riwayat Ujian');
-        $responseU->assertDontSee('Manajemen Tenant');
+        $responseU->assertDontSee('WITHDRAW');
     }
 
     public function test_super_user_can_deactivate_tenant_via_update_plan(): void

@@ -7,6 +7,8 @@
         showTripayKey: false,
         showTripaySecret: false,
         showDuitkuKey: false,
+        showMidtransServerKey: false,
+        showMidtransClientKey: false,
         copiedUrl: null,
         copyToClipboard(text, id) {
             navigator.clipboard.writeText(text);
@@ -103,7 +105,7 @@
                     <h3 class="font-display font-bold text-base text-gray-12 mb-1">Pilih Driver Gateway Aktif</h3>
                     <p class="text-xs text-gray-11 mb-4">Sistem akan mengarahkan semua transaksi checkout siswa ke gateway yang dipilih secara langsung.</p>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!-- 1. Tripay -->
                         <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
                                :class="activeDriver === 'tripay' ? 'border-blue-9 bg-blue-2/30 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
@@ -140,7 +142,25 @@
                             <span class="inline-flex mt-4 text-[11px] font-semibold text-green-11">Dukungan Stabil &bull; Direct VA</span>
                         </label>
 
-                        <!-- 3. Sandbox Simulation -->
+                        <!-- 3. Midtrans -->
+                        <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
+                               :class="activeDriver === 'midtrans' ? 'border-blue-9 bg-blue-2/30 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
+                            <input type="radio" name="payment_driver" value="midtrans" x-model="activeDriver" class="sr-only">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-black uppercase tracking-wider text-cyan-11 bg-cyan-3 px-2 py-0.5 rounded-md">Midtrans</span>
+                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                         :class="activeDriver === 'midtrans' ? 'border-blue-9 bg-blue-9 text-white' : 'border-gray-6'">
+                                        <div class="w-2 h-2 bg-white rounded-full" x-show="activeDriver === 'midtrans'"></div>
+                                    </div>
+                                </div>
+                                <h4 class="font-bold text-sm text-gray-12">Midtrans Snap API</h4>
+                                <p class="text-xs text-gray-11 mt-1">Dukungan GoPay, ShopeePay, QRIS, Virtual Account, Kartu Kredit, dan Popup Snap Seamless.</p>
+                            </div>
+                            <span class="inline-flex mt-4 text-[11px] font-semibold text-cyan-11">Enterprise Ready &bull; Snap UI</span>
+                        </label>
+
+                        <!-- 4. Sandbox Simulation -->
                         <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
                                :class="activeDriver === 'sandbox' ? 'border-blue-9 bg-blue-2/30 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
                             <input type="radio" name="payment_driver" value="sandbox" x-model="activeDriver" class="sr-only">
@@ -283,6 +303,74 @@
                     </div>
                 </div>
 
+                <!-- Midtrans Credentials Form -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs space-y-5" x-show="activeDriver === 'midtrans' || activeDriver === 'sandbox'">
+                    <div class="flex items-center justify-between border-b border-gray-5 pb-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-cyan-3 text-cyan-11 flex items-center justify-center font-black text-sm">M</div>
+                            <div>
+                                <h3 class="font-display font-bold text-base text-gray-12">Kredensial Akun Midtrans</h3>
+                                <p class="text-xs text-gray-11">Dapatkan Server Key, Client Key, dan Merchant ID dari dashboard Midtrans MAP.</p>
+                            </div>
+                        </div>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-12">
+                            <input type="checkbox" name="midtrans_sandbox" value="1" {{ ($midtransConfig['sandbox'] ?? true) ? 'checked' : '' }} class="rounded border-gray-6 text-cyan-9 focus:ring-cyan-9">
+                            <span>Aktifkan Mode Sandbox</span>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">Merchant ID</label>
+                            <input type="text" name="midtrans_merchant_id" value="{{ old('midtrans_merchant_id', $midtransConfig['merchant_id'] ?? '') }}"
+                                   placeholder="Contoh: G123456789"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-cyan-9/20 focus:border-cyan-9">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">Server Key</label>
+                            <div class="relative">
+                                <input :type="showMidtransServerKey ? 'text' : 'password'" name="midtrans_server_key" value="{{ old('midtrans_server_key', $midtransConfig['server_key'] ?? '') }}"
+                                       placeholder="Midtrans Server Key (SB-Mid-server-...)"
+                                       class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-cyan-9/20 focus:border-cyan-9">
+                                <button type="button" @click="showMidtransServerKey = !showMidtransServerKey" class="absolute right-3 top-2.5 text-gray-9 hover:text-gray-12">
+                                    <x-radix-icon name="eye-open" class="w-4 h-4" x-show="!showMidtransServerKey" />
+                                    <x-radix-icon name="eye-none" class="w-4 h-4" x-show="showMidtransServerKey" />
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">Client Key</label>
+                            <div class="relative">
+                                <input :type="showMidtransClientKey ? 'text' : 'password'" name="midtrans_client_key" value="{{ old('midtrans_client_key', $midtransConfig['client_key'] ?? '') }}"
+                                       placeholder="Midtrans Client Key (SB-Mid-client-...)"
+                                       class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-cyan-9/20 focus:border-cyan-9">
+                                <button type="button" @click="showMidtransClientKey = !showMidtransClientKey" class="absolute right-3 top-2.5 text-gray-9 hover:text-gray-12">
+                                    <x-radix-icon name="eye-open" class="w-4 h-4" x-show="!showMidtransClientKey" />
+                                    <x-radix-icon name="eye-none" class="w-4 h-4" x-show="showMidtransClientKey" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Webhook instructions -->
+                    <div class="p-4 rounded-xl bg-cyan-2/40 border border-cyan-5 text-xs text-cyan-12 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold flex items-center gap-1.5">
+                                <x-radix-icon name="link-2" class="w-4 h-4 text-cyan-9" />
+                                <span>URL Notification / Callback Midtrans:</span>
+                            </span>
+                            <button type="button" @click="copyToClipboard('{{ $webhookUrls['midtrans'] }}', 'midtrans')" class="px-2.5 py-1 rounded-lg bg-cyan-9 text-white font-bold text-[11px] hover:bg-cyan-10 transition-colors cursor-pointer">
+                                <span x-show="copiedUrl !== 'midtrans'">Salin URL</span>
+                                <span x-show="copiedUrl === 'midtrans'">Tersalin!</span>
+                            </button>
+                        </div>
+                        <code class="block px-3 py-1.5 rounded-lg bg-white border border-cyan-4 text-cyan-11 font-mono select-all">
+                            {{ $webhookUrls['midtrans'] }}
+                        </code>
+                        <p class="text-[11px] text-gray-11">Masukkan URL di atas ke menu <strong>Settings &rarr; Configuration &rarr; Payment Notification URL</strong> di Portal Midtrans Merchant MAP. Signature SHA-512 akan diverifikasi otomatis.</p>
+                    </div>
+                </div>
+
                 <!-- Payment Methods Matrix -->
                 <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs">
                     <h3 class="font-display font-bold text-base text-gray-12 mb-1">Daftar Kanal Pembayaran Tersedia</h3>
@@ -357,7 +445,7 @@
             <div x-show="activeTab === 'system'" class="space-y-6">
                 <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs space-y-4">
                     <h3 class="font-display font-bold text-base text-gray-12">Status Mesin &amp; Lingkungan Produksi</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="p-4 rounded-xl border border-gray-5 bg-white">
                             <span class="text-[11px] font-bold uppercase text-gray-10 tracking-wider">Database Terhubung</span>
                             <div class="flex items-center gap-2 mt-1">
@@ -365,6 +453,25 @@
                                 <h4 class="font-bold text-sm text-gray-12">PostgreSQL (127.0.0.1:5432)</h4>
                             </div>
                             <p class="text-xs text-gray-11 mt-1">Database: <code class="font-mono text-gray-12">adzkia</code></p>
+                        </div>
+
+                        <!-- Redis Cache & Queue Status -->
+                        <div class="p-4 rounded-xl border border-gray-5 bg-white">
+                            <span class="text-[11px] font-bold uppercase text-gray-10 tracking-wider">Redis Cache &amp; Queue</span>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="w-2.5 h-2.5 rounded-full {{ ($redisStatus['connected'] ?? false) ? 'bg-green-9 animate-pulse' : 'bg-red-9' }}"></span>
+                                <h4 class="font-bold text-sm text-gray-12">
+                                    {{ ($redisStatus['connected'] ?? false) ? 'Redis Aktif & Terhubung' : 'Redis Tidak Terhubung' }}
+                                </h4>
+                            </div>
+                            <p class="text-xs text-gray-11 mt-1">Host: <code class="font-mono text-gray-12">{{ $redisStatus['host'] ?? '127.0.0.1' }}:{{ $redisStatus['port'] ?? '6379' }}</code></p>
+                            <p class="text-[11px] text-gray-10 mt-0.5">
+                                Client: {{ strtoupper($redisStatus['client'] ?? 'phpredis') }} &bull; Ping: <span class="font-mono font-semibold {{ ($redisStatus['connected'] ?? false) ? 'text-green-11' : 'text-red-11' }}">{{ $redisStatus['ping'] ?? 'N/A' }}</span>
+                            </p>
+                            <div class="mt-2 pt-2 border-t border-gray-4 flex items-center justify-between text-[11px] text-gray-11">
+                                <span>Cache: <code class="font-mono text-gray-12">{{ $redisStatus['cache_driver'] ?? 'file' }}</code></span>
+                                <span>Queue: <code class="font-mono text-gray-12">{{ $redisStatus['queue_driver'] ?? 'sync' }}</code></span>
+                            </div>
                         </div>
 
                         <div class="p-4 rounded-xl border border-gray-5 bg-white">

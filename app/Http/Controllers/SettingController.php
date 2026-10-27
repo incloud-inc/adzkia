@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\View\View;
 
 class SettingController extends Controller
@@ -14,16 +15,42 @@ class SettingController extends Controller
      */
     public function index(): View
     {
-        $currentDriver = config('payment.default', 'tripay');
+        $currentDriver = config('payment.default', 'duitku');
         $tripayConfig = config('payment.gateways.tripay', []);
         $duitkuConfig = config('payment.gateways.duitku', []);
+        $midtransConfig = config('payment.gateways.midtrans', []);
         $methods = config('payment.methods', []);
 
         $webhookUrls = [
             'tripay' => route('payment.webhook.tripay'),
             'duitku' => route('payment.webhook.duitku'),
+            'midtrans' => route('payment.webhook.midtrans'),
             'generic' => route('payment.webhook.generic'),
         ];
+
+        // Status Redis untuk Tab Status Sistem
+        $redisStatus = [
+            'configured' => config('database.redis.default.host') !== null,
+            'client' => config('database.redis.client', 'phpredis'),
+            'host' => config('database.redis.default.host', '127.0.0.1'),
+            'port' => config('database.redis.default.port', 6379),
+            'connected' => false,
+            'ping' => null,
+            'cache_driver' => config('cache.default', 'file'),
+            'queue_driver' => config('queue.default', 'database'),
+            'error' => null,
+        ];
+
+        try {
+            if (class_exists(Redis::class)) {
+                $pong = Redis::connection()->ping();
+                $redisStatus['connected'] = ($pong === true || $pong === '+PONG' || $pong === 'PONG');
+                $redisStatus['ping'] = is_string($pong) ? $pong : 'PONG';
+            }
+        } catch (\Throwable $e) {
+            $redisStatus['connected'] = false;
+            $redisStatus['error'] = $e->getMessage();
+        }
 
         $tiers = [
             'starter' => [
@@ -50,8 +77,10 @@ class SettingController extends Controller
             'currentDriver',
             'tripayConfig',
             'duitkuConfig',
+            'midtransConfig',
             'methods',
             'webhookUrls',
+            'redisStatus',
             'tiers'
         ));
     }
@@ -62,7 +91,7 @@ class SettingController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'payment_driver' => 'required|in:tripay,duitku,sandbox',
+            'payment_driver' => 'required|in:tripay,duitku,midtrans,sandbox',
             'tripay_merchant_code' => 'nullable|string|max:100',
             'tripay_api_key' => 'nullable|string|max:255',
             'tripay_private_key' => 'nullable|string|max:255',
@@ -70,6 +99,10 @@ class SettingController extends Controller
             'duitku_merchant_code' => 'nullable|string|max:100',
             'duitku_api_key' => 'nullable|string|max:255',
             'duitku_sandbox' => 'nullable|boolean',
+            'midtrans_server_key' => 'nullable|string|max:255',
+            'midtrans_client_key' => 'nullable|string|max:255',
+            'midtrans_merchant_id' => 'nullable|string|max:100',
+            'midtrans_sandbox' => 'nullable|boolean',
         ]);
 
         $envUpdates = [
@@ -81,6 +114,10 @@ class SettingController extends Controller
             'DUITKU_MERCHANT_CODE' => $validated['duitku_merchant_code'] ?? '',
             'DUITKU_API_KEY' => $validated['duitku_api_key'] ?? '',
             'DUITKU_SANDBOX' => $request->has('duitku_sandbox') ? 'true' : 'false',
+            'MIDTRANS_SERVER_KEY' => $validated['midtrans_server_key'] ?? '',
+            'MIDTRANS_CLIENT_KEY' => $validated['midtrans_client_key'] ?? '',
+            'MIDTRANS_MERCHANT_ID' => $validated['midtrans_merchant_id'] ?? '',
+            'MIDTRANS_SANDBOX' => $request->has('midtrans_sandbox') ? 'true' : 'false',
         ];
 
         $this->updateEnvFile($envUpdates);

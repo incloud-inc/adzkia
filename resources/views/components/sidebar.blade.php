@@ -47,7 +47,7 @@
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('tenants.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
                 <x-radix-icon name="backpack" class="w-6 h-6 shrink-0" />
-                <span class="truncate transition-opacity duration-300 text-base" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Manajemen Tenant</span>
+                <span class="truncate transition-opacity duration-300 text-base" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">TENANT</span>
             </a>
 
             <a href="{{ route('question-generator.index') }}" 
@@ -76,7 +76,7 @@
                     @endif
                 </div>
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Bank Soal Global</span>
+                    <span>BANK SOAL</span>
                     <div class="flex items-center gap-1.5 ml-auto">
                         @if(isset($activeExamCount) && $activeExamCount > 0)
                             <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
@@ -104,7 +104,7 @@
                     @endif
                 </div>
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Monitoring Sesi</span>
+                    <span>SESI Asesmen</span>
                     @if(isset($activeExamCount) && $activeExamCount > 0)
                         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -120,9 +120,22 @@
                title="Galeri Media Cloudflare R2">
                 <x-radix-icon name="image" class="w-6 h-6 shrink-0 {{ request()->routeIs('media.gallery.*') ? 'text-green-11' : 'text-sky-600' }}" />
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Galeri Media R2</span>
+                    <span>MEDIA</span>
                     <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-sky-800 bg-sky-100 border border-sky-300 rounded-md">
                         R2
+                    </span>
+                </span>
+            </a>
+
+            <a href="{{ route('math.studio.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('math.studio.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Kamus Rumus KaTeX & Markdown Studio">
+                <span class="w-6 h-6 shrink-0 flex items-center justify-center font-serif font-black text-xl leading-none {{ request()->routeIs('math.studio.*') ? 'text-green-11' : 'text-emerald-600' }}">∑</span>
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>KAMUS RUMUS</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md">
+                        KaTeX
                     </span>
                 </span>
             </a>
@@ -131,28 +144,28 @@
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('grade-levels.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
                 <x-radix-icon name="layers" class="w-6 h-6 shrink-0" />
-                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Tingkat Kelas/Jenjang</span>
+                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Kelas/Jenjang</span>
             </a>
 
             <a href="{{ route('subjects.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('subjects.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
                 <x-radix-icon name="bookmark" class="w-6 h-6 shrink-0" />
-                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Mata Pelajaran</span>
+                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">MAPEL</span>
             </a>
 
             <a href="{{ route('dichotomy-presets.index') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('dichotomy-presets.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
                 <x-radix-icon name="table" class="w-6 h-6 shrink-0" />
-                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Preset Tabel Dikotomi</span>
+                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">PRESET</span>
             </a>
 
             <a href="{{ route('reports.sales') }}" 
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('reports.sales*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
                 <x-radix-icon name="pie-chart" class="w-6 h-6 shrink-0" />
-                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Laporan Penjualan</span>
+                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">PENJUALAN</span>
             </a>
 
             <a href="{{ route('wallet.admin.payouts') }}" 
@@ -166,7 +179,7 @@
                     @endif
                 </div>
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Pencairan Dana</span>
+                    <span>WITHDRAW</span>
                     @if(isset($pendingPayoutCount) && $pendingPayoutCount > 0)
                         <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-300 rounded-md" title="{{ $pendingPayoutCount }} pengajuan pencairan">
                             {{ $pendingPayoutCount }}
@@ -179,7 +192,7 @@
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('settings.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
                 <x-radix-icon name="gear" class="w-6 h-6 shrink-0" />
-                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Pengaturan Sistem</span>
+                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">PENGATURAN</span>
             </a>
 
         @elseif(auth()->check() && auth()->user()->isAdmin())
@@ -221,7 +234,7 @@
                     @endif
                 </div>
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Bank Soal</span>
+                    <span>BANK SOAL</span>
                     <div class="flex items-center gap-1.5 ml-auto">
                         @if(isset($activeExamCount) && $activeExamCount > 0)
                             <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
@@ -249,7 +262,7 @@
                     @endif
                 </div>
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Monitoring Sesi</span>
+                    <span>SESI Asesmen</span>
                     @if(isset($activeExamCount) && $activeExamCount > 0)
                         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -266,9 +279,22 @@
                title="Galeri Media Cloudflare R2">
                 <x-radix-icon name="image" class="w-6 h-6 shrink-0 {{ request()->routeIs('media.gallery.*') ? 'text-green-11' : 'text-sky-600' }}" />
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Galeri Media R2</span>
+                    <span>MEDIA</span>
                     <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-sky-800 bg-sky-100 border border-sky-300 rounded-md">
                         R2
+                    </span>
+                </span>
+            </a>
+
+            <a href="{{ route('math.studio.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('math.studio.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Kamus Rumus KaTeX & Markdown Studio">
+                <span class="w-6 h-6 shrink-0 flex items-center justify-center font-serif font-black text-xl leading-none {{ request()->routeIs('math.studio.*') ? 'text-green-11' : 'text-emerald-600' }}">∑</span>
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>KAMUS RUMUS</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md">
+                        KaTeX
                     </span>
                 </span>
             </a>
@@ -278,7 +304,7 @@
                class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('reports.sales*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
                :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'">
                 <x-radix-icon name="pie-chart" class="w-6 h-6 shrink-0" />
-                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">Laporan Penjualan</span>
+                <span class="truncate transition-opacity duration-300 text-base font-medium" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">PENJUALAN</span>
             </a>
 
             <a href="{{ route('wallet.index') }}" 
@@ -355,7 +381,7 @@
                     @endif
                 </div>
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Bank Soal</span>
+                    <span>BANK SOAL</span>
                     <div class="flex items-center gap-1.5 ml-auto">
                         @if(isset($activeExamCount) && $activeExamCount > 0)
                             <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
@@ -383,7 +409,7 @@
                     @endif
                 </div>
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Monitoring Sesi</span>
+                    <span>SESI Asesmen</span>
                     @if(isset($activeExamCount) && $activeExamCount > 0)
                         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md" title="{{ $activeExamCount }} siswa sedang ujian">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -400,9 +426,22 @@
                title="Galeri Media Cloudflare R2">
                 <x-radix-icon name="image" class="w-6 h-6 shrink-0 {{ request()->routeIs('media.gallery.*') ? 'text-green-11' : 'text-sky-600' }}" />
                 <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
-                    <span>Galeri Media R2</span>
+                    <span>MEDIA</span>
                     <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-sky-800 bg-sky-100 border border-sky-300 rounded-md">
                         R2
+                    </span>
+                </span>
+            </a>
+
+            <a href="{{ route('math.studio.index') }}" 
+               class="flex items-center gap-4 px-4 py-3 rounded-xl {{ request()->routeIs('math.studio.*') ? 'bg-green-3 text-green-11 font-bold' : 'text-gray-11 hover:bg-gray-3 hover:text-gray-12 font-medium' }} text-base transition-colors group relative overflow-hidden"
+               :class="sidebarOpen ? 'justify-start' : 'justify-start lg:justify-center'"
+               title="Kamus Rumus KaTeX & Markdown Studio">
+                <span class="w-6 h-6 shrink-0 flex items-center justify-center font-serif font-black text-xl leading-none {{ request()->routeIs('math.studio.*') ? 'text-green-11' : 'text-emerald-600' }}">∑</span>
+                <span class="truncate transition-opacity duration-300 text-base font-medium flex items-center justify-between w-full" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'">
+                    <span>KAMUS RUMUS</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md">
+                        KaTeX
                     </span>
                 </span>
             </a>

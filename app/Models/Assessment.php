@@ -221,6 +221,27 @@ class Assessment extends Model
     }
 
     /**
+     * Cek apakah asesmen ini merupakan buatan Owner ADZKIA (Super User / Kurasi Platform).
+     */
+    public function isOwnerCreated(): bool
+    {
+        // 1. Asesmen tanpa tenant_id adalah kurasi platform nasional milik Owner
+        if (is_null($this->tenant_id)) {
+            return true;
+        }
+
+        // 2. Asesmen tanpa pencatat creator (seeder / migrasi sistem awal)
+        if (is_null($this->created_by)) {
+            return true;
+        }
+
+        // 3. Asesmen yang dibuat oleh Super User (Owner)
+        $creator = $this->relationLoaded('creator') ? $this->creator : User::find($this->created_by);
+
+        return (bool) $creator?->isSuperUser();
+    }
+
+    /**
      * Ambil asesmen dan kelompokkan ke UMUM (Card 4), SD, SMP, SMA.
      *
      * @return array{umum: Collection, sd: Collection, smp: Collection, sma: Collection}

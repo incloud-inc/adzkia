@@ -27,62 +27,6 @@ class DeepSeekQuestionGeneratorService
             'badge_color' => 'bg-gray-4 text-gray-11',
             'desc' => 'Generasi ultra cepat dalam hitungan detik. Cocok untuk soal hafalan, definisi, literasi dasar, dan pembuatan draft naskah cepat.',
         ],
-        'gemini-2.5-pro' => [
-            'provider' => 'gemini',
-            'name' => 'Gemini 2.5 Pro',
-            'badge' => 'Flagship Reasoning',
-            'badge_color' => 'bg-purple-9 text-white',
-            'desc' => 'Model flagship Google paling cerdas dengan penalaran tingkat lanjut, wacana bacaan kaya, dan akurasi tinggi.',
-        ],
-        'gemini-2.5-flash' => [
-            'provider' => 'gemini',
-            'name' => 'Gemini 2.5 Flash',
-            'badge' => 'Rekomendasi Utama',
-            'badge_color' => 'bg-blue-9 text-white',
-            'desc' => 'Generasi 2.5 mutakhir Google: sangat cepat, efisien, dengan kapabilitas penalaran bawaan untuk seluruh mata pelajaran.',
-        ],
-        'gemini-2.0-flash' => [
-            'provider' => 'gemini',
-            'name' => 'Gemini 2.0 Flash',
-            'badge' => 'Next-Gen Speed',
-            'badge_color' => 'bg-teal-9 text-white',
-            'desc' => 'Model generasi 2.0 standar yang ultra cepat, latensi rendah, dan pemahaman instruksi kurikulum yang presisi.',
-        ],
-        'gemini-2.0-flash-lite' => [
-            'provider' => 'gemini',
-            'name' => 'Gemini 2.0 Flash-Lite',
-            'badge' => 'Super Ringan & Hemat',
-            'badge_color' => 'bg-gray-4 text-gray-11',
-            'desc' => 'Model ultra ringan dengan kuota hemat dan kecepatan tinggi untuk pembuatan draf naskah soal masif.',
-        ],
-        'gemini-2.0-flash-thinking-exp-01-21' => [
-            'provider' => 'gemini',
-            'name' => 'Gemini 2.0 Flash Thinking',
-            'badge' => 'CoT Thinking',
-            'badge_color' => 'bg-amber-9 text-white',
-            'desc' => 'Model penalaran eksplisit (thinking) khusus untuk pemecahan masalah matematika rumit, logika, dan olimpiade.',
-        ],
-        'gemini-1.5-pro' => [
-            'provider' => 'gemini',
-            'name' => 'Gemini 1.5 Pro',
-            'badge' => 'Konteks Panjang',
-            'badge_color' => 'bg-purple-8 text-white',
-            'desc' => 'Kapasitas konteks masif untuk analisis bacaan wacana panjang, artikel ilmiah, dan wacana literasi kompleks.',
-        ],
-        'gemini-1.5-flash' => [
-            'provider' => 'gemini',
-            'name' => 'Gemini 1.5 Flash',
-            'badge' => 'Serbaguna & Stabil',
-            'badge_color' => 'bg-blue-8 text-white',
-            'desc' => 'Model serbaguna cepat dan stabil untuk soal-soal kurikulum reguler sekolah.',
-        ],
-        'gemini-argon' => [
-            'provider' => 'gemini',
-            'name' => 'Gemini Argon / Custom Proxy',
-            'badge' => 'Custom Gateway',
-            'badge_color' => 'bg-emerald-9 text-white',
-            'desc' => 'Pilihan gateway kustom / proxy endpoint model Gemini Argon yang kompatibel dengan API Gemini.',
-        ],
     ];
 
     /**
@@ -96,7 +40,7 @@ class DeepSeekQuestionGeneratorService
     }
 
     /**
-     * Get models grouped by provider (deepseek, gemini).
+     * Get models grouped by provider.
      *
      * @return array<string, array<string, array{provider: string, name: string, badge: string, badge_color: string, desc: string}>>
      */
@@ -116,11 +60,11 @@ class DeepSeekQuestionGeneratorService
      */
     public function isGeminiModel(string $model): bool
     {
-        return str_starts_with(strtolower($model), 'gemini');
+        return false;
     }
 
     /**
-     * Generate structured questions using DeepSeek or Google Gemini AI Engine.
+     * Generate structured questions using DeepSeek AI Engine.
      *
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
@@ -129,8 +73,6 @@ class DeepSeekQuestionGeneratorService
     {
         $rawModel = (string) ($params['ai_model'] ?? '');
         if (array_key_exists($rawModel, self::SUPPORTED_MODELS)) {
-            $model = $rawModel;
-        } elseif ($this->isGeminiModel($rawModel)) {
             $model = $rawModel;
         } else {
             $model = config('services.deepseek.model', 'deepseek-reasoner');
@@ -142,175 +84,74 @@ class DeepSeekQuestionGeneratorService
         $systemPrompt = $this->buildSystemPrompt($params);
         $userPrompt = $this->buildUserPrompt($params);
 
-        if ($this->isGeminiModel($model)) {
-            $geminiApiKey = config('services.gemini.api_key');
-            if (filled($geminiApiKey)) {
-                try {
-                    $baseUrl = rtrim((string) config('services.gemini.base_url', 'https://generativelanguage.googleapis.com/v1beta'), '/');
-                    $timeout = (int) config('services.gemini.timeout', 120);
+        $apiKey = config('services.deepseek.api_key');
+        if (filled($apiKey)) {
+            try {
+                $baseUrl = rtrim((string) config('services.deepseek.base_url', 'https://api.deepseek.com'), '/');
 
-                    // If model is gemini-argon, allow mapping to custom model name or default to gemini-2.0-flash
-                    $apiModel = $model === 'gemini-argon'
-                        ? (string) config('services.gemini.argon_target', 'gemini-2.0-flash')
-                        : $model;
+                $customPrompt = trim((string) ($params['custom_prompt'] ?? ''));
+                $deepseekSystemPrompt = $systemPrompt;
+                if ($customPrompt !== '') {
+                    $deepseekSystemPrompt .= "\n\n"
+                        ."================================================================================\n"
+                        ."⚠️ INSTRUKSI PRIORITAS TERTINGGI (KISI-KISI / PESAN KHUSUS DARI GURU):\n"
+                        ."Guru telah menetapkan instruksi khusus dan kisi-kisi berikut yang WAJIB MENJADI RUJUKAN UTAMA pembuatan soal:\n"
+                        ."\"\"\"\n{$customPrompt}\n\"\"\"\n"
+                        ."Anda WAJIB memastikan 100% butir soal, wacana stimulus, opsi pilihan, dan pembahasan mengimplementasikan kisi-kisi khusus ini secara mendalam!\n"
+                        .'================================================================================';
+                }
 
-                    $endpoint = "{$baseUrl}/models/{$apiModel}:generateContent?key={$geminiApiKey}";
+                $payload = [
+                    'model' => $model,
+                    'messages' => [
+                        ['role' => 'system', 'content' => $deepseekSystemPrompt],
+                        ['role' => 'user', 'content' => $userPrompt],
+                    ],
+                    'max_tokens' => 8192,
+                ];
 
-                    $customPrompt = trim((string) ($params['custom_prompt'] ?? ''));
+                if ($model === 'deepseek-chat') {
+                    $payload['temperature'] = 0.7;
+                    $payload['response_format'] = ['type' => 'json_object'];
+                }
 
-                    $geminiSystemInstruction = $systemPrompt;
-                    if ($customPrompt !== '') {
-                        $geminiSystemInstruction .= "\n\n"
-                            ."================================================================================\n"
-                            ."⚠️ INSTRUKSI PRIORITAS TERTINGGI (KISI-KISI / PESAN KHUSUS DARI GURU):\n"
-                            ."Guru telah menetapkan instruksi khusus dan kisi-kisi berikut yang WAJIB MENJADI RUJUKAN UTAMA pembuatan soal:\n"
-                            ."\"\"\"\n{$customPrompt}\n\"\"\"\n"
-                            ."Anda WAJIB memastikan 100% butir soal, wacana stimulus, opsi pilihan, dan pembahasan mengimplementasikan kisi-kisi khusus ini secara mendalam!\n"
-                            .'================================================================================';
-                    }
+                $timeout = (int) config('services.deepseek.timeout', 120);
 
-                    $geminiPayload = [
-                        'contents' => [
-                            [
-                                'role' => 'user',
-                                'parts' => [
-                                    ['text' => $userPrompt],
-                                ],
-                            ],
-                        ],
-                        'systemInstruction' => [
-                            'parts' => [
-                                ['text' => $geminiSystemInstruction],
-                            ],
-                        ],
-                        'generationConfig' => [
-                            'temperature' => 0.6,
-                            'maxOutputTokens' => 8192,
-                            'responseMimeType' => 'application/json',
-                        ],
-                    ];
+                $response = Http::withHeaders([
+                    'Authorization' => "Bearer {$apiKey}",
+                    'Content-Type' => 'application/json',
+                ])
+                    ->timeout($timeout)
+                    ->post("{$baseUrl}/chat/completions", $payload);
 
-                    if (str_contains($apiModel, 'thinking')) {
-                        unset($geminiPayload['generationConfig']['responseMimeType']);
-                    }
+                if ($response->successful()) {
+                    $rawContent = $response->json('choices.0.message.content', '');
+                    $reasoningContent = $response->json('choices.0.message.reasoning_content', '');
 
-                    $response = Http::withHeaders([
-                        'Content-Type' => 'application/json',
-                        'x-goog-api-key' => $geminiApiKey,
-                    ])
-                        ->timeout($timeout)
-                        ->post($endpoint, $geminiPayload);
+                    $cleanJson = $this->extractJson($rawContent);
+                    $decoded = json_decode($cleanJson, true);
 
-                    // Fallback retry if systemInstruction is rejected by experimental model
-                    if ($response->status() === 400 && str_contains($response->body(), 'system_instruction')) {
-                        $geminiPayload['contents'][0]['parts'][0]['text'] = "PETUNJUK SISTEM:\n{$geminiSystemInstruction}\n\nPERMINTAAN SOAL:\n{$userPrompt}";
-                        unset($geminiPayload['systemInstruction']);
-                        $response = Http::withHeaders([
-                            'Content-Type' => 'application/json',
-                            'x-goog-api-key' => $geminiApiKey,
-                        ])
-                            ->timeout($timeout)
-                            ->post($endpoint, $geminiPayload);
-                    }
+                    if (is_array($decoded)) {
+                        $normalized = $this->normalizePackage($decoded, $params);
+                        $normalized = $this->ensureExpectedItemCount($normalized, $params);
+                        if (! empty($normalized['items'])) {
+                            $normalized['model_used'] = $model;
+                            $normalized['provider'] = 'deepseek';
+                            $normalized['reasoning_notes'] = $reasoningContent ?: ($normalized['reasoning_notes'] ?? '');
 
-                    if ($response->successful()) {
-                        $rawContent = $response->json('candidates.0.content.parts.0.text', '');
-                        $cleanJson = $this->extractJson($rawContent);
-                        $decoded = json_decode($cleanJson, true);
-
-                        if (is_array($decoded)) {
-                            $normalized = $this->normalizePackage($decoded, $params);
-                            $normalized = $this->ensureExpectedItemCount($normalized, $params);
-                            if (! empty($normalized['items'])) {
-                                $normalized['model_used'] = $model;
-                                $normalized['provider'] = 'google-gemini';
-                                $normalized['reasoning_notes'] = "Dihasilkan secara cerdas oleh Google Gemini ({$model}) CBT Engine.";
-
-                                return $normalized;
-                            }
+                            return $normalized;
                         }
                     }
-
-                    Log::warning('Gemini Question Generator live call returned non-JSON or error, falling back to heuristic engine.', [
-                        'status' => $response->status(),
-                        'body' => substr($response->body(), 0, 500),
-                    ]);
-                } catch (\Throwable $e) {
-                    Log::error('Gemini Question Generator exception: '.$e->getMessage(), [
-                        'trace' => $e->getTraceAsString(),
-                    ]);
                 }
-            }
-        } else {
-            $apiKey = config('services.deepseek.api_key');
-            if (filled($apiKey)) {
-                try {
-                    $baseUrl = rtrim((string) config('services.deepseek.base_url', 'https://api.deepseek.com'), '/');
 
-                    $customPrompt = trim((string) ($params['custom_prompt'] ?? ''));
-                    $deepseekSystemPrompt = $systemPrompt;
-                    if ($customPrompt !== '') {
-                        $deepseekSystemPrompt .= "\n\n"
-                            ."================================================================================\n"
-                            ."⚠️ INSTRUKSI PRIORITAS TERTINGGI (KISI-KISI / PESAN KHUSUS DARI GURU):\n"
-                            ."Guru telah menetapkan instruksi khusus dan kisi-kisi berikut yang WAJIB MENJADI RUJUKAN UTAMA pembuatan soal:\n"
-                            ."\"\"\"\n{$customPrompt}\n\"\"\"\n"
-                            ."Anda WAJIB memastikan 100% butir soal, wacana stimulus, opsi pilihan, dan pembahasan mengimplementasikan kisi-kisi khusus ini secara mendalam!\n"
-                            .'================================================================================';
-                    }
-
-                    $payload = [
-                        'model' => $model,
-                        'messages' => [
-                            ['role' => 'system', 'content' => $deepseekSystemPrompt],
-                            ['role' => 'user', 'content' => $userPrompt],
-                        ],
-                        'max_tokens' => 8192,
-                    ];
-
-                    if ($model === 'deepseek-chat') {
-                        $payload['temperature'] = 0.7;
-                        $payload['response_format'] = ['type' => 'json_object'];
-                    }
-
-                    $timeout = (int) config('services.deepseek.timeout', 120);
-
-                    $response = Http::withHeaders([
-                        'Authorization' => "Bearer {$apiKey}",
-                        'Content-Type' => 'application/json',
-                    ])
-                        ->timeout($timeout)
-                        ->post("{$baseUrl}/chat/completions", $payload);
-
-                    if ($response->successful()) {
-                        $rawContent = $response->json('choices.0.message.content', '');
-                        $reasoningContent = $response->json('choices.0.message.reasoning_content', '');
-
-                        $cleanJson = $this->extractJson($rawContent);
-                        $decoded = json_decode($cleanJson, true);
-
-                        if (is_array($decoded)) {
-                            $normalized = $this->normalizePackage($decoded, $params);
-                            $normalized = $this->ensureExpectedItemCount($normalized, $params);
-                            if (! empty($normalized['items'])) {
-                                $normalized['model_used'] = $model;
-                                $normalized['provider'] = 'deepseek';
-                                $normalized['reasoning_notes'] = $reasoningContent ?: ($normalized['reasoning_notes'] ?? '');
-
-                                return $normalized;
-                            }
-                        }
-                    }
-
-                    Log::warning('DeepSeek Question Generator live call returned non-JSON, falling back to heuristic engine.', [
-                        'status' => $response->status(),
-                        'body' => substr($response->body(), 0, 500),
-                    ]);
-                } catch (\Throwable $e) {
-                    Log::error('DeepSeek Question Generator exception: '.$e->getMessage(), [
-                        'trace' => $e->getTraceAsString(),
-                    ]);
-                }
+                Log::warning('DeepSeek Question Generator live call returned non-JSON, falling back to heuristic engine.', [
+                    'status' => $response->status(),
+                    'body' => substr($response->body(), 0, 500),
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('DeepSeek Question Generator exception: '.$e->getMessage(), [
+                    'trace' => $e->getTraceAsString(),
+                ]);
             }
         }
 

@@ -93,6 +93,23 @@
 
             <!-- Payment Instructions Body -->
             <div class="p-6 space-y-6">
+                <!-- Payment URL / Hosted Checkout (Midtrans Snap) -->
+                @if($order->payment_url)
+                    <div class="p-5 rounded-2xl bg-cyan-50 border border-cyan-200 text-center space-y-3">
+                        <span class="text-xs font-bold text-cyan-900 uppercase tracking-wider block">Portal Pembayaran Digital (Snap Midtrans)</span>
+                        <p class="text-xs text-cyan-800">
+                            Selesaikan pembayaran menggunakan GoPay, ShopeePay, Virtual Account, QRIS, atau Kartu Kredit.
+                        </p>
+                        <div>
+                            <a href="{{ $order->payment_url }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer">
+                                <span>Buka Halaman Pembayaran Midtrans</span>
+                                <x-radix-icon name="external-link" class="w-4 h-4" />
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Virtual Account Display -->
                 @if($order->va_number)
                     <div class="p-5 rounded-2xl bg-blue-50 border border-blue-200 text-center space-y-3">

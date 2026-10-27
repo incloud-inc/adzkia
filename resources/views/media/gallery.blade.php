@@ -73,6 +73,20 @@
             </div>
         </div>
 
+        @if(session('success'))
+            <div class="flex items-center gap-3 p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl text-emerald-800 text-xs font-semibold shadow-2xs">
+                <x-radix-icon name="check-circled" class="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="flex items-center gap-3 p-3.5 bg-rose-50/80 border border-rose-200/80 rounded-xl text-rose-800 text-xs font-semibold shadow-2xs">
+                <x-radix-icon name="cross-circled" class="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
+
         <!-- Telemetry Stats Bar -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="bg-white rounded-xl p-3 border border-slate-200/70 shadow-2xs flex items-center justify-between transition-colors hover:border-slate-300">
@@ -432,8 +446,17 @@
                         <x-radix-icon name="clipboard-copy" class="w-3.5 h-3.5" />
                         <span>Salin Markdown Soal</span>
                     </button>
+                    @if(auth()->user()?->isSuperUser())
+                        <button type="button" @click="previewModal = false; promptDelete('asesmen/' + previewName, previewName)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200 rounded-lg text-xs font-semibold transition-colors shadow-xs cursor-pointer active:scale-[0.98]">
+                            <x-radix-icon name="trash" class="w-3.5 h-3.5" />
+                            <span>Hapus Berkas</span>
+                        </button>
+                    @endif
                 </div>
             </div>
+        </div>
+
         @if(auth()->user()?->isSuperUser())
             <!-- Modal Konfirmasi Hapus Media R2 (Khusus Owner) -->
             <div x-show="confirmDeleteModal" x-cloak
