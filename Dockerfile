@@ -36,9 +36,9 @@ COPY . .
 RUN composer dump-autoload --no-dev --optimize --ignore-platform-reqs
 
 # ------------------------------------------------------------------------------
-# Stage 3: Production Runtime with FrankenPHP (PHP 8.3 + Caddy)
+# Stage 3: Production Runtime with FrankenPHP (PHP 8.4 + Caddy)
 # ------------------------------------------------------------------------------
-FROM dunglas/frankenphp:1-php8.3-bookworm AS runner
+FROM dunglas/frankenphp:1-php8.4-bookworm AS runner
 
 # Install essential PHP extensions for Laravel CBT (PostgreSQL, MySQL, Redis, Math, Zip, Media)
 RUN install-php-extensions \
