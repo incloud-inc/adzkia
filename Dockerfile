@@ -11,11 +11,9 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
-COPY resources resources
-COPY vite.config.js ./
-COPY public public
+COPY . .
 RUN npm run build
 
 # ------------------------------------------------------------------------------
@@ -31,21 +29,22 @@ RUN composer install \
     --no-interaction \
     --no-scripts \
     --no-autoloader \
+    --ignore-platform-reqs \
     --prefer-dist
 
 COPY . .
-RUN composer dump-autoload --no-dev --optimize
+RUN composer dump-autoload --no-dev --optimize --ignore-platform-reqs
 
 # ------------------------------------------------------------------------------
 # Stage 3: Production Runtime with FrankenPHP (PHP 8.3 + Caddy)
 # ------------------------------------------------------------------------------
 FROM dunglas/frankenphp:1-php8.3-bookworm AS runner
 
-# Install essential PHP extensions for Laravel CBT (MySQL, Redis, Math, Zip, Media)
+# Install essential PHP extensions for Laravel CBT (PostgreSQL, MySQL, Redis, Math, Zip, Media)
 RUN install-php-extensions \
-    pdo_mysql \
     pdo_pgsql \
     pgsql \
+    pdo_mysql \
     redis \
     bcmath \
     pcntl \
@@ -68,7 +67,7 @@ ENV LOG_CHANNEL=stderr
 
 WORKDIR /app
 
-# Copy application code and prebuilt vendor & assets
+# Copy application code, prebuilt vendor & assets
 COPY . /app
 COPY --from=composer-builder /app/vendor /app/vendor
 COPY --from=frontend-builder /app/public/build /app/public/build
@@ -76,7 +75,8 @@ COPY --from=frontend-builder /app/public/build /app/public/build
 # Copy Caddyfile & Entrypoint script
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set directory permissions for web server
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
