@@ -34,6 +34,13 @@ class LoginController extends Controller
 
         $user = Auth::user();
 
+        // Sinkronisasi hash password di session agar middleware AuthenticateSession tidak me-logout user
+        if ($user) {
+            $request->session()->put([
+                'password_hash_'.Auth::getDefaultDriver() => Auth::guard('web')->hashPasswordForCookie($user->getAuthPassword()),
+            ]);
+        }
+
         // 1. If a tenant was matched via domain (IdentifyTenantByDomain middleware)
         if (app()->has('currentTenant')) {
             $tenant = app('currentTenant');
