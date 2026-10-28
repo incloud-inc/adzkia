@@ -56,6 +56,15 @@ class MarkdownRenderer
             rtrim($r2BaseUrl, '/').'/$1',
             $processed
         );
+        // Jika menggunakan Custom Domain CDN eksternal (misal: https://image.adzkia.id),
+        // alihkan juga path lokal /media/r2/ langsung ke domain CDN tersebut agar hemat bandwidth VPS
+        if ($r2BaseUrl !== '/media/r2') {
+            $processed = preg_replace(
+                '/([(\"\'])\/media\/r2\/([^\s\)\"\']+)/i',
+                '$1'.rtrim($r2BaseUrl, '/').'/$2',
+                $processed
+            );
+        }
 
         // 1. Lindungi Display Math ($$...$$)
         $processed = preg_replace_callback('/\$\$([\s\S]*?)\$\$/u', function ($m) use ($protect) {
