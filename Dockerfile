@@ -60,7 +60,7 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && sed -i 's/memory_limit = 128M/memory_limit = 512M/g' "$PHP_INI_DIR/php.ini"
 
 # Environment Variables
-ENV SERVER_NAME=":80"
+ENV SERVER_NAME=":80, :3000"
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 ENV LOG_CHANNEL=stderr
@@ -82,7 +82,7 @@ RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
     && chmod -R 775 /app/storage /app/bootstrap/cache
 
-EXPOSE 80
+EXPOSE 80 3000
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]

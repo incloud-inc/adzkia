@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# If Coolify passes a multi-line .env content in the ENV environment variable, write it to /app/.env
+if [ -n "$ENV" ] && echo "$ENV" | grep -q "APP_KEY"; then
+    echo ">> Writing .env from Coolify ENV variable..."
+    printf "%s\n" "$ENV" > /app/.env
+fi
+
 # Ensure public storage link exists
 if [ ! -L /app/public/storage ]; then
     echo ">> Linking storage directory..."
