@@ -64,7 +64,7 @@
                     <x-radix-icon name="pie-chart" class="w-4 h-4 text-gray-11" />
                     <span>Laporan Penjualan</span>
                 </a>
-                <a href="{{ route('media.gallery') }}"
+                <a href="{{ route('media.gallery.index') }}"
                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-6 bg-white hover:bg-gray-3 text-gray-12 text-xs font-semibold transition-all shadow-xs cursor-pointer">
                     <x-radix-icon name="image" class="w-4 h-4 text-blue-11" />
                     <span>Galeri Media</span>

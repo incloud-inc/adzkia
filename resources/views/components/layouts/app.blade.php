@@ -110,7 +110,7 @@
             <x-header />
 
             <!-- Page Content (Workspace) -->
-            <main class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 overscroll-y-contain [webkit-overflow-scrolling:touch]">
+            <main class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 pb-28 sm:pb-32 overscroll-y-contain [webkit-overflow-scrolling:touch]">
                 {{ $slot }}
             </main>
         </div>

@@ -372,21 +372,14 @@ class ExamWorkspaceController extends Controller
             ->orderBy('id')
             ->get();
 
-        // 3. Pastikan setiap section memiliki durasi (jika durasi section kosong, alokasikan dari durasi asesmen)
-        $totalAssessmentDuration = (int) ($assessment->duration_minutes ?: 60);
-        $totalQuestionsCount = max(1, $questions->count());
-
+        // 3. Durasi section: HANYA diisi jika bagian tersebut memang memiliki durasi eksplisit (> 0).
+        // Jika durasi section tidak diisi/kosong, jangan mengarang durasi agar tidak memunculkan duplicate timer di header.
         $sectionDurations = [];
         foreach ($sections as $sec) {
-            if ($sec->duration_minutes && $sec->duration_minutes > 0) {
+            if ($sec->duration_minutes && (float) $sec->duration_minutes > 0) {
                 $sectionDurations[$sec->id] = (float) $sec->duration_minutes;
             } else {
-                $secQCount = $questions->filter(fn ($q) => ($q->assessment_section_id ?? $q->questionGroup?->assessment_section_id) == $sec->id)->count();
-                if ($totalQuestionsCount > 0 && $secQCount > 0) {
-                    $sectionDurations[$sec->id] = max(1, (int) round(($secQCount / $totalQuestionsCount) * $totalAssessmentDuration));
-                } else {
-                    $sectionDurations[$sec->id] = max(1, (int) round($totalAssessmentDuration / max(1, $sections->count())));
-                }
+                $sectionDurations[$sec->id] = null;
             }
         }
 
@@ -480,7 +473,7 @@ class ExamWorkspaceController extends Controller
 
             $section = $q->assessmentSection ?? $q->questionGroup?->assessmentSection;
             $sectionId = $q->assessment_section_id ?? $q->questionGroup?->assessment_section_id ?? $section?->id;
-            $sectionDuration = $sectionDurations[$sectionId] ?? ($section?->duration_minutes !== null ? (float) $section->duration_minutes : null);
+            $sectionDuration = $sectionDurations[$sectionId] ?? (($section && $section->duration_minutes && (float) $section->duration_minutes > 0) ? (float) $section->duration_minutes : null);
             $rawSectionTitle = $section?->title;
             $cleanSectionTitle = filled($rawSectionTitle) ? preg_replace('/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i', '', trim($rawSectionTitle)) : null;
             $sectionTitle = filled($cleanSectionTitle) ? $cleanSectionTitle : $rawSectionTitle;
@@ -532,7 +525,7 @@ class ExamWorkspaceController extends Controller
                 'id' => $s->id,
                 'number' => $i + 1,
                 'title' => filled($cleanTitle) ? $cleanTitle : $s->title,
-                'duration_minutes' => $sectionDurations[$s->id] ?? (float) ($s->duration_minutes ?: 15),
+                'duration_minutes' => $sectionDurations[$s->id] ?? (($s->duration_minutes && (float) $s->duration_minutes > 0) ? (float) $s->duration_minutes : null),
             ];
         })->all();
 

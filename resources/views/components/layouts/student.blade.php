@@ -86,7 +86,7 @@
     <div class="w-full max-w-xl mx-auto min-h-screen flex flex-col relative bg-gray-2">
         
         <!-- Page Content: Clearance dikurangi 3/4 agar pas dan tidak ada ruang kosong berlebihan -->
-        <main class="flex-1 pb-24 sm:pb-28 relative" style="padding-bottom: 5.5rem !important;">
+        <main class="flex-1 pb-36 sm:pb-40 relative" style="padding-bottom: 9rem !important;">
             {{ $slot }}
         </main>
 

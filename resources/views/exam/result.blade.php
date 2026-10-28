@@ -77,10 +77,10 @@
         .prose-q hr { margin: 1.25rem 0; border: 0; border-top: 1px solid #ced4da; }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden bg-[#a5d8ff] flex justify-center text-[#212529] antialiased"
+<body class="h-screen h-[100dvh] w-screen overflow-hidden bg-[#a5d8ff] flex justify-center text-[#212529] antialiased"
       x-data="examReview(window.__reviewData)" x-cloak>
 
-    <main class="w-full h-full lg:h-screen lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60">
+    <main class="w-full h-screen h-[100dvh] max-h-[100dvh] min-h-0 lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60 overflow-hidden">
 
         <!-- OVERLAY GRADING PENDING -->
         <div x-show="gradingStatus === 'pending' || gradingStatus === 'processing'" class="absolute inset-0 z-50 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center space-y-5">
@@ -193,7 +193,7 @@
         </header>
 
         <!-- AREA SOAL & PEMBAHASAN -->
-        <section id="review-scroll-container" x-ref="scrollContainer" class="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
+        <section id="review-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6 overscroll-y-contain [webkit-overflow-scrolling:touch]">
 
             @if($summary['teacher_review_required'])
                 <!-- Banner: Menunggu Pemeriksaan Guru -->
@@ -568,21 +568,21 @@
 
                                 <!-- TOMBOL SHOW / HIDE PEMBAHASAN & PEMBAHASAN AI (DI BAWAH SETIAP SOAL) -->
                                 <div class="flex flex-wrap items-center justify-between gap-2.5 pt-3.5 border-t border-slate-200">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider font-display mr-1">Tampilkan:</span>
+                                    <div class="flex flex-wrap items-center gap-2 max-w-full">
+                                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider font-display mr-1 shrink-0">Tampilkan:</span>
 
                                         <!-- Tombol Pembahasan Resmi (Hanya tampil jika guru mengisi pembahasan) -->
                                         <template x-if="q.has_official_explanation">
                                             <button type="button" @click="toggleOfficial(q.id)"
                                                     :class="showOfficialMap[q.id] ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-300' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'"
-                                                    class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                    class="px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer max-w-full shadow-2xs">
+                                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                     <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                                                 </svg>
                                                 <span>PEMBAHASAN</span>
                                                 <span x-text="showOfficialMap[q.id] ? 'HIDE' : 'SHOW'"
                                                       :class="showOfficialMap[q.id] ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'"
-                                                      class="text-[10px] font-mono px-1.5 py-0.5 rounded font-extrabold"></span>
+                                                      class="text-[10px] font-mono px-1.5 py-0.5 rounded font-extrabold shrink-0"></span>
                                             </button>
                                         </template>
 
@@ -590,19 +590,19 @@
                                         <button type="button" @click="toggleAiExplanation(q)"
                                                 :disabled="aiLoadingMap[q.id]"
                                                 :class="showAiMap[q.id] ? 'bg-violet-600 text-white shadow-xs ring-2 ring-violet-300' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-50'"
-                                                class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                                                class="px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 max-w-full shadow-2xs">
                                             <template x-if="aiLoadingMap[q.id]">
-                                                <svg class="w-4 h-4 animate-spin text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity=".2"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+                                                <svg class="w-4 h-4 animate-spin text-violet-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity=".2"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
                                             </template>
                                             <template x-if="!aiLoadingMap[q.id]">
-                                                <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-4 h-4 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                                                     <path d="M12 2L14.4 7.6L20 8.4L16 12.4L17.2 18L12 15.2L6.8 18L8 12.4L4 8.4L9.6 7.6L12 2Z"/>
                                                 </svg>
                                             </template>
                                             <span x-text="aiLoadingMap[q.id] ? 'Men-generate AI...' : 'PEMBAHASAN AI'"></span>
                                             <span x-text="showAiMap[q.id] ? 'HIDE' : 'SHOW'"
                                                   :class="showAiMap[q.id] ? 'bg-white/20 text-white' : 'bg-violet-100 text-violet-700'"
-                                                  class="text-[10px] font-mono px-1.5 py-0.5 rounded font-extrabold"></span>
+                                                  class="text-[10px] font-mono px-1.5 py-0.5 rounded font-extrabold shrink-0"></span>
                                         </button>
                                     </div>
                                 </div>
@@ -670,7 +670,7 @@
         </section>
 
         <!-- FOOTER / NAVIGASI NOMOR SOAL (PERSIS DENGAN WORKSPACE CBT) -->
-        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex flex-col z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]">
+        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex flex-col z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]">
             <!-- Mini Keterangan Warna / Legenda Soal -->
             <!-- Mobile View (< sm): KET Ringkas 1 Baris Saja -->
             <div class="sm:hidden px-2.5 py-1 border-b border-blue-200/60 bg-blue-100/40 overflow-x-auto hide-scrollbar whitespace-nowrap">
@@ -694,7 +694,7 @@
                 </div>
             </div>
 
-            <div class="w-full flex items-center overflow-x-auto hide-scrollbar gap-2 px-4 py-3 bg-[#d0ebff]">
+            <div class="w-full flex items-center overflow-x-auto hide-scrollbar gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#d0ebff]">
 
                 <!-- Navigasi Prev Card -->
                 <button type="button" @click="prevCard()"
@@ -704,42 +704,44 @@
                 </button>
 
                 <!-- Daftar Nomor Soal (Kelompok Stimulus dalam Kapsul, Soal Tunggal sebagai Tombol Mandiri) -->
-                <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
-                    <div class="shrink-0 flex items-center">
+                <div class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-1.5 py-0.5 min-w-0">
+                    <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
+                        <div class="shrink-0 flex items-center">
 
-                        <!-- JIKA KARTU GRUP (STIMULUS > 1 SOAL) -->
-                        <template x-if="card.is_group && card.questions.length > 1">
-                            <div class="inline-flex items-center p-1 rounded-xl bg-blue-100/90 border-2 border-blue-300 gap-1 shadow-2xs">
-                                <div class="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] font-extrabold uppercase font-display flex items-center gap-1 select-none"
-                                     title="Soal dinaungi stimulus wacana yang sama">
-                                    <span>📖</span>
-                                    <span x-text="card.questions.length"></span>
+                            <!-- JIKA KARTU GRUP (STIMULUS > 1 SOAL) -->
+                            <template x-if="card.is_group && card.questions.length > 1">
+                                <div class="inline-flex items-center p-1 rounded-xl bg-blue-100/90 border-2 border-blue-300 gap-1 shadow-2xs">
+                                    <div class="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] font-extrabold uppercase font-display flex items-center gap-1 select-none"
+                                         title="Soal dinaungi stimulus wacana yang sama">
+                                        <span>📖</span>
+                                        <span x-text="card.questions.length"></span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <template x-for="q in card.questions" :key="q.id">
+                                            <button type="button" @click="goToQuestion(q.id)"
+                                                    :title="'Buka Soal Nomor ' + q.number"
+                                                    class="font-display shrink-0 flex items-center justify-center transition-all cursor-pointer select-none"
+                                                    :class="getQuestionBtnClass(q, cIdx)">
+                                                <span x-text="q.number"></span>
+                                            </button>
+                                        </template>
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-1">
-                                    <template x-for="q in card.questions" :key="q.id">
-                                        <button type="button" @click="goToQuestion(q.id)"
-                                                :title="'Buka Soal Nomor ' + q.number"
-                                                class="font-display shrink-0 flex items-center justify-center transition-all cursor-pointer select-none"
-                                                :class="getQuestionBtnClass(q, cIdx)">
-                                            <span x-text="q.number"></span>
-                                        </button>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
+                            </template>
 
-                        <!-- JIKA KARTU STANDALONE (TUNGGAL) -->
-                        <template x-if="!card.is_group || card.questions.length === 1">
-                            <button type="button" @click="goToQuestion(card.questions[0].id)"
-                                    :title="'Buka Soal Nomor ' + card.questions[0].number"
-                                    class="font-display shrink-0 flex items-center justify-center transition-all cursor-pointer select-none"
-                                    :class="getQuestionBtnClass(card.questions[0], cIdx)">
-                                <span x-text="card.questions[0].number"></span>
-                            </button>
-                        </template>
+                            <!-- JIKA KARTU STANDALONE (TUNGGAL) -->
+                            <template x-if="!card.is_group || card.questions.length === 1">
+                                <button type="button" @click="goToQuestion(card.questions[0].id)"
+                                        :title="'Buka Soal Nomor ' + card.questions[0].number"
+                                        class="font-display shrink-0 flex items-center justify-center transition-all cursor-pointer select-none"
+                                        :class="getQuestionBtnClass(card.questions[0], cIdx)">
+                                    <span x-text="card.questions[0].number"></span>
+                                </button>
+                            </template>
 
-                    </div>
-                </template>
+                        </div>
+                    </template>
+                </div>
 
                 <!-- Navigasi Next Card -->
                 <button type="button" @click="nextCard()"
@@ -749,14 +751,14 @@
                 </button>
 
                 <!-- Tombol Aksi Kanan -->
-                <div class="flex items-center gap-2 ml-auto shrink-0 pl-2">
+                <div class="flex items-center gap-1.5 shrink-0 pl-1 border-l border-blue-300/60">
                     <a href="{{ route('exam.analysis', $session->uuid) }}"
-                       class="font-display h-9 px-3.5 rounded-md text-xs font-bold bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
-                        ANALISA UJIAN
+                       class="font-display h-9 px-2.5 sm:px-3.5 rounded-md text-xs font-bold bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
+                        ANALISA
                     </a>
                     <a href="{{ route('dashboard') }}"
-                       class="font-display h-9 px-3.5 rounded-md text-xs font-bold bg-slate-800 text-white flex items-center justify-center hover:bg-slate-900 transition-colors shadow-sm whitespace-nowrap">
-                        KEMBALI KE DASHBOARD
+                       class="font-display h-9 px-2.5 sm:px-3.5 rounded-md text-xs font-bold bg-slate-800 text-white flex items-center justify-center hover:bg-slate-900 transition-colors shadow-sm whitespace-nowrap">
+                        DASHBOARD
                     </a>
                 </div>
             </div>
@@ -983,7 +985,7 @@
             },
 
             toggleOfficial(qId) {
-                this.showOfficialMap[qId] = !this.showOfficialMap[qId];
+                this.showOfficialMap = { ...this.showOfficialMap, [qId]: !this.showOfficialMap[qId] };
                 this.$nextTick(() => this.renderMath());
             },
 
@@ -991,19 +993,19 @@
                 if (!q) return;
 
                 if (this.showAiMap[q.id]) {
-                    this.showAiMap[q.id] = false;
+                    this.showAiMap = { ...this.showAiMap, [q.id]: false };
                     return;
                 }
 
                 if (q.rendered_ai_explanation || q.ai_explanation) {
-                    this.showAiMap[q.id] = true;
+                    this.showAiMap = { ...this.showAiMap, [q.id]: true };
                     this.$nextTick(() => this.renderMath());
                     return;
                 }
 
-                this.aiLoadingMap[q.id] = true;
+                this.aiLoadingMap = { ...this.aiLoadingMap, [q.id]: true };
                 try {
-                    const sessionUuid = payload.sessionUuid || '';
+                    const sessionUuid = this.sessionUuid || payload.sessionUuid || window.__reviewData?.sessionUuid || '{{ $session->uuid }}';
                     const questionId = q.id;
                     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
                     
@@ -1019,9 +1021,9 @@
                     const aiContent = resData.ai_explanation || resData.content;
                     if ((resData.success || resData.ok) && aiContent) {
                         q.ai_explanation = aiContent;
-                        q.rendered_ai_explanation = resData.rendered_ai_explanation || resData.rendered || null;
-                        q.ai_model = resData.ai_model || resData.model || 'DEEPSEEK V4 Pro Reasoner';
-                        this.showAiMap[q.id] = true;
+                        q.rendered_ai_explanation = resData.rendered_ai_explanation || resData.rendered || this.renderRich(aiContent);
+                        q.ai_model = resData.ai_model || resData.model || 'DeepSeek Reasoner';
+                        this.showAiMap = { ...this.showAiMap, [q.id]: true };
                         this.$nextTick(() => this.renderMath());
                     } else {
                         alert(resData.message || resData.error || 'Gagal memuat pembahasan AI.');
@@ -1030,7 +1032,7 @@
                     console.error('AI Explanation Error:', err);
                     alert('Terjadi kesalahan saat memuat pembahasan AI.');
                 } finally {
-                    this.aiLoadingMap[q.id] = false;
+                    this.aiLoadingMap = { ...this.aiLoadingMap, [q.id]: false };
                 }
             },
 

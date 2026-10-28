@@ -74,10 +74,10 @@
     </style>
 </head>
 
-<body class="h-screen w-screen overflow-hidden bg-[#a5d8ff] flex justify-center text-[#212529] antialiased"
+<body class="h-screen h-[100dvh] w-screen overflow-hidden bg-[#a5d8ff] flex justify-center text-[#212529] antialiased"
       x-data="examWorkspace(window.__cbtPayload)" x-cloak>
 
-    <main class="w-full h-full lg:h-screen lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60">
+    <main class="w-full h-screen h-[100dvh] max-h-[100dvh] min-h-0 lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60 overflow-hidden">
 
         @php
             $tenant = $session->tenant ?? $session->assessment->tenant ?? auth()->user()->currentTenant ?? (app()->has('currentTenant') ? app('currentTenant') : null);
@@ -97,7 +97,7 @@
         @endphp
 
         <!-- HEADER (WARNA #339af0, LOGO ADZKIA BULAT + TENANT + FOTO PROFIL, NAMA & SECTION DI TENGAH) -->
-        <header class="bg-[#339af0] text-white px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between z-10 shrink-0 shadow-xs border-b border-blue-400/30">
+        <header class="bg-[#339af0] text-white px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between z-20 shrink-0 shadow-xs border-b border-blue-400/30">
             <!-- Left: Trio Avatars (Logo ADZKIA Bulat, Logo Tenant, Foto Profil Peserta) -->
             <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <!-- 1. Logo ADZKIA Bulat -->
@@ -128,10 +128,9 @@
                 </div>
             </div>
 
-            <!-- Center: NAMA ASESMEN & SECTION (Tengah Header, Truncate jika panjang) -->
-            <div class="flex-1 min-w-0 px-2 sm:px-4 text-center">
-                <!-- Desktop & Tablet (sm and above): Full Title and Section with Truncate -->
-                <div class="hidden sm:block min-w-0">
+            <!-- Center: NAMA ASESMEN & SECTION (Tengah Header, Sembunyikan jika ada 2 timer di mobile agar hemat tempat) -->
+            <div class="flex-1 min-w-0 px-2 sm:px-4 text-center" :class="hasSectionTimer ? 'hidden lg:block' : 'hidden sm:block'">
+                <div class="min-w-0">
                     <h1 class="font-display font-extrabold text-sm sm:text-base text-white leading-tight truncate mx-auto max-w-xs md:max-w-md lg:max-w-lg"
                         title="{{ $assessment->title }}">
                         {{ $assessment->title }}
@@ -143,17 +142,17 @@
                         </p>
                     </template>
                 </div>
-
-                <!-- Mobile (< sm): Tampilkan judul asesmen saja (maksimal 2 baris) -->
-                <div class="sm:hidden min-w-0 px-1 text-center">
-                    <h1 class="font-display font-extrabold text-xs text-white leading-tight line-clamp-2 mx-auto"
-                        title="{{ $assessment->title }}">
-                        {{ $assessment->title }}
-                    </h1>
-                </div>
             </div>
 
-            <!-- Right: Timer Section (jika ada), Timer Utama, Status Simpan -->
+            <!-- Mobile Center: Hanya tampil jika HANYA ADA 1 TIMER agar tidak sesak -->
+            <div class="sm:hidden min-w-0 px-1 text-center flex-1" x-show="!hasSectionTimer">
+                <h1 class="font-display font-extrabold text-xs text-white leading-tight line-clamp-2 mx-auto"
+                    title="{{ $assessment->title }}">
+                    {{ $assessment->title }}
+                </h1>
+            </div>
+
+            <!-- Right: Timer Section (Hanya jika terisi), Timer Utama, Status Simpan -->
             <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <!-- Save state indicator -->
                 <div class="hidden md:flex items-center gap-1 bg-white/15 px-2.5 py-1.5 rounded-xl border border-white/20 text-[11px] text-blue-50">
@@ -177,30 +176,30 @@
                     </template>
                 </div>
 
-                <!-- Timer Section (Hanya Tampil Jika Section Memiliki Durasi) -->
+                <!-- Timer Section (Hanya Tampil Jika Section Memiliki Durasi > 0) -->
                 <template x-if="hasSectionTimer">
-                    <div class="flex items-center gap-1.5 bg-amber-400/25 px-2 sm:px-2.5 py-1.5 rounded-xl border border-amber-200/40 text-white shadow-inner"
+                    <div class="flex items-center gap-1 sm:gap-1.5 bg-amber-400/25 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border border-amber-200/40 text-white shadow-inner shrink-0"
                          :class="sectionRemainingSeconds <= 60 ? 'bg-rose-500/80 border-rose-300 timer-critical animate-pulse' : ''"
-                         title="Sisa Waktu Bagian/Section Ini">
+                         title="Sisa Waktu Bagian Ini">
                         <svg class="w-3.5 h-3.5 text-amber-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-100 shrink-0 max-w-[120px] truncate"
-                              :title="activeSectionCleanTitle || ('Bagian ' + activeSectionNumber)"
-                              x-text="(activeSectionCleanTitle || ('Bagian ' + activeSectionNumber)) + ':'"></span>
+                        <span class="hidden md:inline text-[10px] font-extrabold uppercase tracking-wider text-amber-100 shrink-0 max-w-[80px] truncate"
+                              x-text="'Bagian ' + activeSectionNumber + ':'"></span>
                         <span class="font-display text-xs sm:text-sm font-bold tabular-nums tracking-wider text-white shrink-0" x-text="formattedSectionTime">--:--</span>
                     </div>
                 </template>
 
                 <!-- Timer Ujian Utama -->
-                <div class="flex items-center gap-1.5 sm:gap-2 bg-white/20 px-2.5 sm:px-3 py-1.5 rounded-xl border border-white/30 shadow-inner"
+                <div class="flex items-center gap-1 sm:gap-1.5 bg-white/20 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border border-white/30 shadow-inner shrink-0"
                      :class="remainingSeconds <= 300 ? 'bg-red-500/80 border-red-300 timer-critical' : ''"
                      title="Sisa Waktu Total Ujian">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-blue-100 shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-blue-100 shrink-0">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12 6 12 12 16 14"/>
                     </svg>
-                    <span class="font-display text-xs sm:text-sm font-bold tabular-nums tracking-wider text-white" x-text="formattedTime">--:--</span>
+                    <span class="hidden md:inline text-[10px] font-extrabold uppercase tracking-wider text-blue-100 shrink-0">Total:</span>
+                    <span class="font-display text-xs sm:text-sm font-bold tabular-nums tracking-wider text-white shrink-0" x-text="formattedTime">--:--</span>
                 </div>
             </div>
         </header>
@@ -222,7 +221,7 @@
         </div>
 
         <!-- AREA SOAL & JAWABAN -->
-        <section id="cbt-scroll-container" x-ref="scrollContainer" class="flex-1 overflow-y-auto p-5 md:p-8 space-y-5">
+        <section id="cbt-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-5 overscroll-y-contain [webkit-overflow-scrolling:touch]">
 
             <template x-if="!questions || questions.length === 0">
                 <div class="rounded-2xl border border-[#ced4da] bg-white p-8 text-center text-[#212529]">
@@ -453,16 +452,29 @@
                             </template>
                         </div>
 
-                        <!-- Tombol Navigasi Bawah Kartu (Sebelumnya / Selanjutnya) -->
-                        <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                        <!-- Tombol Navigasi Bawah Kartu (Sebelumnya / Selanjutnya / Submit) -->
+                        <div class="flex items-center justify-between pt-4 border-t border-gray-200 gap-2">
                             <button type="button" @click="prevCard()" :disabled="currentCardIndex === 0"
-                                    class="px-4 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-xs font-bold text-gray-800 transition cursor-pointer flex items-center gap-1.5 font-display">
-                                ← Bagian Sebelumnya
+                                    class="px-3.5 sm:px-4 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-xs font-bold text-gray-800 transition cursor-pointer flex items-center gap-1.5 font-display shadow-2xs">
+                                <span>←</span>
+                                <span x-text="card.is_group && card.questions.length > 1 ? 'Soal / Bagian Sebelumnya' : 'Soal Sebelumnya'"></span>
                             </button>
-                            <button type="button" @click="nextCard()" :disabled="currentCardIndex === displayItems.length - 1"
-                                    class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 font-display">
-                                Bagian Selanjutnya →
-                            </button>
+
+                            <template x-if="currentCardIndex < displayItems.length - 1">
+                                <button type="button" @click="nextCard()"
+                                        class="px-3.5 sm:px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 font-display">
+                                    <span x-text="card.is_group && card.questions.length > 1 ? 'Soal / Bagian Selanjutnya' : 'Soal Selanjutnya'"></span>
+                                    <span>→</span>
+                                </button>
+                            </template>
+
+                            <template x-if="currentCardIndex === displayItems.length - 1">
+                                <button type="button" @click="openSubmitModal()"
+                                        class="px-4 sm:px-5 py-2 rounded-xl bg-[#f03e3e] hover:bg-red-600 active:scale-95 text-xs font-bold text-white shadow-sm transition cursor-pointer flex items-center gap-1.5 font-display">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    <span>Kumpulkan / Selesai Ujian</span>
+                                </button>
+                            </template>
                         </div>
                     </div>
                 </article>
@@ -471,7 +483,7 @@
         </section>
 
         <!-- FOOTER / NAVIGASI NOMOR SOAL -->
-        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex items-center z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] px-3 py-2.5 gap-2">
+        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex items-center z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] px-3 py-2.5 gap-2">
             <!-- Container Nomor Soal (Scrollable secara horizontal) -->
             <div class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-2 py-0.5">
                 <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
@@ -851,7 +863,11 @@
                 return Number(this.activeSection?.duration_minutes) || Number(this.currentQuestion?.section_duration_minutes) || 0;
             },
             get hasSectionTimer() {
-                return !!this.activeSection;
+                const sec = this.activeSection;
+                if (!sec || !Number(sec.duration_minutes) || Number(sec.duration_minutes) <= 0) return false;
+                const totalAssessmentMinutes = Number(this.payload?.assessment?.duration_minutes || safePayload?.assessment?.duration_minutes || 0);
+                if (this.sections.length <= 1 && totalAssessmentMinutes > 0 && Number(sec.duration_minutes) >= totalAssessmentMinutes) return false;
+                return true;
             },
             get sectionRemainingSeconds() {
                 return this.currentSectionRemainingSeconds;
