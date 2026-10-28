@@ -68,7 +68,7 @@ return [
             'secret' => env('CLOUDFLARE_R2_SECRET_ACCESS_KEY'),
             'region' => env('CLOUDFLARE_R2_REGION', 'auto'),
             'bucket' => env('CLOUDFLARE_R2_BUCKET', 'adzkia'),
-            'url' => env('CLOUDFLARE_R2_URL', rtrim(env('APP_URL', 'http://localhost'), '/').'/media/r2'),
+            'url' => trim((string) env('CLOUDFLARE_R2_URL', rtrim(env('APP_URL', 'http://localhost'), '/').'/media/r2'), "\"' "),
             'endpoint' => env('CLOUDFLARE_R2_ENDPOINT', 'https://c7983a7e3743ab81fac8cd182c92da8e.r2.cloudflarestorage.com'),
             'use_path_style_endpoint' => env('CLOUDFLARE_R2_USE_PATH_STYLE_ENDPOINT', false),
             'visibility' => 'public',

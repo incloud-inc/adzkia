@@ -38,4 +38,15 @@ if [ "$AUTO_MIGRATE" = "true" ] || [ "$RUN_MIGRATIONS" = "true" ]; then
     php artisan migrate --force || true
 fi
 
+# Start background Laravel Queue Worker for asynchronous jobs (auto-grading, notifications, exports)
+if [ "$QUEUE_CONNECTION" != "sync" ] && [ "$QUEUE_CONNECTION" != "null" ]; then
+    echo ">> Starting background Laravel Queue Worker (${QUEUE_CONNECTION:-redis})..."
+    (
+        while true; do
+            php artisan queue:work "${QUEUE_CONNECTION:-redis}" --sleep=3 --tries=3 --timeout=120 --max-jobs=500 --memory=256
+            sleep 2
+        done
+    ) > /app/storage/logs/queue-worker.log 2>&1 &
+fi
+
 exec "$@"

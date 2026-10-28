@@ -1518,12 +1518,26 @@
                 if (this.isViolatedLocked || this.submitting) return;
                 this.isViolatedLocked = true;
                 this.lockMessage = reason || 'Menunggu keputusan pengawas ujian';
+                // Percepat pengecekan status tindakan pengawas saat terkunci
+                if (this.proctorPollInterval) {
+                    clearTimeout(this.proctorPollInterval);
+                    this.proctorPollInterval = null;
+                    setTimeout(() => this.startProctorPolling(), 2000);
+                }
             },
 
             startProctorPolling() {
                 if (this.proctorPollInterval) return;
-                this.proctorPollInterval = setInterval(async () => {
-                    if (this.submitting) return;
+
+                const pollFn = async () => {
+                    if (this.submitting || this.isFinished) return;
+
+                    // Jika tab sedang di-minimize/background, tunda polling lebih lama untuk menghemat beban VPS
+                    if (document.hidden) {
+                        scheduleNext(25000);
+                        return;
+                    }
+
                     try {
                         const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
                         const res = await fetch(this.endpoints.lock_status, {
@@ -1537,7 +1551,31 @@
                             this.handleProctorStatusData(data);
                         }
                     } catch (_) {}
-                }, 2500);
+
+                    // Jadwalkan polling berikutnya secara adaptif:
+                    // - Saat terkunci (menunggu tindakan unlock pengawas): 6-8 detik
+                    // - Saat normal mengerjakan ujian: 20-25 detik (dengan jitter acak agar 1000 siswa tidak query serentak)
+                    const baseInterval = this.isViolatedLocked ? 7000 : 22000;
+                    const jitter = Math.floor(Math.random() * 3000) - 1500;
+                    scheduleNext(Math.max(4000, baseInterval + jitter));
+                };
+
+                const scheduleNext = (delay) => {
+                    if (this.proctorPollInterval) {
+                        clearTimeout(this.proctorPollInterval);
+                    }
+                    this.proctorPollInterval = setTimeout(pollFn, delay);
+                };
+
+                // Sinkronisasi seketika saat murid membuka kembali tab ujian
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden && !this.submitting && !this.isFinished) {
+                        pollFn();
+                    }
+                });
+
+                // Polling perdana setelah 5 detik pertama
+                scheduleNext(5000);
             },
 
             handleProctorStatusData(data) {
@@ -1546,6 +1584,7 @@
                 // 1. Sesi dibatalkan pengawas (CANCEL)
                 if (data.status === 'cancelled') {
                     if (this.proctorPollInterval) {
+                        clearTimeout(this.proctorPollInterval);
                         clearInterval(this.proctorPollInterval);
                         this.proctorPollInterval = null;
                     }

@@ -57,6 +57,7 @@
                 <button type="button" onclick="window.location.reload()" class="px-3.5 py-2 rounded-xl border border-gray-6 bg-white hover:bg-gray-3 text-xs font-semibold text-gray-12 transition-colors flex items-center gap-2 cursor-pointer">
                     <svg class="w-4 h-4 text-gray-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     <span>Refresh Sesi</span>
+                    <span x-text="'(' + refreshCountdown + 's)'" class="text-[11px] text-gray-9 font-mono"></span>
                 </button>
                 <a href="{{ route('assessments.show', $assessment) }}" class="px-3.5 py-2 rounded-xl border border-gray-6 bg-white hover:bg-gray-3 text-xs font-semibold text-gray-12 transition-colors">
                     Detail Ujian
@@ -393,6 +394,7 @@
                 toastType: 'success',
                 pins: initialPins || {},
                 autoRefresh: true,
+                refreshCountdown: 35,
 
                 triggerToast(msg, type = 'success') {
                     this.toastMsg = msg;
@@ -402,11 +404,16 @@
                 },
 
                 init() {
+                    // Interval refresh diperpanjang ke 35 detik untuk mencegah kelebihan beban query database saat ujian ribuan siswa
                     setInterval(() => {
                         if (this.autoRefresh && !this.showToast) {
-                            window.location.reload();
+                            if (this.refreshCountdown <= 1) {
+                                window.location.reload();
+                            } else {
+                                this.refreshCountdown--;
+                            }
                         }
-                    }, 15000);
+                    }, 1000);
                 },
 
                 async generatePin(sessionId, studentName) {

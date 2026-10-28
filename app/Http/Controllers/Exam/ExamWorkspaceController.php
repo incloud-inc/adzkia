@@ -334,6 +334,94 @@ class ExamWorkspaceController extends Controller
     }
 
     /**
+     * Cache & ambil struktur dasar paket asesmen (sections, soal, opsi, stimulus) dari Redis.
+     * Mengurangi ratusan query database dan ratusan parse MarkdownRenderer berulang saat ratusan siswa ujian serentak.
+     *
+     * @return array{sections: array, sectionDurations: array, questions: array}
+     */
+    public static function getCachedAssessmentPackage(Assessment $assessment): array
+    {
+        $updatedTimestamp = $assessment->updated_at?->timestamp ?? 0;
+        $cacheKey = "assessment_package_base:{$assessment->id}:{$updatedTimestamp}";
+
+        return Cache::remember($cacheKey, 86400, function () use ($assessment) {
+            $sections = $assessment->sections()->orderBy('order')->orderBy('id')->get()->map(function ($sec) {
+                return [
+                    'id' => $sec->id,
+                    'title' => $sec->title,
+                    'order' => (int) ($sec->order ?? 1),
+                    'duration_minutes' => $sec->duration_minutes,
+                ];
+            })->all();
+
+            $sectionDurations = [];
+            foreach ($sections as $sec) {
+                if ($sec['duration_minutes'] && (float) $sec['duration_minutes'] > 0) {
+                    $sectionDurations[$sec['id']] = (float) $sec['duration_minutes'];
+                } else {
+                    $sectionDurations[$sec['id']] = null;
+                }
+            }
+
+            $rawQuestions = Question::query()
+                ->where(function ($query) use ($assessment) {
+                    $query->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $assessment->id))
+                        ->orWhereHas('questionGroup.assessmentSection', fn ($q) => $q->where('assessment_id', $assessment->id));
+                })
+                ->with([
+                    'assessmentSection',
+                    'options' => fn ($q) => $q->orderBy('order'),
+                    'questionGroup' => fn ($q) => $q->select(['id', 'assessment_section_id', 'stimulus_content', 'stimulus_type', 'title', 'order']),
+                    'questionGroup.assessmentSection',
+                ])
+                ->orderBy('assessment_section_id')
+                ->orderBy('order')
+                ->orderBy('id')
+                ->get();
+
+            $cachedQuestions = $rawQuestions->map(function (Question $q) {
+                $section = $q->assessmentSection ?? $q->questionGroup?->assessmentSection;
+                $sectionId = $q->assessment_section_id ?? $q->questionGroup?->assessment_section_id ?? $section?->id;
+
+                return [
+                    'id' => $q->id,
+                    'type' => $q->type,
+                    'prompt' => $q->prompt ?? '',
+                    'rendered_stem' => filled($q->prompt) ? MarkdownRenderer::render($q->prompt) : '',
+                    'points' => (float) ($q->points ?? 1),
+                    'order' => (int) ($q->order ?? 1),
+                    'assessment_section_id' => $sectionId,
+                    'question_group_id' => $q->question_group_id,
+                    'question_group_order' => (int) ($q->questionGroup?->order ?? 1),
+                    'stimulus' => $q->questionGroup ? [
+                        'id' => $q->questionGroup->id,
+                        'title' => $q->questionGroup->title,
+                        'type' => $q->questionGroup->stimulus_type ?? 'text',
+                        'content' => $q->questionGroup->stimulus_content ?? '',
+                        'rendered' => filled($q->questionGroup->stimulus_content) ? MarkdownRenderer::render($q->questionGroup->stimulus_content) : '',
+                    ] : null,
+                    'options' => $q->options->map(fn ($o) => [
+                        'id' => $o->id,
+                        'order' => (int) ($o->order ?? 1),
+                        'label' => $o->label ?? '',
+                        'match_key' => $o->match_key ?? null,
+                        'score' => $o->score ?? null,
+                        'content' => $o->option_text ?? '',
+                        'rendered_content' => filled($o->option_text) ? MarkdownRenderer::render($o->option_text) : '',
+                    ])->values()->all(),
+                    'settings' => $q->settings ?? null,
+                ];
+            })->all();
+
+            return [
+                'sections' => $sections,
+                'sectionDurations' => $sectionDurations,
+                'questions' => $cachedQuestions,
+            ];
+        });
+    }
+
+    /**
      * Bangun payload JSON yang dikirim ke Alpine.js.
      * Semua soal dimuat sekaligus untuk offline resilience & instant navigation.
      *
@@ -352,55 +440,30 @@ class ExamWorkspaceController extends Controller
             $randomizeQ = true;
         }
 
-        // 1. Ambil sections terurut rapi (urutan section TIDAK BOLEH diacak!)
-        $sections = $assessment->sections()->orderBy('order')->orderBy('id')->get();
+        // Ambil paket soal ter-cache dari Redis
+        $package = self::getCachedAssessmentPackage($assessment);
+        $sections = collect($package['sections']);
+        $sectionDurations = $package['sectionDurations'];
+        $questions = collect($package['questions']);
 
-        // 2. Ambil semua questions
-        $questions = Question::query()
-            ->where(function ($query) use ($assessment) {
-                $query->whereHas('assessmentSection', fn ($q) => $q->where('assessment_id', $assessment->id))
-                    ->orWhereHas('questionGroup.assessmentSection', fn ($q) => $q->where('assessment_id', $assessment->id));
-            })
-            ->with([
-                'assessmentSection',
-                'options' => fn ($q) => $q->orderBy('order'),
-                'questionGroup' => fn ($q) => $q->select(['id', 'assessment_section_id', 'stimulus_content', 'stimulus_type', 'title', 'order']),
-                'questionGroup.assessmentSection',
-            ])
-            ->orderBy('assessment_section_id')
-            ->orderBy('order')
-            ->orderBy('id')
-            ->get();
-
-        // 3. Durasi section: HANYA diisi jika bagian tersebut memang memiliki durasi eksplisit (> 0).
-        // Jika durasi section tidak diisi/kosong, jangan mengarang durasi agar tidak memunculkan duplicate timer di header.
-        $sectionDurations = [];
-        foreach ($sections as $sec) {
-            if ($sec->duration_minutes && (float) $sec->duration_minutes > 0) {
-                $sectionDurations[$sec->id] = (float) $sec->duration_minutes;
-            } else {
-                $sectionDurations[$sec->id] = null;
-            }
-        }
-
-        // 4. Urutkan soal PER SECTION (hanya mengacak soal dalam section, jangan acak section)
+        // Urutkan soal PER SECTION (hanya mengacak soal dalam section, jangan acak section)
         $seed = crc32($session->uuid);
         $orderedQuestions = collect();
 
         foreach ($sections as $sec) {
-            $secQuestions = $questions->filter(fn ($q) => ($q->assessment_section_id ?? $q->questionGroup?->assessment_section_id) == $sec->id);
+            $secQuestions = $questions->filter(fn ($q) => ($q['assessment_section_id'] ?? null) == $sec['id']);
 
             if ($randomizeQ) {
                 // Acak HANYA di dalam section ini
-                $secOrdered = $secQuestions->sortBy(fn ($q) => crc32($q->id.':'.$seed))->values();
+                $secOrdered = $secQuestions->sortBy(fn ($q) => crc32($q['id'].':'.$seed))->values();
             } else {
                 // Urutan sekuensial absolut (jaga hierarki item grup wacana dan soal standalone tanpa collision)
                 $secOrdered = $secQuestions->sortBy(function ($q) {
-                    if ($q->question_group_id && $q->questionGroup) {
-                        return sprintf('%06d_%06d_%09d', (int) ($q->questionGroup->order ?? 1), (int) ($q->order ?? 1), (int) $q->id);
+                    if (! empty($q['question_group_id'])) {
+                        return sprintf('%06d_%06d_%09d', (int) ($q['question_group_order'] ?? 1), (int) ($q['order'] ?? 1), (int) $q['id']);
                     }
 
-                    return sprintf('%06d_000000_%09d', (int) ($q->order ?? 1), (int) $q->id);
+                    return sprintf('%06d_000000_%09d', (int) ($q['order'] ?? 1), (int) $q['id']);
                 })->values();
             }
 
@@ -409,7 +472,7 @@ class ExamWorkspaceController extends Controller
 
         // Jika ada soal yang belum terpetakan ke section (fallback), tambahkan di akhir
         $mappedIds = $orderedQuestions->pluck('id')->all();
-        $unmappedQuestions = $questions->reject(fn ($q) => in_array($q->id, $mappedIds));
+        $unmappedQuestions = $questions->reject(fn ($q) => in_array($q['id'], $mappedIds));
         if ($unmappedQuestions->isNotEmpty()) {
             $orderedQuestions = $orderedQuestions->concat($unmappedQuestions->values());
         }
@@ -422,22 +485,22 @@ class ExamWorkspaceController extends Controller
             ->get()
             ->keyBy('question_id');
 
-        $mapped = $questions->map(function (Question $q, int $idx) use ($randomizeO, $existingAnswers, $session, $sectionDurations, $sections) {
-            $options = $q->options;
+        $mapped = $questions->map(function (array $q, int $idx) use ($randomizeO, $existingAnswers, $session, $sectionDurations, $sections) {
+            $options = collect($q['options']);
 
             $alwaysShuffleTypes = ['ordering', 'reorder', 'matching', 'binary_matrix', 'boolean_matrix'];
             $randomShuffleTypes = ['mcq_single', 'mcq_multiple', 'mcq_weighted'];
 
-            $shouldShuffle = in_array($q->type, $alwaysShuffleTypes, true)
-                || ($randomizeO && in_array($q->type, $randomShuffleTypes, true));
+            $shouldShuffle = in_array($q['type'], $alwaysShuffleTypes, true)
+                || ($randomizeO && in_array($q['type'], $randomShuffleTypes, true));
 
             $matchingTargets = [];
-            if ($q->type === 'matching') {
+            if ($q['type'] === 'matching') {
                 // Ambil semua target unik sebelah kanan
-                $allTargets = $options->map(fn ($o) => trim((string) ($o->match_key ?? '')))->filter()->unique()->values();
+                $allTargets = $options->map(fn ($o) => trim((string) ($o['match_key'] ?? '')))->filter()->unique()->values();
 
                 // Acak pilihan target sebelah kanan secara independen dengan seed kanan
-                $rightSeed = crc32($session->uuid.':right:'.$q->id);
+                $rightSeed = crc32($session->uuid.':right:'.$q['id']);
                 $shuffledTargets = $allTargets->sortBy(fn ($t) => crc32($t.':'.$rightSeed))->values();
 
                 // Pastikan urutan target kanan tidak persis sama dengan target urutan awal jika lebih dari 1
@@ -450,14 +513,14 @@ class ExamWorkspaceController extends Controller
 
             if ($shouldShuffle && $options->isNotEmpty()) {
                 // Untuk matching, gunakan seed kiri khusus
-                $optSeed = ($q->type === 'matching')
-                    ? crc32($session->uuid.':left:'.$q->id)
-                    : crc32($session->uuid.':'.$q->id);
+                $optSeed = ($q['type'] === 'matching')
+                    ? crc32($session->uuid.':left:'.$q['id'])
+                    : crc32($session->uuid.':'.$q['id']);
 
-                $shuffled = $options->sortBy(fn ($o) => crc32($o->id.':'.$optSeed))->values();
+                $shuffled = $options->sortBy(fn ($o) => crc32($o['id'].':'.$optSeed))->values();
 
                 // Pastikan untuk tipe ordering/reorder/matching urutan TIDAK SAMA PERSIS dengan urutan awal kunci jika opsi > 1
-                if (in_array($q->type, $alwaysShuffleTypes, true) && $options->count() > 1) {
+                if (in_array($q['type'], $alwaysShuffleTypes, true) && $options->count() > 1) {
                     $originalIds = $options->pluck('id')->all();
                     $shuffledIds = $shuffled->pluck('id')->all();
                     if ($originalIds === $shuffledIds) {
@@ -469,45 +532,39 @@ class ExamWorkspaceController extends Controller
                 $options = $options->values();
             }
 
-            $existing = $existingAnswers->get($q->id);
+            $existing = $existingAnswers->get($q['id']);
 
-            $section = $q->assessmentSection ?? $q->questionGroup?->assessmentSection;
-            $sectionId = $q->assessment_section_id ?? $q->questionGroup?->assessment_section_id ?? $section?->id;
-            $sectionDuration = $sectionDurations[$sectionId] ?? (($section && $section->duration_minutes && (float) $section->duration_minutes > 0) ? (float) $section->duration_minutes : null);
-            $rawSectionTitle = $section?->title;
+            $sectionId = $q['assessment_section_id'];
+            $section = $sections->firstWhere('id', $sectionId);
+            $sectionDuration = $sectionDurations[$sectionId] ?? null;
+            $rawSectionTitle = $section['title'] ?? null;
             $cleanSectionTitle = filled($rawSectionTitle) ? preg_replace('/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i', '', trim($rawSectionTitle)) : null;
             $sectionTitle = filled($cleanSectionTitle) ? $cleanSectionTitle : $rawSectionTitle;
-            $sectionIdx = $sections->search(fn ($s) => $s->id == $sectionId);
+            $sectionIdx = $sections->search(fn ($s) => $s['id'] == $sectionId);
             $sectionNumber = $sectionIdx !== false ? $sectionIdx + 1 : 1;
 
             return [
-                'id' => $q->id,
+                'id' => $q['id'],
                 'number' => $idx + 1,
-                'type' => $q->type,
-                'stem' => $q->prompt ?? '',
-                'rendered_stem' => filled($q->prompt) ? MarkdownRenderer::render($q->prompt) : '',
-                'points' => (float) ($q->points ?? 1),
+                'type' => $q['type'],
+                'stem' => $q['prompt'] ?? '',
+                'rendered_stem' => $q['rendered_stem'] ?? '',
+                'points' => (float) ($q['points'] ?? 1),
                 'section_id' => $sectionId,
                 'section_number' => $sectionNumber,
                 'section_title' => $sectionTitle,
                 'section_duration_minutes' => $sectionDuration,
                 'matching_targets' => $matchingTargets,
-                'question_group_id' => $q->question_group_id,
-                'stimulus' => $q->questionGroup ? [
-                    'id' => $q->questionGroup->id,
-                    'title' => $q->questionGroup->title,
-                    'type' => $q->questionGroup->stimulus_type ?? 'text',
-                    'content' => $q->questionGroup->stimulus_content ?? '',
-                    'rendered' => filled($q->questionGroup->stimulus_content) ? MarkdownRenderer::render($q->questionGroup->stimulus_content) : '',
-                ] : null,
+                'question_group_id' => $q['question_group_id'],
+                'stimulus' => $q['stimulus'],
                 'options' => $options->map(fn ($o) => [
-                    'id' => $o->id,
-                    'label' => $o->label ?? '',
-                    'content' => $o->option_text ?? '',
-                    'rendered_content' => filled($o->option_text) ? MarkdownRenderer::render($o->option_text) : '',
-                    'meta' => ['match_key' => $o->match_key ?? null, 'score' => $o->score ?? null],
+                    'id' => $o['id'],
+                    'label' => $o['label'] ?? '',
+                    'content' => $o['content'] ?? '',
+                    'rendered_content' => $o['rendered_content'] ?? '',
+                    'meta' => ['match_key' => $o['match_key'] ?? null, 'score' => $o['score'] ?? null],
                 ])->values()->all(),
-                'meta' => $q->settings ?? null,
+                'meta' => $q['settings'] ?? null,
                 'existing' => [
                     'answer_payload' => $existing?->answer_payload,
                     'is_flagged' => (bool) ($existing?->is_flagged ?? false),
