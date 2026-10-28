@@ -47,7 +47,7 @@ class AiExplanationService
         try {
             $response = Http::baseUrl(rtrim($cfg['base_url'] ?? 'https://api.deepseek.com', '/'))
                 ->withToken($cfg['api_key'])
-                ->timeout((int) ($cfg['timeout'] ?? 60))
+                ->timeout((int) ($cfg['timeout'] ?? 120))
                 ->retry((int) ($cfg['retry_times'] ?? 2), (int) ($cfg['retry_sleep'] ?? 500), throw: false)
                 ->acceptJson()
                 ->asJson()
@@ -111,7 +111,7 @@ class AiExplanationService
         try {
             $response = Http::baseUrl(rtrim($cfg['base_url'] ?? 'https://api.deepseek.com', '/'))
                 ->withToken($cfg['api_key'])
-                ->timeout((int) ($cfg['timeout'] ?? 60))
+                ->timeout((int) ($cfg['timeout'] ?? 120))
                 ->retry((int) ($cfg['retry_times'] ?? 2), (int) ($cfg['retry_sleep'] ?? 500), throw: false)
                 ->acceptJson()
                 ->asJson()

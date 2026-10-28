@@ -263,7 +263,7 @@
                     <!-- Loop Seluruh Soal di dalam Kartu Ini (Soal Tunggal atau Seluruh Soal di Bawah Stimulus) -->
                     <div class="space-y-6">
                         <template x-for="q in card.questions" :key="q.id">
-                            <div :id="'review-question-block-' + q.id" class="p-5 md:p-6 rounded-2xl border border-[#ced4da] bg-white space-y-4 shadow-xs transition-all">
+                            <div :id="'review-question-block-' + q.id" class="p-4 sm:p-6 rounded-2xl border border-[#ced4da] bg-white space-y-4 shadow-xs transition-all min-w-0 max-w-full overflow-hidden break-words">
 
                                 <!-- Header Butir Soal & Status Jawaban -->
                                 <div class="flex flex-wrap justify-between items-center gap-2 pb-2.5 border-b border-[#ced4da]/60">
@@ -567,15 +567,15 @@
                                 </template>
 
                                 <!-- TOMBOL SHOW / HIDE PEMBAHASAN & PEMBAHASAN AI (DI BAWAH SETIAP SOAL) -->
-                                <div class="flex flex-wrap items-center justify-between gap-2.5 pt-3.5 border-t border-slate-200">
-                                    <div class="flex flex-wrap items-center gap-2 max-w-full">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-3.5 border-t border-slate-200 w-full min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto min-w-0">
                                         <span class="text-xs font-bold text-slate-700 uppercase tracking-wider font-display mr-1 shrink-0">Tampilkan:</span>
 
                                         <!-- Tombol Pembahasan Resmi (Hanya tampil jika guru mengisi pembahasan) -->
                                         <template x-if="q.has_official_explanation">
                                             <button type="button" @click="toggleOfficial(q.id)"
                                                     :class="showOfficialMap[q.id] ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-300' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'"
-                                                    class="px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer max-w-full shadow-2xs">
+                                                    class="px-3 sm:px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs select-none active:scale-95">
                                                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                     <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                                                 </svg>
@@ -589,13 +589,13 @@
                                         <!-- Tombol Pembahasan AI (DeepSeek Reasoner) -->
                                         <button type="button" @click="toggleAiExplanation(q)"
                                                 :disabled="aiLoadingMap[q.id]"
-                                                :class="showAiMap[q.id] ? 'bg-violet-600 text-white shadow-xs ring-2 ring-violet-300' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-50'"
-                                                class="px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 max-w-full shadow-2xs">
+                                                :class="showAiMap[q.id] ? 'bg-violet-600 text-white shadow-xs ring-2 ring-violet-300' : 'bg-white text-violet-800 border-2 border-violet-400 hover:bg-violet-50 hover:border-violet-500'"
+                                                class="px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 shadow-2xs select-none active:scale-95">
                                             <template x-if="aiLoadingMap[q.id]">
                                                 <svg class="w-4 h-4 animate-spin text-violet-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity=".2"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
                                             </template>
                                             <template x-if="!aiLoadingMap[q.id]">
-                                                <svg class="w-4 h-4 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-4 h-4 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                                                     <path d="M12 2L14.4 7.6L20 8.4L16 12.4L17.2 18L12 15.2L6.8 18L8 12.4L4 8.4L9.6 7.6L12 2Z"/>
                                                 </svg>
                                             </template>
@@ -608,7 +608,7 @@
                                 </div>
 
                                 <!-- KOTAK 1: PEMBAHASAN RESMI (PER BUTIR SOAL) -->
-                                <div x-show="showOfficialMap[q.id] && q.has_official_explanation" x-transition.opacity class="p-5 bg-white border border-blue-200/90 rounded-xl shadow-xs mt-3">
+                                <div x-show="showOfficialMap[q.id] && q.has_official_explanation" x-transition.opacity class="p-5 bg-white border border-blue-200/90 rounded-xl shadow-xs mt-3 min-w-0 max-w-full overflow-hidden">
                                     <div class="flex items-center justify-between border-b border-blue-100 pb-2.5 mb-3">
                                         <h3 class="font-bold text-base md:text-lg text-blue-950 flex items-center gap-2 font-display border-l-4 border-blue-600 pl-3">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
@@ -631,7 +631,7 @@
                                 </div>
 
                                 <!-- KOTAK 2: PEMBAHASAN AI (PER BUTIR SOAL) -->
-                                <div x-show="showAiMap[q.id]" x-transition.opacity class="p-5 bg-gradient-to-br from-violet-50/70 via-white to-purple-50/50 border border-violet-200/90 rounded-xl shadow-xs mt-3">
+                                <div :id="'ai-explanation-box-' + q.id" x-show="showAiMap[q.id]" x-transition.opacity class="p-5 bg-gradient-to-br from-violet-50/70 via-white to-purple-50/50 border border-violet-200/90 rounded-xl shadow-xs mt-3 min-w-0 max-w-full overflow-hidden">
                                     <div class="flex items-center justify-between border-b border-violet-100 pb-2.5 mb-3">
                                         <h3 class="font-bold text-base md:text-lg text-violet-950 flex items-center gap-2 font-display border-l-4 border-violet-600 pl-3">
                                             <svg class="w-5 h-5 text-violet-600" fill="currentColor" viewBox="0 0 24 24">
@@ -770,6 +770,8 @@
         return {
             questions: qList,
             summary: payload.summary || {},
+            sessionUuid: payload.sessionUuid || window.__reviewData?.sessionUuid || '{{ $session->uuid }}',
+            gradingStatus: payload.grading_status || 'completed',
             currentCardIndex: 0,
             activeQuestionId: qList.length > 0 ? qList[0].id : null,
             showOfficialMap: {},
@@ -1009,7 +1011,10 @@
 
                 if (q.rendered_ai_explanation || q.ai_explanation) {
                     this.showAiMap = { ...this.showAiMap, [q.id]: true };
-                    this.$nextTick(() => this.renderMath());
+                    this.$nextTick(() => {
+                        this.renderMath();
+                        this.scrollToAiBox(q.id);
+                    });
                     return;
                 }
 
@@ -1032,9 +1037,12 @@
                     if ((resData.success || resData.ok) && aiContent) {
                         q.ai_explanation = aiContent;
                         q.rendered_ai_explanation = resData.rendered_ai_explanation || resData.rendered || this.renderRich(aiContent);
-                        q.ai_model = resData.ai_model || resData.model || 'DeepSeek Reasoner';
+                        q.ai_model = resData.ai_model || resData.model || 'DEEPSEEK V4 Pro Reasoner';
                         this.showAiMap = { ...this.showAiMap, [q.id]: true };
-                        this.$nextTick(() => this.renderMath());
+                        this.$nextTick(() => {
+                            this.renderMath();
+                            this.scrollToAiBox(q.id);
+                        });
                     } else {
                         alert(resData.message || resData.error || 'Gagal memuat pembahasan AI.');
                     }
@@ -1043,6 +1051,13 @@
                     alert('Terjadi kesalahan saat memuat pembahasan AI.');
                 } finally {
                     this.aiLoadingMap = { ...this.aiLoadingMap, [q.id]: false };
+                }
+            },
+
+            scrollToAiBox(qId) {
+                const el = document.getElementById('ai-explanation-box-' + qId);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             },
 

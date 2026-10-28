@@ -892,7 +892,7 @@ class ExamResultController extends Controller
         $aiService = app(AiExplanationService::class);
         $modelName = $aiService->getModelName();
 
-        // Jika sudah pernah digenerate, langsung kembalikan
+        // Jika sudah pernah digenerate pada answer peserta ini, langsung kembalikan
         $existingAi = (string) (data_get($answer?->answer_payload, 'ai_explanation') ?: '');
         if (filled($existingAi)) {
             $savedModel = data_get($answer?->answer_payload, 'ai_model') ?: $modelName;
@@ -909,16 +909,37 @@ class ExamResultController extends Controller
             ]);
         }
 
-        $explanationText = $aiService->generateForStudent($question);
+        try {
+            $explanationText = $aiService->generateForStudent($question);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('generateAiExplanation error, using fallback: '.$e->getMessage(), [
+                'session_id' => $session->id,
+                'question_id' => $question->id,
+            ]);
 
-        if ($answer) {
-            $payload = (array) ($answer->answer_payload ?? []);
-            $payload['ai_explanation'] = $explanationText;
-            $payload['ai_model'] = $modelName;
-            $payload['ai_explanation_at'] = now()->toIso8601String();
-            $answer->answer_payload = $payload;
-            $answer->save();
+            $explanationText = $aiService->generateFallbackExplanation($question);
         }
+
+        if (! $answer) {
+            $answer = ExamAnswer::firstOrCreate(
+                [
+                    'exam_session_id' => $session->id,
+                    'question_id' => $question->id,
+                ],
+                [
+                    'answer_payload' => [],
+                    'is_correct' => false,
+                    'points_awarded' => 0,
+                ]
+            );
+        }
+
+        $payload = (array) ($answer->answer_payload ?? []);
+        $payload['ai_explanation'] = $explanationText;
+        $payload['ai_model'] = $modelName;
+        $payload['ai_explanation_at'] = now()->toIso8601String();
+        $answer->answer_payload = $payload;
+        $answer->save();
 
         return response()->json([
             'ok' => true,

@@ -50,9 +50,14 @@ PROMPT;
      */
     public function userFor(Question $question): string
     {
-        $question->loadMissing(['options', 'assessmentSection.assessment.subject', 'questionGroup']);
+        $question->loadMissing([
+            'options',
+            'assessmentSection.assessment.subject',
+            'questionGroup.assessmentSection.assessment.subject',
+        ]);
 
-        $assessment = $question->assessmentSection?->assessment;
+        $assessment = $question->assessmentSection?->assessment
+            ?? $question->questionGroup?->assessmentSection?->assessment;
         $subject = $assessment?->subject?->name ?? 'Umum';
         $grade = $assessment?->grade_level ?? 'Semua Jenjang';
 
