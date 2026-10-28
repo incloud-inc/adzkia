@@ -10,6 +10,7 @@ use App\Models\QuestionBank;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Throwable;
@@ -38,8 +39,13 @@ class LandingPageController extends Controller
             if (Schema::hasTable('tenants')) {
                 $realTenants = Tenant::count();
             }
-            if (Schema::hasTable('users')) {
-                $realStudents = User::where('role', 'U')->count();
+            if (Schema::hasTable('tenant_user')) {
+                $realStudents = DB::table('tenant_user')
+                    ->where('role', 'U')
+                    ->distinct('user_id')
+                    ->count('user_id');
+            } elseif (Schema::hasTable('users')) {
+                $realStudents = User::count();
             }
             if (Schema::hasTable('grade_levels')) {
                 $realGradeLevels = GradeLevel::count();
@@ -62,27 +68,27 @@ class LandingPageController extends Controller
             // Graceful fallback jika dalam in-memory testing atau environment belum migrate
         }
 
-        // Format statistik dengan baseline display realistis bila data lokal masih baru/kosong
+        // Format statistik menggunakan data aktual database
         $stats = [
             'tenants' => [
-                'count' => $realTenants > 0 ? number_format($realTenants, 0, ',', '.') : '50+',
+                'count' => number_format($realTenants, 0, ',', '.'),
                 'label' => 'Sekolah dan BIMBEL Menggunakan ADZKIA',
                 'badge' => 'Mitra Terpercaya',
             ],
             'students' => [
-                'count' => $realStudents > 0 ? number_format($realStudents, 0, ',', '.') : '15.000+',
+                'count' => number_format($realStudents, 0, ',', '.'),
                 'label' => 'Murid/Pelajar melaksanakan Asesmen di ADZKIA',
                 'badge' => 'Peserta Didik',
             ],
             'assessments' => [
-                'count' => ($realAssessments > 0 ? number_format($realAssessments, 0, ',', '.') : '10').' Asesmen',
+                'count' => number_format($realAssessments, 0, ',', '.').' Asesmen',
                 'label' => 'Siap digunakan untuk Murid, Mahasiswa, Profesional',
                 'badge' => 'Free & PRO',
             ],
             'grade_levels' => [
-                'count' => ($realAssessments > 0 ? number_format($realAssessments, 0, ',', '.') : '10').' Asesmen',
-                'label' => 'Siap digunakan untuk Murid, Mahasiswa, Profesional',
-                'badge' => 'Free & PRO',
+                'count' => number_format($realGradeLevels, 0, ',', '.').' Jenjang',
+                'label' => 'Mulai SD, SMP, SMA, hingga Perguruan Tinggi & Kedinasan',
+                'badge' => 'Jenjang Lengkap',
             ],
             'curriculums' => [
                 'count' => 'TKA • UTBK • SKD',
@@ -95,22 +101,22 @@ class LandingPageController extends Controller
                 'badge' => 'Sertifikasi Bahasa',
             ],
             'question_bank' => [
-                'count' => $realQuestions > 0 ? number_format($realQuestions, 0, ',', '.').'+' : '25.000+',
+                'count' => number_format($realQuestions, 0, ',', '.').' Butir',
                 'label' => 'Bank Soal Tersedia di ADZKIA',
                 'badge' => 'Repositori Soal',
             ],
             'total_exams' => [
-                'count' => $realTotalExams > 0 ? number_format($realTotalExams, 0, ',', '.') : '120.000+',
+                'count' => number_format($realTotalExams, 0, ',', '.'),
                 'label' => 'Sesi Asesmen dilaksanakan',
                 'badge' => 'Akumulasi CBT',
             ],
             'month_exams' => [
-                'count' => $realMonthExams > 0 ? number_format($realMonthExams, 0, ',', '.') : '8.450+',
+                'count' => number_format($realMonthExams, 0, ',', '.'),
                 'label' => 'Sesi Asesmen dilaksanakan bulan ini',
                 'badge' => 'Aktivitas Bulanan',
             ],
             'week_exams' => [
-                'count' => $realWeekExams > 0 ? number_format($realWeekExams, 0, ',', '.') : '2.180+',
+                'count' => number_format($realWeekExams, 0, ',', '.'),
                 'label' => 'Sesi Asesmen dilaksanakan pekan ini',
                 'badge' => 'Aktivitas Pekanan',
             ],

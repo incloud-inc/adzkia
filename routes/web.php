@@ -314,5 +314,6 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware([CheckOwnerRole::class])->group(function () {
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
         Route::post('settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::post('settings/test-connection/{target}', [SettingController::class, 'testConnection'])->name('settings.test-connection');
     });
 });

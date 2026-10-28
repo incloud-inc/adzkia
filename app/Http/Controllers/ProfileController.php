@@ -41,7 +41,7 @@ class ProfileController extends Controller
                         return redirect()->to($tenant->getStudentProfileUrl($user->username));
                     }
 
-                    return redirect()->to(rtrim($tenant->getPortalUrl(), '/').'/profile');
+                    return redirect()->to($tenant->generateSsoLoginUrl($user, '/profile'));
                 }
             }
         }

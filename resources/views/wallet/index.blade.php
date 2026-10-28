@@ -48,7 +48,7 @@
         @endif
 
         <!-- 4 Wallet Balance Metric Cards - Swipeable Snap Carousel on Mobile -->
-        <div class="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
+        <div class="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory">
             <!-- 1. Saldo Tersedia (Available Balance) -->
             <div class="min-w-[260px] xs:min-w-[280px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-green-7 bg-green-2/20 shadow-xs flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-3">
@@ -114,7 +114,7 @@
                     <span class="text-xs text-gray-11">Total {{ $transactions->total() }} entri</span>
                 </div>
 
-                <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                <div class="overflow-x-auto hide-scrollbar">
                     <table class="w-full min-w-[580px] sm:min-w-full text-left text-xs border-collapse">
                         <thead class="bg-gray-2/60 text-gray-11 uppercase tracking-wider font-semibold border-b border-gray-5">
                             <tr>

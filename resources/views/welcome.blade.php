@@ -571,7 +571,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             Mitra Terpercaya
                         </span>
                         <div class="text-2xl font-black text-slate-900 tracking-tight font-display">
-                            {{ $stats['tenants']['count'] ?? '50+' }}
+                            {{ $stats['tenants']['count'] ?? '0' }}
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Sekolah dan BIMBEL Menggunakan ADZKIA
@@ -591,7 +591,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             Peserta Didik
                         </span>
                         <div class="text-2xl font-black text-slate-900 tracking-tight font-display">
-                            {{ $stats['students']['count'] ?? '15.000+' }}
+                            {{ $stats['students']['count'] ?? '0' }}
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Murid (Siswa) melaksanakan Asesmen di ADZKIA
@@ -611,7 +611,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             {{ $stats['assessments']['badge'] ?? 'Free & PRO' }}
                         </span>
                         <div class="text-2xl font-black text-slate-900 tracking-tight font-display">
-                            {{ $stats['assessments']['count'] ?? ($stats['grade_levels']['count'] ?? '10 Asesmen') }}
+                            {{ $stats['assessments']['count'] ?? ($stats['grade_levels']['count'] ?? '0 Asesmen') }}
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Siap digunakan untuk Murid, Mahasiswa, Profesional
@@ -671,7 +671,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             Repositori Butir Soal
                         </span>
                         <div class="text-2xl font-black text-slate-900 tracking-tight font-display">
-                            {{ $stats['question_bank']['count'] ?? '25.000+' }}
+                            {{ $stats['question_bank']['count'] ?? '0' }}
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Bank Soal Tersedia di ADZKIA
@@ -691,7 +691,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             Akumulasi CBT
                         </span>
                         <div class="text-2xl font-black text-slate-900 tracking-tight font-display">
-                            {{ $stats['total_exams']['count'] ?? '120.000+' }}
+                            {{ $stats['total_exams']['count'] ?? '0' }}
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Sesi Asesmen dilaksanakan
@@ -711,7 +711,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             Aktivitas Bulanan
                         </span>
                         <div class="text-2xl font-black text-slate-900 tracking-tight font-display">
-                            {{ $stats['month_exams']['count'] ?? '8.450+' }}
+                            {{ $stats['month_exams']['count'] ?? '0' }}
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Sesi Asesmen dilaksanakan bulan ini
@@ -731,7 +731,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             Aktivitas Pekanan
                         </span>
                         <div class="text-2xl font-black text-slate-900 tracking-tight font-display">
-                            {{ $stats['week_exams']['count'] ?? '2.180+' }}
+                            {{ $stats['week_exams']['count'] ?? '0' }}
                         </div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                             Sesi Asesmen dilaksanakan pekan ini

@@ -918,8 +918,23 @@ class AssessmentWizardController extends Controller
             }
         }
 
-        $path = $file->store('asesmen', $disk);
-        $url = Storage::disk($disk)->url($path);
+        $usedDisk = $disk;
+        try {
+            $path = $file->store('asesmen', $disk);
+        } catch (\Throwable $e) {
+            report($e);
+            if ($disk === 'r2') {
+                $path = $file->store('asesmen', 'public');
+                $usedDisk = 'public';
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengunggah berkas: '.$e->getMessage(),
+                ], 500);
+            }
+        }
+
+        $url = Storage::disk($usedDisk)->url($path);
         if (str_contains($url, '.r2.dev/') || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
             $url = '/media/r2/'.$path;
         }

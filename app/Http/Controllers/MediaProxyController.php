@@ -57,18 +57,30 @@ class MediaProxyController extends Controller
         $resolvedPath = null;
         $resolvedDisk = $disk;
 
-        if ($storage->exists($cleanPath)) {
-            $resolvedPath = $cleanPath;
-            $resolvedDisk = $disk;
-        } elseif (! str_starts_with($cleanPath, 'asesmen/') && $storage->exists('asesmen/'.$cleanPath)) {
-            $resolvedPath = 'asesmen/'.$cleanPath;
-            $resolvedDisk = $disk;
-        } elseif (Storage::disk('public')->exists($cleanPath)) {
-            $resolvedPath = $cleanPath;
-            $resolvedDisk = 'public';
-        } elseif (! str_starts_with($cleanPath, 'asesmen/') && Storage::disk('public')->exists('asesmen/'.$cleanPath)) {
-            $resolvedPath = 'asesmen/'.$cleanPath;
-            $resolvedDisk = 'public';
+        try {
+            if ($storage->exists($cleanPath)) {
+                $resolvedPath = $cleanPath;
+                $resolvedDisk = $disk;
+            } elseif (! str_starts_with($cleanPath, 'asesmen/') && $storage->exists('asesmen/'.$cleanPath)) {
+                $resolvedPath = 'asesmen/'.$cleanPath;
+                $resolvedDisk = $disk;
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        if (! $resolvedPath) {
+            try {
+                if (Storage::disk('public')->exists($cleanPath)) {
+                    $resolvedPath = $cleanPath;
+                    $resolvedDisk = 'public';
+                } elseif (! str_starts_with($cleanPath, 'asesmen/') && Storage::disk('public')->exists('asesmen/'.$cleanPath)) {
+                    $resolvedPath = 'asesmen/'.$cleanPath;
+                    $resolvedDisk = 'public';
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         if (! $resolvedPath) {

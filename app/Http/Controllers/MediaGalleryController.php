@@ -52,6 +52,9 @@ class MediaGalleryController extends Controller
         $storage = Storage::disk($disk);
 
         $rawItems = [];
+        $r2Connected = true;
+        $connectionError = null;
+
         try {
             // Ambil berkas beserta metadata langsung dalam 1 panggilan (listContents)
             $contents = $storage->listContents('asesmen', false);
@@ -66,6 +69,7 @@ class MediaGalleryController extends Controller
             }
         } catch (\Throwable $e) {
             report($e);
+            $connectionError = $e->getMessage();
             try {
                 $rawFiles = $storage->files('asesmen');
                 foreach ($rawFiles as $path) {
@@ -75,8 +79,9 @@ class MediaGalleryController extends Controller
                         'last_modified' => 0,
                     ];
                 }
-            } catch (\Throwable) {
-                // Ignore
+            } catch (\Throwable $e2) {
+                $r2Connected = false;
+                $connectionError = $e2->getMessage();
             }
         }
 
@@ -195,6 +200,8 @@ class MediaGalleryController extends Controller
             'audioCount' => $audioCount,
             'videoCount' => $videoCount,
             'perPage' => $perPage,
+            'r2Connected' => $r2Connected,
+            'connectionError' => $connectionError,
         ]);
     }
 
@@ -230,9 +237,41 @@ class MediaGalleryController extends Controller
         }
 
         $disk = config('filesystems.upload_disk', 'r2');
-        // Selalu simpan di dalam folder 'asesmen'
-        $path = $file->store('asesmen', $disk);
-        $url = Storage::disk($disk)->url($path);
+        $usedDisk = $disk;
+
+        try {
+            // Selalu simpan di dalam folder 'asesmen'
+            $path = $file->store('asesmen', $disk);
+        } catch (\Throwable $e) {
+            report($e);
+            // Jika upload ke R2 gagal, coba fallback ke penyimpanan lokal public agar proses kerja user tidak terhenti
+            if ($disk === 'r2') {
+                try {
+                    $path = $file->store('asesmen', 'public');
+                    $usedDisk = 'public';
+                } catch (\Throwable $e2) {
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Gagal mengunggah ke Cloudflare R2 ('.$e->getMessage().') dan penyimpanan lokal: '.$e2->getMessage(),
+                        ], 500);
+                    }
+
+                    return back()->with('error', 'Gagal mengunggah berkas: '.$e->getMessage());
+                }
+            } else {
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gagal mengunggah berkas: '.$e->getMessage(),
+                    ], 500);
+                }
+
+                return back()->with('error', 'Gagal mengunggah berkas: '.$e->getMessage());
+            }
+        }
+
+        $url = Storage::disk($usedDisk)->url($path);
         if (str_contains($url, '.r2.dev/') || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
             $url = '/media/r2/'.$path;
         }
@@ -251,15 +290,17 @@ class MediaGalleryController extends Controller
             'markdown' => "![{$file->getClientOriginalName()}]({$url})",
         ];
 
+        $uploadTargetName = $usedDisk === 'r2' ? 'Cloudflare R2' : 'Penyimpanan Lokal (Fallback)';
+
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Berkas berhasil diunggah ke Cloudflare R2.',
+                'message' => "Berkas berhasil diunggah ke {$uploadTargetName}.",
                 'file' => $fileData,
             ]);
         }
 
-        return back()->with('success', "Berkas {$filename} berhasil diunggah ke Cloudflare R2.");
+        return back()->with('success', "Berkas {$filename} berhasil diunggah ke {$uploadTargetName}.");
     }
 
     /**

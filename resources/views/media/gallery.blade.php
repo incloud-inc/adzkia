@@ -87,6 +87,34 @@
             </div>
         @endif
 
+        @if(isset($r2Connected) && ! $r2Connected)
+            <div class="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs space-y-2 shadow-2xs">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 font-bold text-sm text-amber-800">
+                        <x-radix-icon name="exclamation-triangle" class="w-5 h-5 text-amber-600 shrink-0" />
+                        <span>Koneksi Cloudflare R2 Belum Terhubung</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-200 text-amber-800 border border-amber-400">
+                        Disk: {{ strtoupper(config('filesystems.upload_disk', 'r2')) }}
+                    </span>
+                </div>
+                <p class="text-amber-800 font-medium">
+                    Aplikasi belum berhasil berkomunikasi dengan bucket Cloudflare R2 (<code class="font-mono font-bold">{{ config('filesystems.disks.r2.bucket', 'adzkia') }}</code>). Berkas galeri mungkin tidak dapat ditampilkan dari cloud sampai kredensial R2 dikonfigurasi dengan benar.
+                </p>
+                @if(isset($connectionError) && $connectionError)
+                    <div class="p-2 rounded bg-amber-100/70 border border-amber-200 text-[11px] font-mono text-amber-900 break-all">
+                        {{ $connectionError }}
+                    </div>
+                @endif
+                <div class="pt-1 flex items-center gap-2">
+                    <a href="{{ route('settings.index') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-800 text-white font-bold hover:bg-amber-900 transition-colors shadow-2xs">
+                        <x-radix-icon name="gear" class="w-4 h-4" />
+                        <span>Buka Pengaturan Sistem &amp; Kredensial R2</span>
+                    </a>
+                </div>
+            </div>
+        @endif
+
         <!-- Telemetry Stats Bar -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="bg-white rounded-xl p-3 border border-slate-200/70 shadow-2xs flex items-center justify-between transition-colors hover:border-slate-300">

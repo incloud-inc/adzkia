@@ -33,3 +33,6 @@ rr
 rr.exe
 scratch_*
 .rr.yaml
+
+/scripts/
+database/schema_postgres.sql

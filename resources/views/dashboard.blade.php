@@ -79,7 +79,7 @@
 
 
             <!-- Quick Stats Cards (4 Radix Metrics) - Swipeable Snap Carousel on Mobile -->
-            <section class="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
+            <section class="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory">
                 <!-- Total Tenant -->
                 <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-green-8 transition-colors duration-150 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-3">
@@ -139,7 +139,7 @@
 
             <!-- Tab Navigation & Data Table Card -->
             <section class="space-y-4">
-                <nav class="flex items-center gap-2 border-b border-gray-6 pb-2 overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x">
+                <nav class="flex items-center gap-2 border-b border-gray-6 pb-2 overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
                     <button 
                         @click="activeTab = 'tenants'"
                         :class="activeTab === 'tenants' ? 'bg-green-3 text-green-11 border-green-7 font-bold shadow-xs' : 'text-gray-11 hover:bg-gray-2 hover:text-gray-12 font-medium border-transparent'"
@@ -177,7 +177,7 @@
                 <!-- Table Card Container -->
                 <div class="bg-white border border-gray-6 rounded-2xl shadow-xs overflow-hidden">
                     <!-- Tab: Tenants -->
-                    <div x-show="activeTab === 'tenants'" class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <div x-show="activeTab === 'tenants'" class="overflow-x-auto hide-scrollbar">
                         <!-- Mobile Swipe Hint for Table -->
                         <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-green-9 animate-pulse shrink-0" />
@@ -242,7 +242,7 @@
                     </div>
 
                     <!-- Tab: Teachers -->
-                    <div x-show="activeTab === 'teachers'" style="display: none;" class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <div x-show="activeTab === 'teachers'" style="display: none;" class="overflow-x-auto hide-scrollbar">
                         <!-- Mobile Swipe Hint -->
                         <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-blue-9 animate-pulse shrink-0" />
@@ -302,7 +302,7 @@
                     </div>
 
                     <!-- Tab: Students -->
-                    <div x-show="activeTab === 'students'" style="display: none;" class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <div x-show="activeTab === 'students'" style="display: none;" class="overflow-x-auto hide-scrollbar">
                         <!-- Mobile Swipe Hint -->
                         <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-amber-9 animate-pulse shrink-0" />
@@ -362,7 +362,7 @@
                     </div>
 
                     <!-- Tab: Admins -->
-                    <div x-show="activeTab === 'admins'" style="display: none;" class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <div x-show="activeTab === 'admins'" style="display: none;" class="overflow-x-auto hide-scrollbar">
                         <!-- Mobile Swipe Hint -->
                         <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-red-9 animate-pulse shrink-0" />
@@ -489,7 +489,7 @@
 
 
             <!-- Stats Ringkasan Siswa (4 Metric Cards) - Swipeable Snap Carousel on Mobile -->
-            <section class="flex overflow-x-auto sm:grid grid-cols-2 sm:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
+            <section class="flex overflow-x-auto sm:grid grid-cols-2 sm:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory">
                 <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-blue-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Ujian Tersedia</span>
@@ -600,7 +600,7 @@
                         </span>
                     </div>
 
-                    <div class="flex overflow-x-auto md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x md:overflow-visible">
+                    <div class="flex overflow-x-auto md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory md:overflow-visible">
                         @foreach($availableAssessments as $exam)
                             @php
                                 $access = $exam->accesses?->first();
@@ -770,7 +770,7 @@
 
 
             <!-- Stats Ringkasan Guru - Swipeable Snap Carousel on Mobile -->
-            <section class="flex overflow-x-auto sm:grid grid-cols-2 sm:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x">
+            <section class="flex overflow-x-auto sm:grid grid-cols-2 sm:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory">
                 <article class="min-w-[220px] xs:min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-green-8 transition-colors duration-150">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Ujian Dibuat</span>
@@ -832,7 +832,7 @@
                 </div>
 
                 @if($myAssessments && $myAssessments->count() > 0)
-                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <div class="overflow-x-auto hide-scrollbar">
                         <!-- Mobile Swipe Hint for Table -->
                         <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-green-9 animate-pulse shrink-0" />
@@ -1094,7 +1094,7 @@
 
 
             <!-- 2. STATS RINGKASAN EKOSISTEM SEKOLAH (4 KARTU METRIK) - Swipeable Snap Carousel on Mobile -->
-            <section class="flex overflow-x-auto lg:grid grid-cols-2 lg:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory touch-pan-x lg:overflow-visible">
+            <section class="flex overflow-x-auto lg:grid grid-cols-2 lg:grid-cols-4 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory lg:overflow-visible">
                 <!-- Dewan Guru & Pengawas -->
                 <article @click="tab = 'teachers'" class="min-w-[230px] xs:min-w-[260px] lg:min-w-0 snap-start shrink-0 lg:shrink flex-1 lg:flex-initial bg-white p-5 rounded-2xl border-2 border-gray-6 shadow-xs hover:border-blue-8 transition-colors duration-150 cursor-pointer group">
                     <div class="flex items-center justify-between mb-3">
@@ -1147,7 +1147,7 @@
             <!-- 3. WORKSPACE TABEL TERPADU (GURU, SISWA, ASESMEN, ADMIN) -->
             <section class="space-y-4">
                 <!-- Tab Selector Buttons -->
-                <nav class="flex items-center gap-2 border-b border-gray-6 pb-2 overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x">
+                <nav class="flex items-center gap-2 border-b border-gray-6 pb-2 overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
                     <button type="button" 
                             @click="tab = 'teachers'"
                             :class="tab === 'teachers' ? 'bg-blue-3 text-blue-11 border-blue-7 font-bold shadow-xs' : 'text-gray-11 hover:bg-gray-2 hover:text-gray-12 font-medium border-transparent'"
@@ -1193,7 +1193,7 @@
                         </span>
                     </div>
 
-                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <div class="overflow-x-auto hide-scrollbar">
                         <!-- Mobile Swipe Hint for Table -->
                         <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-blue-9 animate-pulse shrink-0" />
@@ -1305,7 +1305,7 @@
                         </span>
                     </div>
 
-                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <div class="overflow-x-auto hide-scrollbar">
                         <!-- Mobile Swipe Hint -->
                         <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-amber-9 animate-pulse shrink-0" />
@@ -1424,7 +1424,7 @@
                         </a>
                     </div>
 
-                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <div class="overflow-x-auto hide-scrollbar">
                         <!-- Mobile Swipe Hint -->
                         <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-green-9 animate-pulse shrink-0" />
@@ -1511,7 +1511,7 @@
                         </span>
                     </div>
 
-                    <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+                    <div class="overflow-x-auto hide-scrollbar">
                         <!-- Mobile Swipe Hint -->
                         <div class="sm:hidden px-4 py-2 bg-gray-2/60 border-b border-gray-5 flex items-center gap-1.5 text-[11px] text-gray-11 font-medium">
                             <x-radix-icon name="arrow-right" class="w-3.5 h-3.5 text-red-9 animate-pulse shrink-0" />

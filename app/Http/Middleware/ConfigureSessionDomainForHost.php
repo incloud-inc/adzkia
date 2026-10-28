@@ -36,7 +36,7 @@ class ConfigureSessionDomainForHost
             config(['session.domain' => null]);
         } else {
             // Central domain & its subdomains in non-localhost (e.g. *.adzkia.id)
-            $configuredDomain = env('SESSION_DOMAIN');
+            $configuredDomain = config('session.domain') ?: env('SESSION_DOMAIN');
             $sessionDomain = $configuredDomain ?: ($baseDomain !== 'localhost' ? '.'.$baseDomain : null);
             config(['session.domain' => $sessionDomain]);
         }

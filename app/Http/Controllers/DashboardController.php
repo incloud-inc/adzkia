@@ -88,7 +88,7 @@ class DashboardController extends Controller
             if ($targetTenant) {
                 $targetHost = $targetTenant->getPrimaryHost();
                 if ($targetHost && $request->getHost() !== $targetHost) {
-                    return redirect()->to($targetTenant->getPortalUrl());
+                    return redirect()->to($targetTenant->generateSsoLoginUrl($user, '/dashboard'));
                 }
             }
         }

@@ -44,7 +44,7 @@
 
         <!-- Subjects Table -->
         <div class="bg-white border border-gray-6 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
-            <div class="overflow-x-auto touch-pan-x hide-scrollbar">
+            <div class="overflow-x-auto hide-scrollbar">
                 <table class="w-full min-w-[720px] sm:min-w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-gray-6 bg-gray-2/50 text-gray-11 uppercase tracking-wider font-semibold">
