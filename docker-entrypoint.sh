@@ -7,6 +7,17 @@ if [ -n "$ENV" ] && echo "$ENV" | grep -q "APP_KEY"; then
     printf "%s\n" "$ENV" > /app/.env
 fi
 
+# Ensure critical domain and session settings are configured for multi-tenancy
+if [ -f /app/.env ]; then
+    if ! grep -q "^APP_DOMAIN=" /app/.env; then
+        echo "APP_DOMAIN=adzkia.id" >> /app/.env
+    fi
+    if ! grep -q "^SESSION_DOMAIN=" /app/.env; then
+        echo "SESSION_DOMAIN=.adzkia.id" >> /app/.env
+    fi
+    sed -i 's|APP_URL=https://cbt.domain-anda.com|APP_URL=https://adzkia.id|g' /app/.env
+fi
+
 # Ensure public storage link exists
 if [ ! -L /app/public/storage ]; then
     echo ">> Linking storage directory..."
