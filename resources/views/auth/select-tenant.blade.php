@@ -8,7 +8,7 @@
     </header>
 
     <!-- AREA RUANG KERJA -->
-    <section class="flex-1 overflow-y-auto p-6 md:p-8 space-y-4">
+    <section class="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 space-y-4">
         
         <!-- Radix Callout -->
         <div class="bg-green-2 border border-green-6 text-green-11 rounded-xl p-3.5 flex items-start gap-3 text-xs leading-relaxed">

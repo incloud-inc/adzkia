@@ -25,7 +25,7 @@
     </header>
 
     <!-- CONTENT -->
-    <section class="flex-1 flex flex-col justify-center p-6 sm:p-12 overflow-y-auto">
+    <section class="flex-1 min-h-0 flex flex-col justify-center p-6 sm:p-12 overflow-y-auto">
         <div class="w-full max-w-sm mx-auto">
             
             <div class="mb-6 text-center">

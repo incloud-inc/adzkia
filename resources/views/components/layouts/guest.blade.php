@@ -49,8 +49,8 @@
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden bg-gray-2 text-gray-12 flex justify-center">
-    <main class="w-full h-full lg:h-screen lg:w-[100vh] bg-white flex flex-col relative lg:shadow-[0_12px_40px_rgba(0,0,0,0.06)] lg:border-x border-gray-6">
+<body class="h-screen h-[100dvh] w-screen overflow-hidden bg-gray-2 text-gray-12 flex justify-center">
+    <main class="w-full h-full lg:w-[100vh] bg-white flex flex-col relative min-h-0 overflow-hidden lg:shadow-[0_12px_40px_rgba(0,0,0,0.06)] lg:border-x border-gray-6">
         {{ $slot }}
     </main>
 </body>
