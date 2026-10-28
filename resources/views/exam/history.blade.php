@@ -1,5 +1,5 @@
 <x-layouts.app>
-    <x-slot:title>Riwayat Ujian & Hasil Belajar Siswa</x-slot:title>
+    <x-slot:title>Riwayat Asesmen &amp; Hasil Belajar Siswa</x-slot:title>
 
     <div class="max-w-6xl mx-auto space-y-6 pb-12">
         <!-- Page Header -->
@@ -15,36 +15,36 @@
                         </span>
                     </div>
                     <h1 class="font-display font-black text-2xl sm:text-3xl text-gray-12 tracking-tight">
-                        Riwayat &amp; Hasil Ujian Siswa
+                        Riwayat &amp; Hasil Asesmen Siswa
                     </h1>
                     <p class="font-sans text-xs sm:text-sm text-gray-11 mt-1 max-w-xl">
-                        Daftar lengkap ujian berbasis komputer (CBT) yang pernah Anda ikuti beserta status, perolehan nilai, dan pembahasan butir soal.
+                        Daftar lengkap asesmen berbasis komputer (CBT) yang pernah Anda ikuti beserta status, perolehan nilai, dan pembahasan butir soal.
                     </p>
                 </div>
 
                 <a href="{{ route('assessments.index') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-9 hover:bg-blue-10 text-white text-xs font-bold transition-all duration-200 shadow-xs active:scale-[0.98] shrink-0">
                     <x-radix-icon name="pencil1" class="w-4 h-4" />
-                    <span>Ikuti Ujian Baru</span>
+                    <span>Ikuti Asesmen Baru</span>
                 </a>
             </div>
         </header>
 
-        <!-- Metric Summary Cards -->
-        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 transition-all">
+        <!-- Metric Summary Cards - Horizontal Snap Scroll on Mobile -->
+        <section class="flex overflow-x-auto sm:grid sm:grid-cols-3 gap-3.5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x snap-mandatory">
+            <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-blue-7 transition-all flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Total Sesi Ujian</span>
+                    <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Total Sesi Asesmen</span>
                     <div class="w-9 h-9 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center">
                         <x-radix-icon name="file-text" class="w-4 h-4" />
                     </div>
                 </div>
                 <div class="font-display font-black text-3xl text-gray-12">{{ $totalSessions }}</div>
-                <div class="font-sans text-xs text-gray-11 mt-1">Seluruh percobaan ujian</div>
+                <div class="font-sans text-xs text-gray-11 mt-1">Seluruh sesi pengerjaan asesmen</div>
             </article>
 
-            <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 transition-all">
+            <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-green-7 transition-all flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Ujian Selesai</span>
+                    <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Asesmen Selesai</span>
                     <div class="w-9 h-9 rounded-xl bg-green-3 text-green-11 flex items-center justify-center">
                         <x-radix-icon name="check-circled" class="w-4 h-4" />
                     </div>
@@ -53,7 +53,7 @@
                 <div class="font-sans text-xs text-green-11 font-medium mt-1">Sudah dinilai &amp; tuntas</div>
             </article>
 
-            <article class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 transition-all">
+            <article class="min-w-[250px] xs:min-w-[270px] sm:min-w-0 snap-start shrink-0 sm:shrink flex-1 sm:flex-initial bg-white p-5 rounded-2xl border border-gray-6 shadow-xs hover:border-amber-7 transition-all flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-2">
                     <span class="font-sans text-xs font-semibold text-gray-11 uppercase tracking-wider">Sedang Berlangsung</span>
                     <div class="w-9 h-9 rounded-xl bg-amber-3 text-amber-11 flex items-center justify-center">
@@ -88,7 +88,7 @@
                 @endif
                 <div class="relative w-full md:w-64">
                     <input type="text" name="search" value="{{ request('search') }}" 
-                           placeholder="Cari nama ujian..." 
+                           placeholder="Cari nama asesmen..." 
                            class="w-full text-xs font-medium pl-8 pr-3 py-2 rounded-xl border border-gray-6 focus:border-blue-8 focus:ring-1 focus:ring-blue-8 outline-none bg-gray-1 focus:bg-white transition-all">
                     <x-radix-icon name="magnifying-glass" class="w-4 h-4 text-gray-9 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -127,7 +127,7 @@
                                             </span>
                                         </div>
                                         <h3 class="font-display font-bold text-sm text-gray-12">
-                                            {{ $session->assessment?->title ?? 'Ujian CBT' }}
+                                            {{ $session->assessment?->title ?? 'Asesmen CBT' }}
                                         </h3>
                                     </td>
                                     <td class="py-4 px-4 text-gray-11 font-medium whitespace-nowrap">
@@ -161,7 +161,7 @@
                                             $needsTeacherReview = $sessHasEssay && ! $sessScoreReleased;
                                         @endphp
                                         @if($needsTeacherReview)
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Ujian memiliki butir soal uraian/essay yang sedang menunggu koreksi guru">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Asesmen memiliki butir soal uraian/essay yang sedang menunggu koreksi guru">
                                                 <span>⏳</span>
                                                 <span>Menunggu Koreksi</span>
                                             </span>
@@ -181,7 +181,7 @@
                                                 <a href="{{ route('exam.analysis', $session->uuid) }}" 
                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors shadow-2xs">
                                                     <x-radix-icon name="bar-chart" class="w-3.5 h-3.5" />
-                                                    <span>Analisa Ujian</span>
+                                                    <span>Analisa Asesmen</span>
                                                 </a>
                                                 @php
                                                     $user = auth()->user();
@@ -205,7 +205,7 @@
                                             <a href="{{ route('exam.workspace', $session->uuid) }}" 
                                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-9 hover:bg-blue-10 text-white transition-all shadow-xs active:scale-95">
                                                 <x-radix-icon name="play" class="w-3.5 h-3.5" />
-                                                <span>Lanjutkan Ujian</span>
+                                                <span>Lanjutkan Asesmen</span>
                                             </a>
                                         @endif
                                     </td>
@@ -225,12 +225,12 @@
                     <div class="w-14 h-14 bg-blue-3 text-blue-11 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
                         <x-radix-icon name="file-text" class="w-6 h-6" />
                     </div>
-                    <h3 class="font-display font-bold text-base text-gray-12">Belum ada riwayat pengerjaan ujian</h3>
+                    <h3 class="font-display font-bold text-base text-gray-12">Belum ada riwayat pengerjaan asesmen</h3>
                     <p class="font-sans text-xs text-gray-11 mt-1 max-w-sm mx-auto">
-                        Anda belum pernah memulai atau menyelesaikan ujian di sistem. Pilih ujian yang tersedia untuk memulai evaluasi belajar mandiri.
+                        Anda belum pernah memulai atau menyelesaikan asesmen di sistem. Pilih asesmen yang tersedia untuk memulai evaluasi belajar mandiri.
                     </p>
                     <a href="{{ route('assessments.index') }}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-9 hover:bg-blue-10 text-white text-xs font-bold transition-all shadow-xs">
-                        <span>Pilih Ujian Sekarang</span>
+                        <span>Pilih Asesmen Sekarang</span>
                         <x-radix-icon name="arrow-right" class="w-4 h-4" />
                     </a>
                 </div>

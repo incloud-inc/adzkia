@@ -487,7 +487,7 @@
             <!-- Container Nomor Soal (Scrollable secara horizontal) -->
             <div class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-2 py-0.5">
                 <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
-                    <div class="shrink-0 flex items-center">
+                    <div :id="'nav-card-item-' + cIdx" class="shrink-0 flex items-center">
                         <!-- JIKA KARTU MULTI-SOAL (GROUP) -->
                         <template x-if="card.is_group && card.questions.length > 1">
                             <div class="inline-flex items-center gap-1.5 p-1 rounded-xl transition-all"
@@ -1000,10 +1000,15 @@
                     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
                 } catch (_) {}
 
+                this.$watch('currentCardIndex', (val) => {
+                    this.scrollNavToActive(val);
+                });
+
                 this.$nextTick(() => {
                     this.renderKatex();
                     this.scrollToCardStimulusOrTop(this.currentCardIndex, null);
                     this.triggerQuestionMediaAutoplay();
+                    this.scrollNavToActive(this.currentCardIndex);
                 });
             },
 
@@ -1122,6 +1127,17 @@
                 });
             },
 
+            scrollNavToActive(cardIdx) {
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        const el = document.getElementById('nav-card-item-' + cardIdx);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                        }
+                    }, 50);
+                });
+            },
+
             goToCard(cardIdx) {
                 const card = this.displayItems[cardIdx];
                 if (!card) return;
@@ -1137,6 +1153,7 @@
                     if (qIdx >= 0) this.currentIndex = qIdx;
                 }
                 this.updateCurrentSectionTimer();
+                this.scrollNavToActive(cardIdx);
                 this.$nextTick(() => {
                     this.renderKatex();
                     this.scrollToCardStimulusOrTop(cardIdx, null);
@@ -1161,6 +1178,7 @@
                 if (qIdx >= 0) this.currentIndex = qIdx;
 
                 this.updateCurrentSectionTimer();
+                this.scrollNavToActive(cardIdx);
                 this.$nextTick(() => {
                     this.renderKatex();
                     this.scrollToCardStimulusOrTop(cardIdx, qid);

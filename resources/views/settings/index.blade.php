@@ -473,7 +473,9 @@
                                     @click="runTest('r2')" 
                                     :disabled="testing.r2"
                                     class="px-4 py-2 rounded-xl bg-white border border-gray-6 hover:bg-gray-3 text-gray-12 text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-60">
-                                <x-radix-icon name="reload" class="w-4 h-4" :class="testing.r2 ? 'animate-spin' : ''" />
+                                <span :class="testing.r2 ? 'animate-spin' : ''" class="inline-flex">
+                                    <x-radix-icon name="reload" class="w-4 h-4" />
+                                </span>
                                 <span x-text="testing.r2 ? 'Menguji Koneksi...' : 'Uji Koneksi R2 Sekarang'"></span>
                             </button>
                         </div>

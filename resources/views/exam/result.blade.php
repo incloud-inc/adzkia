@@ -696,17 +696,10 @@
 
             <div class="w-full flex items-center overflow-x-auto hide-scrollbar gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#d0ebff]">
 
-                <!-- Navigasi Prev Card -->
-                <button type="button" @click="prevCard()"
-                        :disabled="currentCardIndex <= 0"
-                        class="h-9 px-3 rounded-md bg-white border border-blue-300 text-blue-900 font-bold text-xs flex items-center gap-1 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-2xs font-display">
-                    ← Prev
-                </button>
-
                 <!-- Daftar Nomor Soal (Kelompok Stimulus dalam Kapsul, Soal Tunggal sebagai Tombol Mandiri) -->
                 <div class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-1.5 py-0.5 min-w-0">
                     <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
-                        <div class="shrink-0 flex items-center">
+                        <div :id="'review-nav-card-item-' + cIdx" class="shrink-0 flex items-center">
 
                             <!-- JIKA KARTU GRUP (STIMULUS > 1 SOAL) -->
                             <template x-if="card.is_group && card.questions.length > 1">
@@ -743,22 +736,25 @@
                     </template>
                 </div>
 
-                <!-- Navigasi Next Card -->
-                <button type="button" @click="nextCard()"
-                        :disabled="currentCardIndex >= displayItems.length - 1"
-                        class="h-9 px-3 rounded-md bg-white border border-blue-300 text-blue-900 font-bold text-xs flex items-center gap-1 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-2xs font-display">
-                    Next →
-                </button>
-
-                <!-- Tombol Aksi Kanan -->
+                <!-- Tombol Aksi Kanan (Icon pada HP/layar sempit, Teks pada Layar Besar) -->
                 <div class="flex items-center gap-1.5 shrink-0 pl-1 border-l border-blue-300/60">
                     <a href="{{ route('exam.analysis', $session->uuid) }}"
-                       class="font-display h-9 px-2.5 sm:px-3.5 rounded-md text-xs font-bold bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
-                        ANALISA
+                       class="font-display h-9 px-2.5 sm:px-3.5 rounded-md text-xs font-bold bg-blue-600 text-white flex items-center justify-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+                       title="Analisa Asesmen"
+                       aria-label="Analisa Asesmen">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span class="hidden sm:inline">ANALISA</span>
                     </a>
                     <a href="{{ route('dashboard') }}"
-                       class="font-display h-9 px-2.5 sm:px-3.5 rounded-md text-xs font-bold bg-slate-800 text-white flex items-center justify-center hover:bg-slate-900 transition-colors shadow-sm whitespace-nowrap">
-                        DASHBOARD
+                       class="font-display h-9 px-2.5 sm:px-3.5 rounded-md text-xs font-bold bg-slate-800 text-white flex items-center justify-center gap-1.5 hover:bg-slate-900 transition-colors shadow-sm whitespace-nowrap"
+                       title="Kembali ke Dashboard"
+                       aria-label="Kembali ke Dashboard">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                        <span class="hidden sm:inline">DASHBOARD</span>
                     </a>
                 </div>
             </div>
@@ -885,11 +881,23 @@
                 });
             },
 
+            scrollNavToActive(cardIdx) {
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        const el = document.getElementById('review-nav-card-item-' + cardIdx);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                        }
+                    }, 50);
+                });
+            },
+
             goToQuestion(qid) {
                 const cardIdx = this.displayItems.findIndex(c => c.questions.some(q => q.id === qid));
                 if (cardIdx === -1) return;
                 this.currentCardIndex = cardIdx;
                 this.activeQuestionId = qid;
+                this.scrollNavToActive(cardIdx);
 
                 this.$nextTick(() => {
                     this.renderMath();
@@ -901,6 +909,7 @@
                 if (this.currentCardIndex > 0) {
                     this.currentCardIndex--;
                     this.activeQuestionId = this.displayItems[this.currentCardIndex]?.questions[0]?.id;
+                    this.scrollNavToActive(this.currentCardIndex);
                     this.$nextTick(() => {
                         this.renderMath();
                         this.scrollToCardStimulusOrTop(this.currentCardIndex, null);
@@ -912,6 +921,7 @@
                 if (this.currentCardIndex < this.displayItems.length - 1) {
                     this.currentCardIndex++;
                     this.activeQuestionId = this.displayItems[this.currentCardIndex]?.questions[0]?.id;
+                    this.scrollNavToActive(this.currentCardIndex);
                     this.$nextTick(() => {
                         this.renderMath();
                         this.scrollToCardStimulusOrTop(this.currentCardIndex, null);
@@ -1128,13 +1138,15 @@
 
                 this.pauseAllMedia();
 
-                this.$watch('currentCardIndex', () => {
+                this.$watch('currentCardIndex', (val) => {
                     this.pauseAllMedia();
                     this.renderMath();
+                    this.scrollNavToActive(val);
                 });
                 this.$nextTick(() => {
                     this.pauseAllMedia();
                     this.renderMath();
+                    this.scrollNavToActive(this.currentCardIndex);
                 });
             },
 

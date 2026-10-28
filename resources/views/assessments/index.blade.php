@@ -71,58 +71,63 @@
                            class="w-full rounded-lg border border-gray-7 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none">
                 </div>
 
-                <div class="w-full sm:w-28 shrink-0">
-                    <select name="grade_level" onchange="this.form.submit()" 
-                            class="w-full rounded-lg border border-gray-7 bg-white px-2 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
-                        <option value="">Semua Kelas</option>
-                        @foreach($gradeLevels ?? [] as $gl)
-                            <option value="{{ $gl->value }}" {{ request('grade_level') == $gl->value ? 'selected' : '' }}>
-                                {{ $gl->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="w-full sm:w-24 shrink-0">
-                    <select name="subject_id" onchange="this.form.submit()" 
-                            class="w-full rounded-lg border border-gray-7 bg-white px-2 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
-                        <option value="">Semua Mapel</option>
-                        @foreach($subjects as $sub)
-                            <option value="{{ $sub->id }}" {{ request('subject_id') == $sub->id ? 'selected' : '' }}>{{ $sub->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="w-full sm:w-28 shrink-0">
-                    <select name="price_type" onchange="this.form.submit()" 
-                            class="w-full rounded-lg border border-gray-7 bg-white px-2 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
-                        <option value="">Semua Biaya</option>
-                        <option value="free" {{ request('price_type') === 'free' ? 'selected' : '' }}>Gratis</option>
-                        <option value="paid" {{ request('price_type') === 'paid' ? 'selected' : '' }}>Berbayar</option>
-                    </select>
-                </div>
-
-                @if($canManage)
-                    <div class="w-full sm:w-20 shrink-0">
-                        <select name="status" onchange="this.form.submit()" 
-                                class="w-full rounded-lg border border-gray-7 bg-white px-2 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
-                            <option value="">Status</option>
-                            <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draf</option>
-                            <option value="published" {{ request('status') === 'published' ? 'selected' : '' }}>Published</option>
-                            <option value="archived" {{ request('status') === 'archived' ? 'selected' : '' }}>Arsip</option>
+                <!-- 3 Filter Dropdown dalam Satu Baris pada Mobile (Grid 3 Kolom) -->
+                <div class="grid grid-cols-3 gap-1.5 sm:gap-2 w-full sm:w-auto sm:flex sm:items-center">
+                    <div class="w-full sm:w-28 shrink-0 min-w-0">
+                        <select name="grade_level" onchange="this.form.submit()" 
+                                class="w-full rounded-lg border border-gray-7 bg-white px-1.5 sm:px-2 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
+                            <option value="">Semua Kelas</option>
+                            @foreach($gradeLevels ?? [] as $gl)
+                                <option value="{{ $gl->value }}" {{ request('grade_level') == $gl->value ? 'selected' : '' }}>
+                                    {{ $gl->name }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
-                @endif
 
-                <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-gray-3 hover:bg-gray-4 text-gray-12 text-xs font-semibold transition-colors cursor-pointer shrink-0">
-                    Filter
-                </button>
+                    <div class="w-full sm:w-24 shrink-0 min-w-0">
+                        <select name="subject_id" onchange="this.form.submit()" 
+                                class="w-full rounded-lg border border-gray-7 bg-white px-1.5 sm:px-2 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
+                            <option value="">Semua Mapel</option>
+                            @foreach($subjects as $sub)
+                                <option value="{{ $sub->id }}" {{ request('subject_id') == $sub->id ? 'selected' : '' }}>{{ $sub->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                @if(request()->hasAny(['search', 'grade_level', 'subject_id', 'status', 'type', 'price_type']))
-                    <a href="{{ route('assessments.index') }}" class="px-2 py-1.5 rounded-lg bg-gray-2 hover:bg-gray-3 text-gray-11 hover:text-gray-12 text-xs font-semibold flex items-center justify-center transition-colors shrink-0">
-                        Reset
-                    </a>
-                @endif
+                    <div class="w-full sm:w-28 shrink-0 min-w-0">
+                        <select name="price_type" onchange="this.form.submit()" 
+                                class="w-full rounded-lg border border-gray-7 bg-white px-1.5 sm:px-2 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
+                            <option value="">Semua Biaya</option>
+                            <option value="free" {{ request('price_type') === 'free' ? 'selected' : '' }}>Gratis</option>
+                            <option value="paid" {{ request('price_type') === 'paid' ? 'selected' : '' }}>Berbayar</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto shrink-0">
+                    @if($canManage)
+                        <div class="flex-1 sm:w-20 shrink-0 min-w-0">
+                            <select name="status" onchange="this.form.submit()" 
+                                    class="w-full rounded-lg border border-gray-7 bg-white px-2 py-1.5 text-xs text-gray-12 outline-none cursor-pointer truncate">
+                                <option value="">Status</option>
+                                <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draf</option>
+                                <option value="published" {{ request('status') === 'published' ? 'selected' : '' }}>Published</option>
+                                <option value="archived" {{ request('status') === 'archived' ? 'selected' : '' }}>Arsip</option>
+                            </select>
+                        </div>
+                    @endif
+
+                    <button type="submit" class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-gray-3 hover:bg-gray-4 text-gray-12 text-xs font-semibold transition-colors cursor-pointer text-center shrink-0">
+                        Filter
+                    </button>
+
+                    @if(request()->hasAny(['search', 'grade_level', 'subject_id', 'status', 'type', 'price_type']))
+                        <a href="{{ route('assessments.index') }}" class="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg bg-gray-2 hover:bg-gray-3 text-gray-11 hover:text-gray-12 text-xs font-semibold flex items-center justify-center transition-colors text-center shrink-0">
+                            Reset
+                        </a>
+                    @endif
+                </div>
             </form>
         </div>
 
