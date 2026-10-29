@@ -27,11 +27,32 @@ if [ -f /app/.env ]; then
     sed -i 's|APP_URL=https://cbt.domain-anda.com|APP_URL=https://adzkia.id|g' /app/.env
 fi
 
-# Ensure public storage link exists
+# Ensure public storage link and tenant asset directories exist
+mkdir -p /app/storage/app/public/tenants/favicons \
+         /app/storage/app/public/tenants/logos \
+         /app/storage/app/public/tenants/covers
+
 if [ ! -L /app/public/storage ]; then
     echo ">> Linking storage directory..."
     php artisan storage:link --force || true
 fi
+
+# Pre-populate tenant branding assets if not present
+R2_BASE="${CLOUDFLARE_R2_URL:-https://image.adzkia.id}"
+if [ ! -f /app/storage/app/public/tenants/favicons/hjE5BUGWTsISNriNAynRSxRNcLn9QasZ0tPE1EoT.png ]; then
+    curl -fsSL -o /app/storage/app/public/tenants/favicons/hjE5BUGWTsISNriNAynRSxRNcLn9QasZ0tPE1EoT.png "${R2_BASE}/tenants/favicons/hjE5BUGWTsISNriNAynRSxRNcLn9QasZ0tPE1EoT.png" 2>/dev/null || true
+fi
+if [ ! -f /app/storage/app/public/tenants/favicons/BV7zOaRiDLfKzygWOhpc2cH0fPMXvcugHSWZUFcj.png ]; then
+    curl -fsSL -o /app/storage/app/public/tenants/favicons/BV7zOaRiDLfKzygWOhpc2cH0fPMXvcugHSWZUFcj.png "${R2_BASE}/tenants/favicons/BV7zOaRiDLfKzygWOhpc2cH0fPMXvcugHSWZUFcj.png" 2>/dev/null || true
+fi
+if [ ! -f /app/storage/app/public/tenants/favicons/tJ29IbrZu6t16f9F0hJ9L3bhPn4CFjMnrgnnAXg0.ico ] && [ -f /app/public/images/icon-adzkia.png ]; then
+    cp /app/public/images/icon-adzkia.png /app/storage/app/public/tenants/favicons/tJ29IbrZu6t16f9F0hJ9L3bhPn4CFjMnrgnnAXg0.ico || true
+fi
+if [ ! -f /app/storage/app/public/tenants/favicons/cUfKAWFW3lbCaAOe50pfAqvHlOn87NYtIhPB3hRU.png ] && [ -f /app/public/images/icon-adzkia.png ]; then
+    cp /app/public/images/icon-adzkia.png /app/storage/app/public/tenants/favicons/cUfKAWFW3lbCaAOe50pfAqvHlOn87NYtIhPB3hRU.png || true
+fi
+
+chown -R www-data:www-data /app/storage /app/bootstrap/cache || true
 
 # Cache configuration, routes, and views for production performance if APP_KEY is set in .env or environment
 if grep -q "^APP_KEY=base64:" /app/.env 2>/dev/null || [ -n "$APP_KEY" ]; then

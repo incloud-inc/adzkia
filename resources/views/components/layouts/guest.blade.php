@@ -28,7 +28,8 @@
     <title>{{ $resolvedTitle }}</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
+    <link rel="icon" href="{{ $faviconUrl }}">
+    <link rel="shortcut icon" href="{{ $faviconUrl }}">
     <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
     
     <!-- Fonts -->

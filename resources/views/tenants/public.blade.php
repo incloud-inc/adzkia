@@ -15,13 +15,12 @@
     @endphp
     <title>Portal Asesmen {{ $tenant->name }}</title>
     
-    @if($tenant->favicon_path)
-        <link rel="icon" href="{{ $tenant->favicon_url }}">
-        <link rel="apple-touch-icon" href="{{ $tenant->favicon_url }}">
-    @else
-        <link rel="icon" type="image/png" href="{{ asset('images/icon-adzkia.png') }}">
-        <link rel="apple-touch-icon" href="{{ asset('images/icon-adzkia.png') }}">
-    @endif
+    @php
+        $tenantFavicon = ($tenant->favicon_path) ? $tenant->favicon_url : asset('images/icon-adzkia.png');
+    @endphp
+    <link rel="icon" href="{{ $tenantFavicon }}">
+    <link rel="shortcut icon" href="{{ $tenantFavicon }}">
+    <link rel="apple-touch-icon" href="{{ $tenantFavicon }}">
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>

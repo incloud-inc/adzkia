@@ -72,18 +72,32 @@ class User extends Authenticatable
             return $path;
         }
 
-        if (file_exists(storage_path('app/public/'.$path))) {
-            return Storage::disk('public')->url($path);
+        $cleanPath = ltrim(str_replace('\\', '/', $path), '/');
+
+        if (file_exists(storage_path('app/public/'.$cleanPath))) {
+            return Storage::disk('public')->url($cleanPath);
+        }
+
+        $r2Url = trim((string) config('filesystems.disks.r2.url', env('CLOUDFLARE_R2_URL', '')), "\"' ");
+        if (! empty($r2Url) && ! str_contains($r2Url, 'localhost') && ! str_contains($r2Url, '127.0.0.1')) {
+            if (str_contains($r2Url, '.r2.dev')) {
+                return function_exists('url') ? url('/media/r2/'.$cleanPath) : '/media/r2/'.$cleanPath;
+            }
+
+            return rtrim($r2Url, '/').'/'.$cleanPath;
         }
 
         $disk = config('filesystems.upload_disk', 'public');
-        if ($disk === 'r2' && (! config('filesystems.disks.r2.key') || ! config('filesystems.disks.r2.secret'))) {
-            return Storage::disk('public')->url($path);
+        if ($disk === 'r2') {
+            $r2DiskUrl = trim((string) config('filesystems.disks.r2.url', ''), "\"' ");
+            if (! empty($r2DiskUrl)) {
+                return rtrim($r2DiskUrl, '/').'/'.$cleanPath;
+            }
         }
 
-        $url = Storage::disk($disk)->url($path);
+        $url = Storage::disk($disk)->url($cleanPath);
         if (str_contains($url, '.r2.dev/')) {
-            return function_exists('url') ? url('/media/r2/'.$path) : '/media/r2/'.$path;
+            return function_exists('url') ? url('/media/r2/'.$cleanPath) : '/media/r2/'.$cleanPath;
         }
 
         return $url;

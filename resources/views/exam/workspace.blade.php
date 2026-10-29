@@ -12,7 +12,8 @@
     <title>{{ \App\Support\PageTitleResolver::resolve("Lembar Ujian — {$assessment->title}", $examTenant, auth()->user()) }}</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ $examFavicon }}">
+    <link rel="icon" href="{{ $examFavicon }}">
+    <link rel="shortcut icon" href="{{ $examFavicon }}">
     <link rel="apple-touch-icon" href="{{ $examFavicon }}">
 
     <!-- Font Open Sans (Body) & Outfit (Heading/Aksen) -->

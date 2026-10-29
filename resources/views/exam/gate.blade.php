@@ -31,7 +31,8 @@
     <meta name="twitter:image" content="{{ $ogImage }}">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ $examFavicon }}">
+    <link rel="icon" href="{{ $examFavicon }}">
+    <link rel="shortcut icon" href="{{ $examFavicon }}">
     <link rel="apple-touch-icon" href="{{ $examFavicon }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 

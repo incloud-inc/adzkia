@@ -8,13 +8,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{{ $user->name }} - {{ $tenantName }}</title>
     
-    @if($tenant && $tenant->favicon_path)
-        <link rel="icon" href="{{ $tenant->favicon_url }}">
-        <link rel="apple-touch-icon" href="{{ $tenant->favicon_url }}">
-    @else
-        <link rel="icon" type="image/png" href="{{ asset('images/icon-adzkia.png') }}">
-        <link rel="apple-touch-icon" href="{{ asset('images/icon-adzkia.png') }}">
-    @endif
+    @php
+        $profileFavicon = ($tenant && $tenant->favicon_path) ? $tenant->favicon_url : asset('images/icon-adzkia.png');
+    @endphp
+    <link rel="icon" href="{{ $profileFavicon }}">
+    <link rel="shortcut icon" href="{{ $profileFavicon }}">
+    <link rel="apple-touch-icon" href="{{ $profileFavicon }}">
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
