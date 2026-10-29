@@ -1,8 +1,17 @@
 #!/bin/sh
 set -e
 
-# If Coolify passes a multi-line .env content in the ENV environment variable, write it to /app/.env
-if [ -n "$ENV" ] && echo "$ENV" | grep -q "APP_KEY"; then
+# Handle Coolify multiline ENV wrapper or variable
+if [ -f /app/.env ] && grep -q '^ENV="' /app/.env 2>/dev/null; then
+    echo ">> Extracting .env from Coolify ENV wrapper in /app/.env..."
+    sed -n '/^ENV="/,$ p' /app/.env | sed '1s/^ENV="//; $s/"$//' > /app/.env.extracted
+    if grep -q "APP_KEY" /app/.env.extracted 2>/dev/null; then
+        mv /app/.env.extracted /app/.env
+        echo ">> Successfully extracted .env (APP_KEY found)"
+    else
+        rm -f /app/.env.extracted
+    fi
+elif [ -n "$ENV" ] && echo "$ENV" | grep -q "APP_KEY"; then
     echo ">> Writing .env from Coolify ENV variable..."
     printf "%s\n" "$ENV" > /app/.env
 fi
@@ -24,8 +33,8 @@ if [ ! -L /app/public/storage ]; then
     php artisan storage:link --force || true
 fi
 
-# Cache configuration, routes, and views for production performance if APP_KEY is set
-if [ -n "$APP_KEY" ]; then
+# Cache configuration, routes, and views for production performance if APP_KEY is set in .env or environment
+if grep -q "^APP_KEY=base64:" /app/.env 2>/dev/null || [ -n "$APP_KEY" ]; then
     echo ">> Optimizing Laravel configuration, routes, and views..."
     php artisan config:cache || true
     php artisan route:cache || true
