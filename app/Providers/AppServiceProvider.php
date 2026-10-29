@@ -28,57 +28,58 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // ── Muat Pengaturan Sistem Dinamis (R2, Payment, AI) dari Database ──
-        if (! $this->app->runningInConsole() || $this->app->runningUnitTests()) {
-            try {
-                $sysSettings = SystemSetting::allSettings();
-                if (! empty($sysSettings)) {
-                    $configUpdates = [];
-                    if (! empty($sysSettings['UPLOAD_DISK'])) {
-                        $configUpdates['filesystems.upload_disk'] = $sysSettings['UPLOAD_DISK'];
-                    }
-                    if (! empty($sysSettings['CLOUDFLARE_R2_ACCESS_KEY_ID'])) {
-                        $configUpdates['filesystems.disks.r2.key'] = $sysSettings['CLOUDFLARE_R2_ACCESS_KEY_ID'];
-                    }
-                    if (! empty($sysSettings['CLOUDFLARE_R2_SECRET_ACCESS_KEY'])) {
-                        $configUpdates['filesystems.disks.r2.secret'] = $sysSettings['CLOUDFLARE_R2_SECRET_ACCESS_KEY'];
-                    }
-                    if (! empty($sysSettings['CLOUDFLARE_R2_BUCKET'])) {
-                        $configUpdates['filesystems.disks.r2.bucket'] = $sysSettings['CLOUDFLARE_R2_BUCKET'];
-                    }
-                    if (! empty($sysSettings['CLOUDFLARE_R2_ENDPOINT'])) {
-                        $configUpdates['filesystems.disks.r2.endpoint'] = $sysSettings['CLOUDFLARE_R2_ENDPOINT'];
-                    }
-                    if (! empty($sysSettings['CLOUDFLARE_R2_URL'])) {
-                        $configUpdates['filesystems.disks.r2.url'] = $sysSettings['CLOUDFLARE_R2_URL'];
-                    }
-                    if (! empty($sysSettings['CLOUDFLARE_R2_REGION'])) {
-                        $configUpdates['filesystems.disks.r2.region'] = $sysSettings['CLOUDFLARE_R2_REGION'];
-                    }
-                    if (! empty($sysSettings['PAYMENT_GATEWAY_DRIVER'])) {
-                        $configUpdates['payment.default'] = $sysSettings['PAYMENT_GATEWAY_DRIVER'];
-                    }
-                    if (! empty($sysSettings['TRIPAY_API_KEY'])) {
-                        $configUpdates['payment.gateways.tripay.api_key'] = $sysSettings['TRIPAY_API_KEY'];
-                    }
-                    if (! empty($sysSettings['DUITKU_API_KEY'])) {
-                        $configUpdates['payment.gateways.duitku.api_key'] = $sysSettings['DUITKU_API_KEY'];
-                    }
-                    if (! empty($sysSettings['MIDTRANS_SERVER_KEY'])) {
-                        $configUpdates['payment.gateways.midtrans.server_key'] = $sysSettings['MIDTRANS_SERVER_KEY'];
-                    }
-                    if (! empty($sysSettings['DEEPSEEK_API_KEY'])) {
-                        $configUpdates['services.deepseek.api_key'] = $sysSettings['DEEPSEEK_API_KEY'];
-                    }
-                    if (! empty($sysSettings['GEMINI_API_KEY'])) {
-                        $configUpdates['services.gemini.api_key'] = $sysSettings['GEMINI_API_KEY'];
-                    }
-                    if (! empty($configUpdates)) {
-                        config($configUpdates);
+        try {
+            $sysSettings = SystemSetting::allSettings();
+            if (! empty($sysSettings)) {
+                $configUpdates = [];
+                if (! empty($sysSettings['UPLOAD_DISK'])) {
+                    $configUpdates['filesystems.upload_disk'] = $sysSettings['UPLOAD_DISK'];
+                }
+                if (! empty($sysSettings['CLOUDFLARE_R2_ACCESS_KEY_ID'])) {
+                    $configUpdates['filesystems.disks.r2.key'] = $sysSettings['CLOUDFLARE_R2_ACCESS_KEY_ID'];
+                }
+                if (! empty($sysSettings['CLOUDFLARE_R2_SECRET_ACCESS_KEY'])) {
+                    $configUpdates['filesystems.disks.r2.secret'] = $sysSettings['CLOUDFLARE_R2_SECRET_ACCESS_KEY'];
+                }
+                if (! empty($sysSettings['CLOUDFLARE_R2_BUCKET'])) {
+                    $configUpdates['filesystems.disks.r2.bucket'] = $sysSettings['CLOUDFLARE_R2_BUCKET'];
+                }
+                if (! empty($sysSettings['CLOUDFLARE_R2_ENDPOINT'])) {
+                    $configUpdates['filesystems.disks.r2.endpoint'] = $sysSettings['CLOUDFLARE_R2_ENDPOINT'];
+                }
+                if (! empty($sysSettings['CLOUDFLARE_R2_URL'])) {
+                    $configUpdates['filesystems.disks.r2.url'] = $sysSettings['CLOUDFLARE_R2_URL'];
+                }
+                if (! empty($sysSettings['CLOUDFLARE_R2_REGION'])) {
+                    $configUpdates['filesystems.disks.r2.region'] = $sysSettings['CLOUDFLARE_R2_REGION'];
+                }
+                if (! empty($sysSettings['PAYMENT_GATEWAY_DRIVER'])) {
+                    $configUpdates['payment.default'] = $sysSettings['PAYMENT_GATEWAY_DRIVER'];
+                }
+                if (! empty($sysSettings['TRIPAY_API_KEY'])) {
+                    $configUpdates['payment.gateways.tripay.api_key'] = $sysSettings['TRIPAY_API_KEY'];
+                }
+                if (! empty($sysSettings['DUITKU_API_KEY'])) {
+                    $configUpdates['payment.gateways.duitku.api_key'] = $sysSettings['DUITKU_API_KEY'];
+                }
+                if (! empty($sysSettings['MIDTRANS_SERVER_KEY'])) {
+                    $configUpdates['payment.gateways.midtrans.server_key'] = $sysSettings['MIDTRANS_SERVER_KEY'];
+                }
+                if (! empty($sysSettings['DEEPSEEK_API_KEY'])) {
+                    $configUpdates['services.deepseek.api_key'] = $sysSettings['DEEPSEEK_API_KEY'];
+                }
+                if (! empty($sysSettings['GEMINI_API_KEY'])) {
+                    $configUpdates['services.gemini.api_key'] = $sysSettings['GEMINI_API_KEY'];
+                }
+                if (! empty($configUpdates)) {
+                    config($configUpdates);
+                    if ($this->app->resolved('filesystem')) {
+                        $this->app->forgetInstance('filesystem');
                     }
                 }
-            } catch (\Throwable $e) {
-                // Abaikan jika tabel belum siap
             }
+        } catch (\Throwable $e) {
+            // Abaikan jika tabel belum siap
         }
 
         // ── Rate Limiters Khusus CBT (High-Concurrency Anti-429) ──
