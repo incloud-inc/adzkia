@@ -134,6 +134,7 @@
 
         <form id="settings-form" method="POST" action="{{ route('settings.update') }}" class="space-y-6">
             @csrf
+            <input type="hidden" name="active_tab" :value="activeTab">
 
             <!-- ============================================== -->
             <!--            TAB 1: PAYMENT GATEWAY              -->

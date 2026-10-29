@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SystemSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -19,10 +21,24 @@ class SettingController extends Controller
      */
     public function index(): View
     {
-        $currentDriver = config('payment.default', 'duitku');
-        $tripayConfig = config('payment.gateways.tripay', []);
-        $duitkuConfig = config('payment.gateways.duitku', []);
-        $midtransConfig = config('payment.gateways.midtrans', []);
+        $currentDriver = $this->getSettingValue('PAYMENT_GATEWAY_DRIVER', 'payment.default', 'duitku');
+        $tripayConfig = [
+            'merchant_code' => $this->getSettingValue('TRIPAY_MERCHANT_CODE', 'payment.gateways.tripay.merchant_code', ''),
+            'api_key' => $this->getSettingValue('TRIPAY_API_KEY', 'payment.gateways.tripay.api_key', ''),
+            'private_key' => $this->getSettingValue('TRIPAY_PRIVATE_KEY', 'payment.gateways.tripay.private_key', ''),
+            'sandbox' => filter_var($this->getSettingValue('TRIPAY_SANDBOX', 'payment.gateways.tripay.sandbox', 'true'), FILTER_VALIDATE_BOOLEAN),
+        ];
+        $duitkuConfig = [
+            'merchant_code' => $this->getSettingValue('DUITKU_MERCHANT_CODE', 'payment.gateways.duitku.merchant_code', ''),
+            'api_key' => $this->getSettingValue('DUITKU_API_KEY', 'payment.gateways.duitku.api_key', ''),
+            'sandbox' => filter_var($this->getSettingValue('DUITKU_SANDBOX', 'payment.gateways.duitku.sandbox', 'true'), FILTER_VALIDATE_BOOLEAN),
+        ];
+        $midtransConfig = [
+            'server_key' => $this->getSettingValue('MIDTRANS_SERVER_KEY', 'payment.gateways.midtrans.server_key', ''),
+            'client_key' => $this->getSettingValue('MIDTRANS_CLIENT_KEY', 'payment.gateways.midtrans.client_key', ''),
+            'merchant_id' => $this->getSettingValue('MIDTRANS_MERCHANT_ID', 'payment.gateways.midtrans.merchant_id', ''),
+            'sandbox' => filter_var($this->getSettingValue('MIDTRANS_SANDBOX', 'payment.gateways.midtrans.sandbox', 'true'), FILTER_VALIDATE_BOOLEAN),
+        ];
         $methods = config('payment.methods', []);
 
         $webhookUrls = [
@@ -88,14 +104,13 @@ class SettingController extends Controller
         }
 
         // 3. Status Real-Time Cloudflare R2 Object Storage
-        $uploadDisk = config('filesystems.upload_disk', 'r2');
-        $r2Disk = config('filesystems.disks.r2', []);
-        $r2Key = $r2Disk['key'] ?? env('CLOUDFLARE_R2_ACCESS_KEY_ID', '');
-        $r2Secret = $r2Disk['secret'] ?? env('CLOUDFLARE_R2_SECRET_ACCESS_KEY', '');
-        $r2Bucket = $r2Disk['bucket'] ?? env('CLOUDFLARE_R2_BUCKET', 'adzkia');
-        $r2Endpoint = $r2Disk['endpoint'] ?? env('CLOUDFLARE_R2_ENDPOINT', '');
-        $r2Url = $r2Disk['url'] ?? env('CLOUDFLARE_R2_URL', '');
-        $r2Region = $r2Disk['region'] ?? env('CLOUDFLARE_R2_REGION', 'auto');
+        $uploadDisk = $this->getSettingValue('UPLOAD_DISK', 'filesystems.upload_disk', 'r2');
+        $r2Key = $this->getSettingValue('CLOUDFLARE_R2_ACCESS_KEY_ID', 'filesystems.disks.r2.key', '');
+        $r2Secret = $this->getSettingValue('CLOUDFLARE_R2_SECRET_ACCESS_KEY', 'filesystems.disks.r2.secret', '');
+        $r2Bucket = $this->getSettingValue('CLOUDFLARE_R2_BUCKET', 'filesystems.disks.r2.bucket', 'adzkia');
+        $r2Endpoint = $this->getSettingValue('CLOUDFLARE_R2_ENDPOINT', 'filesystems.disks.r2.endpoint', '');
+        $r2Url = $this->getSettingValue('CLOUDFLARE_R2_URL', 'filesystems.disks.r2.url', '');
+        $r2Region = $this->getSettingValue('CLOUDFLARE_R2_REGION', 'filesystems.disks.r2.region', 'auto');
 
         $r2Status = [
             'active_upload_disk' => $uploadDisk,
@@ -115,9 +130,21 @@ class SettingController extends Controller
 
         if ($r2Status['configured']) {
             try {
+                config([
+                    'filesystems.disks.r2.key' => $r2Key,
+                    'filesystems.disks.r2.secret' => $r2Secret,
+                    'filesystems.disks.r2.bucket' => $r2Bucket,
+                    'filesystems.disks.r2.endpoint' => $r2Endpoint,
+                    'filesystems.disks.r2.url' => $r2Url,
+                    'filesystems.disks.r2.region' => $r2Region,
+                ]);
+
                 $startR2 = microtime(true);
                 $storage = Storage::disk('r2');
                 $files = $storage->files('asesmen');
+                if (empty($files)) {
+                    $files = $storage->files('tenants/favicons');
+                }
                 $r2Status['connected'] = true;
                 $r2Status['ping_ms'] = round((microtime(true) - $startR2) * 1000);
                 $r2Status['file_count'] = count($files);
@@ -140,8 +167,8 @@ class SettingController extends Controller
         ];
 
         // 4. Status AI Engines
-        $deepseekKey = config('services.deepseek.api_key', env('DEEPSEEK_API_KEY', ''));
-        $geminiKey = config('services.gemini.api_key', env('GEMINI_API_KEY', ''));
+        $deepseekKey = $this->getSettingValue('DEEPSEEK_API_KEY', 'services.deepseek.api_key', '');
+        $geminiKey = $this->getSettingValue('GEMINI_API_KEY', 'services.gemini.api_key', '');
         $aiStatus = [
             'deepseek' => [
                 'enabled' => config('services.deepseek.enabled', true),
@@ -260,9 +287,40 @@ class SettingController extends Controller
             $envUpdates['GEMINI_API_KEY'] = $validated['gemini_api_key'];
         }
 
+        // 1. Simpan ke database SystemSetting agar permanen melintasi restart/redeploy container
+        SystemSetting::setMany($envUpdates);
+
+        // 2. Terapkan langsung ke config runtime saat ini
+        config([
+            'filesystems.upload_disk' => $envUpdates['UPLOAD_DISK'],
+            'filesystems.disks.r2.key' => $envUpdates['CLOUDFLARE_R2_ACCESS_KEY_ID'],
+            'filesystems.disks.r2.secret' => $envUpdates['CLOUDFLARE_R2_SECRET_ACCESS_KEY'],
+            'filesystems.disks.r2.bucket' => $envUpdates['CLOUDFLARE_R2_BUCKET'],
+            'filesystems.disks.r2.endpoint' => $envUpdates['CLOUDFLARE_R2_ENDPOINT'],
+            'filesystems.disks.r2.url' => $envUpdates['CLOUDFLARE_R2_URL'],
+            'filesystems.disks.r2.region' => $envUpdates['CLOUDFLARE_R2_REGION'],
+            'payment.default' => $envUpdates['PAYMENT_GATEWAY_DRIVER'],
+        ]);
+
+        // 3. Tulis juga ke berkas .env server
         $this->updateEnvFile($envUpdates);
 
-        return redirect()->route('settings.index')->with('success', 'Konfigurasi Sistem, Cloudflare R2, dan Payment Gateway berhasil disimpan ke lingkungan server!');
+        // 4. Bersihkan dan perbarui config cache Laravel
+        try {
+            Artisan::call('config:clear');
+            Artisan::call('config:cache');
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        if (function_exists('opcache_reset')) {
+            @opcache_reset();
+        }
+
+        $activeTab = $request->input('active_tab', 'storage');
+
+        return redirect()->to(route('settings.index').'#'.$activeTab)
+            ->with('success', 'Konfigurasi Sistem, Cloudflare R2, dan Payment Gateway berhasil disimpan secara permanen!');
     }
 
     /**
@@ -274,12 +332,11 @@ class SettingController extends Controller
 
         switch ($target) {
             case 'r2':
-                $r2Disk = config('filesystems.disks.r2', []);
-                $key = $request->input('r2_access_key_id', $r2Disk['key'] ?? '');
-                $secret = $request->input('r2_secret_access_key', $r2Disk['secret'] ?? '');
-                $bucket = $request->input('r2_bucket', $r2Disk['bucket'] ?? 'adzkia');
-                $endpoint = $request->input('r2_endpoint', $r2Disk['endpoint'] ?? '');
-                $region = $request->input('r2_region', $r2Disk['region'] ?? 'auto');
+                $key = $request->input('r2_access_key_id') ?: $this->getSettingValue('CLOUDFLARE_R2_ACCESS_KEY_ID', 'filesystems.disks.r2.key', '');
+                $secret = $request->input('r2_secret_access_key') ?: $this->getSettingValue('CLOUDFLARE_R2_SECRET_ACCESS_KEY', 'filesystems.disks.r2.secret', '');
+                $bucket = $request->input('r2_bucket') ?: $this->getSettingValue('CLOUDFLARE_R2_BUCKET', 'filesystems.disks.r2.bucket', 'adzkia');
+                $endpoint = $request->input('r2_endpoint') ?: $this->getSettingValue('CLOUDFLARE_R2_ENDPOINT', 'filesystems.disks.r2.endpoint', '');
+                $region = $request->input('r2_region') ?: $this->getSettingValue('CLOUDFLARE_R2_REGION', 'filesystems.disks.r2.region', 'auto');
 
                 if (empty($key) || empty($secret) || empty($bucket) || empty($endpoint)) {
                     return response()->json([
@@ -304,11 +361,17 @@ class SettingController extends Controller
 
                     $storage = Storage::disk('r2_test');
                     $files = $storage->files('asesmen');
+                    if (empty($files)) {
+                        $files = $storage->files('tenants/favicons');
+                    }
+                    if (empty($files)) {
+                        $files = $storage->files('');
+                    }
                     $ping = round((microtime(true) - $start) * 1000);
 
                     return response()->json([
                         'success' => true,
-                        'message' => 'Koneksi Cloudflare R2 berhasil! Terhubung ke bucket "'.$bucket.'". Ditemukan '.count($files).' berkas asesmen.',
+                        'message' => 'Koneksi Cloudflare R2 berhasil! Terhubung ke bucket "'.$bucket.'". Ditemukan '.count($files).' berkas.',
                         'ping_ms' => $ping,
                         'file_count' => count($files),
                     ]);
@@ -407,18 +470,101 @@ class SettingController extends Controller
             return;
         }
 
+        if (! is_writable($envPath)) {
+            @chmod($envPath, 0664);
+        }
+
         $envContent = File::get($envPath);
 
         foreach ($data as $key => $value) {
             $formattedValue = (str_contains($value, ' ') || str_contains($value, '#') || str_contains($value, '$')) ? "\"{$value}\"" : $value;
+            $safeReplacement = str_replace(['\\', '$'], ['\\\\', '\\$'], "{$key}={$formattedValue}");
 
             if (preg_match("/^{$key}=.*/m", $envContent)) {
-                $envContent = preg_replace("/^{$key}=.*/m", "{$key}={$formattedValue}", $envContent);
+                $envContent = preg_replace("/^{$key}=.*/m", $safeReplacement, $envContent);
             } else {
                 $envContent .= "\n{$key}={$formattedValue}";
             }
+
+            putenv("{$key}={$value}");
+            $_ENV[$key] = $value;
+            $_SERVER[$key] = $value;
         }
 
-        File::put($envPath, $envContent);
+        try {
+            File::put($envPath, $envContent);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * Helper to get setting value with prioritization:
+     * 1. SystemSetting (Database)
+     * 2. .env file directly parsed
+     * 3. config()
+     * 4. env()
+     * 5. Default fallback
+     */
+    protected function getSettingValue(string $envKey, ?string $configKey = null, $default = ''): string
+    {
+        // 1. Dari database SystemSetting
+        $dbVal = SystemSetting::get($envKey);
+        if ($dbVal !== null && $dbVal !== '') {
+            return (string) $dbVal;
+        }
+
+        // 2. Dari .env file langsung (kebal dari config:cache)
+        $fileVal = $this->parseEnvFile($envKey);
+        if ($fileVal !== null && $fileVal !== '') {
+            return (string) $fileVal;
+        }
+
+        // 3. Dari config Laravel jika disediakan
+        if ($configKey !== null) {
+            $cfgVal = config($configKey);
+            if ($cfgVal !== null && $cfgVal !== '') {
+                return (string) $cfgVal;
+            }
+        }
+
+        // 4. Dari env()
+        $envVal = env($envKey);
+        if ($envVal !== null && $envVal !== '') {
+            return (string) $envVal;
+        }
+
+        return (string) $default;
+    }
+
+    /**
+     * Parse single key from .env directly without relying on env() or config().
+     */
+    protected function parseEnvFile(string $key): ?string
+    {
+        static $parsedEnv = null;
+        if ($parsedEnv === null) {
+            $parsedEnv = [];
+            $envPath = base_path('.env');
+            if (File::exists($envPath)) {
+                $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                if ($lines !== false) {
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if ($line === '' || str_starts_with($line, '#')) {
+                            continue;
+                        }
+                        if (str_contains($line, '=')) {
+                            [$k, $v] = explode('=', $line, 2);
+                            $k = trim($k);
+                            $v = trim($v, " \t\n\r\0\x0B\"'");
+                            $parsedEnv[$k] = $v;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $parsedEnv[$key] ?? null;
     }
 }

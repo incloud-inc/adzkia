@@ -52,7 +52,43 @@ if [ ! -f /app/storage/app/public/tenants/favicons/cUfKAWFW3lbCaAOe50pfAqvHlOn87
     cp /app/public/images/icon-adzkia.png /app/storage/app/public/tenants/favicons/cUfKAWFW3lbCaAOe50pfAqvHlOn87NYtIhPB3hRU.png || true
 fi
 
-chown -R www-data:www-data /app/storage /app/bootstrap/cache || true
+chown -R www-data:www-data /app/.env /app/storage /app/bootstrap/cache || true
+chmod 664 /app/.env || true
+
+# Run database migrations first so all system tables are ready
+if [ "$AUTO_MIGRATE" = "true" ] || [ "$RUN_MIGRATIONS" = "true" ]; then
+    echo ">> Running database migrations..."
+    php artisan migrate --force || true
+fi
+
+# Sync saved system settings from database into .env if present
+php -r '
+require __DIR__ . "/vendor/autoload.php";
+$app = require_once __DIR__ . "/bootstrap/app.php";
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
+try {
+    if (Illuminate\Support\Facades\Schema::hasTable("system_settings")) {
+        $settings = App\Models\SystemSetting::pluck("value", "key")->toArray();
+        if (!empty($settings)) {
+            $envPath = base_path(".env");
+            $content = file_exists($envPath) ? file_get_contents($envPath) : "";
+            foreach ($settings as $k => $v) {
+                if ($v !== null && $v !== "") {
+                    $formatted = (str_contains($v, " ") || str_contains($v, "#") || str_contains($v, "$")) ? "\"{$v}\"" : $v;
+                    $safe = str_replace(["\\", "$"], ["\\\\", "\\$"], "{$k}={$formatted}");
+                    if (preg_match("/^{$k}=.*/m", $content)) {
+                        $content = preg_replace("/^{$k}=.*/m", $safe, $content);
+                    } else {
+                        $content .= "\n{$k}={$formatted}";
+                    }
+                }
+            }
+            file_put_contents($envPath, $content);
+        }
+    }
+} catch (\Throwable $e) {}
+' || true
 
 # Cache configuration, routes, and views for production performance if APP_KEY is set in .env or environment
 if grep -q "^APP_KEY=base64:" /app/.env 2>/dev/null || [ -n "$APP_KEY" ]; then
@@ -62,11 +98,8 @@ if grep -q "^APP_KEY=base64:" /app/.env 2>/dev/null || [ -n "$APP_KEY" ]; then
     php artisan view:cache || true
 fi
 
-# Run database migrations automatically if AUTO_MIGRATE=true or RUN_MIGRATIONS=true
-if [ "$AUTO_MIGRATE" = "true" ] || [ "$RUN_MIGRATIONS" = "true" ]; then
-    echo ">> Running database migrations..."
-    php artisan migrate --force || true
-fi
+chown -R www-data:www-data /app/.env /app/storage /app/bootstrap/cache || true
+chmod 664 /app/.env || true
 
 # Start background Laravel Queue Worker for asynchronous jobs (auto-grading, notifications, exports)
 if [ "$QUEUE_CONNECTION" != "sync" ] && [ "$QUEUE_CONNECTION" != "null" ]; then
