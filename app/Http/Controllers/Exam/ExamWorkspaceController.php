@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Exam;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\GradeExamSessionJob;
+use App\Models\Assessment;
 use App\Models\ExamAnswer;
 use App\Models\ExamEvent;
 use App\Models\ExamSession;
@@ -576,13 +577,17 @@ class ExamWorkspaceController extends Controller
         $activeTenant = $session->tenant ?? $assessment->tenant ?? auth()->user()->currentTenant;
 
         $sectionsPayload = $sections->values()->map(function ($s, $i) use ($sectionDurations) {
-            $cleanTitle = filled($s->title) ? preg_replace('/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i', '', trim($s->title)) : null;
+            $sId = is_array($s) ? ($s['id'] ?? null) : ($s->id ?? null);
+            $sTitle = is_array($s) ? ($s['title'] ?? '') : ($s->title ?? '');
+            $sDur = is_array($s) ? ($s['duration_minutes'] ?? null) : ($s->duration_minutes ?? null);
+
+            $cleanTitle = filled($sTitle) ? preg_replace('/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i', '', trim($sTitle)) : null;
 
             return [
-                'id' => $s->id,
+                'id' => $sId,
                 'number' => $i + 1,
-                'title' => filled($cleanTitle) ? $cleanTitle : $s->title,
-                'duration_minutes' => $sectionDurations[$s->id] ?? (($s->duration_minutes && (float) $s->duration_minutes > 0) ? (float) $s->duration_minutes : null),
+                'title' => filled($cleanTitle) ? $cleanTitle : $sTitle,
+                'duration_minutes' => $sectionDurations[$sId] ?? (($sDur && (float) $sDur > 0) ? (float) $sDur : null),
             ];
         })->all();
 
