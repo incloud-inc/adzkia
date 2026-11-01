@@ -12,9 +12,10 @@
         showMidtransClientKey: false,
         showR2Key: false,
         showR2Secret: false,
+        showGoogleSecret: false,
         copiedUrl: null,
-        testing: { r2: false, database: false, redis: false, ai: false },
-        testResults: { r2: null, database: null, redis: null, ai: null },
+        testing: { r2: false, database: false, redis: false, ai: false, 'google-oauth': false },
+        testResults: { r2: null, database: null, redis: null, ai: null, 'google-oauth': null },
         copyToClipboard(text, id) {
             navigator.clipboard.writeText(text);
             this.copiedUrl = id;
@@ -111,6 +112,18 @@
                 <x-radix-icon name="cloud" class="w-4 h-4" />
                 <span>Cloudflare R2 &amp; Media</span>
                 @if($r2Status['connected'])
+                    <span class="w-2 h-2 rounded-full bg-green-9"></span>
+                @else
+                    <span class="w-2 h-2 rounded-full bg-amber-9"></span>
+                @endif
+            </button>
+            <button type="button" 
+                    @click="activeTab = 'auth'; window.location.hash = 'auth'" 
+                    class="pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-2 shrink-0"
+                    :class="activeTab === 'auth' ? 'border-blue-9 text-blue-11' : 'border-transparent text-gray-11 hover:text-gray-12'">
+                <x-radix-icon name="lock-closed" class="w-4 h-4" />
+                <span>Google OAuth &amp; SSO</span>
+                @if($googleConfig['is_active'])
                     <span class="w-2 h-2 rounded-full bg-green-9"></span>
                 @else
                     <span class="w-2 h-2 rounded-full bg-amber-9"></span>
@@ -641,6 +654,141 @@
             </div>
 
             <!-- ============================================== -->
+            <!--            TAB: GOOGLE OAUTH & SSO             -->
+            <!-- ============================================== -->
+            <div x-show="activeTab === 'auth'" class="space-y-6">
+                <!-- Status & Overview Card -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-5">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 {{ $googleConfig['is_active'] ? 'bg-green-3 text-green-11' : 'bg-amber-3 text-amber-11' }}">
+                                <x-radix-icon name="lock-closed" class="w-5 h-5" />
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-display font-bold text-base text-gray-12">
+                                        Status Google OAuth 2.0: 
+                                        @if($googleConfig['is_active'])
+                                            <span class="text-green-11">Aktif &amp; Terkonfigurasi</span>
+                                        @elseif($googleConfig['has_client_id'])
+                                            <span class="text-amber-11">Client Secret Kosong</span>
+                                        @else
+                                            <span class="text-red-11">Belum Terkonfigurasi</span>
+                                        @endif
+                                    </h4>
+                                    <span class="w-2.5 h-2.5 rounded-full {{ $googleConfig['is_active'] ? 'bg-green-9 animate-pulse' : 'bg-amber-9' }}"></span>
+                                </div>
+                                <p class="text-xs text-gray-11 mt-0.5">
+                                    Client ID: <code class="font-mono text-gray-12">{{ $googleConfig['client_id_preview'] ?? 'Belum ada' }}</code>
+                                    &bull; Redirect URI: <code class="font-mono text-gray-12">{{ $googleConfig['redirect'] }}</code>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button type="button" 
+                                    @click="runTest('google-oauth')" 
+                                    :disabled="testing['google-oauth']"
+                                    class="px-4 py-2 rounded-xl bg-white border border-gray-6 hover:bg-gray-3 text-gray-12 text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-60">
+                                <span :class="testing['google-oauth'] ? 'animate-spin' : ''" class="inline-flex">
+                                    <x-radix-icon name="reload" class="w-4 h-4" />
+                                </span>
+                                <span x-text="testing['google-oauth'] ? 'Menguji Endpoint...' : 'Uji Endpoint Google OAuth'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live AJAX Test Result Feedback -->
+                    <div x-show="testResults['google-oauth'] !== null" x-cloak class="mt-4 pt-3 border-t border-gray-5/60">
+                        <template x-if="testResults['google-oauth']?.success">
+                            <div class="p-3 rounded-xl bg-green-3 border border-green-6 text-green-12 text-xs font-semibold flex items-center gap-2">
+                                <x-radix-icon name="check-circled" class="w-4 h-4 text-green-9 shrink-0" />
+                                <span x-text="testResults['google-oauth']?.message"></span>
+                                <span class="ml-auto font-mono text-[11px]" x-text="'Ping: ' + testResults['google-oauth']?.ping_ms + ' ms'"></span>
+                            </div>
+                        </template>
+                        <template x-if="testResults['google-oauth'] && !testResults['google-oauth']?.success">
+                            <div class="p-3 rounded-xl bg-red-3 border border-red-6 text-red-12 text-xs font-semibold flex items-start gap-2">
+                                <x-radix-icon name="cross-circled" class="w-4 h-4 text-red-9 shrink-0 mt-0.5" />
+                                <div>
+                                    <p class="font-bold">Pengujian Gagal:</p>
+                                    <p class="font-mono text-[11px] mt-0.5" x-text="testResults['google-oauth']?.message"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Form Inputs -->
+                    <div class="mt-6 space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">
+                                Google Client ID <span class="text-red-9">*</span>
+                            </label>
+                            <input type="text" name="google_client_id" 
+                                   value="{{ old('google_client_id', $googleConfig['client_id']) }}"
+                                   placeholder="Contoh: 1080393938692-xxx.apps.googleusercontent.com"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-blue-9/20 focus:border-blue-9 font-mono">
+                            <p class="text-[11px] text-gray-10 mt-1">Dibuat melalui Google Cloud Console pada menu OAuth 2.0 Client IDs (Application type: Web application).</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">
+                                Google Client Secret <span class="text-red-9">*</span>
+                            </label>
+                            <div class="relative">
+                                <input :type="showGoogleSecret ? 'text' : 'password'" name="google_client_secret" 
+                                       value="{{ old('google_client_secret', $googleConfig['client_secret']) }}"
+                                       placeholder="Contoh: GOCSPX-xxxxxx"
+                                       class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-blue-9/20 focus:border-blue-9 font-mono">
+                                <button type="button" @click="showGoogleSecret = !showGoogleSecret" class="absolute right-3 top-2.5 text-gray-9 hover:text-gray-12 cursor-pointer">
+                                    <x-radix-icon name="eye-open" class="w-4 h-4" x-show="!showGoogleSecret" />
+                                    <x-radix-icon name="eye-none" class="w-4 h-4" x-show="showGoogleSecret" />
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-gray-10 mt-1">Kunci rahasia dari Google Cloud Console. Disimpan aman secara terenkripsi di database sistem.</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">
+                                Authorized Redirect URI (Callback)
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" name="google_redirect_uri" 
+                                       value="{{ old('google_redirect_uri', $googleConfig['redirect']) }}"
+                                       class="w-full px-3.5 py-2.5 rounded-xl border border-gray-6 text-sm text-gray-12 bg-gray-2 focus:ring-2 focus:ring-blue-9/20 focus:border-blue-9 font-mono">
+                                <button type="button" 
+                                        @click="copyToClipboard('{{ $googleConfig['redirect'] }}', 'google-callback')"
+                                        class="px-3.5 py-2.5 rounded-xl border border-gray-6 bg-white hover:bg-gray-3 text-gray-12 text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 shadow-xs">
+                                    <x-radix-icon name="copy" class="w-4 h-4" />
+                                    <span x-text="copiedUrl === 'google-callback' ? 'Disalin!' : 'Salin'"></span>
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-gray-10 mt-1">Daftarkan URL persis ini ke dalam daftar <strong>Authorized redirect URIs</strong> pada Google Cloud Console.</p>
+                        </div>
+                    </div>
+
+                    <!-- Panduan Konfigurasi Google Cloud Console -->
+                    <div class="mt-6 p-4 rounded-xl bg-blue-2/40 border border-blue-5/60 text-xs text-gray-12 space-y-3">
+                        <div class="font-bold flex items-center gap-1.5 text-blue-11">
+                            <x-radix-icon name="info-circled" class="w-4 h-4 text-blue-9 shrink-0" />
+                            <span>Panduan Pengaturan Google Cloud Console &amp; Multi-Subdomain:</span>
+                        </div>
+                        <ol class="list-decimal list-inside space-y-1.5 text-gray-11 pl-1">
+                            <li>Buka <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-blue-11 underline font-semibold hover:text-blue-12">Google Cloud Console &rarr; APIs &amp; Services &rarr; Credentials</a>.</li>
+                            <li>Pilih atau buat kredensial <strong>OAuth 2.0 Client ID</strong> dengan Application type: <strong>Web application</strong>.</li>
+                            <li>Pada kolom <strong>Authorized JavaScript origins</strong>, tambahkan domain utama:
+                                <code class="px-1.5 py-0.5 rounded bg-white text-gray-12 border border-gray-5 font-mono">https://adzkia.id</code>
+                            </li>
+                            <li>Pada kolom <strong>Authorized redirect URIs</strong>, tambahkan URL callback:
+                                <code class="px-1.5 py-0.5 rounded bg-white text-gray-12 border border-gray-5 font-mono">https://adzkia.id/auth/google/callback</code>
+                            </li>
+                            <li><strong>Dukungan Subdomain Otomatis:</strong> Pengguna yang login melalui subdomain tenant (misal: <code class="font-mono text-gray-12">https://bina-insan.adzkia.id</code>) secara otomatis diarahkan melalui callback pusat <code class="font-mono text-gray-12">https://adzkia.id/auth/google/callback</code> dan sesi login akan otomatis dikembalikan ke subdomain tenant masing-masing. Anda tidak perlu mendaftarkan setiap subdomain ke Google!</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
             <!--            TAB 3: STATUS SISTEM & KONEKSI      -->
             <!-- ============================================== -->
             <div x-show="activeTab === 'system'" class="space-y-6">
@@ -651,7 +799,7 @@
                             <p class="text-xs text-gray-11">Diagnostik real-time koneksi server database, Redis cache, Cloudflare R2, dan mesin AI.</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button type="button" @click="runTest('database'); runTest('redis'); runTest('r2');"
+                            <button type="button" @click="runTest('database'); runTest('redis'); runTest('r2'); runTest('google-oauth');"
                                     class="px-3.5 py-1.5 rounded-xl bg-blue-9 hover:bg-blue-10 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer">
                                 <x-radix-icon name="reload" class="w-3.5 h-3.5" />
                                 <span>Uji Semua Koneksi</span>
@@ -822,6 +970,45 @@
                                 <button type="button" @click="runTest('ai-deepseek')" :disabled="testing['ai-deepseek']"
                                         class="px-2.5 py-1 rounded-lg bg-gray-3 hover:bg-gray-4 text-gray-12 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50">
                                     <span x-text="testing['ai-deepseek'] ? 'Menguji...' : 'Uji API DeepSeek'"></span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 5. Google OAuth SSO Card -->
+                        <div class="p-5 rounded-2xl border transition-all {{ $googleConfig['is_active'] ? 'border-gray-5 bg-white' : 'border-amber-5 bg-amber-2/30' }} flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-[11px] font-bold uppercase text-gray-10 tracking-wider">Google OAuth 2.0 (SSO)</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {{ $googleConfig['is_active'] ? 'bg-green-3 text-green-11 border border-green-6/50' : 'bg-amber-3 text-amber-11 border border-amber-6/50' }}">
+                                        {{ $googleConfig['is_active'] ? 'Aktif' : 'Belum Lengkap' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="w-2.5 h-2.5 rounded-full {{ $googleConfig['is_active'] ? 'bg-green-9 animate-pulse' : 'bg-amber-9' }}"></span>
+                                    <h4 class="font-bold text-sm text-gray-12">
+                                        Google Sign-In Multi-Tenant
+                                    </h4>
+                                </div>
+                                <div class="mt-2 space-y-1 text-xs text-gray-11">
+                                    <p>Client ID: <span class="font-mono text-gray-12">{{ $googleConfig['client_id_preview'] ?? 'Belum terpasang' }}</span></p>
+                                    <p>Callback: <code class="font-mono text-gray-12 text-[11px]">{{ $googleConfig['redirect'] }}</code></p>
+                                    <p class="text-[11px] text-gray-10">Mendukung login siswa dan guru di domain utama dan seluruh subdomain.</p>
+                                </div>
+
+                                <div x-show="testResults['google-oauth'] !== null" x-cloak class="mt-3">
+                                    <p class="text-[11px] font-bold p-2 rounded"
+                                       :class="testResults['google-oauth']?.success ? 'bg-green-2 text-green-11 border border-green-5' : 'bg-red-2 text-red-11 border border-red-5'"
+                                       x-text="testResults['google-oauth']?.message"></p>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-3 border-t border-gray-4 flex items-center justify-between">
+                                <a href="javascript:void(0)" @click="activeTab = 'auth'; window.location.hash = 'auth'" class="text-[11px] text-blue-11 hover:underline font-semibold">
+                                    Kelola Kredensial &rarr;
+                                </a>
+                                <button type="button" @click="runTest('google-oauth')" :disabled="testing['google-oauth']"
+                                        class="px-2.5 py-1 rounded-lg bg-gray-3 hover:bg-gray-4 text-gray-12 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50">
+                                    <span x-text="testing['google-oauth'] ? 'Menguji...' : 'Uji Endpoint'"></span>
                                 </button>
                             </div>
                         </div>

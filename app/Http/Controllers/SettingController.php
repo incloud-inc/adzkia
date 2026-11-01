@@ -188,6 +188,21 @@ class SettingController extends Controller
             ],
         ];
 
+        // 5. Status Google OAuth SSO
+        $googleClientId = $this->getSettingValue('GOOGLE_CLIENT_ID', 'services.google.client_id', '');
+        $googleClientSecret = $this->getSettingValue('GOOGLE_CLIENT_SECRET', 'services.google.client_secret', '');
+        $googleRedirectUri = $this->getSettingValue('GOOGLE_REDIRECT_URI', 'services.google.redirect', 'https://adzkia.id/auth/google/callback');
+
+        $googleConfig = [
+            'client_id' => $googleClientId,
+            'client_secret' => $googleClientSecret,
+            'redirect' => $googleRedirectUri,
+            'has_client_id' => ! empty($googleClientId),
+            'has_client_secret' => ! empty($googleClientSecret),
+            'is_active' => ! empty($googleClientId) && ! empty($googleClientSecret),
+            'client_id_preview' => ! empty($googleClientId) ? (strlen($googleClientId) > 24 ? substr($googleClientId, 0, 10).'...'.substr($googleClientId, -10) : $googleClientId) : null,
+        ];
+
         $tiers = [
             'starter' => [
                 'name' => 'Starter (Gratis)',
@@ -221,6 +236,7 @@ class SettingController extends Controller
             'r2Status',
             'r2Config',
             'aiStatus',
+            'googleConfig',
             'tiers'
         ));
     }
@@ -255,6 +271,10 @@ class SettingController extends Controller
             // AI Keys (Optional)
             'deepseek_api_key' => 'nullable|string|max:255',
             'gemini_api_key' => 'nullable|string|max:255',
+            // Google OAuth SSO
+            'google_client_id' => 'nullable|string|max:255',
+            'google_client_secret' => 'nullable|string|max:255',
+            'google_redirect_uri' => 'nullable|string|max:255',
         ]);
 
         $envUpdates = [
@@ -287,11 +307,21 @@ class SettingController extends Controller
             $envUpdates['GEMINI_API_KEY'] = $validated['gemini_api_key'];
         }
 
+        if ($request->has('google_client_id')) {
+            $envUpdates['GOOGLE_CLIENT_ID'] = (string) $request->input('google_client_id', '');
+        }
+        if ($request->has('google_client_secret') && $request->filled('google_client_secret')) {
+            $envUpdates['GOOGLE_CLIENT_SECRET'] = (string) $request->input('google_client_secret', '');
+        }
+        if ($request->has('google_redirect_uri')) {
+            $envUpdates['GOOGLE_REDIRECT_URI'] = (string) $request->input('google_redirect_uri', 'https://adzkia.id/auth/google/callback');
+        }
+
         // 1. Simpan ke database SystemSetting agar permanen melintasi restart/redeploy container
         SystemSetting::setMany($envUpdates);
 
         // 2. Terapkan langsung ke config runtime saat ini
-        config([
+        $runtimeConfigs = [
             'filesystems.upload_disk' => $envUpdates['UPLOAD_DISK'],
             'filesystems.disks.r2.key' => $envUpdates['CLOUDFLARE_R2_ACCESS_KEY_ID'],
             'filesystems.disks.r2.secret' => $envUpdates['CLOUDFLARE_R2_SECRET_ACCESS_KEY'],
@@ -300,21 +330,35 @@ class SettingController extends Controller
             'filesystems.disks.r2.url' => $envUpdates['CLOUDFLARE_R2_URL'],
             'filesystems.disks.r2.region' => $envUpdates['CLOUDFLARE_R2_REGION'],
             'payment.default' => $envUpdates['PAYMENT_GATEWAY_DRIVER'],
-        ]);
+        ];
 
-        // 3. Tulis juga ke berkas .env server
-        $this->updateEnvFile($envUpdates);
-
-        // 4. Bersihkan dan perbarui config cache Laravel
-        try {
-            Artisan::call('config:clear');
-            Artisan::call('config:cache');
-        } catch (\Throwable $e) {
-            report($e);
+        if (isset($envUpdates['GOOGLE_CLIENT_ID'])) {
+            $runtimeConfigs['services.google.client_id'] = $envUpdates['GOOGLE_CLIENT_ID'];
+        }
+        if (isset($envUpdates['GOOGLE_CLIENT_SECRET'])) {
+            $runtimeConfigs['services.google.client_secret'] = $envUpdates['GOOGLE_CLIENT_SECRET'];
+        }
+        if (isset($envUpdates['GOOGLE_REDIRECT_URI'])) {
+            $runtimeConfigs['services.google.redirect'] = $envUpdates['GOOGLE_REDIRECT_URI'];
         }
 
-        if (function_exists('opcache_reset')) {
-            @opcache_reset();
+        config($runtimeConfigs);
+
+        // 3. Tulis juga ke berkas .env server jika bukan di lingkungan pengujian
+        if (! app()->runningUnitTests()) {
+            $this->updateEnvFile($envUpdates);
+
+            // 4. Bersihkan dan perbarui config cache Laravel
+            try {
+                Artisan::call('config:clear');
+                Artisan::call('config:cache');
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            if (function_exists('opcache_reset')) {
+                @opcache_reset();
+            }
         }
 
         $activeTab = $request->input('active_tab', 'storage');
@@ -449,6 +493,37 @@ class SettingController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'Gagal menghubungi DeepSeek API: '.$e->getMessage(),
+                    ], 500);
+                }
+
+            case 'google-oauth':
+                $clientId = $request->input('google_client_id') ?: $this->getSettingValue('GOOGLE_CLIENT_ID', 'services.google.client_id', '');
+                if (empty($clientId)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Google Client ID belum diisi.',
+                    ], 422);
+                }
+                try {
+                    $startGoogle = microtime(true);
+                    $res = Http::timeout(10)->get('https://accounts.google.com/.well-known/openid-configuration');
+                    $ping = round((microtime(true) - $startGoogle) * 1000);
+                    if ($res->successful()) {
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Google OAuth Discovery Endpoint aktif & dapat dijangkau dari server! Endpoint OpenID terverifikasi.',
+                            'ping_ms' => $ping,
+                        ]);
+                    }
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gagal menghubungi Google OAuth Discovery Endpoint (HTTP '.$res->status().').',
+                    ], 500);
+                } catch (\Throwable $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gagal menghubungi server Google: '.$e->getMessage(),
                     ], 500);
                 }
 

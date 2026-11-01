@@ -71,6 +71,15 @@ class AppServiceProvider extends ServiceProvider
                 if (! empty($sysSettings['GEMINI_API_KEY'])) {
                     $configUpdates['services.gemini.api_key'] = $sysSettings['GEMINI_API_KEY'];
                 }
+                if (! empty($sysSettings['GOOGLE_CLIENT_ID'])) {
+                    $configUpdates['services.google.client_id'] = $sysSettings['GOOGLE_CLIENT_ID'];
+                }
+                if (! empty($sysSettings['GOOGLE_CLIENT_SECRET'])) {
+                    $configUpdates['services.google.client_secret'] = $sysSettings['GOOGLE_CLIENT_SECRET'];
+                }
+                if (! empty($sysSettings['GOOGLE_REDIRECT_URI'])) {
+                    $configUpdates['services.google.redirect'] = $sysSettings['GOOGLE_REDIRECT_URI'];
+                }
                 if (! empty($configUpdates)) {
                     config($configUpdates);
                     if ($this->app->resolved('filesystem')) {

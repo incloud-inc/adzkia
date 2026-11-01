@@ -20,6 +20,17 @@ class SocialiteController extends Controller
      */
     public function redirectToGoogle(Request $request): RedirectResponse
     {
+        $clientId = config('services.google.client_id');
+        $clientSecret = config('services.google.client_secret');
+
+        if (empty($clientId) || empty($clientSecret)) {
+            Log::warning('Login with Google attempted but GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing.');
+
+            return redirect()
+                ->route('login')
+                ->with('error', 'Login Google belum aktif karena kredensial Google Client ID / Secret belum diatur. Silakan gunakan email & password atau hubungi administrator.');
+        }
+
         $currentTenant = app()->has('currentTenant') ? app('currentTenant') : null;
 
         if (! $currentTenant) {
@@ -39,7 +50,14 @@ class SocialiteController extends Controller
             $request->session()->forget('google_oauth_tenant_id');
         }
 
-        return Socialite::driver('google')->redirect();
+        $redirectUrl = config('services.google.redirect');
+        if (empty($redirectUrl) || $redirectUrl === '/auth/google/callback') {
+            $redirectUrl = route('auth.google.callback');
+        }
+
+        return Socialite::driver('google')
+            ->redirectUrl($redirectUrl)
+            ->redirect();
     }
 
     /**
@@ -47,8 +65,15 @@ class SocialiteController extends Controller
      */
     public function handleGoogleCallback(Request $request): RedirectResponse
     {
+        $redirectUrl = config('services.google.redirect');
+        if (empty($redirectUrl) || $redirectUrl === '/auth/google/callback') {
+            $redirectUrl = route('auth.google.callback');
+        }
+
         try {
-            $googleUser = Socialite::driver('google')->user();
+            $googleUser = Socialite::driver('google')
+                ->redirectUrl($redirectUrl)
+                ->user();
         } catch (Throwable $e) {
             Log::warning('Google OAuth callback failed', [
                 'message' => $e->getMessage(),
