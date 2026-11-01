@@ -81,11 +81,11 @@
     <main class="w-full h-screen h-[100dvh] max-h-[100dvh] min-h-0 lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60 overflow-hidden">
 
         @php
-            $tenant = $session->tenant ?? $session->assessment->tenant ?? auth()->user()->currentTenant ?? (app()->has('currentTenant') ? app('currentTenant') : null);
-            $authUser = auth()->user();
+            $authUser = $authUser ?? auth()->user() ?? $session->user;
+            $tenant = $session->tenant ?? $session->assessment?->tenant ?? $authUser?->currentTenant ?? (app()->has('currentTenant') ? app('currentTenant') : null);
 
             // Kalkulasi inisial nama asesmen untuk mobile view
-            $titleWords = preg_split('/[\s\-_]+/', trim($assessment->title));
+            $titleWords = preg_split('/[\s\-_]+/', trim($assessment->title ?? ''));
             $assessmentInitials = '';
             foreach (array_slice($titleWords, 0, 4) as $w) {
                 if (!empty($w)) {
@@ -93,7 +93,7 @@
                 }
             }
             if (empty($assessmentInitials)) {
-                $assessmentInitials = mb_strtoupper(mb_substr($assessment->title, 0, 3));
+                $assessmentInitials = mb_strtoupper(mb_substr($assessment->title ?? '', 0, 3));
             }
         @endphp
 
@@ -117,6 +117,7 @@
                 @endif
 
                 <!-- 3. Foto Profil Peserta Ujian -->
+                @if($authUser)
                 <div class="relative shrink-0">
                     <img src="{{ $authUser->profile_photo_url }}"
                          alt="{{ $authUser->name }}"
@@ -127,6 +128,7 @@
                         {{ substr($authUser->name, 0, 1) }}
                     </div>
                 </div>
+                @endif
             </div>
 
             <!-- Center: NAMA ASESMEN & SECTION (Tengah Header, Sembunyikan jika ada 2 timer di mobile agar hemat tempat) -->

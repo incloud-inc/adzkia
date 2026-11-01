@@ -69,6 +69,7 @@ class ExamWorkspaceController extends Controller
             'session' => $session,
             'assessment' => $session->assessment,
             'payload' => $payload,
+            'authUser' => $request->user() ?? $session->user,
         ]);
     }
 
