@@ -72,7 +72,18 @@ class TenantScope implements Scope
                     // 1. Asesmen milik tenant sendiri
                     $query->where($model->getTable().'.tenant_id', '=', $tenantId);
 
-                    // 2. Asesmen dari Owner (Adzkia)
+                    // 2. Asesmen yang sudah dibeli / dimiliki aksesnya oleh user saat ini
+                    if (Auth::check()) {
+                        $query->orWhereRaw('EXISTS (SELECT 1 FROM user_assessment_accesses WHERE user_assessment_accesses.assessment_id = '.$model->getTable().'.id AND user_assessment_accesses.user_id = ?)', [Auth::id()]);
+                    }
+
+                    // 3. Asesmen Berbayar Terbit (Marketplace terbuka dapat dibeli oleh siapapun dari semua tenant)
+                    $query->orWhere(function ($paidQ) use ($model) {
+                        $paidQ->where($model->getTable().'.price_type', 'paid')
+                            ->where($model->getTable().'.status', 'published');
+                    });
+
+                    // 4. Asesmen dari Owner (Adzkia)
                     if ($tenant) {
                         $query->orWhere(function ($q) use ($model, $tenant) {
                             $q->where(function ($subQ) use ($model) {
@@ -117,8 +128,14 @@ class TenantScope implements Scope
                         $builder->where(function ($q) use ($model, $showSd, $showSmp, $showSma, $showTkaSd, $showTkaSmp, $showTkaSma, $showUtbk, $showSkd) {
                             $gradeCol = $model->getTable().'.grade_level';
 
+                            // Asesmen berbayar publik atau yang sudah dibeli siswa selalu diizinkan
+                            $q->where($model->getTable().'.price_type', 'paid');
+                            if (Auth::check()) {
+                                $q->orWhereRaw('EXISTS (SELECT 1 FROM user_assessment_accesses WHERE user_assessment_accesses.assessment_id = '.$model->getTable().'.id AND user_assessment_accesses.user_id = ?)', [Auth::id()]);
+                            }
+
                             // Tampilkan jika grade kosong (UMUM/PRO) atau Umum / Custom / PRO
-                            $q->whereNull($gradeCol)
+                            $q->orWhereNull($gradeCol)
                                 ->orWhere($gradeCol, '')
                                 ->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%umum%'])
                                 ->orWhereRaw("LOWER({$gradeCol}) LIKE ?", ['%pro%']);

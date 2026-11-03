@@ -243,10 +243,41 @@
                                 <p class="text-xs text-gray-11">Dapatkan kredensial ini di Dashboard Tripay &gt; Pengaturan &gt; Integrasi.</p>
                             </div>
                         </div>
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-12">
-                            <input type="checkbox" name="tripay_sandbox" value="1" {{ ($tripayConfig['sandbox'] ?? true) ? 'checked' : '' }} class="rounded border-gray-6 text-blue-9 focus:ring-blue-9">
-                            <span>Aktifkan Mode Sandbox (Pengujian)</span>
-                        </label>
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-12">
+                                <input type="checkbox" name="tripay_sandbox" value="1" {{ ($tripayConfig['sandbox'] ?? true) ? 'checked' : '' }} class="rounded border-gray-6 text-blue-9 focus:ring-blue-9">
+                                <span>Mode Sandbox</span>
+                            </label>
+                            <button type="button" 
+                                    @click="runTest('payment-tripay')" 
+                                    :disabled="testing['payment-tripay']"
+                                    class="px-3 py-1.5 rounded-xl bg-white border border-gray-6 hover:bg-gray-3 text-gray-12 text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-60">
+                                <span :class="testing['payment-tripay'] ? 'animate-spin' : ''" class="inline-flex">
+                                    <x-radix-icon name="reload" class="w-3.5 h-3.5" />
+                                </span>
+                                <span x-text="testing['payment-tripay'] ? 'Menguji...' : 'Uji Koneksi TriPay'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live AJAX Test Result Feedback -->
+                    <div x-show="testResults['payment-tripay'] !== null" x-cloak class="pt-1">
+                        <template x-if="testResults['payment-tripay']?.success">
+                            <div class="p-3 rounded-xl bg-green-3 border border-green-6 text-green-12 text-xs font-semibold flex items-center gap-2">
+                                <x-radix-icon name="check-circled" class="w-4 h-4 text-green-9 shrink-0" />
+                                <span x-text="testResults['payment-tripay']?.message"></span>
+                                <span class="ml-auto font-mono text-[11px]" x-text="'Ping: ' + testResults['payment-tripay']?.ping_ms + ' ms'"></span>
+                            </div>
+                        </template>
+                        <template x-if="testResults['payment-tripay'] && !testResults['payment-tripay']?.success">
+                            <div class="p-3 rounded-xl bg-red-3 border border-red-6 text-red-12 text-xs font-semibold flex items-start gap-2">
+                                <x-radix-icon name="cross-circled" class="w-4 h-4 text-red-9 shrink-0 mt-0.5" />
+                                <div>
+                                    <p class="font-bold">Pengujian Gagal:</p>
+                                    <p class="font-mono text-[11px] mt-0.5" x-text="testResults['payment-tripay']?.message"></p>
+                                </div>
+                            </div>
+                        </template>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -13,7 +13,7 @@
         selectedPackageId: {{ $initialPackageId }},
         basePrice: {{ $initialPrice }},
         selectedAttempts: {{ $initialAttempts }},
-        adminFees: { QRIS: 1000, VA_BCA: 3000, VA_MANDIRI: 3000, VA_BRI: 3000, VA_BNI: 3000, SHOPEEPAY: 1500 },
+        adminFees: { QRIS: 1000, VA_BCA: 3000, VA_MANDIRI: 3000, VA_BRI: 3000, VA_BNI: 3000, SHOPEEPAY: 1500, DANA: 1500, OVO: 1500 },
         couponInput: '{{ old('coupon_code', '') }}',
         appliedCoupon: null,
         discountAmount: 0,
@@ -77,6 +77,18 @@
                 <p class="text-xs text-gray-11">Pilih paket kuota pengerjaan &amp; metode pembayaran untuk membuka akses ujian CBT.</p>
             </div>
         </div>
+
+        @if(session('error'))
+            <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-start gap-3 shadow-xs">
+                <div class="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center shrink-0 text-red-700 font-bold">
+                    <x-radix-icon name="exclamation-triangle" class="w-4 h-4" />
+                </div>
+                <div class="space-y-1">
+                    <p class="font-bold text-sm text-red-950">Terjadi Kendala Pembayaran</p>
+                    <p class="text-red-800">{{ session('error') }}</p>
+                </div>
+            </div>
+        @endif
 
         @if(isset($access) && $access)
             <!-- Info Akumulasi Kuota -->
@@ -173,10 +185,34 @@
                                  :class="selectedMethod === 'SHOPEEPAY' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
                                  class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
                                 <div class="flex items-center justify-between mb-2">
-                                    <span class="font-bold text-sm text-gray-12">ShopeePay Direct</span>
-                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-orange-100 text-orange-700">App</span>
+                                    <span class="font-bold text-sm text-gray-12">ShopeePay</span>
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-orange-100 text-orange-700">App Direct</span>
                                 </div>
                                 <p class="text-[11px] text-gray-11">Buka langsung aplikasi Shopee untuk bayar</p>
+                                <span class="text-[11px] font-semibold text-gray-10 mt-2 block">Biaya: Rp 1.500</span>
+                            </div>
+
+                            <!-- DANA -->
+                            <div @click="selectedMethod = 'DANA'"
+                                 :class="selectedMethod === 'DANA' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
+                                 class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-bold text-sm text-gray-12">DANA</span>
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700">E-Wallet</span>
+                                </div>
+                                <p class="text-[11px] text-gray-11">Bayar langsung dengan saldo akun DANA</p>
+                                <span class="text-[11px] font-semibold text-gray-10 mt-2 block">Biaya: Rp 1.500</span>
+                            </div>
+
+                            <!-- OVO -->
+                            <div @click="selectedMethod = 'OVO'"
+                                 :class="selectedMethod === 'OVO' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
+                                 class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-bold text-sm text-gray-12">OVO</span>
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700">E-Wallet</span>
+                                </div>
+                                <p class="text-[11px] text-gray-11">Bayar langsung dengan saldo akun OVO</p>
                                 <span class="text-[11px] font-semibold text-gray-10 mt-2 block">Biaya: Rp 1.500</span>
                             </div>
                         </div>

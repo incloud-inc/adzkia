@@ -92,18 +92,27 @@
             </div>
 
             <!-- Payment Instructions Body -->
+            @php
+                $gatewayName = match($order->payment_gateway) {
+                    'tripay' => 'TriPay',
+                    'midtrans' => 'Snap Midtrans',
+                    'duitku' => 'Duitku',
+                    default => 'Payment Gateway'
+                };
+                $instructions = data_get($order->gateway_payload, 'data.instructions') ?: data_get($order->gateway_payload, 'instructions', []);
+            @endphp
             <div class="p-6 space-y-6">
-                <!-- Payment URL / Hosted Checkout (Midtrans Snap) -->
+                <!-- Payment URL / Hosted Checkout -->
                 @if($order->payment_url)
                     <div class="p-5 rounded-2xl bg-cyan-50 border border-cyan-200 text-center space-y-3">
-                        <span class="text-xs font-bold text-cyan-900 uppercase tracking-wider block">Portal Pembayaran Digital (Snap Midtrans)</span>
+                        <span class="text-xs font-bold text-cyan-900 uppercase tracking-wider block">Portal Pembayaran Digital ({{ $gatewayName }})</span>
                         <p class="text-xs text-cyan-800">
-                            Selesaikan pembayaran menggunakan GoPay, ShopeePay, Virtual Account, QRIS, atau Kartu Kredit.
+                            Selesaikan pembayaran menggunakan GoPay, ShopeePay, DANA, OVO, Virtual Account, QRIS, atau Kartu Kredit.
                         </p>
                         <div>
                             <a href="{{ $order->payment_url }}" target="_blank" rel="noopener noreferrer"
                                class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer">
-                                <span>Buka Halaman Pembayaran Midtrans</span>
+                                <span>Buka Halaman Pembayaran {{ $gatewayName }}</span>
                                 <x-radix-icon name="external-link" class="w-4 h-4" />
                             </a>
                         </div>
@@ -149,6 +158,31 @@
                     </div>
                 @endif
 
+                <!-- Payment Instructions Accordion -->
+                @if(!empty($instructions))
+                    <div class="space-y-3" x-data="{ activeAccordion: 0 }">
+                        <h4 class="font-display font-bold text-xs uppercase tracking-wider text-gray-12">Panduan Cara Pembayaran</h4>
+                        <div class="space-y-2">
+                            @foreach($instructions as $idx => $inst)
+                                <div class="rounded-xl border border-gray-6 bg-gray-1 overflow-hidden">
+                                    <button type="button" @click="activeAccordion = (activeAccordion === {{ $idx }} ? null : {{ $idx }})"
+                                            class="w-full px-4 py-3 flex items-center justify-between text-left text-xs font-bold text-gray-12 hover:bg-gray-2 cursor-pointer transition-colors">
+                                        <span>{{ $inst['title'] ?? 'Panduan '.($idx + 1) }}</span>
+                                        <x-radix-icon name="chevron-down" class="w-4 h-4 text-gray-9 transition-transform" ::class="activeAccordion === {{ $idx }} ? 'rotate-180' : ''" />
+                                    </button>
+                                    <div x-show="activeAccordion === {{ $idx }}" x-collapse class="px-4 pb-3 pt-1 text-xs text-gray-11 space-y-1.5 border-t border-gray-4">
+                                        <ol class="list-decimal list-inside space-y-1">
+                                            @foreach(($inst['steps'] ?? []) as $step)
+                                                <li class="text-xs leading-relaxed">{!! strip_tags($step, '<b><strong><i><em><code>') !!}</li>
+                                            @endforeach
+                                        </ol>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Live Auto-Verification Note -->
                 <div class="p-4 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-between text-xs text-gray-600">
                     <div class="flex items-center gap-2">
@@ -158,17 +192,19 @@
                 </div>
 
                 <!-- Sandbox / Local Simulation Button -->
-                <div class="pt-4 border-t border-gray-200 text-center space-y-2">
-                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Mode Pengujian / Simulasi</span>
-                    <form method="POST" action="{{ route('orders.simulate-pay', $order) }}">
-                        @csrf
-                        <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer inline-flex items-center gap-1.5">
-                            <x-radix-icon name="lightning-bolt" class="w-4 h-4" />
-                            <span>Simulasikan Pembayaran Berhasil (Instant Settle)</span>
-                        </button>
-                    </form>
-                    <p class="text-[11px] text-gray-500">Klik tombol di atas untuk menguji konfirmasi webhook pembayaran dan pembagian bagi hasil secara instan.</p>
-                </div>
+                @if(app()->environment('local', 'testing') || auth()->user()?->isSuperUser())
+                    <div class="pt-4 border-t border-gray-200 text-center space-y-2">
+                        <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Mode Pengujian / Simulasi</span>
+                        <form method="POST" action="{{ route('orders.simulate-pay', $order) }}">
+                            @csrf
+                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer inline-flex items-center gap-1.5">
+                                <x-radix-icon name="lightning-bolt" class="w-4 h-4" />
+                                <span>Simulasikan Pembayaran Berhasil (Instant Settle)</span>
+                            </button>
+                        </form>
+                        <p class="text-[11px] text-gray-500">Klik tombol di atas untuk menguji konfirmasi webhook pembayaran dan pembagian bagi hasil secara instan.</p>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

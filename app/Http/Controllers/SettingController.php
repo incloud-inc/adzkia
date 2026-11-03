@@ -321,6 +321,10 @@ class SettingController extends Controller
         SystemSetting::setMany($envUpdates);
 
         // 2. Terapkan langsung ke config runtime saat ini
+        $isTripaySandbox = filter_var($envUpdates['TRIPAY_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
+        $isDuitkuSandbox = filter_var($envUpdates['DUITKU_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
+        $isMidtransSandbox = filter_var($envUpdates['MIDTRANS_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
+
         $runtimeConfigs = [
             'filesystems.upload_disk' => $envUpdates['UPLOAD_DISK'],
             'filesystems.disks.r2.key' => $envUpdates['CLOUDFLARE_R2_ACCESS_KEY_ID'],
@@ -330,6 +334,20 @@ class SettingController extends Controller
             'filesystems.disks.r2.url' => $envUpdates['CLOUDFLARE_R2_URL'],
             'filesystems.disks.r2.region' => $envUpdates['CLOUDFLARE_R2_REGION'],
             'payment.default' => $envUpdates['PAYMENT_GATEWAY_DRIVER'],
+            'payment.gateways.tripay.merchant_code' => $envUpdates['TRIPAY_MERCHANT_CODE'],
+            'payment.gateways.tripay.api_key' => $envUpdates['TRIPAY_API_KEY'],
+            'payment.gateways.tripay.private_key' => $envUpdates['TRIPAY_PRIVATE_KEY'],
+            'payment.gateways.tripay.sandbox' => $isTripaySandbox,
+            'payment.gateways.tripay.base_url' => $isTripaySandbox ? 'https://tripay.co.id/api-sandbox/' : 'https://tripay.co.id/api/',
+            'payment.gateways.duitku.merchant_code' => $envUpdates['DUITKU_MERCHANT_CODE'],
+            'payment.gateways.duitku.api_key' => $envUpdates['DUITKU_API_KEY'],
+            'payment.gateways.duitku.sandbox' => $isDuitkuSandbox,
+            'payment.gateways.duitku.base_url' => $isDuitkuSandbox ? 'https://sandbox.duitku.com/webapi/api/merchant/v2/inquiry' : 'https://passport.duitku.com/webapi/api/merchant/v2/inquiry',
+            'payment.gateways.midtrans.server_key' => $envUpdates['MIDTRANS_SERVER_KEY'],
+            'payment.gateways.midtrans.client_key' => $envUpdates['MIDTRANS_CLIENT_KEY'],
+            'payment.gateways.midtrans.merchant_id' => $envUpdates['MIDTRANS_MERCHANT_ID'],
+            'payment.gateways.midtrans.sandbox' => $isMidtransSandbox,
+            'payment.gateways.midtrans.snap_url' => $isMidtransSandbox ? 'https://app.sandbox.midtrans.com/snap/v1/transactions' : 'https://app.midtrans.com/snap/v1/transactions',
         ];
 
         if (isset($envUpdates['GOOGLE_CLIENT_ID'])) {
@@ -524,6 +542,52 @@ class SettingController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'Gagal menghubungi server Google: '.$e->getMessage(),
+                    ], 500);
+                }
+
+            case 'payment-tripay':
+                $apiKey = $request->input('tripay_api_key') ?: $this->getSettingValue('TRIPAY_API_KEY', 'payment.gateways.tripay.api_key', '');
+                $merchantCode = $request->input('tripay_merchant_code') ?: $this->getSettingValue('TRIPAY_MERCHANT_CODE', 'payment.gateways.tripay.merchant_code', '');
+                $isSandbox = $request->has('tripay_sandbox')
+                    ? filter_var($request->input('tripay_sandbox'), FILTER_VALIDATE_BOOLEAN)
+                    : filter_var($this->getSettingValue('TRIPAY_SANDBOX', 'payment.gateways.tripay.sandbox', 'true'), FILTER_VALIDATE_BOOLEAN);
+
+                if (empty($apiKey) || empty($merchantCode)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Merchant Code dan API Key TriPay belum diisi.',
+                    ], 422);
+                }
+
+                try {
+                    $baseUrl = $isSandbox ? 'https://tripay.co.id/api-sandbox/' : 'https://tripay.co.id/api/';
+                    $res = Http::withToken($apiKey)->timeout(12)->get($baseUrl.'merchant/payment-channel');
+                    $ping = round((microtime(true) - $start) * 1000);
+
+                    if ($res->successful() && ($res->json()['success'] ?? false)) {
+                        $channels = $res->json()['data'] ?? [];
+                        $activeCount = count(array_filter($channels, fn ($c) => ($c['active'] ?? false) === true));
+                        $modeLabel = $isSandbox ? 'Sandbox' : 'Production (Live)';
+
+                        return response()->json([
+                            'success' => true,
+                            'message' => "Koneksi TriPay ({$modeLabel}) berhasil! Terhubung dengan {$activeCount} channel pembayaran aktif (Merchant: {$merchantCode}).",
+                            'ping_ms' => $ping,
+                            'channels_active' => $activeCount,
+                        ]);
+                    }
+
+                    $body = $res->json();
+                    $errMsg = $body['message'] ?? $res->body();
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'TriPay API merespons dengan kode HTTP '.$res->status().': '.$errMsg,
+                    ], 500);
+                } catch (\Throwable $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gagal menghubungi server TriPay: '.$e->getMessage(),
                     ], 500);
                 }
 

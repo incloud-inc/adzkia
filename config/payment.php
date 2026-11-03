@@ -119,5 +119,25 @@ return [
             'icon' => 'mobile',
             'fee' => 1500,
         ],
+        'DANA' => [
+            'code' => 'DANA',
+            'channel' => 'DA', // Duitku
+            'channel_tripay' => 'DANA', // Tripay
+            'channel_midtrans' => 'dana', // Midtrans
+            'label' => 'DANA (E-Wallet)',
+            'group' => 'ewallet',
+            'icon' => 'mobile',
+            'fee' => 1500,
+        ],
+        'OVO' => [
+            'code' => 'OVO',
+            'channel' => 'OV', // Duitku
+            'channel_tripay' => 'OVO', // Tripay
+            'channel_midtrans' => 'ovo', // Midtrans
+            'label' => 'OVO (E-Wallet)',
+            'group' => 'ewallet',
+            'icon' => 'mobile',
+            'fee' => 1500,
+        ],
     ],
 ];

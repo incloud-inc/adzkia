@@ -42,7 +42,14 @@ class PaymentGatewayService
             $privateKey = config('payment.gateways.tripay.private_key');
 
             if (blank($merchantCode) || blank($apiKey) || blank($privateKey)) {
-                return $this->createSandboxPayment($order, $methodCode);
+                if (app()->environment('local', 'testing')) {
+                    return $this->createSandboxPayment($order, $methodCode);
+                }
+
+                return [
+                    'success' => false,
+                    'message' => 'Kredensial TriPay (Merchant Code, API Key, Private Key) belum dikonfigurasi lengkap di Pengaturan sistem.',
+                ];
             }
 
             return $this->createTripayPayment($order, $methodCode, $methodConfig);
@@ -84,65 +91,113 @@ class PaymentGatewayService
         $signature = hash_hmac('sha256', $merchantCode.$merchantRef.$paymentAmount, $privateKey);
         $channel = $methodConfig['channel_tripay'] ?? $methodCode;
 
+        // Format customer phone (numerical, default to safe fallback)
+        $customerPhone = preg_replace('/[^0-9]/', '', (string) ($order->user?->whatsapp_number ?: ($order->user?->phone ?? '081234567890')));
+        if (strlen($customerPhone) < 10) {
+            $customerPhone = '081234567890';
+        }
+
+        // TriPay requires: sum of (price * quantity) in order_items MUST strictly equal amount!
+        $effectivePrice = max(0, (int) round((float) $order->price_amount - (float) $order->discount_amount));
+        $adminFee = (int) round((float) $order->admin_fee);
+
+        $orderItems = [];
+        if ($effectivePrice > 0) {
+            $orderItems[] = [
+                'sku' => 'ASSESSMENT-'.$order->assessment_id,
+                'name' => substr($order->assessment?->title ?? 'Asesmen CBT', 0, 100),
+                'price' => $effectivePrice,
+                'quantity' => 1,
+            ];
+        }
+        if ($adminFee > 0) {
+            $orderItems[] = [
+                'sku' => 'FEE-ADMIN',
+                'name' => 'Biaya Layanan Pembayaran',
+                'price' => $adminFee,
+                'quantity' => 1,
+            ];
+        }
+
+        $itemsSum = array_sum(array_map(fn ($item) => $item['price'] * $item['quantity'], $orderItems));
+        if ($itemsSum !== $paymentAmount || empty($orderItems)) {
+            $orderItems = [
+                [
+                    'sku' => 'ORDER-'.$order->order_number,
+                    'name' => substr($order->assessment?->title ?? 'Pembelian Asesmen CBT', 0, 100),
+                    'price' => $paymentAmount,
+                    'quantity' => 1,
+                ],
+            ];
+        }
+
+        // Ensure canonical domain for webhook callback reachability
+        $appUrl = config('app.url');
+        $callbackUrl = (! empty($appUrl) && ! str_contains($appUrl, 'localhost') && ! str_contains($appUrl, '127.0.0.1'))
+            ? rtrim($appUrl, '/').'/api/webhooks/payment/tripay'
+            : route('payment.webhook.tripay');
+
         $payload = [
             'method' => $channel,
             'merchant_ref' => $merchantRef,
             'amount' => $paymentAmount,
             'customer_name' => substr($order->user?->name ?? 'Siswa ADZKIA', 0, 50),
             'customer_email' => $order->user?->email ?? 'student@adzkia.test',
-            'customer_phone' => $order->user?->phone ?? '081234567890',
-            'order_items' => [
-                [
-                    'sku' => 'ASSESSMENT-'.$order->assessment_id,
-                    'name' => substr($order->assessment?->title ?? 'Asesmen CBT', 0, 100),
-                    'price' => (int) round($order->price_amount),
-                    'quantity' => 1,
-                ],
-            ],
-            'callback_url' => route('payment.webhook.tripay'),
+            'customer_phone' => $customerPhone,
+            'order_items' => $orderItems,
+            'callback_url' => $callbackUrl,
             'return_url' => route('orders.show', $order),
             'expired_time' => now()->addMinutes(config('payment.gateways.tripay.expiry_period', 1440))->timestamp,
             'signature' => $signature,
         ];
 
         try {
-            $url = rtrim(config('payment.gateways.tripay.base_url'), '/').'/transaction/create';
+            $url = rtrim(config('payment.gateways.tripay.base_url', 'https://tripay.co.id/api/'), '/').'/transaction/create';
             $response = Http::withToken($apiKey)->timeout(20)->post($url, $payload);
+            $data = $response->json();
 
-            if ($response->successful()) {
-                $data = $response->json();
+            if ($response->successful() && ($data['success'] ?? false) && isset($data['data'])) {
+                $trx = $data['data'];
 
-                if (($data['success'] ?? false) && isset($data['data'])) {
-                    $trx = $data['data'];
+                $order->update([
+                    'payment_gateway' => 'tripay',
+                    'payment_reference' => $trx['reference'] ?? null,
+                    'payment_url' => $trx['checkout_url'] ?? $trx['pay_url'] ?? null,
+                    'va_number' => $trx['pay_code'] ?? null,
+                    'qr_code_url' => $trx['qr_url'] ?? $trx['qr_string'] ?? null,
+                    'gateway_payload' => $data,
+                ]);
 
-                    $order->update([
-                        'payment_gateway' => 'tripay',
-                        'payment_reference' => $trx['reference'] ?? null,
-                        'payment_url' => $trx['checkout_url'] ?? null,
-                        'va_number' => $trx['pay_code'] ?? null,
-                        'qr_code_url' => $trx['qr_url'] ?? $trx['qr_string'] ?? null,
-                        'gateway_payload' => $data,
-                    ]);
-
-                    return [
-                        'success' => true,
-                        'payment_url' => $trx['checkout_url'] ?? null,
-                        'va_number' => $trx['pay_code'] ?? null,
-                        'qr_code' => $trx['qr_url'] ?? $trx['qr_string'] ?? null,
-                        'reference' => $trx['reference'] ?? null,
-                    ];
-                }
+                return [
+                    'success' => true,
+                    'payment_url' => $trx['checkout_url'] ?? $trx['pay_url'] ?? null,
+                    'va_number' => $trx['pay_code'] ?? null,
+                    'qr_code' => $trx['qr_url'] ?? $trx['qr_string'] ?? null,
+                    'reference' => $trx['reference'] ?? null,
+                    'instructions' => $trx['instructions'] ?? [],
+                ];
             }
 
+            $errorMessage = $data['message'] ?? 'Respons tidak terduga dari TriPay';
             Log::warning('Tripay API returned error', [
                 'order' => $order->order_number,
+                'channel' => $channel,
+                'status' => $response->status(),
                 'response' => $response->body(),
             ]);
+
+            return [
+                'success' => false,
+                'message' => 'TriPay Error: '.$errorMessage,
+            ];
         } catch (\Throwable $e) {
             Log::error('Tripay API connection failed: '.$e->getMessage());
-        }
 
-        return $this->createSandboxPayment($order, $methodCode);
+            return [
+                'success' => false,
+                'message' => 'Gagal terhubung ke gateway TriPay: '.$e->getMessage(),
+            ];
+        }
     }
 
     /**
@@ -190,7 +245,10 @@ class PaymentGatewayService
         }
 
         try {
-            $url = config('payment.gateways.midtrans.snap_url');
+            $isSandbox = (bool) config('payment.gateways.midtrans.sandbox', true);
+            $url = $isSandbox
+                ? 'https://app.sandbox.midtrans.com/snap/v1/transactions'
+                : (config('payment.gateways.midtrans.snap_url') ?: 'https://app.midtrans.com/snap/v1/transactions');
             $response = Http::withBasicAuth($serverKey, '')
                 ->timeout(20)
                 ->post($url, $payload);

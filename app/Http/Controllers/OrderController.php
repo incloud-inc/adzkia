@@ -197,6 +197,26 @@ class OrderController extends Controller
         // Request payment info from gateway
         $paymentResult = $this->paymentService->createPayment($order, $validated['payment_method']);
 
+        if (! ($paymentResult['success'] ?? true)) {
+            $order->update([
+                'status' => 'failed',
+                'gateway_payload' => array_merge($order->gateway_payload ?? [], [
+                    'failure_reason' => $paymentResult['message'] ?? 'Gateway returned error',
+                ]),
+            ]);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $paymentResult['message'] ?? 'Gagal membuat transaksi ke payment gateway.',
+                ], 422);
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', $paymentResult['message'] ?? 'Gagal membuat transaksi pembayaran.');
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
                 'status' => 'success',
