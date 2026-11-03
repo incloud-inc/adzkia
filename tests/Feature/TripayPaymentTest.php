@@ -86,8 +86,8 @@ class TripayPaymentTest extends TestCase
             'package_validity_days' => 35,
             'price_amount' => 50000.00,
             'discount_amount' => 0.00,
-            'admin_fee' => 3000.00,
-            'total_amount' => 53000.00,
+            'admin_fee' => 0.00,
+            'total_amount' => 50000.00,
             'status' => 'pending',
             'payment_method' => 'VA_BRI',
         ]);
@@ -103,6 +103,8 @@ class TripayPaymentTest extends TestCase
         $order->refresh();
         $this->assertEquals('tripay', $order->payment_gateway);
         $this->assertEquals('DEV-T53616000000001', $order->payment_reference);
+        $this->assertEquals(4250.00, (float) $order->admin_fee);
+        $this->assertEquals(54250.00, (float) $order->total_amount);
     }
 
     public function test_tripay_error_returns_failure_message_without_silent_sandbox(): void
@@ -256,5 +258,35 @@ class TripayPaymentTest extends TestCase
         $this->assertNotNull($access);
         $this->assertEquals(3, $access->quota_attempts);
         $this->assertTrue($access->isValid());
+    }
+
+    public function test_dynamic_service_fee_calculation_matches_tripay_schedule(): void
+    {
+        $service = app(PaymentGatewayService::class);
+
+        // Virtual Accounts
+        $this->assertEquals(4250, $service->calculateAdminFee('VA_BNI', 50000));
+        $this->assertEquals(4250, $service->calculateAdminFee('VA_BRI', 50000));
+        $this->assertEquals(4250, $service->calculateAdminFee('VA_MANDIRI', 50000));
+        $this->assertEquals(5500, $service->calculateAdminFee('VA_BCA', 50000));
+        $this->assertEquals(4250, $service->calculateAdminFee('VA_MUAMALAT', 50000));
+        $this->assertEquals(4250, $service->calculateAdminFee('VA_BSI', 50000));
+
+        // Dompet Digital (3.00%, Min. Rp 1.000)
+        // 10.000 * 3% = 300 < 1000 => 1000
+        $this->assertEquals(1000, $service->calculateAdminFee('OVO', 10000));
+        $this->assertEquals(1000, $service->calculateAdminFee('DANA', 10000));
+        $this->assertEquals(1000, $service->calculateAdminFee('SHOPEEPAY', 10000));
+
+        // 50.000 * 3% = 1500 > 1000 => 1500
+        $this->assertEquals(1500, $service->calculateAdminFee('OVO', 50000));
+        $this->assertEquals(1500, $service->calculateAdminFee('DANA', 50000));
+        $this->assertEquals(1500, $service->calculateAdminFee('SHOPEEPAY', 50000));
+
+        // QRIS (Rp 750 + 0.70%)
+        // 50.000: 750 + (50.000 * 0.007) = 750 + 350 = 1100
+        $this->assertEquals(1100, $service->calculateAdminFee('QRIS', 50000));
+        // 100.000: 750 + (100.000 * 0.007) = 750 + 700 = 1450
+        $this->assertEquals(1450, $service->calculateAdminFee('QRIS', 100000));
     }
 }

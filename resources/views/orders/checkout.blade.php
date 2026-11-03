@@ -13,17 +13,40 @@
         selectedPackageId: {{ $initialPackageId }},
         basePrice: {{ $initialPrice }},
         selectedAttempts: {{ $initialAttempts }},
-        adminFees: { QRIS: 1000, VA_BCA: 3000, VA_MANDIRI: 3000, VA_BRI: 3000, VA_BNI: 3000, SHOPEEPAY: 1500, DANA: 1500, OVO: 1500 },
+        feeConfig: {
+            VA_BNI: { flat: 4250, percent: 0, min: 0 },
+            VA_BRI: { flat: 4250, percent: 0, min: 0 },
+            VA_MANDIRI: { flat: 4250, percent: 0, min: 0 },
+            VA_BCA: { flat: 5500, percent: 0, min: 0 },
+            VA_MUAMALAT: { flat: 4250, percent: 0, min: 0 },
+            VA_BSI: { flat: 4250, percent: 0, min: 0 },
+            SHOPEEPAY: { flat: 0, percent: 3.0, min: 1000 },
+            DANA: { flat: 0, percent: 3.0, min: 1000 },
+            OVO: { flat: 0, percent: 3.0, min: 1000 },
+            QRIS: { flat: 750, percent: 0.7, min: 750 }
+        },
+        calculateFee(method, amount) {
+            let conf = this.feeConfig[method] || { flat: 0, percent: 0, min: 0 };
+            let percentFee = conf.percent > 0 ? (amount * conf.percent / 100) : 0;
+            let total = conf.flat + percentFee;
+            if (conf.min > 0 && total < conf.min) total = conf.min;
+            return Math.round(total);
+        },
+        get finalAmount() {
+            return Math.max(0, this.basePrice - this.discountAmount);
+        },
+        get currentAdminFee() {
+            return this.calculateFee(this.selectedMethod, this.finalAmount);
+        },
+        get totalPay() {
+            return this.finalAmount + this.currentAdminFee;
+        },
         couponInput: '{{ old('coupon_code', '') }}',
         appliedCoupon: null,
         discountAmount: 0,
         couponMessage: '',
         couponError: '{{ $errors->first('coupon_code') }}',
         isApplying: false,
-        get totalPay() {
-            let finalPrice = Math.max(0, this.basePrice - this.discountAmount);
-            return finalPrice + (this.adminFees[this.selectedMethod] || 0);
-        },
         async applyCoupon() {
             if (!this.couponInput.trim()) return;
             this.isApplying = true;
@@ -162,8 +185,8 @@
                         <div class="flex items-center gap-2 border-b border-gray-5 pb-3">
                             <span class="w-7 h-7 rounded-lg bg-green-3 text-green-11 font-bold flex items-center justify-center text-xs">{{ isset($packages) && $packages->count() > 0 ? '2' : '1' }}</span>
                             <div>
-                                <h3 class="font-display font-bold text-sm text-gray-12">QRIS &amp; E-Wallet (Instan)</h3>
-                                <p class="text-[11px] text-gray-11">Bayar langsung lewat GoPay, OVO, Dana, ShopeePay, atau Mobile Banking.</p>
+                                <h3 class="font-display font-bold text-sm text-gray-12">QRIS &amp; Dompet Digital</h3>
+                                <p class="text-[11px] text-gray-11">Bayar langsung lewat QRIS (semua e-wallet), OVO, DANA, atau ShopeePay.</p>
                             </div>
                         </div>
 
@@ -172,48 +195,68 @@
                             <div @click="selectedMethod = 'QRIS'"
                                  :class="selectedMethod === 'QRIS' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
                                  class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="font-bold text-sm text-gray-12">QRIS Nasional</span>
-                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-green-3 text-green-11">Instan</span>
+                                <div class="space-y-1 mb-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-sm text-gray-12">QRIS</span>
+                                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-green-3 text-green-11">Instan</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 leading-tight">Scan QR Code via OVO, Dana, GoPay, BCA, Livin dll.</p>
                                 </div>
-                                <p class="text-[11px] text-gray-11">Scan via seluruh aplikasi e-wallet &amp; m-banking</p>
-                                <span class="text-[11px] font-semibold text-gray-10 mt-2 block">Biaya: Rp 1.000</span>
-                            </div>
-
-                            <!-- ShopeePay Direct -->
-                            <div @click="selectedMethod = 'SHOPEEPAY'"
-                                 :class="selectedMethod === 'SHOPEEPAY' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
-                                 class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="font-bold text-sm text-gray-12">ShopeePay</span>
-                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-orange-100 text-orange-700">App Direct</span>
+                                <div class="pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-bold text-gray-11">Biaya: Rp 750 + 0.70%</span>
+                                    <span class="text-[11px] font-mono font-extrabold text-green-11" x-text="'Rp ' + calculateFee('QRIS', finalAmount).toLocaleString('id-ID')"></span>
                                 </div>
-                                <p class="text-[11px] text-gray-11">Buka langsung aplikasi Shopee untuk bayar</p>
-                                <span class="text-[11px] font-semibold text-gray-10 mt-2 block">Biaya: Rp 1.500</span>
-                            </div>
-
-                            <!-- DANA -->
-                            <div @click="selectedMethod = 'DANA'"
-                                 :class="selectedMethod === 'DANA' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
-                                 class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="font-bold text-sm text-gray-12">DANA</span>
-                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700">E-Wallet</span>
-                                </div>
-                                <p class="text-[11px] text-gray-11">Bayar langsung dengan saldo akun DANA</p>
-                                <span class="text-[11px] font-semibold text-gray-10 mt-2 block">Biaya: Rp 1.500</span>
                             </div>
 
                             <!-- OVO -->
                             <div @click="selectedMethod = 'OVO'"
                                  :class="selectedMethod === 'OVO' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
                                  class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="font-bold text-sm text-gray-12">OVO</span>
-                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700">E-Wallet</span>
+                                <div class="space-y-1 mb-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-sm text-gray-12">OVO</span>
+                                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700">Push App</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 leading-tight">Prompt tagihan otomatis muncul di aplikasi OVO pelanggan</p>
                                 </div>
-                                <p class="text-[11px] text-gray-11">Bayar langsung dengan saldo akun OVO</p>
-                                <span class="text-[11px] font-semibold text-gray-10 mt-2 block">Biaya: Rp 1.500</span>
+                                <div class="pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-bold text-gray-11">Biaya: 3.00% (Min. Rp 1.000)</span>
+                                    <span class="text-[11px] font-mono font-extrabold text-green-11" x-text="'Rp ' + calculateFee('OVO', finalAmount).toLocaleString('id-ID')"></span>
+                                </div>
+                            </div>
+
+                            <!-- DANA -->
+                            <div @click="selectedMethod = 'DANA'"
+                                 :class="selectedMethod === 'DANA' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
+                                 class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="space-y-1 mb-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-sm text-gray-12">DANA</span>
+                                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700">E-Wallet</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 leading-tight">Pembayaran langsung melalui saldo E-Wallet DANA</p>
+                                </div>
+                                <div class="pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-bold text-gray-11">Biaya: 3.00% (Min. Rp 1.000)</span>
+                                    <span class="text-[11px] font-mono font-extrabold text-green-11" x-text="'Rp ' + calculateFee('DANA', finalAmount).toLocaleString('id-ID')"></span>
+                                </div>
+                            </div>
+
+                            <!-- ShopeePay Direct -->
+                            <div @click="selectedMethod = 'SHOPEEPAY'"
+                                 :class="selectedMethod === 'SHOPEEPAY' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
+                                 class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="space-y-1 mb-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-sm text-gray-12">ShopeePay</span>
+                                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-orange-100 text-orange-700">Mobile</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-11 leading-tight">Dialihkan ke aplikasi ShopeePay (khusus pengguna HP/mobile)</p>
+                                </div>
+                                <div class="pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-bold text-gray-11">Biaya: 3.00% (Min. Rp 1.000)</span>
+                                    <span class="text-[11px] font-mono font-extrabold text-green-11" x-text="'Rp ' + calculateFee('SHOPEEPAY', finalAmount).toLocaleString('id-ID')"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -223,54 +266,112 @@
                         <div class="flex items-center gap-2 border-b border-gray-5 pb-3">
                             <span class="w-7 h-7 rounded-lg bg-blue-3 text-blue-11 font-bold flex items-center justify-center text-xs">{{ isset($packages) && $packages->count() > 0 ? '3' : '2' }}</span>
                             <div>
-                                <h3 class="font-display font-bold text-sm text-gray-12">Virtual Account (Transfer Otomatis)</h3>
-                                <p class="text-[11px] text-gray-11">Nomor rekening unik otomatis verifikasi 24/7 tanpa perlu kirim bukti transfer.</p>
+                                <h3 class="font-display font-bold text-sm text-gray-12">Virtual Account Bank (Transfer Otomatis)</h3>
+                                <p class="text-[11px] text-gray-11">Nomor rekening virtual unik, verifikasi otomatis 24/7 tanpa perlu upload bukti transfer.</p>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <!-- BCA -->
-                            <div @click="selectedMethod = 'VA_BCA'"
-                                 :class="selectedMethod === 'VA_BCA' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
-                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between">
-                                <div>
-                                    <span class="font-bold text-xs text-gray-12 block">BCA Virtual Account</span>
-                                    <span class="text-[11px] text-gray-10 font-semibold">Biaya: Rp 3.000</span>
+                            <!-- BNI -->
+                            <div @click="selectedMethod = 'VA_BNI'"
+                                 :class="selectedMethod === 'VA_BNI' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
+                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="font-bold text-xs text-gray-12 block">BNI Virtual Account</span>
+                                        <p class="text-[10px] text-gray-10 mt-0.5">Transfer rekening virtual Bank BNI</p>
+                                    </div>
+                                    <span x-show="selectedMethod === 'VA_BNI'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
                                 </div>
-                                <span x-show="selectedMethod === 'VA_BCA'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
-                            </div>
-
-                            <!-- Mandiri -->
-                            <div @click="selectedMethod = 'VA_MANDIRI'"
-                                 :class="selectedMethod === 'VA_MANDIRI' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
-                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between">
-                                <div>
-                                    <span class="font-bold text-xs text-gray-12 block">Mandiri Virtual Account</span>
-                                    <span class="text-[11px] text-gray-10 font-semibold">Biaya: Rp 3.000</span>
+                                <div class="mt-2 pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-semibold text-gray-11">Biaya Layanan</span>
+                                    <span class="text-[11px] font-mono font-bold text-gray-12">Rp 4.250</span>
                                 </div>
-                                <span x-show="selectedMethod === 'VA_MANDIRI'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
                             </div>
 
                             <!-- BRI -->
                             <div @click="selectedMethod = 'VA_BRI'"
                                  :class="selectedMethod === 'VA_BRI' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
-                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between">
-                                <div>
-                                    <span class="font-bold text-xs text-gray-12 block">BRI Virtual Account (BRIVA)</span>
-                                    <span class="text-[11px] text-gray-10 font-semibold">Biaya: Rp 3.000</span>
+                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="font-bold text-xs text-gray-12 block">BRI Virtual Account (BRIVA)</span>
+                                        <p class="text-[10px] text-gray-10 mt-0.5">Transfer rekening virtual Bank BRI</p>
+                                    </div>
+                                    <span x-show="selectedMethod === 'VA_BRI'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
                                 </div>
-                                <span x-show="selectedMethod === 'VA_BRI'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
+                                <div class="mt-2 pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-semibold text-gray-11">Biaya Layanan</span>
+                                    <span class="text-[11px] font-mono font-bold text-gray-12">Rp 4.250</span>
+                                </div>
                             </div>
 
-                            <!-- BNI -->
-                            <div @click="selectedMethod = 'VA_BNI'"
-                                 :class="selectedMethod === 'VA_BNI' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
-                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between">
-                                <div>
-                                    <span class="font-bold text-xs text-gray-12 block">BNI Virtual Account</span>
-                                    <span class="text-[11px] text-gray-10 font-semibold">Biaya: Rp 3.000</span>
+                            <!-- Mandiri -->
+                            <div @click="selectedMethod = 'VA_MANDIRI'"
+                                 :class="selectedMethod === 'VA_MANDIRI' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
+                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="font-bold text-xs text-gray-12 block">Mandiri Virtual Account</span>
+                                        <p class="text-[10px] text-gray-10 mt-0.5">Transfer rekening virtual Bank Mandiri</p>
+                                    </div>
+                                    <span x-show="selectedMethod === 'VA_MANDIRI'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
                                 </div>
-                                <span x-show="selectedMethod === 'VA_BNI'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
+                                <div class="mt-2 pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-semibold text-gray-11">Biaya Layanan</span>
+                                    <span class="text-[11px] font-mono font-bold text-gray-12">Rp 4.250</span>
+                                </div>
+                            </div>
+
+                            <!-- BCA -->
+                            <div @click="selectedMethod = 'VA_BCA'"
+                                 :class="selectedMethod === 'VA_BCA' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
+                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="font-bold text-xs text-gray-12 block">BCA Virtual Account</span>
+                                        <p class="text-[10px] text-amber-700 font-medium mt-0.5">* Masa kliring fixed H+3</p>
+                                    </div>
+                                    <span x-show="selectedMethod === 'VA_BCA'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
+                                </div>
+                                <div class="mt-2 pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-semibold text-gray-11">Biaya Layanan</span>
+                                    <span class="text-[11px] font-mono font-bold text-gray-12">Rp 5.500</span>
+                                </div>
+                            </div>
+
+                            <!-- Muamalat -->
+                            <div @click="selectedMethod = 'VA_MUAMALAT'"
+                                 :class="selectedMethod === 'VA_MUAMALAT' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
+                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="font-bold text-xs text-gray-12 block">Muamalat Virtual Account</span>
+                                        <p class="text-[10px] text-gray-10 mt-0.5">Transfer rekening virtual Bank Muamalat</p>
+                                    </div>
+                                    <span x-show="selectedMethod === 'VA_MUAMALAT'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
+                                </div>
+                                <div class="mt-2 pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-semibold text-gray-11">Biaya Layanan</span>
+                                    <span class="text-[11px] font-mono font-bold text-gray-12">Rp 4.250</span>
+                                </div>
+                            </div>
+
+                            <!-- BSI -->
+                            <div @click="selectedMethod = 'VA_BSI'"
+                                 :class="selectedMethod === 'VA_BSI' ? 'border-green-8 bg-green-2/40 ring-2 ring-green-7' : 'border-gray-6 bg-white hover:border-gray-7'"
+                                 class="p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="font-bold text-xs text-gray-12 block">BSI Virtual Account</span>
+                                        <p class="text-[10px] text-gray-10 mt-0.5">Transfer rekening Bank Syariah Indonesia</p>
+                                    </div>
+                                    <span x-show="selectedMethod === 'VA_BSI'" class="text-green-9"><x-radix-icon name="check-circled" class="w-5 h-5"/></span>
+                                </div>
+                                <div class="mt-2 pt-2 border-t border-gray-4 flex items-center justify-between">
+                                    <span class="text-[11px] font-semibold text-gray-11">Biaya Layanan</span>
+                                    <span class="text-[11px] font-mono font-bold text-gray-12">Rp 4.250</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -380,7 +481,7 @@
                         </div>
                         <div class="flex justify-between items-center">
                             <span>Biaya Layanan Gateway</span>
-                            <span class="font-semibold text-gray-12" x-text="'Rp ' + (adminFees[selectedMethod] || 0).toLocaleString('id-ID')"></span>
+                            <span class="font-semibold text-gray-12" x-text="'Rp ' + currentAdminFee.toLocaleString('id-ID')"></span>
                         </div>
                     </div>
 

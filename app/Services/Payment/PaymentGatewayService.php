@@ -23,8 +23,8 @@ class PaymentGatewayService
         $driver = config('payment.default', 'duitku');
         $methodConfig = config("payment.methods.{$methodCode}");
 
-        $adminFee = (float) ($methodConfig['fee'] ?? 0);
         $effectivePrice = max(0.00, (float) $order->price_amount - (float) $order->discount_amount);
+        $adminFee = $this->calculateAdminFee($methodCode, $effectivePrice);
         $totalAmount = $effectivePrice + $adminFee;
         $expiryPeriod = (int) config("payment.gateways.{$driver}.expiry_period", 1440);
 
@@ -361,6 +361,26 @@ class PaymentGatewayService
     }
 
     /**
+     * Hitung biaya layanan (admin fee) secara dinamis sesuai skema flat / persentase / minimal biaya.
+     */
+    public function calculateAdminFee(string $methodCode, float $baseAmount): float
+    {
+        $methodConfig = config("payment.methods.{$methodCode}", []);
+        $flat = (float) ($methodConfig['fee_flat'] ?? ($methodConfig['fee'] ?? 0));
+        $percent = (float) ($methodConfig['fee_percent'] ?? 0);
+        $min = (float) ($methodConfig['fee_min'] ?? 0);
+
+        $percentFee = ($percent > 0) ? ($baseAmount * ($percent / 100)) : 0;
+        $totalCalculatedFee = $flat + $percentFee;
+
+        if ($min > 0 && $totalCalculatedFee < $min) {
+            $totalCalculatedFee = $min;
+        }
+
+        return (float) round($totalCalculatedFee);
+    }
+
+    /**
      * Create interactive simulated payment (Sandbox mode).
      */
     protected function createSandboxPayment(Order $order, string $methodCode): array
@@ -375,6 +395,8 @@ class PaymentGatewayService
                 'VA_MANDIRI' => '89000',
                 'VA_BRI' => '88888',
                 'VA_BNI' => '88088',
+                'VA_MUAMALAT' => '88111',
+                'VA_BSI' => '88222',
                 default => '99000',
             };
             $vaNumber = $bankCode.str_pad((string) $order->id, 8, '0', STR_PAD_LEFT);
