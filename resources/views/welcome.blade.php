@@ -1184,29 +1184,33 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                     </ul>
                 </nav>
 
-                <!-- Col 3: Solusi Platform -->
-                <nav aria-label="Solusi Platform" class="lg:col-span-4 md:col-span-1">
-                    <h3 class="font-bold text-white uppercase tracking-wider mb-4 text-xs">Solusi Platform</h3>
+                <!-- Col 3: Kebijakan & Informasi -->
+                <nav aria-label="Kebijakan & Informasi" class="lg:col-span-4 md:col-span-1">
+                    <h3 class="font-bold text-white uppercase tracking-wider mb-4 text-xs">Kebijakan &amp; Informasi</h3>
                     <ul class="space-y-2.5 text-slate-400">
-                        <li class="flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
-                            <span>Bank Soal Asli Terstandarisasi</span>
+                        <li>
+                            <button type="button" 
+                                    onclick="openLegalModal('privacy')" 
+                                    class="group flex items-center gap-2 text-left hover:text-emerald-400 transition-colors cursor-pointer focus:outline-hidden">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
+                                <span class="hover:underline underline-offset-4">Kebijakan Privasi</span>
+                            </button>
                         </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
-                            <span>Pembahasan AI Langkah demi Langkah</span>
+                        <li>
+                            <button type="button" 
+                                    onclick="openLegalModal('about')" 
+                                    class="group flex items-center gap-2 text-left hover:text-emerald-400 transition-colors cursor-pointer focus:outline-hidden">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
+                                <span class="hover:underline underline-offset-4">Tentang Kami</span>
+                            </button>
                         </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
-                            <span>Anti-Curang (Proctoring Mandiri)</span>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
-                            <span>Portal Multi-Tenant White-Label</span>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0"></span>
-                            <span>Analisis Butir Soal &amp; Rekap Nilai</span>
+                        <li>
+                            <button type="button" 
+                                    onclick="openLegalModal('terms')" 
+                                    class="group flex items-center gap-2 text-left hover:text-emerald-400 transition-colors cursor-pointer focus:outline-hidden">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
+                                <span class="hover:underline underline-offset-4">Syarat &amp; Ketentuan</span>
+                            </button>
                         </li>
                     </ul>
                 </nav>
@@ -1228,6 +1232,554 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
 
         </div>
     </footer>
+
+    <!-- MODAL POPUP: KEBIJAKAN PRIVASI, TENTANG KAMI, SYARAT & KETENTUAN -->
+    <div id="legal-modal" 
+         class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-6 isolate"
+         role="dialog" 
+         aria-modal="true" 
+         aria-labelledby="legal-modal-title">
+        
+        <!-- Backdrop Overlay -->
+        <div id="legal-modal-backdrop" 
+             onclick="closeLegalModal()" 
+             class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity duration-200 opacity-0 cursor-pointer"></div>
+
+        <!-- Modal Dialog Box -->
+        <div id="legal-modal-card" 
+             class="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden transform scale-95 opacity-0 transition-all duration-200 z-10 text-slate-800">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4 bg-slate-50/80 shrink-0">
+                <div class="flex items-center gap-3.5 min-w-0">
+                    <div id="legal-modal-icon-badge" class="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <span id="legal-modal-badge" class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md inline-block mb-0.5">
+                            Kepatuhan UU PDP No. 27/2022
+                        </span>
+                        <h2 id="legal-modal-title" class="font-display font-black text-lg sm:text-xl text-slate-900 tracking-tight truncate">
+                            Kebijakan Privasi
+                        </h2>
+                    </div>
+                </div>
+
+                <!-- Close Button (X) -->
+                <button type="button" 
+                        onclick="closeLegalModal()" 
+                        aria-label="Tutup Jendela"
+                        class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Nav Tabs Switcher inside popup -->
+            <div class="px-6 pt-2 pb-0 bg-white border-b border-slate-100 flex items-center gap-2 overflow-x-auto hide-scrollbar text-xs font-bold shrink-0">
+                <button type="button" 
+                        id="tab-btn-privacy" 
+                        onclick="switchLegalTab('privacy')" 
+                        class="px-4 py-2.5 border-b-2 font-bold cursor-pointer transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span>Kebijakan Privasi</span>
+                </button>
+                <button type="button" 
+                        id="tab-btn-about" 
+                        onclick="switchLegalTab('about')" 
+                        class="px-4 py-2.5 border-b-2 font-bold cursor-pointer transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <span>Tentang Kami</span>
+                </button>
+                <button type="button" 
+                        id="tab-btn-terms" 
+                        onclick="switchLegalTab('terms')" 
+                        class="px-4 py-2.5 border-b-2 font-bold cursor-pointer transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Syarat &amp; Ketentuan</span>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="overflow-y-auto p-6 sm:p-8 flex-1 text-slate-600 text-xs sm:text-sm leading-relaxed space-y-6">
+                
+                <!-- ============================================== -->
+                <!-- TAB 1: KEBIJAKAN PRIVASI                       -->
+                <!-- ============================================== -->
+                <div id="content-privacy" class="space-y-6">
+                    <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="text-xs text-slate-700">
+                            <span class="font-bold text-slate-900 block mb-0.5">Pernyataan Kepatuhan Privasi:</span>
+                            ADZKIA CBT tunduk penuh pada <strong>Undang-Undang No. 27 Tahun 2022 tentang Perlindungan Data Pribadi (UU PDP)</strong> Republik Indonesia. Kami menjamin data siswa, guru, dan institusi terlindungi dengan standar keamanan cloud modern.
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">1</span>
+                            <span>Pendahuluan &amp; Komitmen Kerahasiaan</span>
+                        </h3>
+                        <p>
+                            Selamat datang di platform ADZKIA CBT (diakses melalui domain utama <code class="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-emerald-800">https://adzkia.id</code> maupun seluruh portal subdomain resmi mitra). Kebijakan Privasi ini mengatur tata cara kami dalam mengumpulkan, mengelola, mengolah, menyimpan, dan menjaga keamanan data pribadi seluruh pihak yang memanfaatkan platform ini—baik Peserta Didik (Siswa), Pendidik (Guru/Tutor), Pengawas Ujian, maupun Pimpinan Sekolah dan Lembaga Bimbingan Belajar (BIMBEL).
+                        </p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">2</span>
+                            <span>Data Pribadi yang Kami Kumpulkan</span>
+                        </h3>
+                        <p>
+                            Kami hanya menghimpun data yang relevan dan dibutuhkan langsung untuk kelancaran penyelenggaraan asesmen akademik dan evaluasi belajar:
+                        </p>
+                        <ul class="space-y-2 pl-2">
+                            <li class="flex items-start gap-2">
+                                <span class="font-bold text-emerald-600 mt-0.5">&bull;</span>
+                                <div><strong>Informasi Akun &amp; Profil:</strong> Nama lengkap, alamat surat elektronik (email), nomor WhatsApp/telepon aktif, jenjang kelas, asal sekolah/institusi, serta foto profil (jika diunggah atau disinkronkan melalui Google SSO).</div>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="font-bold text-emerald-600 mt-0.5">&bull;</span>
+                                <div><strong>Kredensial Autentikasi:</strong> Kata sandi yang diamankan menggunakan enkripsi satu arah *bcrypt*, serta token identitas unik dari layanan Google OAuth 2.0 resmi.</div>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="font-bold text-emerald-600 mt-0.5">&bull;</span>
+                                <div><strong>Aktivitas Asesmen &amp; Evaluasi:</strong> Pilihan jawaban ujian, riwayat pengerjaan, perolehan nilai/skor per subtes, catatan durasi per butir soal, dan interaksi peserta dengan fitur Pembahasan AI.</div>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="font-bold text-emerald-600 mt-0.5">&bull;</span>
+                                <div><strong>Data Integritas &amp; Pengawasan (Proctoring Mandiri):</strong> Pencatatan anomali pengerjaan (seperti kejadian perpindahan tab peramban atau keluarnya layar dari mode layar penuh), alamat IP, jenis peramban (*browser*), dan jenis perangkat yang digunakan untuk memvalidasi kejujuran ujian. Kami <strong>tidak</strong> merekam kamera atau mikrofon tanpa persetujuan eksplisit.</div>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="font-bold text-emerald-600 mt-0.5">&bull;</span>
+                                <div><strong>Informasi Transaksi:</strong> Nomor pesanan, status pembayaran, dan kode referensi dari payment gateway resmi (Tripay, Duitku, Midtrans). Kami tidak pernah menyimpan nomor kartu kredit atau PIN perbankan pengguna.</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">3</span>
+                            <span>Tujuan Pengolahan &amp; Penggunaan Data</span>
+                        </h3>
+                        <p>Data pribadi pengguna dipergunakan untuk tujuan berikut:</p>
+                        <ol class="list-decimal list-inside space-y-1.5 pl-2 text-slate-600">
+                            <li>Memverifikasi identitas pengguna saat mengakses asesmen CBT dan portal multi-tenant.</li>
+                            <li>Mengolah hasil tes, mengkalkulasi skor bobot butir soal, serta menyajikan rekap nilai dan pemeringkatan bagi sekolah atau BIMBEL.</li>
+                            <li>Menghasilkan analisis kelemahan materi belajar dan memandu penjelasan pembahasan langkah demi langkah melalui generator AI.</li>
+                            <li>Memelihara integritas asesmen dan mencegah kecurangan ujian serentak.</li>
+                            <li>Menyampaikan pemberitahuan penting terkait status transaksi, jadwal ujian, atau pemeliharaan server.</li>
+                        </ol>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">4</span>
+                            <span>Keamanan &amp; Perlindungan Data</span>
+                        </h3>
+                        <p>
+                            Kami mengimplementasikan langkah-langkah teknis dan organisasional tingkat tinggi untuk melindungi data Anda:
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                                <span class="font-bold text-slate-900 block text-xs mb-1">Enkripsi SSL/TLS 256-bit</span>
+                                <p class="text-[11px] text-slate-500">Semua transmisi data antara perangkat siswa dan server cloud dienkripsi secara penuh.</p>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                                <span class="font-bold text-slate-900 block text-xs mb-1">Database Terisolasi</span>
+                                <p class="text-[11px] text-slate-500">Basis data disimpan pada klaster server terproteksi firewall dan dibatasi hak akses berbasis peran (RBAC).</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">5</span>
+                            <span>Larangan Penjualan Data &amp; Pembagian Pihak Ketiga</span>
+                        </h3>
+                        <p>
+                            <strong>ADZKIA CBT tidak pernah menjual, menyewakan, atau memperdagangkan data pribadi pengguna kepada pihak ketiga untuk kepentingan iklan.</strong>
+                            Data hanya dibagikan secara terbatas kepada:
+                        </p>
+                        <ul class="space-y-1 pl-2 text-slate-600">
+                            <li>&bull; <strong>Institusi Pendidikan Terkait:</strong> Pimpinan sekolah atau pemilik BIMBEL yang menaungi siswa berhak menerima rekapitulasi nilai dan analitik performa.</li>
+                            <li>&bull; <strong>Penyedia Infrastruktur Resmi:</strong> Mitra pemroses pembayaran berizin Bank Indonesia dan penyedia cloud server terverifikasi demi kelangsungan operasional sistem.</li>
+                            <li>&bull; <strong>Kepatuhan Hukum:</strong> Penegak hukum Republik Indonesia apabila terdapat penetapan pengadilan yang sah.</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">6</span>
+                            <span>Hak Pengguna &amp; Kontak Privasi</span>
+                        </h3>
+                        <p>
+                            Sesuai UU PDP, Anda berhak memeriksa, memperbarui, atau meminta penghapusan data akun Anda dari database kami. Untuk permohonan terkait data pribadi, hubungi kami melalui surat elektronik resmi di <a href="mailto:adzkia.tryout@gmail.com" class="text-emerald-700 font-bold hover:underline">adzkia.tryout@gmail.com</a>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- ============================================== -->
+                <!-- TAB 2: TENTANG KAMI                            -->
+                <!-- ============================================== -->
+                <div id="content-about" class="space-y-6 hidden">
+                    <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-100 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center shrink-0 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                        <div class="text-xs text-slate-700">
+                            <span class="font-bold text-slate-900 block mb-0.5">Mengenal ADZKIA CBT:</span>
+                            Pelopor ekosistem Computer-Based Test (CBT) modern di Indonesia yang memadukan <strong>Bank Soal Asli Terverifikasi</strong>, <strong>Kecerdasan Buatan (AI)</strong>, dan <strong>Portal Multi-Tenant Mandiri</strong>.
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-sky-100 text-sky-800 text-xs font-black flex items-center justify-center">1</span>
+                            <span>Profil Platform</span>
+                        </h3>
+                        <p>
+                            ADZKIA CBT adalah platform evaluasi dan asesmen berbasis komputer yang lahir dari kebutuhan nyata dunia pendidikan Indonesia akan sistem ujian yang andal, jujur, dan mudah dikelola tanpa beban infrastruktur server fisik lokal di sekolah.
+                        </p>
+                        <p>
+                            Kami mengintegrasikan bank naskah soal asli dengan mesin penalaran kecerdasan buatan (*AI Explanation Engine*) mutakhir, sehingga setiap siswa tidak hanya dinilai dari hasil akhir, melainkan dibimbing untuk memahami logika penyelesaian setiap soal secara mendalam.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-sky-100 text-sky-800 text-xs font-black flex items-center justify-center">2</span>
+                            <span>Visi &amp; Misi</span>
+                        </h3>
+                        <div class="space-y-3 pl-2">
+                            <div>
+                                <h4 class="font-bold text-xs uppercase tracking-wider text-emerald-800">Visi Kami</h4>
+                                <p class="text-slate-600 mt-1">
+                                    Mewujudkan sistem evaluasi pendidikan Indonesia yang berstandar tinggi, berintegritas tanpa kecurangan, dan inklusif bagi seluruh lapisan sekolah serta lembaga bimbingan belajar di seluruh pelosok Tanah Air.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-xs uppercase tracking-wider text-emerald-800">Misi Kami</h4>
+                                <ul class="space-y-1.5 text-slate-600 mt-1">
+                                    <li>&bull; <strong>Pemerataan Mutu:</strong> Menyediakan bank soal berkualitas standar nasional yang mudah diakses siswa tanpa terkendala jarak geografis.</li>
+                                    <li>&bull; <strong>Otomasi Cerdas:</strong> Membantu guru dan pengajar dengan sistem koreksi otomatis, analisis butir soal, dan rekap nilai instan.</li>
+                                    <li>&bull; <strong>Pembelajaran Berbasis Konsep:</strong> Mengembangkan pembahasan AI interaktif langkah demi langkah untuk melatih kemampuan berpikir kritis (*Higher Order Thinking Skills - HOTS*).</li>
+                                    <li>&bull; <strong>Kemitraan White-Label:</strong> Mendukung lembaga pendidikan memiliki sistem CBT ber-merk sendiri dengan identitas institusi yang eksklusif.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-sky-100 text-sky-800 text-xs font-black flex items-center justify-center">3</span>
+                            <span>Cakupan Layanan Asesmen</span>
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                                <span class="font-bold text-xs text-slate-900 block mb-1">Pendidikan Dasar &amp; Menengah</span>
+                                <p class="text-[11px] text-slate-500">Asesmen berkala dan ujian sumatif untuk Kelas 1 - 6 SD, 7 - 9 SMP, dan 10 - 12 SMA/SMK Kurikulum Merdeka.</p>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                                <span class="font-bold text-xs text-slate-900 block mb-1">Seleksi Perguruan Tinggi &amp; Kedinasan</span>
+                                <p class="text-[11px] text-slate-500">Bank Soal Asli UTBK-SNBT (sejak 2019), Tes Kemampuan Akademik (TKA), serta SKD Kedinasan dan CPNS.</p>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                                <span class="font-bold text-xs text-slate-900 block mb-1">Sertifikasi Bahasa Asing</span>
+                                <p class="text-[11px] text-slate-500">Simulasi standar internasional TOEIC Simulation, TOEFL Preparation, serta IELTS Mock Test lengkap dengan audio listening.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-sky-100 text-sky-800 text-xs font-black flex items-center justify-center">4</span>
+                            <span>Informasi Pengembang &amp; Kontak Resmi</span>
+                        </h3>
+                        <p>
+                            Platform ADZKIA CBT dikelola dan dikembangkan secara independen oleh tim ahli rekayasa perangkat lunak dan kurikulum pendidikan.
+                        </p>
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5 text-slate-700">
+                            <p><strong>Nama Layanan:</strong> ADZKIA CBT (Educational Assessment Engine)</p>
+                            <p><strong>Situs Resmi:</strong> <a href="https://adzkia.id" target="_blank" class="text-emerald-700 font-bold hover:underline">https://adzkia.id</a></p>
+                            <p><strong>Surat Elektronik (Email):</strong> <a href="mailto:adzkia.tryout@gmail.com" class="text-emerald-700 font-bold hover:underline">adzkia.tryout@gmail.com</a></p>
+                            <p><strong>Kemitraan &amp; Layanan Sekolah:</strong> Layanan konsultasi kemitraan tersedia untuk seluruh institusi pendidikan di Indonesia.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================== -->
+                <!-- TAB 3: SYARAT & KETENTUAN                      -->
+                <!-- ============================================== -->
+                <div id="content-terms" class="space-y-6 hidden">
+                    <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-100 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="text-xs text-slate-700">
+                            <span class="font-bold text-slate-900 block mb-0.5">Perjanjian Penggunaan Layanan:</span>
+                            Dengan mengakses, mendaftar, atau menggunakan fitur ADZKIA CBT, Anda menyetujui seluruh ketentuan hukum berikut. Harap baca dengan seksama.
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center">1</span>
+                            <span>Ketentuan Umum &amp; Penerimaan</span>
+                        </h3>
+                        <p>
+                            Syarat &amp; Ketentuan ini mengatur hubungan antara pengguna (Anda) dan pengelola ADZKIA CBT. Apabila Anda mendaftar atas nama sekolah atau lembaga bimbingan belajar, Anda menyatakan memiliki wewenang hukum yang sah untuk mengikat institusi tersebut dalam perjanjian ini.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center">2</span>
+                            <span>Akun Pengguna &amp; Tanggung Jawab Akses</span>
+                        </h3>
+                        <ul class="space-y-2 pl-2">
+                            <li class="flex items-start gap-2">
+                                <span class="font-bold text-amber-600 mt-0.5">&bull;</span>
+                                <div><strong>Kebenaran Identitas:</strong> Anda wajib mengisi data registrasi yang valid dan dapat dipertanggungjawabkan. Akun fiktif berhak dinonaktifkan secara sepihak.</div>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="font-bold text-amber-600 mt-0.5">&bull;</span>
+                                <div><strong>Sifat Pribadi Akun:</strong> Akun peserta ujian bersifat perorangan. Dilarang keras memindahtangankan, menyewakan, atau memperjualbelikan akses akun kepada pihak lain.</div>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="font-bold text-amber-600 mt-0.5">&bull;</span>
+                                <div><strong>Keamanan Sandi:</strong> Pengguna bertanggung jawab penuh atas keamanan kata sandi akunnya. Segala transaksi dan aktivitas pengerjaan yang terjadi melalui akun Anda dianggap sebagai tindakan sah pemegang akun.</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center">3</span>
+                            <span>Tata Tertib Ujian &amp; Larangan Kecurangan</span>
+                        </h3>
+                        <p>
+                            ADZKIA CBT menjunjung tinggi nilai kejujuran akademik. Selama melaksanakan asesmen:
+                        </p>
+                        <ol class="list-decimal list-inside space-y-1.5 pl-2 text-slate-600">
+                            <li>Peserta dilarang menggunakan ekstensi peramban peretas, skrip injeksi jawaban, bot otomatis, atau perangkat pengubah traffic jaringan.</li>
+                            <li>Peserta dilarang mengambil tangkapan layar (*screenshot*) atau merekam naskah soal ujian untuk disebarluaskan ke media sosial atau forum publik.</li>
+                            <li>Sistem dilengkapi dengan log proctoring otomatis (pencatat perpindahan tab dan status layar). Log kecurangan ini dapat dijadikan bukti sah bagi pengawas atau pihak sekolah untuk membatalkan keikutsertaan atau mendiskualifikasi nilai ujian peserta.</li>
+                        </ol>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center">4</span>
+                            <span>Hak Kekayaan Intelektual (HAKI)</span>
+                        </h3>
+                        <p>
+                            Seluruh materi naskah bank soal, format layout, kode program, logo, basis data, dan konten pembahasan AI di ADZKIA CBT adalah hak kekayaan intelektual yang dilindungi oleh Undang-Undang Hak Cipta Republik Indonesia.
+                        </p>
+                        <p>
+                            Dilarang memperbanyak, mendistribusikan ulang, mencetak untuk tujuan komersil, atau menjual naskah soal ADZKIA CBT tanpa izin tertulis dari manajemen. Pelanggaran hak cipta akan ditindaklanjuti sesuai jalur hukum yang berlaku.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center">5</span>
+                            <span>Pembayaran &amp; Kebijakan Pembatalan</span>
+                        </h3>
+                        <p>
+                            Transaksi pembelian paket soal, aktivasi akses asesmen, maupun voucher institusi diproses secara aman melalui payment gateway resmi.
+                        </p>
+                        <p>
+                            Setiap pembayaran yang telah terkonfirmasi berhasil oleh gateway bersifat <strong>final dan tidak dapat dibatalkan atau dikembalikan (*non-refundable*)</strong>, kecuali bila terbukti secara sistem terjadi kegagalan pemrosesan ganda pada pesanan yang sama akibat kesalahan teknis server kami.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center">6</span>
+                            <span>Batasan Tanggung Jawab</span>
+                        </h3>
+                        <p>
+                            Kami berusaha menyediakan ketersediaan layanan (*uptime*) setinggi mungkin. Namun demikian, ADZKIA CBT tidak bertanggung jawab atas kerugian atau ketidakmampuan menyelesaikan ujian yang timbul akibat:
+                        </p>
+                        <ul class="space-y-1 pl-2 text-slate-600">
+                            <li>&bull; Gangguan koneksi internet atau kuota habis pada pihak peserta.</li>
+                            <li>&bull; Pemadaman listrik lokal atau kerusakan perangkat keras/lunak milik pengguna.</li>
+                            <li>&bull; Kejadian kahar (*force majeure*) di luar kendali wajar kami seperti bencana alam atau gangguan jaringan nasional.</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center">7</span>
+                            <span>Hukum yang Berlaku &amp; Perubahan Ketentuan</span>
+                        </h3>
+                        <p>
+                            Syarat &amp; Ketentuan ini diatur dan ditafsirkan berdasarkan hukum Negara Kesatuan Republik Indonesia. Kami berhak melakukan perubahan terhadap isi ketentuan ini sewaktu-waktu dan pembaruan akan dipublikasikan langsung melalui halaman ini.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shrink-0">
+                <div class="flex items-center gap-2 text-slate-500">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>ADZKIA CBT &bull; Bantuan: <a href="mailto:adzkia.tryout@gmail.com" class="text-emerald-700 hover:underline font-semibold">adzkia.tryout@gmail.com</a></span>
+                </div>
+                <button type="button" 
+                        onclick="closeLegalModal()" 
+                        class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition-all shadow-xs cursor-pointer text-center">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LEGAL MODAL JAVASCRIPT CONTROLLER -->
+    <script>
+        const legalModalMeta = {
+            privacy: {
+                title: 'Kebijakan Privasi',
+                badge: 'Kepatuhan UU PDP No. 27/2022',
+                icon: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>',
+                badgeClass: 'text-emerald-800 bg-emerald-50 border-emerald-200/80',
+                iconClass: 'bg-emerald-100 text-emerald-800'
+            },
+            about: {
+                title: 'Tentang Kami',
+                badge: 'Profil Platform ADZKIA CBT',
+                icon: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>',
+                badgeClass: 'text-sky-800 bg-sky-50 border-sky-200/80',
+                iconClass: 'bg-sky-100 text-sky-800'
+            },
+            terms: {
+                title: 'Syarat & Ketentuan',
+                badge: 'Perjanjian Layanan Resmi',
+                icon: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>',
+                badgeClass: 'text-amber-800 bg-amber-50 border-amber-200/80',
+                iconClass: 'bg-amber-100 text-amber-800'
+            }
+        };
+
+        function openLegalModal(tab) {
+            const modal = document.getElementById('legal-modal');
+            const backdrop = document.getElementById('legal-modal-backdrop');
+            const card = document.getElementById('legal-modal-card');
+            if (!modal || !backdrop || !card) return;
+
+            switchLegalTab(tab || 'privacy');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('overflow-hidden');
+
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                backdrop.classList.add('opacity-100');
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function closeLegalModal() {
+            const modal = document.getElementById('legal-modal');
+            const backdrop = document.getElementById('legal-modal-backdrop');
+            const card = document.getElementById('legal-modal-card');
+            if (!modal || !backdrop || !card) return;
+
+            backdrop.classList.remove('opacity-100');
+            backdrop.classList.add('opacity-0');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.classList.remove('overflow-hidden');
+                if (window.location.hash === '#kebijakan-privasi' || window.location.hash === '#tentang-kami' || window.location.hash === '#syarat-ketentuan') {
+                    history.replaceState(null, document.title, window.location.pathname + window.location.search);
+                }
+            }, 200);
+        }
+
+        function switchLegalTab(tab) {
+            const tabs = ['privacy', 'about', 'terms'];
+            tabs.forEach(t => {
+                const btn = document.getElementById('tab-btn-' + t);
+                const content = document.getElementById('content-' + t);
+                if (btn && content) {
+                    if (t === tab) {
+                        btn.className = "px-4 py-2.5 border-b-2 border-emerald-600 text-emerald-800 bg-emerald-50/50 font-bold cursor-pointer transition-all flex items-center gap-1.5 whitespace-nowrap";
+                        content.classList.remove('hidden');
+                    } else {
+                        btn.className = "px-4 py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 font-bold cursor-pointer transition-all flex items-center gap-1.5 whitespace-nowrap";
+                        content.classList.add('hidden');
+                    }
+                }
+            });
+
+            const titleEl = document.getElementById('legal-modal-title');
+            const badgeEl = document.getElementById('legal-modal-badge');
+            const iconBadgeEl = document.getElementById('legal-modal-icon-badge');
+            const meta = legalModalMeta[tab];
+
+            if (titleEl && meta) {
+                titleEl.textContent = meta.title;
+            }
+            if (badgeEl && meta) {
+                badgeEl.textContent = meta.badge;
+                badgeEl.className = 'text-[10px] font-bold uppercase tracking-wider border px-2 py-0.5 rounded-md inline-block mb-0.5 ' + meta.badgeClass;
+            }
+            if (iconBadgeEl && meta) {
+                iconBadgeEl.innerHTML = meta.icon;
+                iconBadgeEl.className = 'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ' + meta.iconClass;
+            }
+
+            const cardBody = document.querySelector('#legal-modal .overflow-y-auto');
+            if (cardBody) {
+                cardBody.scrollTop = 0;
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('legal-modal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeLegalModal();
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const hash = window.location.hash;
+            if (hash === '#kebijakan-privasi') {
+                openLegalModal('privacy');
+            } else if (hash === '#tentang-kami') {
+                openLegalModal('about');
+            } else if (hash === '#syarat-ketentuan') {
+                openLegalModal('terms');
+            }
+        });
+    </script>
 
 </body>
 </html>
