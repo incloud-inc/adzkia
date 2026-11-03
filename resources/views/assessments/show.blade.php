@@ -6,7 +6,7 @@
         $isSuper = $user && $user->isSuperUser();
         $canManage = $user && ($user->isTeacher() || $user->isAdmin() || $user->isSuperUser());
         $currentTenant = $user?->currentTenant;
-        $canCreate = $user && ($isSuper || ($currentTenant && $currentTenant->canCreateAssessments()));
+        $canCreate = $canManage && ($isSuper || ($currentTenant && $currentTenant->canCreateAssessments()));
         $isOwnerAssessment = $assessment->isOwnerCreated();
         $canEditThis = $isSuper || ($canManage && ! $isOwnerAssessment && $currentTenant && $assessment->tenant_id === $currentTenant->id);
     @endphp

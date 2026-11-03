@@ -3,7 +3,7 @@
 <html lang="id" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @php
         $examTenant = ($session->tenant ?? null) ?? ($assessment->tenant ?? null) ?? auth()->user()?->currentTenant ?? auth()->user()?->tenants()->first();
@@ -78,10 +78,10 @@
         .prose-q hr { margin: 1.25rem 0; border: 0; border-top: 1px solid #ced4da; }
     </style>
 </head>
-<body class="h-screen h-[100dvh] w-screen overflow-hidden bg-[#a5d8ff] flex justify-center text-[#212529] antialiased"
+<body class="fixed inset-0 w-full h-full overflow-hidden bg-[#f4f5f7] lg:bg-[#a5d8ff] flex justify-center text-[#212529] antialiased"
       x-data="examReview(window.__reviewData)" x-cloak>
 
-    <main class="w-full h-screen h-[100dvh] max-h-[100dvh] min-h-0 lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60 overflow-hidden">
+    <main class="w-full h-full lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60 overflow-hidden">
 
         <!-- OVERLAY GRADING PENDING -->
         <div x-show="gradingStatus === 'pending' || gradingStatus === 'processing'" class="absolute inset-0 z-50 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center space-y-5">
@@ -671,7 +671,7 @@
         </section>
 
         <!-- FOOTER / NAVIGASI NOMOR SOAL (PERSIS DENGAN WORKSPACE CBT) -->
-        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex flex-col z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]">
+        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex flex-col z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
             <!-- Mini Keterangan Warna / Legenda Soal -->
             <!-- Mobile View (< sm): KET Ringkas 1 Baris Saja -->
             <div class="sm:hidden px-2.5 py-1 border-b border-blue-200/60 bg-blue-100/40 overflow-x-auto hide-scrollbar whitespace-nowrap">

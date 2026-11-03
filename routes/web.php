@@ -41,6 +41,7 @@ use App\Http\Controllers\TenantCouponController;
 use App\Http\Controllers\TenantManagementController;
 use App\Http\Controllers\TenantWalletController;
 use App\Http\Middleware\CheckOwnerRole;
+use App\Http\Middleware\EnsureCanManageAssessments;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Route;
 
@@ -161,73 +162,88 @@ Route::middleware(['auth'])->group(function () {
     // Mata Pelajaran (Subjects)
     Route::resource('subjects', SubjectController::class)->except(['create', 'show', 'edit']);
 
-    // Bank Soal (Question Banks)
-    Route::resource('question-banks', QuestionBankController::class);
+    // Katalog Asesmen (Dapat Dilihat Siswa Maupun Guru/Admin)
+    Route::get('assessments', [AssessmentWizardController::class, 'index'])->name('assessments.index');
 
-    // AI Question Generator Studio (DeepSeek AI)
-    Route::get('question-generator', [QuestionGeneratorController::class, 'index'])->name('question-generator.index');
-    Route::post('question-generator/generate', [QuestionGeneratorController::class, 'generate'])->name('question-generator.generate');
-    Route::post('question-generator/export-word', [QuestionGeneratorController::class, 'exportWord'])->name('question-generator.export-word');
-    Route::post('question-generator/save-to-bank', [QuestionGeneratorController::class, 'saveToBank'])->name('question-generator.save-to-bank');
-    Route::post('question-generator/to-wizard', [QuestionGeneratorController::class, 'toWizard'])->name('question-generator.to-wizard');
+    // ─── Fitur Manajemen Asesmen, Bank Soal, Proctoring & Grading (Khusus Tenaga Pendidik / Staff) ───
+    Route::middleware([EnsureCanManageAssessments::class])->group(function () {
+        // Bank Soal (Question Banks)
+        Route::resource('question-banks', QuestionBankController::class);
 
-    // Galeri Media Cloudflare R2
-    Route::get('media-gallery', [MediaGalleryController::class, 'index'])->name('media.gallery.index');
-    Route::get('media-gallery/files', [MediaGalleryController::class, 'getFiles'])->name('media.gallery.files');
-    Route::post('media-gallery/upload', [MediaGalleryController::class, 'upload'])->name('media.gallery.upload');
-    Route::delete('media-gallery/delete', [MediaGalleryController::class, 'destroy'])->name('media.gallery.delete');
+        // AI Question Generator Studio (DeepSeek AI)
+        Route::get('question-generator', [QuestionGeneratorController::class, 'index'])->name('question-generator.index');
+        Route::post('question-generator/generate', [QuestionGeneratorController::class, 'generate'])->name('question-generator.generate');
+        Route::post('question-generator/export-word', [QuestionGeneratorController::class, 'exportWord'])->name('question-generator.export-word');
+        Route::post('question-generator/save-to-bank', [QuestionGeneratorController::class, 'saveToBank'])->name('question-generator.save-to-bank');
+        Route::post('question-generator/to-wizard', [QuestionGeneratorController::class, 'toWizard'])->name('question-generator.to-wizard');
 
-    // Kamus Rumus & KaTeX Studio (Enterprise & Owner)
-    Route::get('math-studio', [MathStudioController::class, 'index'])->name('math.studio.index');
+        // Galeri Media Cloudflare R2
+        Route::get('media-gallery', [MediaGalleryController::class, 'index'])->name('media.gallery.index');
+        Route::get('media-gallery/files', [MediaGalleryController::class, 'getFiles'])->name('media.gallery.files');
+        Route::post('media-gallery/upload', [MediaGalleryController::class, 'upload'])->name('media.gallery.upload');
+        Route::delete('media-gallery/delete', [MediaGalleryController::class, 'destroy'])->name('media.gallery.delete');
 
-    // Assessment Engine & 8-Step Wizard
-    Route::get('assessments/wizard', [AssessmentWizardController::class, 'create'])->name('assessments.wizard');
-    Route::post('assessments/upload-image', [AssessmentWizardController::class, 'uploadImage'])->name('assessments.upload-image');
-    Route::post('assessments/upload-media', [AssessmentWizardController::class, 'uploadMedia'])->name('assessments.upload-media');
-    Route::get('assessments/download-template', [AssessmentWizardController::class, 'downloadTemplate'])->name('assessments.download-template');
-    Route::post('assessments/import-word', [AssessmentWizardController::class, 'importWord'])->name('assessments.import-word');
-    Route::get('assessments/{assessment}/result-preview', [AssessmentWizardController::class, 'resultPreview'])->name('assessments.result-preview');
-    Route::patch('assessments/{assessment}/toggle-mandatory', [AssessmentWizardController::class, 'toggleMandatory'])->name('assessments.toggle-mandatory');
-    Route::patch('assessments/{assessment}/toggle-status', [AssessmentWizardController::class, 'toggleStatus'])->name('assessments.toggle-status');
+        // Kamus Rumus & KaTeX Studio (Enterprise & Owner)
+        Route::get('math-studio', [MathStudioController::class, 'index'])->name('math.studio.index');
 
-    // AI Explanation Generator (DeepSeek)
-    Route::post('assessments/{assessment}/generate-explanations', [AssessmentExplanationController::class, 'generateAll'])->name('assessments.generate-explanations');
-    Route::post('questions/{question}/regenerate-explanation', [AssessmentExplanationController::class, 'regenerateQuestion'])->name('questions.regenerate-explanation');
-    Route::match(['put', 'patch', 'post'], 'questions/{question}/explanation', [AssessmentExplanationController::class, 'updateExplanation'])->name('questions.explanation.update');
-    Route::get('questions/{question}/explanation-status', [AssessmentExplanationController::class, 'status'])->name('questions.explanation-status');
-    Route::put('questions/{question}', [QuestionController::class, 'update'])->name('questions.update');
-    Route::put('question-groups/{questionGroup}', [QuestionGroupController::class, 'update'])->name('question-groups.update');
+        // Assessment Engine & 8-Step Wizard (Pembuatan & Manajemen Asesmen)
+        Route::get('assessments/wizard', [AssessmentWizardController::class, 'create'])->name('assessments.wizard');
+        Route::get('assessments/create', [AssessmentWizardController::class, 'create'])->name('assessments.create');
+        Route::post('assessments', [AssessmentWizardController::class, 'store'])->name('assessments.store');
+        Route::get('assessments/{assessment}/edit', [AssessmentWizardController::class, 'edit'])->name('assessments.edit');
+        Route::put('assessments/{assessment}', [AssessmentWizardController::class, 'update'])->name('assessments.update');
+        Route::patch('assessments/{assessment}', [AssessmentWizardController::class, 'update']);
+        Route::delete('assessments/{assessment}', [AssessmentWizardController::class, 'destroy'])->name('assessments.destroy');
 
-    Route::post('assessments/draft', [AssessmentWizardController::class, 'saveDraft'])->name('assessments.draft.save');
-    Route::match(['post', 'delete'], 'assessments/draft/clear', [AssessmentWizardController::class, 'clearDraft'])->name('assessments.draft.clear');
-    Route::resource('assessments', AssessmentWizardController::class);
+        Route::post('assessments/upload-image', [AssessmentWizardController::class, 'uploadImage'])->name('assessments.upload-image');
+        Route::post('assessments/upload-media', [AssessmentWizardController::class, 'uploadMedia'])->name('assessments.upload-media');
+        Route::get('assessments/download-template', [AssessmentWizardController::class, 'downloadTemplate'])->name('assessments.download-template');
+        Route::post('assessments/import-word', [AssessmentWizardController::class, 'importWord'])->name('assessments.import-word');
+        Route::get('assessments/{assessment}/result-preview', [AssessmentWizardController::class, 'resultPreview'])->name('assessments.result-preview');
+        Route::patch('assessments/{assessment}/toggle-mandatory', [AssessmentWizardController::class, 'toggleMandatory'])->name('assessments.toggle-mandatory');
+        Route::patch('assessments/{assessment}/toggle-status', [AssessmentWizardController::class, 'toggleStatus'])->name('assessments.toggle-status');
 
-    // Proctoring & Pengawasan Ujian Guru
-    Route::get('assessments/{assessment}/proctoring', [ProctoringController::class, 'index'])->name('assessments.proctoring');
-    Route::post('assessments/{assessment}/proctoring/simulate-lock', [ProctoringController::class, 'simulateLock'])->name('assessments.proctoring.simulate_lock');
-    Route::post('proctoring/sessions/{session}/unlock', [ProctoringController::class, 'unlock'])->name('proctoring.sessions.unlock');
-    Route::post('proctoring/sessions/{session}/lock', [ProctoringController::class, 'lock'])->name('proctoring.sessions.lock');
-    Route::post('proctoring/sessions/{session}/generate-pin', [ProctoringController::class, 'generatePin'])->name('proctoring.sessions.generate_pin');
-    Route::post('proctoring/sessions/{session}/cut-time', [ProctoringController::class, 'cutTime'])->name('proctoring.sessions.cut_time');
-    Route::post('proctoring/sessions/{session}/cut-point', [ProctoringController::class, 'cutPoint'])->name('proctoring.sessions.cut_point');
-    Route::post('proctoring/sessions/{session}/reset-questions', [ProctoringController::class, 'resetQuestions'])->name('proctoring.sessions.reset_questions');
-    Route::post('proctoring/sessions/{session}/cancel', [ProctoringController::class, 'cancelSession'])->name('proctoring.sessions.cancel');
-    Route::post('proctoring/sessions/{session}/verify', [ProctoringController::class, 'verifySession'])->name('proctoring.sessions.verify');
+        // AI Explanation Generator (DeepSeek)
+        Route::post('assessments/{assessment}/generate-explanations', [AssessmentExplanationController::class, 'generateAll'])->name('assessments.generate-explanations');
+        Route::post('questions/{question}/regenerate-explanation', [AssessmentExplanationController::class, 'regenerateQuestion'])->name('questions.regenerate-explanation');
+        Route::match(['put', 'patch', 'post'], 'questions/{question}/explanation', [AssessmentExplanationController::class, 'updateExplanation'])->name('questions.explanation.update');
+        Route::get('questions/{question}/explanation-status', [AssessmentExplanationController::class, 'status'])->name('questions.explanation-status');
+        Route::put('questions/{question}', [QuestionController::class, 'update'])->name('questions.update');
+        Route::put('question-groups/{questionGroup}', [QuestionGroupController::class, 'update'])->name('question-groups.update');
 
-    // Panel Penilaian & Koreksi Guru (Teacher Grading & Final Score Release)
-    Route::get('assessments/{assessment}/grading', [TeacherGradingController::class, 'index'])->name('assessments.grading');
-    Route::get('assessments/{assessment}/grading/{session}', [TeacherGradingController::class, 'show'])->name('assessments.grading.session');
-    Route::post('assessments/{assessment}/grading/{session}', [TeacherGradingController::class, 'grade'])->name('assessments.grading.grade');
+        Route::post('assessments/draft', [AssessmentWizardController::class, 'saveDraft'])->name('assessments.draft.save');
+        Route::match(['post', 'delete'], 'assessments/draft/clear', [AssessmentWizardController::class, 'clearDraft'])->name('assessments.draft.clear');
 
-    // Analisis Butir Soal & Rekap Nilai Asesmen (Reporting & Analytics)
-    Route::get('assessments/{assessment}/analytics', [AssessmentAnalyticsController::class, 'index'])->name('assessments.analytics');
-    Route::get('assessments/{assessment}/analytics/preview', [AssessmentAnalyticsController::class, 'previewMatrix'])->name('assessments.analytics.preview');
-    Route::get('assessments/{assessment}/analytics/export', [AssessmentAnalyticsController::class, 'exportExcel'])->name('assessments.analytics.export');
+        // Proctoring & Pengawasan Ujian Guru
+        Route::get('assessments/{assessment}/proctoring', [ProctoringController::class, 'index'])->name('assessments.proctoring');
+        Route::post('assessments/{assessment}/proctoring/simulate-lock', [ProctoringController::class, 'simulateLock'])->name('assessments.proctoring.simulate_lock');
+        Route::post('proctoring/sessions/{session}/unlock', [ProctoringController::class, 'unlock'])->name('proctoring.sessions.unlock');
+        Route::post('proctoring/sessions/{session}/lock', [ProctoringController::class, 'lock'])->name('proctoring.sessions.lock');
+        Route::post('proctoring/sessions/{session}/generate-pin', [ProctoringController::class, 'generatePin'])->name('proctoring.sessions.generate_pin');
+        Route::post('proctoring/sessions/{session}/cut-time', [ProctoringController::class, 'cutTime'])->name('proctoring.sessions.cut_time');
+        Route::post('proctoring/sessions/{session}/cut-point', [ProctoringController::class, 'cutPoint'])->name('proctoring.sessions.cut_point');
+        Route::post('proctoring/sessions/{session}/reset-questions', [ProctoringController::class, 'resetQuestions'])->name('proctoring.sessions.reset_questions');
+        Route::post('proctoring/sessions/{session}/cancel', [ProctoringController::class, 'cancelSession'])->name('proctoring.sessions.cancel');
+        Route::post('proctoring/sessions/{session}/verify', [ProctoringController::class, 'verifySession'])->name('proctoring.sessions.verify');
 
-    // Monitoring & Riwayat Semua Sesi Asesmen (Master Monitoring Guru / Admin / Owner)
-    Route::get('assessment-sessions', [AssessmentSessionHistoryController::class, 'index'])->name('assessment-sessions.index');
-    Route::get('assessment-sessions/search-assessments', [AssessmentSessionHistoryController::class, 'searchAssessments'])->name('assessment-sessions.search-assessments');
-    Route::get('assessment-sessions/search-tenants', [AssessmentSessionHistoryController::class, 'searchTenants'])->name('assessment-sessions.search-tenants');
+        // Panel Penilaian & Koreksi Guru (Teacher Grading & Final Score Release)
+        Route::get('assessments/{assessment}/grading', [TeacherGradingController::class, 'index'])->name('assessments.grading');
+        Route::get('assessments/{assessment}/grading/{session}', [TeacherGradingController::class, 'show'])->name('assessments.grading.session');
+        Route::post('assessments/{assessment}/grading/{session}', [TeacherGradingController::class, 'grade'])->name('assessments.grading.grade');
+
+        // Analisis Butir Soal & Rekap Nilai Asesmen (Reporting & Analytics)
+        Route::get('assessments/{assessment}/analytics', [AssessmentAnalyticsController::class, 'index'])->name('assessments.analytics');
+        Route::get('assessments/{assessment}/analytics/preview', [AssessmentAnalyticsController::class, 'previewMatrix'])->name('assessments.analytics.preview');
+        Route::get('assessments/{assessment}/analytics/export', [AssessmentAnalyticsController::class, 'exportExcel'])->name('assessments.analytics.export');
+
+        // Monitoring & Riwayat Semua Sesi Asesmen (Master Monitoring Guru / Admin / Owner)
+        Route::get('assessment-sessions', [AssessmentSessionHistoryController::class, 'index'])->name('assessment-sessions.index');
+        Route::get('assessment-sessions/search-assessments', [AssessmentSessionHistoryController::class, 'searchAssessments'])->name('assessment-sessions.search-assessments');
+        Route::get('assessment-sessions/search-tenants', [AssessmentSessionHistoryController::class, 'searchTenants'])->name('assessment-sessions.search-tenants');
+    });
+
+    // Detail Asesmen / Halaman Menunggu Mulai Ujian (Dapat Dilihat Siswa Maupun Guru/Admin)
+    Route::get('assessments/{assessment}', [AssessmentWizardController::class, 'show'])->name('assessments.show');
 
     // ─── CBT Exam Engine ────────────────────────────────────────
     // Mulai / resume ujian (Wajib Login)

@@ -178,6 +178,10 @@ class AssessmentWizardController extends Controller
             abort(401);
         }
 
+        if ($user->isStudent() || ! $user->canManageAssessments()) {
+            abort(403, 'Akses ditolak: Siswa tidak diizinkan membuat atau mengelola asesmen.');
+        }
+
         if ($user->isSuperUser()) {
             return;
         }
@@ -193,6 +197,8 @@ class AssessmentWizardController extends Controller
      */
     public function saveDraft(Request $request): JsonResponse
     {
+        $this->authorizeEnterpriseTenantAccess();
+
         $key = 'assessment_draft_'.(Auth::user()->current_tenant_id ?? Auth::id());
         Cache::put($key, $request->all(), now()->addDays(7));
 
@@ -204,6 +210,8 @@ class AssessmentWizardController extends Controller
      */
     public function clearDraft(Request $request): JsonResponse
     {
+        $this->authorizeEnterpriseTenantAccess();
+
         $user = Auth::user();
         if ($user) {
             if ($user->current_tenant_id) {
@@ -221,9 +229,13 @@ class AssessmentWizardController extends Controller
     public function create(): View|RedirectResponse
     {
         $user = Auth::user();
+        if (! $user || $user->isStudent() || ! $user->canManageAssessments()) {
+            abort(403, 'Akses ditolak: Siswa tidak memiliki izin untuk membuat asesmen.');
+        }
+
         $draft = Cache::get('assessment_draft_'.($user->current_tenant_id ?? $user->id));
         $currentTenant = $user?->currentTenant ?? $user?->tenants()->first();
-        if ($user && ! $user->isSuperUser() && (! $currentTenant || ! $currentTenant->canCreateAssessments())) {
+        if (! $user->isSuperUser() && (! $currentTenant || ! $currentTenant->canCreateAssessments())) {
             $tierName = $currentTenant?->level_label ?? 'STARTER';
 
             return redirect()->route('assessments.index')->with('error', "Institusi Anda berada pada paket {$tierName}. Guru pada paket ini berfokus sebagai Pengawas Ujian kurasi ADZKIA. Fasilitas pembuatan asesmen mandiri hanya tersedia untuk tenant level ENTERPRISE.");
@@ -823,8 +835,8 @@ class AssessmentWizardController extends Controller
     public function destroy(Assessment $assessment): RedirectResponse
     {
         $user = Auth::user();
-        if (! $user) {
-            abort(403);
+        if (! $user || $user->isStudent() || ! $user->canManageAssessments()) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk menghapus asesmen.');
         }
 
         // Jika bukan Super User, tenant tidak diizinkan menghapus asesmen kurasi Owner ADZKIA atau milik institusi lain

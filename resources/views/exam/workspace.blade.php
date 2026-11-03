@@ -3,7 +3,7 @@
 <html lang="id" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @php
         $examTenant = ($session->tenant ?? null) ?? ($assessment->tenant ?? null) ?? auth()->user()?->currentTenant ?? auth()->user()?->tenants()->first();
@@ -75,10 +75,10 @@
     </style>
 </head>
 
-<body class="h-screen h-[100dvh] w-screen overflow-hidden bg-[#a5d8ff] flex justify-center text-[#212529] antialiased"
+<body class="fixed inset-0 w-full h-full overflow-hidden bg-[#f4f5f7] lg:bg-[#a5d8ff] flex justify-center text-[#212529] antialiased"
       x-data="examWorkspace(window.__cbtPayload)" x-cloak>
 
-    <main class="w-full h-screen h-[100dvh] max-h-[100dvh] min-h-0 lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60 overflow-hidden">
+    <main class="w-full h-full lg:max-w-4xl bg-white flex flex-col relative lg:shadow-2xl lg:border-x border-blue-200/60 overflow-hidden">
 
         @php
             $authUser = $authUser ?? auth()->user() ?? $session->user;
@@ -224,7 +224,7 @@
         </div>
 
         <!-- AREA SOAL & JAWABAN -->
-        <section id="cbt-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-5 overscroll-y-contain [webkit-overflow-scrolling:touch]">
+        <section id="cbt-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 md:p-8 space-y-5 overscroll-y-contain [webkit-overflow-scrolling:touch]">
 
             <template x-if="!questions || questions.length === 0">
                 <div class="rounded-2xl border border-[#ced4da] bg-white p-8 text-center text-[#212529]">
@@ -486,7 +486,7 @@
         </section>
 
         <!-- FOOTER / NAVIGASI NOMOR SOAL -->
-        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex items-center z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] px-3 py-2.5 gap-2">
+        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex items-center z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] gap-2">
             <!-- Container Nomor Soal (Scrollable secara horizontal) -->
             <div class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-2 py-0.5">
                 <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
@@ -541,16 +541,16 @@
                         </template>
                     </div>
                 </template>
-            </div>
 
-            <!-- Tombol SUBMIT (Selalu Terlihat & Bisa Dikumpulkan Kapan Saja) -->
-            <div class="shrink-0 pl-1 border-l border-blue-300/70 flex items-center">
-                <button type="button" @click="openSubmitModal()"
-                        class="font-display h-9 px-4 rounded-md text-xs font-bold bg-[#f03e3e] text-white flex items-center gap-1.5 hover:bg-red-600 active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
-                        title="Kumpulkan lembar ujian sekarang">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                    <span>SUBMIT</span>
-                </button>
+                <!-- Tombol SUBMIT Diletakkan di Bagian Paling Belakang (Setelah Nomor Terakhir) -->
+                <div id="nav-card-submit-btn" class="shrink-0 flex items-center pl-2 ml-1 border-l border-blue-300/80">
+                    <button type="button" @click="openSubmitModal()"
+                            class="font-display h-9 px-4 rounded-md text-xs font-bold bg-[#f03e3e] text-white flex items-center gap-1.5 hover:bg-red-600 active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                            title="Kumpulkan lembar ujian (Selesai)">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span>Kumpulkan (SUBMIT)</span>
+                    </button>
+                </div>
             </div>
         </footer>
 

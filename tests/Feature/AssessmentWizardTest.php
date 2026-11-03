@@ -946,4 +946,55 @@ class AssessmentWizardTest extends TestCase
         $this->assertEquals(20.0, (float) $sections[1]->duration_minutes);
         $this->assertEquals(42.5, (float) $sections[2]->duration_minutes);
     }
+
+    public function test_student_cannot_access_assessment_wizard_and_gets_403(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
+        $student = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $response = $this->actingAs($student)->get(route('assessments.wizard'));
+        $response->assertStatus(403);
+    }
+
+    public function test_student_cannot_store_assessment_and_gets_403(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
+        $student = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $subject = Subject::factory()->create(['name' => 'Biologi', 'code' => 'BIO']);
+
+        $response = $this->actingAs($student)->postJson(route('assessments.store'), [
+            'title' => 'Asesmen Ilegal oleh Siswa',
+            'subject_id' => $subject->id,
+            'type' => 'sumatif',
+        ]);
+        $response->assertStatus(403);
+    }
+
+    public function test_student_cannot_save_or_clear_draft_and_gets_403(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
+        $student = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $saveResponse = $this->actingAs($student)->postJson(route('assessments.draft.save'), ['step' => 1]);
+        $saveResponse->assertStatus(403);
+
+        $clearResponse = $this->actingAs($student)->postJson(route('assessments.draft.clear'));
+        $clearResponse->assertStatus(403);
+    }
+
+    public function test_student_does_not_see_create_assessment_button_on_index(): void
+    {
+        $tenant = Tenant::factory()->create(['name' => 'SMAN 8 Jakarta', 'subdomain' => 'sman8', 'plan' => 'whitelabel']);
+        $student = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $response = $this->actingAs($student)->get(route('assessments.index'));
+        $response->assertStatus(200);
+        $response->assertDontSee('Mulai Buat Ujian');
+        $response->assertDontSee('Buat Ujian Baru (Wizard 8 Langkah)');
+    }
 }

@@ -239,6 +239,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is staff (Owner, Admin, or Teacher).
+     */
+    public function isStaff(): bool
+    {
+        return $this->isSuperUser() || $this->isAdmin() || $this->isTeacher();
+    }
+
+    /**
+     * Check if user has permission to manage assessments and questions.
+     */
+    public function canManageAssessments(): bool
+    {
+        return $this->isStaff();
+    }
+
+    /**
      * Check if user has a public profile page (@username).
      * Only Teachers and Students have public profiles.
      * Admin and Owner profiles are disabled.

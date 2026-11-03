@@ -8,8 +8,8 @@
         $isTeacher = $user && $user->isTeacher();
         $canManage = $user && ($isTeacher || $isAdmin || $isSuper);
         $currentTenant = $user?->currentTenant ?? $user?->tenants()->first();
-        $canCreate = $user && ($isSuper || ($currentTenant && $currentTenant->canCreateAssessments()));
-        $canAccessStudioAi = $user && ($isSuper || ($currentTenant && $currentTenant->canAccessStudioAi()));
+        $canCreate = $canManage && ($isSuper || ($currentTenant && $currentTenant->canCreateAssessments()));
+        $canAccessStudioAi = $canManage && ($isSuper || ($currentTenant && $currentTenant->canAccessStudioAi()));
         $isTenantStaff = ! $isSuper && ($isAdmin || $isTeacher);
     @endphp
 
@@ -351,7 +351,7 @@
                                         <p class="text-xs text-gray-9 mt-1 mb-4">
                                             {{ $canManage ? 'Gunakan Wizard 8 Langkah untuk mulai membuat ujian pertama Anda.' : 'Ujian yang diterbitkan oleh dewan guru akan ditampilkan di halaman ini.' }}
                                         </p>
-                                        @if($canCreate)
+                                        @if($canManage && $canCreate)
                                             <a href="{{ route('assessments.wizard') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-9 text-white text-xs font-semibold hover:bg-green-10 transition-colors">
                                                 <x-radix-icon name="plus" class="w-4 h-4" />
                                                 <span>Mulai Buat Ujian</span>
