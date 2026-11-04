@@ -1148,12 +1148,35 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                     <p class="text-[11px] text-emerald-400 font-medium italic mb-4 leading-normal">
                         "Pembelajaran Terbaik dari Guru &amp; Tutor Anda. Evaluasi Sempurna bersama ADZKIA CBT"
                     </p>
-                    <div class="inline-flex items-center gap-2 text-[11px] text-slate-400 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-full">
+                    <div class="inline-flex items-center gap-2 text-[11px] text-slate-400 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-full mb-4">
                         <span class="relative flex h-2 w-2">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                         </span>
                         <span>Sistem CBT Aktif &amp; Terlindungi</span>
+                    </div>
+
+                    <!-- Informasi Kontak Resmi & Alamat Usaha (Merchant Compliance) -->
+                    <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800/90 space-y-2 text-[11px] text-slate-300 max-w-md">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span class="leading-relaxed"><strong>Alamat Usaha:</strong> Jalan Sriwijaya RUSUN BPKP KALTENG NO 314 RT 005 RW 014, Panarung, Pahandut, Kota Palangka Raya, Kalimantan Tengah. 73111</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            <span><strong>Telepon / WA:</strong> <a href="https://wa.me/6281329983555" target="_blank" class="text-emerald-400 hover:underline">081329983555</a></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span><strong>Email Resmi:</strong> <a href="mailto:adzkia.tryout@gmail.com" class="text-emerald-400 hover:underline">adzkia.tryout@gmail.com</a></span>
+                        </div>
                     </div>
                 </div>
 
@@ -1189,27 +1212,46 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                     <h3 class="font-bold text-white uppercase tracking-wider mb-4 text-xs">Kebijakan &amp; Informasi</h3>
                     <ul class="space-y-2.5 text-slate-400">
                         <li>
-                            <button type="button" 
-                                    onclick="openLegalModal('privacy')" 
-                                    class="group flex items-center gap-2 text-left hover:text-emerald-400 transition-colors cursor-pointer focus:outline-hidden">
+                            <a href="{{ route('pages.faq') }}" 
+                               class="group flex items-center gap-2 hover:text-emerald-400 transition-colors">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
+                                <span class="hover:underline underline-offset-4">Tanya Jawab (FAQ)</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('pages.refund-policy') }}" 
+                               class="group flex items-center gap-2 hover:text-emerald-400 transition-colors">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
+                                <span class="hover:underline underline-offset-4">Kebijakan Pengembalian Dana (Refund Policy)</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('pages.terms') }}" 
+                               class="group flex items-center gap-2 hover:text-emerald-400 transition-colors">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
+                                <span class="hover:underline underline-offset-4">Syarat &amp; Ketentuan</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('pages.contact') }}" 
+                               class="group flex items-center gap-2 hover:text-emerald-400 transition-colors">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
+                                <span class="hover:underline underline-offset-4">Hubungi Kami (Kontak)</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('pages.privacy') }}" 
+                               class="group flex items-center gap-2 hover:text-emerald-400 transition-colors">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
                                 <span class="hover:underline underline-offset-4">Kebijakan Privasi</span>
-                            </button>
+                            </a>
                         </li>
                         <li>
                             <button type="button" 
                                     onclick="openLegalModal('about')" 
                                     class="group flex items-center gap-2 text-left hover:text-emerald-400 transition-colors cursor-pointer focus:outline-hidden">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
-                                <span class="hover:underline underline-offset-4">Tentang Kami</span>
-                            </button>
-                        </li>
-                        <li>
-                            <button type="button" 
-                                    onclick="openLegalModal('terms')" 
-                                    class="group flex items-center gap-2 text-left hover:text-emerald-400 transition-colors cursor-pointer focus:outline-hidden">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/60 group-hover:bg-emerald-400 group-hover:scale-125 transition-all shrink-0"></span>
-                                <span class="hover:underline underline-offset-4">Syarat &amp; Ketentuan</span>
+                                <span class="hover:underline underline-offset-4">Tentang Kami (Popup Profil)</span>
                             </button>
                         </li>
                     </ul>
@@ -1643,7 +1685,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
             <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shrink-0">
                 <div class="flex items-center gap-2 text-slate-500">
                     <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    <span>ADZKIA CBT &bull; Bantuan: <a href="mailto:adzkia.tryout@gmail.com" class="text-emerald-700 hover:underline font-semibold">adzkia.tryout@gmail.com</a></span>
+                    <span>ADZKIA CBT &bull; <a href="{{ route('pages.contact') }}" class="text-emerald-700 hover:underline font-semibold">Kontak</a> &bull; Email: <a href="mailto:adzkia.tryout@gmail.com" class="text-emerald-700 hover:underline font-semibold">adzkia.tryout@gmail.com</a> &bull; WA: <a href="https://wa.me/6281329983555" class="text-emerald-700 hover:underline font-semibold">081329983555</a></span>
                 </div>
                 <button type="button" 
                         onclick="closeLegalModal()" 

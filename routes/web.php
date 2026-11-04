@@ -27,6 +27,7 @@ use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\PostalCodeController;
 use App\Http\Controllers\ProctoringController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\QuestionBankController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\QuestionGeneratorController;
@@ -59,6 +60,14 @@ Route::middleware('web')->group(function () {
     Route::get('/@{username}', [ProfileController::class, 'redirectPublicGlobal'])->name('global.student.profile');
     Route::get('/portal/{subdomain}', [TenantController::class, 'showPublic'])->name('tenant.portal.direct');
     Route::get('/sso/verify', [TenantSsoController::class, 'verify'])->name('tenant.sso.verify');
+
+    // Halaman Publik & Kepatuhan Legal (FAQ, Refund Policy, Terms, Kontak)
+    Route::get('/faq', [PublicPageController::class, 'faq'])->name('pages.faq');
+    Route::get('/refund-policy', [PublicPageController::class, 'refundPolicy'])->name('pages.refund-policy');
+    Route::get('/terms-and-conditions', [PublicPageController::class, 'terms'])->name('pages.terms');
+    Route::get('/kontak', [PublicPageController::class, 'contact'])->name('pages.contact');
+    Route::get('/kebijakan-privasi', [PublicPageController::class, 'privacy'])->name('pages.privacy');
+    Route::get('/privacy-policy', [PublicPageController::class, 'privacy'])->name('pages.privacy.alt');
 
     // CBT Exam Gate (Publik & OpenGraph Unfurling WhatsApp)
     Route::get('/exam/{token}', [ExamGateController::class, 'resolve'])
