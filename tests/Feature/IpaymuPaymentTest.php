@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-class MidtransPaymentTest extends TestCase
+class IpaymuPaymentTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -21,19 +21,28 @@ class MidtransPaymentTest extends TestCase
     {
         parent::setUp();
 
-        Config::set('payment.gateways.midtrans.server_key', 'SB-Mid-server-TESTKEY123');
-        Config::set('payment.gateways.midtrans.client_key', 'SB-Mid-client-TESTKEY123');
-        Config::set('payment.gateways.midtrans.merchant_id', 'G123456');
-        Config::set('payment.gateways.midtrans.sandbox', true);
+        Config::set('payment.gateways.ipaymu.va', '1179001329983555');
+        Config::set('payment.gateways.ipaymu.api_key', 'CEF02541-DB54-48EE-84C1-B96DD1FF0BB4');
+        Config::set('payment.gateways.ipaymu.sandbox', false);
+        Config::set('payment.gateways.ipaymu.base_url', 'https://my.ipaymu.com/api/v2/');
     }
 
-    public function test_midtrans_payment_service_generates_snap_token_and_redirect_url(): void
+    public function test_ipaymu_payment_service_generates_payment_url(): void
     {
         Http::fake([
-            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response([
-                'token' => 'mock-snap-token-xyz-123',
-                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v2/vtweb/mock-snap-token-xyz-123',
-            ], 201),
+            'https://my.ipaymu.com/api/v2/payment/direct' => Http::response([
+                'Status' => 500,
+                'Message' => 'Direct method not available',
+            ], 500),
+            'https://my.ipaymu.com/api/v2/payment' => Http::response([
+                'Status' => 200,
+                'Success' => true,
+                'Message' => 'Success',
+                'Data' => [
+                    'SessionID' => 'MOCK-SESSION-IPAYMU-12345',
+                    'Url' => 'https://payment.ipaymu.com/#/MOCK-SESSION-IPAYMU-12345',
+                ],
+            ], 200),
         ]);
 
         $tenant = Tenant::factory()->create(['plan' => 'premium']);
@@ -49,7 +58,7 @@ class MidtransPaymentTest extends TestCase
         ]);
 
         $order = Order::create([
-            'order_number' => 'ORD-TEST-MIDTRANS-001',
+            'order_number' => 'ORD-TEST-IPAYMU-001',
             'user_id' => $student->id,
             'tenant_id' => $tenant->id,
             'assessment_id' => $assessment->id,
@@ -59,8 +68,8 @@ class MidtransPaymentTest extends TestCase
             'discount_amount' => 0.00,
             'admin_fee' => 0,
             'total_amount' => 75000.00,
-            'payment_gateway' => 'midtrans',
-            'payment_method' => 'channel_midtrans',
+            'payment_gateway' => 'ipaymu',
+            'payment_method' => 'QRIS',
             'status' => 'pending',
             'tenant_tier_snapshot' => 'pro',
             'revenue_share_tenant_pct' => 50,
@@ -69,21 +78,21 @@ class MidtransPaymentTest extends TestCase
             'platform_revenue_amount' => 37500.00,
         ]);
 
-        Config::set('payment.default', 'midtrans');
+        Config::set('payment.default', 'ipaymu');
         $service = app(PaymentGatewayService::class);
-        $result = $service->createPayment($order, 'channel_midtrans');
+        $result = $service->createPayment($order, 'QRIS');
 
         $this->assertTrue($result['success']);
-        $this->assertEquals('midtrans', $result['gateway']);
-        $this->assertEquals('mock-snap-token-xyz-123', $result['token']);
-        $this->assertEquals('https://app.sandbox.midtrans.com/snap/v2/vtweb/mock-snap-token-xyz-123', $result['payment_url']);
+        $this->assertEquals('ipaymu', $result['gateway']);
+        $this->assertEquals('MOCK-SESSION-IPAYMU-12345', $result['reference']);
+        $this->assertEquals('https://payment.ipaymu.com/#/MOCK-SESSION-IPAYMU-12345', $result['payment_url']);
 
         $order->refresh();
-        $this->assertEquals('mock-snap-token-xyz-123', $order->payment_reference);
-        $this->assertEquals('https://app.sandbox.midtrans.com/snap/v2/vtweb/mock-snap-token-xyz-123', $order->payment_url);
+        $this->assertEquals('MOCK-SESSION-IPAYMU-12345', $order->payment_reference);
+        $this->assertEquals('https://payment.ipaymu.com/#/MOCK-SESSION-IPAYMU-12345', $order->payment_url);
     }
 
-    public function test_midtrans_webhook_settlement_updates_order_and_grants_assessment_access(): void
+    public function test_ipaymu_webhook_settlement_updates_order_and_grants_assessment_access(): void
     {
         $tenant = Tenant::factory()->create(['plan' => 'premium']);
         $student = User::factory()->create(['current_tenant_id' => $tenant->id]);
@@ -98,7 +107,7 @@ class MidtransPaymentTest extends TestCase
         ]);
 
         $order = Order::create([
-            'order_number' => 'ORD-MIDTRANS-SETTLE-001',
+            'order_number' => 'ORD-IPAYMU-SETTLE-001',
             'user_id' => $student->id,
             'tenant_id' => $tenant->id,
             'assessment_id' => $assessment->id,
@@ -108,8 +117,8 @@ class MidtransPaymentTest extends TestCase
             'discount_amount' => 0.00,
             'admin_fee' => 0,
             'total_amount' => 50000.00,
-            'payment_gateway' => 'midtrans',
-            'payment_method' => 'channel_midtrans',
+            'payment_gateway' => 'ipaymu',
+            'payment_method' => 'QRIS',
             'status' => 'pending',
             'tenant_tier_snapshot' => 'pro',
             'revenue_share_tenant_pct' => 50,
@@ -118,24 +127,16 @@ class MidtransPaymentTest extends TestCase
             'platform_revenue_amount' => 25000.00,
         ]);
 
-        $orderId = 'ORD-MIDTRANS-SETTLE-001';
-        $statusCode = '200';
-        $grossAmount = '50000.00';
-        $serverKey = 'SB-Mid-server-TESTKEY123';
-        $validSignature = hash('sha512', $orderId.$statusCode.$grossAmount.$serverKey);
-
         $payload = [
-            'order_id' => $orderId,
-            'status_code' => $statusCode,
-            'gross_amount' => $grossAmount,
-            'signature_key' => $validSignature,
-            'transaction_status' => 'settlement',
-            'fraud_status' => 'accept',
-            'payment_type' => 'gopay',
-            'transaction_time' => '2026-10-27 10:00:00',
+            'reference_id' => 'ORD-IPAYMU-SETTLE-001',
+            'trx_id' => '99887766',
+            'status' => 'berhasil',
+            'status_code' => '1',
+            'via' => 'qris',
+            'channel' => 'qris',
         ];
 
-        $response = $this->postJson(route('payment.webhook.midtrans'), $payload);
+        $response = $this->postJson(route('payment.webhook.ipaymu'), $payload);
 
         $response->assertOk()
             ->assertJson(['success' => true]);
@@ -148,23 +149,19 @@ class MidtransPaymentTest extends TestCase
         $this->assertTrue($student->hasPurchasedAssessment($assessment));
     }
 
-    public function test_midtrans_webhook_rejects_invalid_signature(): void
+    public function test_ipaymu_webhook_rejects_invalid_payload(): void
     {
         $payload = [
-            'order_id' => 'ORD-FAKE-999',
-            'status_code' => '200',
-            'gross_amount' => '50000.00',
-            'signature_key' => 'invalid-signature-hash',
-            'transaction_status' => 'settlement',
+            'foo' => 'bar',
         ];
 
-        $response = $this->postJson(route('payment.webhook.midtrans'), $payload);
+        $response = $this->postJson(route('payment.webhook.ipaymu'), $payload);
 
         $response->assertStatus(400)
             ->assertJson(['success' => false, 'message' => 'Invalid signature']);
     }
 
-    public function test_orders_show_displays_midtrans_snap_link_when_payment_url_present(): void
+    public function test_orders_show_displays_ipaymu_link_when_payment_url_present(): void
     {
         $tenant = Tenant::factory()->create(['plan' => 'premium']);
         $student = User::factory()->create(['current_tenant_id' => $tenant->id]);
@@ -179,7 +176,7 @@ class MidtransPaymentTest extends TestCase
         ]);
 
         $order = Order::create([
-            'order_number' => 'ORD-SNAP-DISPLAY-001',
+            'order_number' => 'ORD-IPAYMU-DISPLAY-001',
             'user_id' => $student->id,
             'tenant_id' => $tenant->id,
             'assessment_id' => $assessment->id,
@@ -189,9 +186,9 @@ class MidtransPaymentTest extends TestCase
             'discount_amount' => 0.00,
             'admin_fee' => 0,
             'total_amount' => 50000.00,
-            'payment_gateway' => 'midtrans',
-            'payment_method' => 'channel_midtrans',
-            'payment_url' => 'https://app.sandbox.midtrans.com/snap/v2/vtweb/test-url-123',
+            'payment_gateway' => 'ipaymu',
+            'payment_method' => 'QRIS',
+            'payment_url' => 'https://payment.ipaymu.com/#/test-url-123',
             'status' => 'pending',
             'tenant_tier_snapshot' => 'pro',
             'revenue_share_tenant_pct' => 50,
@@ -203,7 +200,7 @@ class MidtransPaymentTest extends TestCase
         $response = $this->actingAs($student)->get(route('orders.show', $order));
 
         $response->assertOk();
-        $response->assertSeeText('Portal Pembayaran Digital (Snap Midtrans)');
-        $response->assertSee('https://app.sandbox.midtrans.com/snap/v2/vtweb/test-url-123');
+        $response->assertSeeText('Portal Pembayaran Digital (iPaymu)');
+        $response->assertSee('https://payment.ipaymu.com/#/test-url-123');
     }
 }

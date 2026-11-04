@@ -51,7 +51,7 @@
                         <span>Sifat Produk Digital &amp; Aktivasi Instan</span>
                     </h2>
                     <p>
-                        Ketika Anda menyelesaikan transaksi pembelian asesmen di ADZKIA CBT melalui kanal pembayaran yang tersedia (Virtual Account, QRIS, atau Dompet Digital TriPay/Midtrans/Duitku), server kami secara otomatis dan instan:
+                        Ketika Anda menyelesaikan transaksi pembelian asesmen di ADZKIA CBT melalui kanal pembayaran yang tersedia (Virtual Account, QRIS, atau Dompet Digital iPaymu / TriPay), server kami secara otomatis dan instan:
                     </p>
                     <ul class="list-disc list-inside space-y-1.5 pl-2">
                         <li>Mengalokasikan token akses dan kuota pengerjaan ke dalam akun Anda.</li>
@@ -138,7 +138,7 @@
                             Sertakan informasi wajib berikut:
                             <ul class="list-disc list-inside pl-5 mt-1 text-xs text-slate-500 space-y-1">
                                 <li>Email akun ADZKIA CBT yang terdaftar</li>
-                                <li>Nomor Invoice / Kode Referensi Transaksi (TriPay / Midtrans / Duitku)</li>
+                                <li>Nomor Invoice / Kode Referensi Transaksi (iPaymu / TriPay)</li>
                                 <li>Bukti mutasi rekening atau struk pembayaran perbankan/e-wallet</li>
                                 <li>Alasan permohonan secara jelas</li>
                                 <li>Nomor rekening bank tujuan pengembalian beserta nama pemilik rekening (wajib sama dengan nama akun pembeli)</li>
@@ -181,3 +181,4 @@
         </div>
     </section>
 </x-layouts.public>
+

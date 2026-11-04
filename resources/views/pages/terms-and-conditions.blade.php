@@ -115,7 +115,7 @@
                     <ul class="space-y-2 pl-2">
                         <li class="flex items-start gap-2">
                             <span class="font-bold text-emerald-600 mt-0.5">&bull;</span>
-                            <div><strong>Payment Gateway Resmi:</strong> Transaksi pembayaran diproses secara aman melalui mitra payment gateway terlisensi Bank Indonesia (termasuk TriPay, Midtrans, dan Duitku).</div>
+                            <div><strong>Payment Gateway Resmi:</strong> Transaksi pembayaran diproses secara aman melalui mitra payment gateway terlisensi Bank Indonesia (termasuk iPaymu dan TriPay).</div>
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="font-bold text-emerald-600 mt-0.5">&bull;</span>
@@ -206,3 +206,4 @@
         </div>
     </section>
 </x-layouts.public>
+

@@ -1407,7 +1407,7 @@ $$\text{Luas Total} = 80,5\text{ m} \times 6,5\text{ m} = \mathbf{523,25\text{ m
                             </li>
                             <li class="flex items-start gap-2">
                                 <span class="font-bold text-emerald-600 mt-0.5">&bull;</span>
-                                <div><strong>Informasi Transaksi:</strong> Nomor pesanan, status pembayaran, dan kode referensi dari payment gateway resmi (Tripay, Duitku, Midtrans). Kami tidak pernah menyimpan nomor kartu kredit atau PIN perbankan pengguna.</div>
+                                <div><strong>Informasi Transaksi:</strong> Nomor pesanan, status pembayaran, dan kode referensi dari payment gateway resmi (iPaymu, Tripay). Kami tidak pernah menyimpan nomor kartu kredit atau PIN perbankan pengguna.</div>
                             </li>
                         </ul>
                     </div>

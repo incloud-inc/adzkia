@@ -62,21 +62,17 @@ class AuthConfigAndWebhookTest extends TestCase
     }
 
     /**
-     * 11 & 12. Verifikasi Webhook HMAC & Idempotensi: Callback dengan signature tidak valid ditolak.
+     * 11 & 12. Verifikasi Webhook Signature & Idempotensi: Callback dengan data tidak valid ditolak.
      */
     public function test_payment_webhook_hmac_verification_and_idempotency(): void
     {
-        config(['payment.gateways.duitku.api_key' => 'secret_duitku_key_test_123']);
-        config(['payment.gateways.duitku.merchant_code' => 'MERCHANT01']);
-
-        // Webhook Duitku dengan signature salah
-        $invalidDuitku = $this->post('/api/webhooks/payment/duitku', [
-            'merchantCode' => 'MERCHANT01',
-            'amount' => '150000',
-            'merchantOrderId' => 'INV-TEST-001',
-            'signature' => 'invalid_forged_signature_hash',
+        // Webhook iPaymu dengan signature tidak cocok
+        $invalidIpaymu = $this->withHeaders([
+            'X-Signature' => 'invalid_forged_signature_hash',
+        ])->post('/api/webhooks/payment/ipaymu', [
+            'reference_id' => 'INV-TEST-001',
         ]);
-        $invalidDuitku->assertStatus(400);
+        $invalidIpaymu->assertStatus(400);
 
         // Webhook Tripay tanpa header signature
         config(['payment.gateways.tripay.private_key' => 'secret_tripay_private_key_456']);

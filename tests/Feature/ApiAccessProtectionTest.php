@@ -79,8 +79,10 @@ class ApiAccessProtectionTest extends TestCase
         );
 
         // B. Endpoint webhook dikecualikan dari CSRF, namun ditolak jika tanpa valid signature
-        $webhookResponse = $this->call('POST', '/api/webhooks/payment/duitku', [
-            'merchantOrderId' => 'ORD-1234',
+        $webhookResponse = $this->call('POST', '/api/webhooks/payment/ipaymu', [
+            'reference_id' => 'ORD-1234',
+        ], [], [], [
+            'HTTP_X_SIGNATURE' => 'invalid_signature_hash',
         ]);
 
         // Tidak boleh 419 (harus diproses ke handler signature -> 400 Bad Signature)

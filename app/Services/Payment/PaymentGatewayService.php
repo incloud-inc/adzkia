@@ -20,7 +20,7 @@ class PaymentGatewayService
      */
     public function createPayment(Order $order, string $methodCode): array
     {
-        $driver = config('payment.default', 'duitku');
+        $driver = config('payment.default', 'ipaymu');
         $methodConfig = config("payment.methods.{$methodCode}");
 
         $effectivePrice = max(0.00, (float) $order->price_amount - (float) $order->discount_amount);
@@ -42,10 +42,6 @@ class PaymentGatewayService
             $privateKey = config('payment.gateways.tripay.private_key');
 
             if (blank($merchantCode) || blank($apiKey) || blank($privateKey)) {
-                if (app()->environment('local', 'testing')) {
-                    return $this->createSandboxPayment($order, $methodCode);
-                }
-
                 return [
                     'success' => false,
                     'message' => 'Kredensial TriPay (Merchant Code, API Key, Private Key) belum dikonfigurasi lengkap di Pengaturan sistem.',
@@ -55,25 +51,186 @@ class PaymentGatewayService
             return $this->createTripayPayment($order, $methodCode, $methodConfig);
         }
 
-        if ($driver === 'midtrans') {
-            $serverKey = config('payment.gateways.midtrans.server_key');
+        // Default & Primary Gateway: iPaymu
+        $va = config('payment.gateways.ipaymu.va');
+        $apiKey = config('payment.gateways.ipaymu.api_key');
 
-            if (blank($serverKey)) {
-                return $this->createSandboxPayment($order, $methodCode);
+        if (blank($va) || blank($apiKey)) {
+            return [
+                'success' => false,
+                'message' => 'Kredensial iPaymu (Virtual Account & API Key) belum dikonfigurasi lengkap di Pengaturan sistem.',
+            ];
+        }
+
+        return $this->createIpaymuPayment($order, $methodCode, $methodConfig);
+    }
+
+    /**
+     * Create payment using iPaymu API v2 (Direct Payment with seamless fallback to Redirect Payment).
+     */
+    protected function createIpaymuPayment(Order $order, string $methodCode, ?array $methodConfig): array
+    {
+        $va = (string) config('payment.gateways.ipaymu.va');
+        $apiKey = (string) config('payment.gateways.ipaymu.api_key');
+        $baseUrl = rtrim((string) config('payment.gateways.ipaymu.base_url', 'https://my.ipaymu.com/api/v2/'), '/').'/';
+        $paymentAmount = (int) round($order->total_amount);
+
+        // Format customer phone
+        $customerPhone = preg_replace('/[^0-9]/', '', (string) ($order->user?->whatsapp_number ?: ($order->user?->phone ?? '081329983555')));
+        if (strlen($customerPhone) < 10) {
+            $customerPhone = '081329983555';
+        }
+
+        $customerEmail = $order->user?->email ?: 'adzkia.tryout@gmail.com';
+        $customerName = $order->user?->name ?: 'Siswa ADZKIA';
+
+        // Canonical webhook callback URL
+        $appUrl = config('app.url');
+        $callbackUrl = (! empty($appUrl) && ! str_contains($appUrl, 'localhost') && ! str_contains($appUrl, '127.0.0.1'))
+            ? rtrim($appUrl, '/').'/api/webhooks/payment/ipaymu'
+            : route('payment.webhook.ipaymu');
+
+        $channel = $methodConfig['channel_ipaymu'] ?? 'bni';
+        $method = $methodConfig['method_ipaymu'] ?? 'va';
+
+        // TAHAP 1: Coba Direct Payment (/api/v2/payment/direct)
+        $directPayload = [
+            'name' => substr($customerName, 0, 50),
+            'phone' => $customerPhone,
+            'email' => $customerEmail,
+            'amount' => $paymentAmount,
+            'comments' => 'Pembelian Asesmen CBT #'.$order->order_number,
+            'notifyUrl' => $callbackUrl,
+            'returnUrl' => route('orders.show', $order),
+            'cancelUrl' => route('orders.show', $order),
+            'referenceId' => $order->order_number,
+            'paymentMethod' => $method,
+            'paymentChannel' => $channel,
+        ];
+
+        try {
+            $timestamp = date('YmdHis');
+            $jsonBody = json_encode($directPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $bodyHash = strtolower(hash('sha256', $jsonBody));
+            $stringToSign = 'POST:'.$va.':'.$bodyHash.':'.$apiKey;
+            $signature = hash_hmac('sha256', $stringToSign, $apiKey);
+
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'va' => $va,
+                'signature' => $signature,
+                'timestamp' => $timestamp,
+            ];
+
+            $directUrl = $baseUrl.'payment/direct';
+            $response = Http::withHeaders($headers)->timeout(20)->post($directUrl, $directPayload);
+            $data = $response->json();
+
+            if ($response->successful() && ($data['Status'] ?? null) == 200 && isset($data['Data'])) {
+                $trx = $data['Data'];
+
+                $order->update([
+                    'payment_gateway' => 'ipaymu',
+                    'payment_reference' => (string) ($trx['TransactionId'] ?? $trx['SessionID'] ?? $order->order_number),
+                    'payment_url' => $trx['Url'] ?? null,
+                    'va_number' => $trx['PaymentNo'] ?? null,
+                    'qr_code_url' => $trx['QrTemplate'] ?? $trx['QrString'] ?? null,
+                    'gateway_payload' => $data,
+                ]);
+
+                return [
+                    'success' => true,
+                    'gateway' => 'ipaymu',
+                    'payment_url' => $trx['Url'] ?? null,
+                    'va_number' => $trx['PaymentNo'] ?? null,
+                    'qr_code' => $trx['QrTemplate'] ?? $trx['QrString'] ?? null,
+                    'reference' => (string) ($trx['TransactionId'] ?? null),
+                    'instructions' => $trx['instructions'] ?? [],
+                ];
             }
 
-            return $this->createMidtransPayment($order, $methodCode, $methodConfig);
+            Log::info('iPaymu Direct Payment not returned 200, trying Redirect Payment fallback', [
+                'order' => $order->order_number,
+                'status' => $response->status(),
+                'response' => $data ?? $response->body(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('iPaymu Direct Payment attempt error: '.$e->getMessage().', trying Redirect Payment');
         }
 
-        $merchantCode = config('payment.gateways.duitku.merchant_code');
-        $apiKey = config('payment.gateways.duitku.api_key');
+        // TAHAP 2: Seamless Fallback ke Redirect Payment (/api/v2/payment)
+        $redirectPayload = [
+            'product' => [substr($order->assessment?->title ?? 'Asesmen CBT', 0, 100)],
+            'qty' => ['1'],
+            'price' => [(string) $paymentAmount],
+            'returnUrl' => route('orders.show', $order),
+            'notifyUrl' => $callbackUrl,
+            'cancelUrl' => route('orders.show', $order),
+            'referenceId' => $order->order_number,
+            'buyerName' => substr($customerName, 0, 50),
+            'buyerEmail' => $customerEmail,
+            'buyerPhone' => $customerPhone,
+            'amount' => (string) $paymentAmount,
+            'paymentMethod' => $method,
+            'paymentChannel' => $channel,
+        ];
 
-        // If credentials are not set or driver is sandbox, provide reliable sandbox response
-        if ($driver === 'sandbox' || blank($merchantCode) || blank($apiKey)) {
-            return $this->createSandboxPayment($order, $methodCode);
+        try {
+            $timestamp = date('YmdHis');
+            $jsonBodyRed = json_encode($redirectPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $bodyHashRed = strtolower(hash('sha256', $jsonBodyRed));
+            $stringToSignRed = 'POST:'.$va.':'.$bodyHashRed.':'.$apiKey;
+            $signatureRed = hash_hmac('sha256', $stringToSignRed, $apiKey);
+
+            $headersRed = [
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'va' => $va,
+                'signature' => $signatureRed,
+                'timestamp' => $timestamp,
+            ];
+
+            $redirectUrl = $baseUrl.'payment';
+            $responseRed = Http::withHeaders($headersRed)->timeout(20)->post($redirectUrl, $redirectPayload);
+            $dataRed = $responseRed->json();
+
+            if ($responseRed->successful() && ($dataRed['Status'] ?? null) == 200 && isset($dataRed['Data'])) {
+                $trxRed = $dataRed['Data'];
+
+                $order->update([
+                    'payment_gateway' => 'ipaymu',
+                    'payment_reference' => (string) ($trxRed['SessionID'] ?? null),
+                    'payment_url' => $trxRed['Url'] ?? null,
+                    'gateway_payload' => $dataRed,
+                ]);
+
+                return [
+                    'success' => true,
+                    'gateway' => 'ipaymu',
+                    'payment_url' => $trxRed['Url'] ?? null,
+                    'reference' => (string) ($trxRed['SessionID'] ?? null),
+                ];
+            }
+
+            $errorMessage = $dataRed['Message'] ?? ($data['Message'] ?? 'Gagal membuat pembayaran di iPaymu');
+            Log::error('iPaymu Redirect Payment also failed', [
+                'order' => $order->order_number,
+                'response' => $dataRed ?? $responseRed->body(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'iPaymu Error: '.$errorMessage,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('iPaymu connection failed: '.$e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Gagal terhubung ke gateway iPaymu: '.$e->getMessage(),
+            ];
         }
-
-        return $this->createDuitkuPayment($order, $methodCode, $methodConfig);
     }
 
     /**
@@ -91,13 +248,12 @@ class PaymentGatewayService
         $signature = hash_hmac('sha256', $merchantCode.$merchantRef.$paymentAmount, $privateKey);
         $channel = $methodConfig['channel_tripay'] ?? $methodCode;
 
-        // Format customer phone (numerical, default to safe fallback)
+        // Format customer phone
         $customerPhone = preg_replace('/[^0-9]/', '', (string) ($order->user?->whatsapp_number ?: ($order->user?->phone ?? '081234567890')));
         if (strlen($customerPhone) < 10) {
             $customerPhone = '081234567890';
         }
 
-        // TriPay requires: sum of (price * quantity) in order_items MUST strictly equal amount!
         $effectivePrice = max(0, (int) round((float) $order->price_amount - (float) $order->discount_amount));
         $adminFee = (int) round((float) $order->admin_fee);
 
@@ -131,7 +287,7 @@ class PaymentGatewayService
             ];
         }
 
-        // Ensure canonical domain for webhook callback reachability
+        // Canonical webhook callback URL
         $appUrl = config('app.url');
         $callbackUrl = (! empty($appUrl) && ! str_contains($appUrl, 'localhost') && ! str_contains($appUrl, '127.0.0.1'))
             ? rtrim($appUrl, '/').'/api/webhooks/payment/tripay'
@@ -201,166 +357,6 @@ class PaymentGatewayService
     }
 
     /**
-     * Create payment using Midtrans Snap API.
-     */
-    protected function createMidtransPayment(Order $order, string $methodCode, ?array $methodConfig): array
-    {
-        $serverKey = config('payment.gateways.midtrans.server_key');
-        $grossAmount = (int) round($order->total_amount);
-        $orderId = $order->order_number;
-
-        $channelMidtrans = $methodConfig['channel_midtrans'] ?? null;
-        $enabledPayments = $channelMidtrans ? [$channelMidtrans] : null;
-
-        $payload = [
-            'transaction_details' => [
-                'order_id' => $orderId,
-                'gross_amount' => $grossAmount,
-            ],
-            'customer_details' => [
-                'first_name' => substr($order->user?->name ?? 'Siswa ADZKIA', 0, 50),
-                'email' => $order->user?->email ?? 'student@adzkia.test',
-                'phone' => $order->user?->phone ?? '081234567890',
-            ],
-            'item_details' => [
-                [
-                    'id' => 'ASSESSMENT-'.$order->assessment_id,
-                    'price' => (int) round($order->price_amount),
-                    'quantity' => 1,
-                    'name' => substr($order->assessment?->title ?? 'Asesmen CBT', 0, 50),
-                ],
-            ],
-            'callbacks' => [
-                'finish' => route('orders.show', $order),
-            ],
-            'expiry' => [
-                'start_time' => now()->format('Y-m-d H:i:s O'),
-                'unit' => 'minute',
-                'duration' => (int) config('payment.gateways.midtrans.expiry_period', 1440),
-            ],
-        ];
-
-        if ($enabledPayments) {
-            $payload['enabled_payments'] = $enabledPayments;
-        }
-
-        try {
-            $isSandbox = (bool) config('payment.gateways.midtrans.sandbox', true);
-            $url = $isSandbox
-                ? 'https://app.sandbox.midtrans.com/snap/v1/transactions'
-                : (config('payment.gateways.midtrans.snap_url') ?: 'https://app.midtrans.com/snap/v1/transactions');
-            $response = Http::withBasicAuth($serverKey, '')
-                ->timeout(20)
-                ->post($url, $payload);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                if (! empty($data['token']) || ! empty($data['redirect_url'])) {
-                    $order->update([
-                        'payment_gateway' => 'midtrans',
-                        'payment_reference' => $data['token'] ?? null,
-                        'payment_url' => $data['redirect_url'] ?? null,
-                        'gateway_payload' => $data,
-                    ]);
-
-                    return [
-                        'success' => true,
-                        'gateway' => 'midtrans',
-                        'payment_url' => $data['redirect_url'] ?? null,
-                        'token' => $data['token'] ?? null,
-                        'reference' => $data['token'] ?? null,
-                    ];
-                }
-            }
-
-            Log::warning('Midtrans Snap API returned error', [
-                'order' => $order->order_number,
-                'response' => $response->body(),
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Midtrans API connection failed: '.$e->getMessage());
-        }
-
-        return $this->createSandboxPayment($order, $methodCode);
-    }
-
-    /**
-     * Create payment using Duitku API.
-     */
-    protected function createDuitkuPayment(Order $order, string $methodCode, ?array $methodConfig): array
-    {
-        $merchantCode = config('payment.gateways.duitku.merchant_code');
-        $apiKey = config('payment.gateways.duitku.api_key');
-        $paymentAmount = (int) round($order->total_amount);
-        $merchantOrderId = $order->order_number;
-
-        // Signature: MD5(merchantCode + merchantOrderId + paymentAmount + apiKey)
-        $signature = md5($merchantCode.$merchantOrderId.$paymentAmount.$apiKey);
-
-        $payload = [
-            'merchantCode' => $merchantCode,
-            'paymentAmount' => $paymentAmount,
-            'paymentMethod' => $methodConfig['channel'] ?? 'VC',
-            'merchantOrderId' => $merchantOrderId,
-            'productDetails' => 'Pembelian Asesmen: '.($order->assessment?->title ?? 'CBT Exam'),
-            'additionalParam' => '',
-            'merchantUserInfo' => $order->user?->email ?? 'student@adzkia.test',
-            'customerVaName' => substr($order->user?->name ?? 'Siswa ADZKIA', 0, 20),
-            'email' => $order->user?->email ?? 'student@adzkia.test',
-            'phoneNumber' => $order->user?->phone ?? '081234567890',
-            'itemDetails' => [
-                [
-                    'name' => $order->assessment?->title ?? 'Asesmen CBT',
-                    'price' => (int) round($order->price_amount),
-                    'quantity' => 1,
-                ],
-            ],
-            'callbackUrl' => route('payment.webhook.duitku'),
-            'returnUrl' => route('orders.show', $order),
-            'signature' => $signature,
-            'expiryPeriod' => config('payment.gateways.duitku.expiry_period', 1440),
-        ];
-
-        try {
-            $url = config('payment.gateways.duitku.base_url');
-            $response = Http::timeout(20)->post($url, $payload);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                if (($data['statusCode'] ?? null) === '00') {
-                    $order->update([
-                        'payment_reference' => $data['reference'] ?? null,
-                        'payment_url' => $data['paymentUrl'] ?? null,
-                        'va_number' => $data['vaNumber'] ?? null,
-                        'qr_code_url' => $data['qrCode'] ?? null,
-                        'gateway_payload' => $data,
-                    ]);
-
-                    return [
-                        'success' => true,
-                        'payment_url' => $data['paymentUrl'] ?? null,
-                        'va_number' => $data['vaNumber'] ?? null,
-                        'qr_code' => $data['qrCode'] ?? null,
-                        'reference' => $data['reference'] ?? null,
-                    ];
-                }
-            }
-
-            Log::warning('Duitku API returned non-success response', [
-                'order' => $order->order_number,
-                'response' => $response->body(),
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Duitku API connection failed: '.$e->getMessage());
-        }
-
-        // Fallback to simulated payment in case of API outage / sandbox testing
-        return $this->createSandboxPayment($order, $methodCode);
-    }
-
-    /**
      * Hitung biaya layanan (admin fee) secara dinamis sesuai skema flat / persentase / minimal biaya.
      */
     public function calculateAdminFee(string $methodCode, float $baseAmount): float
@@ -381,75 +377,26 @@ class PaymentGatewayService
     }
 
     /**
-     * Create interactive simulated payment (Sandbox mode).
+     * Verify iPaymu webhook callback signature.
      */
-    protected function createSandboxPayment(Order $order, string $methodCode): array
+    public function verifyIpaymuWebhook(Request $request): bool
     {
-        $ref = 'SB-'.strtoupper(bin2hex(random_bytes(6)));
-        $vaNumber = null;
-        $qrCode = null;
-
-        if (str_starts_with($methodCode, 'VA_')) {
-            $bankCode = match ($methodCode) {
-                'VA_BCA' => '88000',
-                'VA_MANDIRI' => '89000',
-                'VA_BRI' => '88888',
-                'VA_BNI' => '88088',
-                'VA_MUAMALAT' => '88111',
-                'VA_BSI' => '88222',
-                default => '99000',
-            };
-            $vaNumber = $bankCode.str_pad((string) $order->id, 8, '0', STR_PAD_LEFT);
-        } elseif ($methodCode === 'QRIS') {
-            $qrCode = '00020101021226590014ID.LINKAJA.WWW0118936009990000000000520458125303360540'.((int) round($order->total_amount)).'5802ID5911ADZKIA CBT6007JAKARTA62070703A016304ABCD';
+        $orderNumber = $request->input('reference_id') ?? $request->input('referenceId');
+        if (! $orderNumber) {
+            return false;
         }
 
-        $paymentUrl = route('orders.show', $order);
-
-        $order->update([
-            'payment_gateway' => $order->payment_gateway ?? config('payment.default', 'sandbox'),
-            'payment_reference' => $ref,
-            'payment_url' => $paymentUrl,
-            'va_number' => $vaNumber,
-            'qr_code_url' => $qrCode,
-            'gateway_payload' => [
-                'mode' => 'sandbox',
-                'method' => $methodCode,
-                'created_at' => now()->toIso8601String(),
-            ],
-        ]);
-
-        return [
-            'success' => true,
-            'payment_url' => $paymentUrl,
-            'va_number' => $vaNumber,
-            'qr_code' => $qrCode,
-            'reference' => $ref,
-        ];
-    }
-
-    /**
-     * Verify Duitku webhook callback signature.
-     * Formula: MD5(merchantCode + amount + merchantOrderId + apiKey)
-     */
-    public function verifyDuitkuWebhook(Request $request): bool
-    {
-        $merchantCode = config('payment.gateways.duitku.merchant_code');
-        $apiKey = config('payment.gateways.duitku.api_key');
-
-        // When in sandbox simulation with empty keys, allow testing webhook
-        if (blank($apiKey) && app()->environment('local', 'testing')) {
-            return true;
+        // If X-Signature header is provided, verify against merchant VA / API Key
+        $callbackSignature = $request->header('X-Signature') ?? $request->header('signature');
+        if ($callbackSignature) {
+            $va = (string) config('payment.gateways.ipaymu.va');
+            $expectedSignature = hash_hmac('sha256', $request->getContent(), $va);
+            if (! hash_equals($expectedSignature, (string) $callbackSignature)) {
+                return false;
+            }
         }
 
-        $reqMerchantCode = $request->input('merchantCode', '');
-        $reqAmount = $request->input('amount', '');
-        $reqMerchantOrderId = $request->input('merchantOrderId', '');
-        $reqSignature = $request->input('signature', '');
-
-        $expectedSignature = md5($reqMerchantCode.$reqAmount.$reqMerchantOrderId.$apiKey);
-
-        return hash_equals($expectedSignature, $reqSignature);
+        return true;
     }
 
     /**
@@ -460,7 +407,6 @@ class PaymentGatewayService
     {
         $privateKey = config('payment.gateways.tripay.private_key');
 
-        // When in sandbox simulation with empty keys, allow testing webhook
         if (blank($privateKey) && app()->environment('local', 'testing')) {
             return true;
         }
@@ -477,42 +423,24 @@ class PaymentGatewayService
     }
 
     /**
-     * Verify Midtrans webhook callback signature.
-     * Formula: SHA512(order_id + status_code + gross_amount + server_key)
-     */
-    public function verifyMidtransWebhook(Request $request): bool
-    {
-        $serverKey = config('payment.gateways.midtrans.server_key');
-
-        // When in sandbox simulation with empty keys, allow testing webhook
-        if (blank($serverKey) && app()->environment('local', 'testing')) {
-            return true;
-        }
-
-        $orderId = (string) $request->input('order_id', '');
-        $statusCode = (string) $request->input('status_code', '');
-        $grossAmount = (string) $request->input('gross_amount', '');
-        $signatureKey = (string) $request->input('signature_key', '');
-
-        $expectedSignature = hash('sha512', $orderId.$statusCode.$grossAmount.$serverKey);
-
-        return hash_equals($expectedSignature, $signatureKey);
-    }
-
-    /**
-     * Process webhook notification from Duitku, Tripay, Midtrans, or generic gateway.
+     * Process webhook notification from iPaymu, Tripay, or generic gateway.
      */
     public function processWebhook(array $payload): array
     {
-        $orderNumber = $payload['order_id'] ?? $payload['merchantOrderId'] ?? $payload['merchant_ref'] ?? $payload['order_number'] ?? null;
-        $resultCode = $payload['resultCode'] ?? $payload['status_code'] ?? null;
+        $orderNumber = $payload['reference_id']
+            ?? $payload['referenceId']
+            ?? $payload['merchant_ref']
+            ?? $payload['order_id']
+            ?? $payload['order_number']
+            ?? null;
+
         $status = strtoupper((string) ($payload['status'] ?? ''));
+        $statusCode = (string) ($payload['status_code'] ?? '');
         $trxStatus = strtolower((string) ($payload['transaction_status'] ?? ''));
-        $fraudStatus = strtolower((string) ($payload['fraud_status'] ?? 'accept'));
-        $reference = $payload['transaction_id'] ?? $payload['reference'] ?? null;
+        $reference = $payload['trx_id'] ?? $payload['trscode'] ?? $payload['reference'] ?? null;
 
         if (! $orderNumber) {
-            return ['status' => 'error', 'message' => 'Missing order_id / merchantOrderId / merchant_ref'];
+            return ['status' => 'error', 'message' => 'Missing order reference'];
         }
 
         $order = Order::where('order_number', $orderNumber)->first();
@@ -521,13 +449,11 @@ class PaymentGatewayService
         }
 
         // Success condition:
-        // Duitku: resultCode === '00'
+        // iPaymu: status === 'berhasil' or 'success' or status_code === '1'
         // Tripay / Generic: status === 'PAID' or 'SUCCESS'
-        // Midtrans: transaction_status === 'settlement' OR (transaction_status === 'capture' AND fraud_status === 'accept')
-        $isSuccess = $resultCode === '00'
-            || in_array($status, ['SUCCESS', 'PAID'], true)
-            || $trxStatus === 'settlement'
-            || ($trxStatus === 'capture' && $fraudStatus === 'accept');
+        $isSuccess = in_array($status, ['BERHASIL', 'SUCCESS', 'PAID'], true)
+            || $statusCode === '1'
+            || $trxStatus === 'settlement';
 
         if ($isSuccess) {
             if ($order->status !== 'settled') {
@@ -538,10 +464,10 @@ class PaymentGatewayService
                     'gateway_payload' => $payload,
                 ]);
 
-                // Automatically distribute revenue split to tenant wallet!
+                // Automatically distribute revenue split to tenant wallet
                 $this->distributionService->distribute($order);
 
-                // Grant / accumulate assessment access quota & 35-day validity
+                // Grant / accumulate assessment access quota & validity
                 $this->grantAssessmentAccess($order);
 
                 // Record coupon usage if applied
@@ -556,14 +482,12 @@ class PaymentGatewayService
         }
 
         // Check if transaction is still pending / unpaid
-        if ($status === 'UNPAID' || $trxStatus === 'pending') {
+        if (in_array(strtolower($status), ['pending', 'unpaid'], true) || $trxStatus === 'pending') {
             return ['status' => 'success', 'message' => 'Payment still pending'];
         }
 
-        // Failed / Expired condition:
-        // Duitku: resultCode === '02', Tripay: status === 'EXPIRED'
-        // Midtrans: transaction_status in ['expire', 'cancel', 'deny']
-        $isExpired = ($resultCode === '02' || $status === 'EXPIRED' || in_array($trxStatus, ['expire', 'cancel'], true));
+        // Failed / Expired condition
+        $isExpired = in_array(strtolower($status), ['expired', 'expire', 'cancel', 'batal', 'gagal'], true);
         $newStatus = $isExpired ? 'expired' : 'failed';
         $order->update([
             'status' => $newStatus,
@@ -574,7 +498,7 @@ class PaymentGatewayService
     }
 
     /**
-     * Simulate instant settlement (useful for tests and sandbox demos).
+     * Simulate instant settlement (useful for tests and admin manual settlement).
      */
     public function simulateSettlement(Order $order): bool
     {
@@ -582,7 +506,7 @@ class PaymentGatewayService
             'status' => 'settled',
             'paid_at' => now(),
             'gateway_payload' => array_merge($order->gateway_payload ?? [], [
-                'settled_via' => 'sandbox_simulation',
+                'settled_via' => 'admin_simulation',
                 'settled_at' => now()->toIso8601String(),
             ]),
         ]);
@@ -597,7 +521,7 @@ class PaymentGatewayService
     }
 
     /**
-     * Grant or accumulate assessment access quota and extend 35 days validity.
+     * Grant or accumulate assessment access quota and extend validity days.
      */
     public function grantAssessmentAccess(Order $order): UserAssessmentAccess
     {
@@ -611,11 +535,8 @@ class PaymentGatewayService
             'assessment_id' => $assessmentId,
         ]);
 
-        // Accumulate quota attempts!
         $access->quota_attempts = ($access->quota_attempts ?? 0) + $packageAttempts;
 
-        // Accumulate validity days:
-        // Jika masih aktif (future), tambahkan dari expires_at saat ini. Jika baru/expired, mulai dari now().
         $baseDate = ($access->exists && $access->expires_at && $access->expires_at->isFuture())
             ? $access->expires_at->copy()
             : now();

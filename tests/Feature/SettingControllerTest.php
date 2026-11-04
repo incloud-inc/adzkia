@@ -23,28 +23,29 @@ class SettingControllerTest extends TestCase
         $response->assertOk();
         $response->assertSeeText('Pengaturan Sistem, Storage & Gerbang Pembayaran');
         $response->assertSeeText('Tripay');
-        $response->assertSeeText('Duitku');
-        $response->assertSeeText('Midtrans');
+        $response->assertSeeText('iPaymu');
         $response->assertSeeText('Google OAuth & SSO');
     }
 
-    public function test_super_user_can_update_gateway_to_midtrans(): void
+    public function test_super_user_can_update_gateway_to_ipaymu(): void
     {
         $tenant = Tenant::factory()->create(['plan' => 'whitelabel']);
         $owner = User::factory()->create();
         $owner->tenants()->attach($tenant->id, ['role' => 'S']);
 
         $response = $this->actingAs($owner)->post(route('settings.update'), [
-            'payment_driver' => 'midtrans',
+            'payment_driver' => 'ipaymu',
             'upload_disk' => 'r2',
-            'midtrans_server_key' => 'SB-Mid-server-test12345',
-            'midtrans_client_key' => 'SB-Mid-client-test12345',
-            'midtrans_merchant_id' => 'G123456789',
-            'midtrans_sandbox' => '1',
+            'ipaymu_va' => '1179001329983555',
+            'ipaymu_api_key' => 'CEF02541-DB54-48EE-84C1-B96DD1FF0BB4',
+            'ipaymu_sandbox' => '0',
         ]);
 
         $response->assertRedirect(route('settings.index').'#storage');
         $response->assertSessionHas('success');
+        $this->assertSame('ipaymu', SystemSetting::get('PAYMENT_GATEWAY_DRIVER'));
+        $this->assertSame('1179001329983555', SystemSetting::get('IPAYMU_VA'));
+        $this->assertSame('CEF02541-DB54-48EE-84C1-B96DD1FF0BB4', SystemSetting::get('IPAYMU_API_KEY'));
     }
 
     public function test_super_user_can_update_google_oauth_credentials(): void

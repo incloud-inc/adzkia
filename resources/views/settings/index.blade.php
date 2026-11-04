@@ -5,11 +5,9 @@
         activeTab: window.location.hash ? window.location.hash.substring(1) : 'gateway',
         activeDriver: '{{ $currentDriver }}',
         activeDisk: '{{ $r2Config['upload_disk'] ?? 'r2' }}',
+        showIpaymuKey: false,
         showTripayKey: false,
         showTripaySecret: false,
-        showDuitkuKey: false,
-        showMidtransServerKey: false,
-        showMidtransClientKey: false,
         showR2Key: false,
         showR2Secret: false,
         showGoogleSecret: false,
@@ -56,7 +54,7 @@
                 <h1 class="font-display font-extrabold text-2xl sm:text-3xl text-gray-12 tracking-tight mt-1">
                     Pengaturan Sistem, Storage &amp; Gerbang Pembayaran
                 </h1>
-                <p class="text-xs text-gray-11 mt-0.5">Konfigurasi Cloudflare R2 Object Storage, kanal payment gateway (Tripay / Duitku / Midtrans), parameter webhook, dan kesehatan server.</p>
+                <p class="text-xs text-gray-11 mt-0.5">Konfigurasi Cloudflare R2 Object Storage, kanal payment gateway (iPaymu / Tripay), parameter webhook, dan kesehatan server.</p>
             </div>
 
             <div class="flex items-center gap-2">
@@ -158,8 +156,26 @@
                     <h3 class="font-display font-bold text-base text-gray-12 mb-1">Pilih Driver Gateway Aktif</h3>
                     <p class="text-xs text-gray-11 mb-4">Sistem akan mengarahkan semua transaksi checkout siswa ke gateway yang dipilih secara langsung.</p>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- 1. Tripay -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- 1. iPaymu -->
+                        <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
+                               :class="activeDriver === 'ipaymu' ? 'border-orange-500 bg-orange-50/40 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
+                            <input type="radio" name="payment_driver" value="ipaymu" x-model="activeDriver" class="sr-only">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-black uppercase tracking-wider text-orange-700 bg-orange-100 px-2 py-0.5 rounded-md">iPaymu v2</span>
+                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                         :class="activeDriver === 'ipaymu' ? 'border-orange-500 bg-orange-500 text-white' : 'border-gray-6'">
+                                        <div class="w-2 h-2 bg-white rounded-full" x-show="activeDriver === 'ipaymu'"></div>
+                                    </div>
+                                </div>
+                                <h4 class="font-bold text-sm text-gray-12">iPaymu Direct &amp; Redirect API v2</h4>
+                                <p class="text-xs text-gray-11 mt-1">Dukungan Virtual Account (BCA, Mandiri, BNI, BRI, BSI, Muamalat), QRIS Nasional instan, E-Wallet, dan Notifikasi Webhook Otomatis.</p>
+                            </div>
+                            <span class="inline-flex mt-4 text-[11px] font-semibold text-orange-700">Gateway Utama &bull; Terhubung Aktif</span>
+                        </label>
+
+                        <!-- 2. Tripay -->
                         <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
                                :class="activeDriver === 'tripay' ? 'border-blue-9 bg-blue-2/30 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
                             <input type="radio" name="payment_driver" value="tripay" x-model="activeDriver" class="sr-only">
@@ -174,67 +190,100 @@
                                 <h4 class="font-bold text-sm text-gray-12">Tripay Payment Gateway</h4>
                                 <p class="text-xs text-gray-11 mt-1">Mendukung Closed Payment QRIS, VA Bank (BCA, Mandiri, BRI, BNI), ShopeePay, dan Webhook HMAC-SHA256.</p>
                             </div>
-                            <span class="inline-flex mt-4 text-[11px] font-semibold text-blue-11">Rekomendasi Produksi &bull; Biaya Rendah</span>
-                        </label>
-
-                        <!-- 2. Duitku -->
-                        <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
-                                :class="activeDriver === 'duitku' ? 'border-blue-9 bg-blue-2/30 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
-                            <input type="radio" name="payment_driver" value="duitku" x-model="activeDriver" class="sr-only">
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-xs font-black uppercase tracking-wider text-green-11 bg-green-3 px-2 py-0.5 rounded-md">Duitku</span>
-                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                                         :class="activeDriver === 'duitku' ? 'border-blue-9 bg-blue-9 text-white' : 'border-gray-6'">
-                                        <div class="w-2 h-2 bg-white rounded-full" x-show="activeDriver === 'duitku'"></div>
-                                    </div>
-                                </div>
-                                <h4 class="font-bold text-sm text-gray-12">Duitku Web API v2</h4>
-                                <p class="text-xs text-gray-11 mt-1">Dukungan inquiry v2 merchant, signature MD5, dan settlement otomatis ke portal tenant.</p>
-                            </div>
-                            <span class="inline-flex mt-4 text-[11px] font-semibold text-green-11">Dukungan Stabil &bull; Direct VA</span>
-                        </label>
-
-                        <!-- 3. Midtrans -->
-                        <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
-                               :class="activeDriver === 'midtrans' ? 'border-blue-9 bg-blue-2/30 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
-                            <input type="radio" name="payment_driver" value="midtrans" x-model="activeDriver" class="sr-only">
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-xs font-black uppercase tracking-wider text-cyan-11 bg-cyan-3 px-2 py-0.5 rounded-md">Midtrans</span>
-                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                                         :class="activeDriver === 'midtrans' ? 'border-blue-9 bg-blue-9 text-white' : 'border-gray-6'">
-                                        <div class="w-2 h-2 bg-white rounded-full" x-show="activeDriver === 'midtrans'"></div>
-                                    </div>
-                                </div>
-                                <h4 class="font-bold text-sm text-gray-12">Midtrans Snap API</h4>
-                                <p class="text-xs text-gray-11 mt-1">Dukungan GoPay, ShopeePay, QRIS, Virtual Account, Kartu Kredit, dan Popup Snap Seamless.</p>
-                            </div>
-                            <span class="inline-flex mt-4 text-[11px] font-semibold text-cyan-11">Enterprise Ready &bull; Snap UI</span>
-                        </label>
-
-                        <!-- 4. Sandbox Simulation -->
-                        <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
-                               :class="activeDriver === 'sandbox' ? 'border-blue-9 bg-blue-2/30 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
-                            <input type="radio" name="payment_driver" value="sandbox" x-model="activeDriver" class="sr-only">
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-xs font-black uppercase tracking-wider text-amber-11 bg-amber-3 px-2 py-0.5 rounded-md">Sandbox Demo</span>
-                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                                         :class="activeDriver === 'sandbox' ? 'border-blue-9 bg-blue-9 text-white' : 'border-gray-6'">
-                                        <div class="w-2 h-2 bg-white rounded-full" x-show="activeDriver === 'sandbox'"></div>
-                                    </div>
-                                </div>
-                                <h4 class="font-bold text-sm text-gray-12">Simulasi Interaktif</h4>
-                                <p class="text-xs text-gray-11 mt-1">Mengizinkan pengujian alur pembelian tanpa menghubungkan ke server payment gateway eksternal.</p>
-                            </div>
-                            <span class="inline-flex mt-4 text-[11px] font-semibold text-amber-11">Ideal untuk Demo &bull; 1-Click Pay</span>
+                            <span class="inline-flex mt-4 text-[11px] font-semibold text-blue-11">Opsi Gateway Alternatif</span>
                         </label>
                     </div>
                 </div>
 
+                <!-- iPaymu Credentials Form -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs space-y-5" x-show="activeDriver === 'ipaymu'">
+                    <div class="flex items-center justify-between border-b border-gray-5 pb-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-black text-sm">iP</div>
+                            <div>
+                                <h3 class="font-display font-bold text-base text-gray-12">Kredensial Akun iPaymu (Produksi)</h3>
+                                <p class="text-xs text-gray-11">Dapatkan Virtual Account (VA) dan API Key di Dashboard iPaymu &gt; Integrasi &gt; API.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-12">
+                                <input type="checkbox" name="ipaymu_sandbox" value="1" {{ ($ipaymuConfig['sandbox'] ?? false) ? 'checked' : '' }} class="rounded border-gray-6 text-orange-600 focus:ring-orange-600">
+                                <span>Mode Sandbox</span>
+                            </label>
+                            <button type="button" 
+                                    @click="runTest('payment-ipaymu')" 
+                                    :disabled="testing['payment-ipaymu']"
+                                    class="px-3 py-1.5 rounded-xl bg-white border border-gray-6 hover:bg-gray-3 text-gray-12 text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-60">
+                                <span :class="testing['payment-ipaymu'] ? 'animate-spin' : ''" class="inline-flex">
+                                    <x-radix-icon name="reload" class="w-3.5 h-3.5" />
+                                </span>
+                                <span x-text="testing['payment-ipaymu'] ? 'Menguji...' : 'Uji Koneksi iPaymu'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live AJAX Test Result Feedback -->
+                    <div x-show="testResults['payment-ipaymu'] !== null" x-cloak class="pt-1">
+                        <template x-if="testResults['payment-ipaymu']?.success">
+                            <div class="p-3 rounded-xl bg-green-3 border border-green-6 text-green-12 text-xs font-semibold flex items-center gap-2">
+                                <x-radix-icon name="check-circled" class="w-4 h-4 text-green-9 shrink-0" />
+                                <span x-text="testResults['payment-ipaymu']?.message"></span>
+                                <span class="ml-auto font-mono text-[11px]" x-text="'Ping: ' + testResults['payment-ipaymu']?.ping_ms + ' ms'"></span>
+                            </div>
+                        </template>
+                        <template x-if="testResults['payment-ipaymu'] && !testResults['payment-ipaymu']?.success">
+                            <div class="p-3 rounded-xl bg-red-3 border border-red-6 text-red-12 text-xs font-semibold flex items-start gap-2">
+                                <x-radix-icon name="cross-circled" class="w-4 h-4 text-red-9 shrink-0 mt-0.5" />
+                                <div>
+                                    <p class="font-bold">Pengujian Gagal:</p>
+                                    <p class="font-mono text-[11px] mt-0.5" x-text="testResults['payment-ipaymu']?.message"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">Nomor Virtual Account (VA)</label>
+                            <input type="text" name="ipaymu_va" value="{{ old('ipaymu_va', $ipaymuConfig['va'] ?? '1179001329983555') }}"
+                                   placeholder="Contoh: 1179001329983555"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-gray-6 text-sm text-gray-12 font-mono focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">API Key</label>
+                            <div class="relative">
+                                <input :type="showIpaymuKey ? 'text' : 'password'" name="ipaymu_api_key" value="{{ old('ipaymu_api_key', $ipaymuConfig['api_key'] ?? 'CEF02541-DB54-48EE-84C1-B96DD1FF0BB4') }}"
+                                       placeholder="Contoh: CEF02541-DB54-48EE-84C1-B96DD1FF0BB4"
+                                       class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-gray-6 text-sm text-gray-12 font-mono focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
+                                <button type="button" @click="showIpaymuKey = !showIpaymuKey" class="absolute right-3 top-2.5 text-gray-9 hover:text-gray-12">
+                                    <x-radix-icon name="eye-open" class="w-4 h-4" x-show="!showIpaymuKey" />
+                                    <x-radix-icon name="eye-none" class="w-4 h-4" x-show="showIpaymuKey" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Webhook instructions -->
+                    <div class="p-4 rounded-xl bg-orange-50 border border-orange-200 text-xs text-orange-950 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold flex items-center gap-1.5">
+                                <x-radix-icon name="link-2" class="w-4 h-4 text-orange-600" />
+                                <span>URL Webhook / Notify iPaymu (Salin ke Dashboard iPaymu &gt; Integrasi):</span>
+                            </span>
+                            <button type="button" @click="copyToClipboard('{{ $webhookUrls['ipaymu'] }}', 'ipaymu')" class="px-2.5 py-1 rounded-lg bg-orange-600 text-white font-bold text-[11px] hover:bg-orange-700 transition-colors cursor-pointer">
+                                <span x-show="copiedUrl !== 'ipaymu'">Salin URL</span>
+                                <span x-show="copiedUrl === 'ipaymu'">Tersalin!</span>
+                            </button>
+                        </div>
+                        <code class="block px-3 py-1.5 rounded-lg bg-white border border-orange-200 text-orange-900 font-mono select-all">
+                            {{ $webhookUrls['ipaymu'] }}
+                        </code>
+                        <p class="text-[11px] text-gray-600">Pastikan URL notifikasi di atas didaftarkan di dashboard iPaymu agar konfirmasi transaksi siswa otomatis terupdate seketika.</p>
+                    </div>
+                </div>
+
                 <!-- Tripay Credentials Form -->
-                <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs space-y-5" x-show="activeDriver === 'tripay' || activeDriver === 'sandbox'">
+                <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs space-y-5" x-show="activeDriver === 'tripay'">
                     <div class="flex items-center justify-between border-b border-gray-5 pb-3">
                         <div class="flex items-center gap-2.5">
                             <div class="w-8 h-8 rounded-xl bg-blue-3 text-blue-11 flex items-center justify-center font-black text-sm">T</div>
@@ -245,7 +294,7 @@
                         </div>
                         <div class="flex items-center gap-4">
                             <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-12">
-                                <input type="checkbox" name="tripay_sandbox" value="1" {{ ($tripayConfig['sandbox'] ?? true) ? 'checked' : '' }} class="rounded border-gray-6 text-blue-9 focus:ring-blue-9">
+                                <input type="checkbox" name="tripay_sandbox" value="1" {{ ($tripayConfig['sandbox'] ?? false) ? 'checked' : '' }} class="rounded border-gray-6 text-blue-9 focus:ring-blue-9">
                                 <span>Mode Sandbox</span>
                             </label>
                             <button type="button" 
@@ -329,129 +378,6 @@
                             {{ $webhookUrls['tripay'] }}
                         </code>
                         <p class="text-[11px] text-gray-11">Pilih Event: <span class="font-bold text-gray-12">Payment Status</span>. Header signature HMAC-SHA256 akan otomatis diverifikasi.</p>
-                    </div>
-                </div>
-
-                <!-- Duitku Credentials Form -->
-                <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs space-y-5" x-show="activeDriver === 'duitku' || activeDriver === 'sandbox'">
-                    <div class="flex items-center justify-between border-b border-gray-5 pb-3">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-xl bg-green-3 text-green-11 flex items-center justify-center font-black text-sm">D</div>
-                            <div>
-                                <h3 class="font-display font-bold text-base text-gray-12">Kredensial Akun Duitku</h3>
-                                <p class="text-xs text-gray-11">Dapatkan Merchant Code dan API Key dari dashboard Duitku.</p>
-                            </div>
-                        </div>
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-12">
-                            <input type="checkbox" name="duitku_sandbox" value="1" {{ ($duitkuConfig['sandbox'] ?? true) ? 'checked' : '' }} class="rounded border-gray-6 text-green-9 focus:ring-green-9">
-                            <span>Aktifkan Mode Sandbox</span>
-                        </label>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-12 mb-1">Merchant Code</label>
-                            <input type="text" name="duitku_merchant_code" value="{{ old('duitku_merchant_code', $duitkuConfig['merchant_code'] ?? '') }}"
-                                   placeholder="Contoh: D12345"
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-green-9/20 focus:border-green-9">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-12 mb-1">API Key</label>
-                            <div class="relative">
-                                <input :type="showDuitkuKey ? 'text' : 'password'" name="duitku_api_key" value="{{ old('duitku_api_key', $duitkuConfig['api_key'] ?? '') }}"
-                                       placeholder="Duitku Project API Key"
-                                       class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-green-9/20 focus:border-green-9">
-                                <button type="button" @click="showDuitkuKey = !showDuitkuKey" class="absolute right-3 top-2.5 text-gray-9 hover:text-gray-12">
-                                    <x-radix-icon name="eye-open" class="w-4 h-4" x-show="!showDuitkuKey" />
-                                    <x-radix-icon name="eye-none" class="w-4 h-4" x-show="showDuitkuKey" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Webhook instructions -->
-                    <div class="p-4 rounded-xl bg-green-2/40 border border-green-5 text-xs text-green-12 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="font-bold flex items-center gap-1.5">
-                                <x-radix-icon name="link-2" class="w-4 h-4 text-green-9" />
-                                <span>URL Callback Duitku:</span>
-                            </span>
-                            <button type="button" @click="copyToClipboard('{{ $webhookUrls['duitku'] }}', 'duitku')" class="px-2.5 py-1 rounded-lg bg-green-9 text-white font-bold text-[11px] hover:bg-green-10 transition-colors cursor-pointer">
-                                <span x-show="copiedUrl !== 'duitku'">Salin URL</span>
-                                <span x-show="copiedUrl === 'duitku'">Tersalin!</span>
-                            </button>
-                        </div>
-                        <code class="block px-3 py-1.5 rounded-lg bg-white border border-green-4 text-green-11 font-mono select-all">
-                            {{ $webhookUrls['duitku'] }}
-                        </code>
-                    </div>
-                </div>
-
-                <!-- Midtrans Credentials Form -->
-                <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs space-y-5" x-show="activeDriver === 'midtrans' || activeDriver === 'sandbox'">
-                    <div class="flex items-center justify-between border-b border-gray-5 pb-3">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-xl bg-cyan-3 text-cyan-11 flex items-center justify-center font-black text-sm">M</div>
-                            <div>
-                                <h3 class="font-display font-bold text-base text-gray-12">Kredensial Akun Midtrans</h3>
-                                <p class="text-xs text-gray-11">Dapatkan Server Key, Client Key, dan Merchant ID dari dashboard Midtrans MAP.</p>
-                            </div>
-                        </div>
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-12">
-                            <input type="checkbox" name="midtrans_sandbox" value="1" {{ ($midtransConfig['sandbox'] ?? true) ? 'checked' : '' }} class="rounded border-gray-6 text-cyan-9 focus:ring-cyan-9">
-                            <span>Aktifkan Mode Sandbox</span>
-                        </label>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-12 mb-1">Merchant ID</label>
-                            <input type="text" name="midtrans_merchant_id" value="{{ old('midtrans_merchant_id', $midtransConfig['merchant_id'] ?? '') }}"
-                                   placeholder="Contoh: G123456789"
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-cyan-9/20 focus:border-cyan-9">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-12 mb-1">Server Key</label>
-                            <div class="relative">
-                                <input :type="showMidtransServerKey ? 'text' : 'password'" name="midtrans_server_key" value="{{ old('midtrans_server_key', $midtransConfig['server_key'] ?? '') }}"
-                                       placeholder="Midtrans Server Key (SB-Mid-server-...)"
-                                       class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-cyan-9/20 focus:border-cyan-9">
-                                <button type="button" @click="showMidtransServerKey = !showMidtransServerKey" class="absolute right-3 top-2.5 text-gray-9 hover:text-gray-12">
-                                    <x-radix-icon name="eye-open" class="w-4 h-4" x-show="!showMidtransServerKey" />
-                                    <x-radix-icon name="eye-none" class="w-4 h-4" x-show="showMidtransServerKey" />
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-12 mb-1">Client Key</label>
-                            <div class="relative">
-                                <input :type="showMidtransClientKey ? 'text' : 'password'" name="midtrans_client_key" value="{{ old('midtrans_client_key', $midtransConfig['client_key'] ?? '') }}"
-                                       placeholder="Midtrans Client Key (SB-Mid-client-...)"
-                                       class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-gray-6 text-sm text-gray-12 focus:ring-2 focus:ring-cyan-9/20 focus:border-cyan-9">
-                                <button type="button" @click="showMidtransClientKey = !showMidtransClientKey" class="absolute right-3 top-2.5 text-gray-9 hover:text-gray-12">
-                                    <x-radix-icon name="eye-open" class="w-4 h-4" x-show="!showMidtransClientKey" />
-                                    <x-radix-icon name="eye-none" class="w-4 h-4" x-show="showMidtransClientKey" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Webhook instructions -->
-                    <div class="p-4 rounded-xl bg-cyan-2/40 border border-cyan-5 text-xs text-cyan-12 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="font-bold flex items-center gap-1.5">
-                                <x-radix-icon name="link-2" class="w-4 h-4 text-cyan-9" />
-                                <span>URL Notification / Callback Midtrans:</span>
-                            </span>
-                            <button type="button" @click="copyToClipboard('{{ $webhookUrls['midtrans'] }}', 'midtrans')" class="px-2.5 py-1 rounded-lg bg-cyan-9 text-white font-bold text-[11px] hover:bg-cyan-10 transition-colors cursor-pointer">
-                                <span x-show="copiedUrl !== 'midtrans'">Salin URL</span>
-                                <span x-show="copiedUrl === 'midtrans'">Tersalin!</span>
-                            </button>
-                        </div>
-                        <code class="block px-3 py-1.5 rounded-lg bg-white border border-cyan-4 text-cyan-11 font-mono select-all">
-                            {{ $webhookUrls['midtrans'] }}
-                        </code>
-                        <p class="text-[11px] text-gray-11">Masukkan URL di atas ke menu <strong>Settings &rarr; Configuration &rarr; Payment Notification URL</strong> di Portal Midtrans Merchant MAP. Signature SHA-512 akan diverifikasi otomatis.</p>
                     </div>
                 </div>
 

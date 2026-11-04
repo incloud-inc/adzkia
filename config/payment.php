@@ -5,18 +5,18 @@ return [
     |--------------------------------------------------------------------------
     | Default Payment Gateway Driver
     |--------------------------------------------------------------------------
-    | Supported: "duitku", "doku", "sandbox"
+    | Supported: "ipaymu", "tripay"
     */
-    'default' => env('PAYMENT_GATEWAY_DRIVER', 'duitku'),
+    'default' => env('PAYMENT_GATEWAY_DRIVER', 'ipaymu'),
 
     'gateways' => [
-        'duitku' => [
-            'merchant_code' => env('DUITKU_MERCHANT_CODE', ''),
-            'api_key' => env('DUITKU_API_KEY', ''),
-            'sandbox' => env('DUITKU_SANDBOX', true),
-            'base_url' => env('DUITKU_SANDBOX', true)
-                ? 'https://sandbox.duitku.com/webapi/api/merchant/v2/inquiry'
-                : 'https://passport.duitku.com/webapi/api/merchant/v2/inquiry',
+        'ipaymu' => [
+            'va' => env('IPAYMU_VA', '1179001329983555'),
+            'api_key' => env('IPAYMU_API_KEY', 'CEF02541-DB54-48EE-84C1-B96DD1FF0BB4'),
+            'sandbox' => env('IPAYMU_SANDBOX', false),
+            'base_url' => env('IPAYMU_SANDBOX', false)
+                ? 'https://sandbox.ipaymu.com/api/v2/'
+                : 'https://my.ipaymu.com/api/v2/',
             'expiry_period' => 1440, // 24 hours in minutes
         ],
 
@@ -24,32 +24,11 @@ return [
             'merchant_code' => env('TRIPAY_MERCHANT_CODE', ''),
             'api_key' => env('TRIPAY_API_KEY', ''),
             'private_key' => env('TRIPAY_PRIVATE_KEY', ''),
-            'sandbox' => env('TRIPAY_SANDBOX', true),
-            'base_url' => env('TRIPAY_SANDBOX', true)
+            'sandbox' => env('TRIPAY_SANDBOX', false),
+            'base_url' => env('TRIPAY_SANDBOX', false)
                 ? 'https://tripay.co.id/api-sandbox/'
                 : 'https://tripay.co.id/api/',
             'expiry_period' => 1440, // 24 hours in minutes
-        ],
-
-        'doku' => [
-            'client_id' => env('DOKU_CLIENT_ID', ''),
-            'secret_key' => env('DOKU_SECRET_KEY', ''),
-            'sandbox' => env('DOKU_SANDBOX', true),
-        ],
-
-        'midtrans' => [
-            'server_key' => env('MIDTRANS_SERVER_KEY', ''),
-            'client_key' => env('MIDTRANS_CLIENT_KEY', ''),
-            'merchant_id' => env('MIDTRANS_MERCHANT_ID', ''),
-            'sandbox' => env('MIDTRANS_SANDBOX', true),
-            'snap_url' => env('MIDTRANS_SANDBOX', true)
-                ? 'https://app.sandbox.midtrans.com/snap/v1/transactions'
-                : 'https://app.midtrans.com/snap/v1/transactions',
-            'expiry_period' => 1440, // 24 hours in minutes
-        ],
-
-        'sandbox' => [
-            'auto_settle' => env('PAYMENT_SANDBOX_AUTO_SETTLE', false),
         ],
     ],
 
@@ -61,9 +40,9 @@ return [
     'methods' => [
         'QRIS' => [
             'code' => 'QRIS',
-            'channel' => 'SP', // Duitku
-            'channel_tripay' => 'QRIS', // Tripay
-            'channel_midtrans' => 'gopay', // Midtrans (gopay / qris)
+            'channel_ipaymu' => 'qris',
+            'method_ipaymu' => 'qris',
+            'channel_tripay' => 'QRIS',
             'label' => 'QRIS Nasional',
             'group' => 'qris',
             'icon' => 'qrcode',
@@ -75,9 +54,9 @@ return [
         ],
         'VA_BNI' => [
             'code' => 'VA_BNI',
-            'channel' => 'I1', // Duitku
-            'channel_tripay' => 'BNIVA', // Tripay
-            'channel_midtrans' => 'bni_va', // Midtrans
+            'channel_ipaymu' => 'bni',
+            'method_ipaymu' => 'va',
+            'channel_tripay' => 'BNIVA',
             'label' => 'BNI Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -89,9 +68,9 @@ return [
         ],
         'VA_BRI' => [
             'code' => 'VA_BRI',
-            'channel' => 'BR', // Duitku
-            'channel_tripay' => 'BRIVA', // Tripay
-            'channel_midtrans' => 'bri_va', // Midtrans
+            'channel_ipaymu' => 'bri',
+            'method_ipaymu' => 'va',
+            'channel_tripay' => 'BRIVA',
             'label' => 'BRI Virtual Account (BRIVA)',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -103,9 +82,9 @@ return [
         ],
         'VA_MANDIRI' => [
             'code' => 'VA_MANDIRI',
-            'channel' => 'M2', // Duitku
-            'channel_tripay' => 'MANDIRIVA', // Tripay
-            'channel_midtrans' => 'echannel', // Midtrans Mandiri Bill
+            'channel_ipaymu' => 'mandiri',
+            'method_ipaymu' => 'va',
+            'channel_tripay' => 'MANDIRIVA',
             'label' => 'Mandiri Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -117,9 +96,9 @@ return [
         ],
         'VA_BCA' => [
             'code' => 'VA_BCA',
-            'channel' => 'BC', // Duitku
-            'channel_tripay' => 'BCAVA', // Tripay
-            'channel_midtrans' => 'bca_va', // Midtrans
+            'channel_ipaymu' => 'bca',
+            'method_ipaymu' => 'va',
+            'channel_tripay' => 'BCAVA',
             'label' => 'BCA Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -132,9 +111,9 @@ return [
         ],
         'VA_MUAMALAT' => [
             'code' => 'VA_MUAMALAT',
-            'channel' => 'MU', // Duitku
-            'channel_tripay' => 'MUAMALATVA', // Tripay
-            'channel_midtrans' => 'other_va', // Midtrans
+            'channel_ipaymu' => 'muamalat',
+            'method_ipaymu' => 'va',
+            'channel_tripay' => 'MUAMALATVA',
             'label' => 'Muamalat Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -146,9 +125,9 @@ return [
         ],
         'VA_BSI' => [
             'code' => 'VA_BSI',
-            'channel' => 'BT', // Duitku
-            'channel_tripay' => 'BSIVA', // Tripay
-            'channel_midtrans' => 'other_va', // Midtrans
+            'channel_ipaymu' => 'bsi',
+            'method_ipaymu' => 'va',
+            'channel_tripay' => 'BSIVA',
             'label' => 'BSI Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -160,9 +139,9 @@ return [
         ],
         'OVO' => [
             'code' => 'OVO',
-            'channel' => 'OV', // Duitku
-            'channel_tripay' => 'OVO', // Tripay
-            'channel_midtrans' => 'ovo', // Midtrans
+            'channel_ipaymu' => 'ovo',
+            'method_ipaymu' => 'ewallet',
+            'channel_tripay' => 'OVO',
             'label' => 'OVO',
             'group' => 'ewallet',
             'icon' => 'mobile',
@@ -174,9 +153,9 @@ return [
         ],
         'DANA' => [
             'code' => 'DANA',
-            'channel' => 'DA', // Duitku
-            'channel_tripay' => 'DANA', // Tripay
-            'channel_midtrans' => 'dana', // Midtrans
+            'channel_ipaymu' => 'dana',
+            'method_ipaymu' => 'ewallet',
+            'channel_tripay' => 'DANA',
             'label' => 'DANA',
             'group' => 'ewallet',
             'icon' => 'mobile',
@@ -188,9 +167,9 @@ return [
         ],
         'SHOPEEPAY' => [
             'code' => 'SHOPEEPAY',
-            'channel' => 'SP', // Duitku
-            'channel_tripay' => 'SHOPEEPAY', // Tripay
-            'channel_midtrans' => 'shopeepay', // Midtrans
+            'channel_ipaymu' => 'shopeepay',
+            'method_ipaymu' => 'ewallet',
+            'channel_tripay' => 'SHOPEEPAY',
             'label' => 'ShopeePay',
             'group' => 'ewallet',
             'icon' => 'mobile',

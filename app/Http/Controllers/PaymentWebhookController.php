@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Services\Payment\PaymentGatewayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
 class PaymentWebhookController extends Controller
@@ -15,30 +14,42 @@ class PaymentWebhookController extends Controller
     ) {}
 
     /**
-     * Webhook handler for Duitku payment gateway.
+     * Webhook handler for iPaymu payment gateway.
      */
-    public function duitku(Request $request): Response|JsonResponse
+    public function ipaymu(Request $request): JsonResponse
     {
-        Log::info('Duitku Webhook Received', $request->except(['signature', 'token', 'customer_phone', 'customer_email']));
+        Log::info('iPaymu Webhook Received', [
+            'payload' => $request->except(['signature', 'token', 'buyer_phone', 'buyer_email']),
+        ]);
 
-        // Verify webhook signature
-        if (! $this->paymentService->verifyDuitkuWebhook($request)) {
-            Log::warning('Duitku Webhook Invalid Signature', [
+        // Verify webhook signature (if present)
+        if (! $this->paymentService->verifyIpaymuWebhook($request)) {
+            Log::warning('iPaymu Webhook Invalid Signature', [
                 'ip' => $request->ip(),
-                'merchantOrderId' => $request->input('merchantOrderId'),
+                'reference_id' => $request->input('reference_id') ?? $request->input('referenceId'),
             ]);
 
-            return response('Bad Signature', 400);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid signature',
+            ], 400);
         }
 
         $result = $this->paymentService->processWebhook($request->all());
 
         if (($result['status'] ?? '') === 'error') {
-            return response($result['message'] ?? 'Error', 422);
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Error processing payment',
+            ], 422);
         }
 
-        // Duitku expects HTTP 200 with text 'SUCCESS' or JSON
-        return response('SUCCESS', 200)->header('Content-Type', 'text/plain');
+        // iPaymu expects HTTP 200 with JSON or success text
+        return response()->json([
+            'status' => 'OK',
+            'success' => true,
+            'message' => 'Notification handled',
+        ], 200);
     }
 
     /**
@@ -76,47 +87,6 @@ class PaymentWebhookController extends Controller
         // Tripay expects JSON response: {"success": true}
         return response()->json([
             'success' => true,
-        ], 200);
-    }
-
-    /**
-     * Webhook handler for Midtrans payment gateway.
-     */
-    public function midtrans(Request $request): JsonResponse
-    {
-        Log::info('Midtrans Webhook Received', [
-            'order_id' => $request->input('order_id'),
-            'transaction_status' => $request->input('transaction_status'),
-            'payload' => $request->except(['signature_key', 'token', 'customer_phone', 'customer_email']),
-        ]);
-
-        // Verify webhook signature (SHA512)
-        if (! $this->paymentService->verifyMidtransWebhook($request)) {
-            Log::warning('Midtrans Webhook Invalid Signature', [
-                'ip' => $request->ip(),
-                'order_id' => $request->input('order_id'),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid signature',
-            ], 400);
-        }
-
-        $result = $this->paymentService->processWebhook($request->all());
-
-        if (($result['status'] ?? '') === 'error') {
-            return response()->json([
-                'success' => false,
-                'message' => $result['message'] ?? 'Error processing payment',
-            ], 422);
-        }
-
-        // Midtrans expects HTTP 200 with JSON response: {"status": "OK"}
-        return response()->json([
-            'status' => 'OK',
-            'success' => true,
-            'message' => 'Notification handled',
         ], 200);
     }
 

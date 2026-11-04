@@ -73,36 +73,19 @@ class AppServiceProvider extends ServiceProvider
                         ? 'https://tripay.co.id/api-sandbox/'
                         : 'https://tripay.co.id/api/';
                 }
-                // Duitku Gateway Settings
-                if (! empty($sysSettings['DUITKU_MERCHANT_CODE'])) {
-                    $configUpdates['payment.gateways.duitku.merchant_code'] = $sysSettings['DUITKU_MERCHANT_CODE'];
+                // iPaymu Gateway Settings
+                if (! empty($sysSettings['IPAYMU_VA'])) {
+                    $configUpdates['payment.gateways.ipaymu.va'] = $sysSettings['IPAYMU_VA'];
                 }
-                if (! empty($sysSettings['DUITKU_API_KEY'])) {
-                    $configUpdates['payment.gateways.duitku.api_key'] = $sysSettings['DUITKU_API_KEY'];
+                if (! empty($sysSettings['IPAYMU_API_KEY'])) {
+                    $configUpdates['payment.gateways.ipaymu.api_key'] = $sysSettings['IPAYMU_API_KEY'];
                 }
-                if (isset($sysSettings['DUITKU_SANDBOX']) && $sysSettings['DUITKU_SANDBOX'] !== '') {
-                    $isDuitkuSandbox = filter_var($sysSettings['DUITKU_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
-                    $configUpdates['payment.gateways.duitku.sandbox'] = $isDuitkuSandbox;
-                    $configUpdates['payment.gateways.duitku.base_url'] = $isDuitkuSandbox
-                        ? 'https://sandbox.duitku.com/webapi/api/merchant/v2/inquiry'
-                        : 'https://passport.duitku.com/webapi/api/merchant/v2/inquiry';
-                }
-                // Midtrans Gateway Settings
-                if (! empty($sysSettings['MIDTRANS_SERVER_KEY'])) {
-                    $configUpdates['payment.gateways.midtrans.server_key'] = $sysSettings['MIDTRANS_SERVER_KEY'];
-                }
-                if (! empty($sysSettings['MIDTRANS_CLIENT_KEY'])) {
-                    $configUpdates['payment.gateways.midtrans.client_key'] = $sysSettings['MIDTRANS_CLIENT_KEY'];
-                }
-                if (! empty($sysSettings['MIDTRANS_MERCHANT_ID'])) {
-                    $configUpdates['payment.gateways.midtrans.merchant_id'] = $sysSettings['MIDTRANS_MERCHANT_ID'];
-                }
-                if (isset($sysSettings['MIDTRANS_SANDBOX']) && $sysSettings['MIDTRANS_SANDBOX'] !== '') {
-                    $isMidtransSandbox = filter_var($sysSettings['MIDTRANS_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
-                    $configUpdates['payment.gateways.midtrans.sandbox'] = $isMidtransSandbox;
-                    $configUpdates['payment.gateways.midtrans.snap_url'] = $isMidtransSandbox
-                        ? 'https://app.sandbox.midtrans.com/snap/v1/transactions'
-                        : 'https://app.midtrans.com/snap/v1/transactions';
+                if (isset($sysSettings['IPAYMU_SANDBOX']) && $sysSettings['IPAYMU_SANDBOX'] !== '') {
+                    $isIpaymuSandbox = filter_var($sysSettings['IPAYMU_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
+                    $configUpdates['payment.gateways.ipaymu.sandbox'] = $isIpaymuSandbox;
+                    $configUpdates['payment.gateways.ipaymu.base_url'] = $isIpaymuSandbox
+                        ? 'https://sandbox.ipaymu.com/api/v2/'
+                        : 'https://my.ipaymu.com/api/v2/';
                 }
                 if (! empty($sysSettings['DEEPSEEK_API_KEY'])) {
                     $configUpdates['services.deepseek.api_key'] = $sysSettings['DEEPSEEK_API_KEY'];

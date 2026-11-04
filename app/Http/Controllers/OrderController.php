@@ -184,7 +184,7 @@ class OrderController extends Controller
             'total_amount' => $totalAmount,
             'coupon_id' => $coupon?->id,
             'coupon_code_snapshot' => $coupon?->code,
-            'payment_gateway' => config('payment.default', 'duitku'),
+            'payment_gateway' => config('payment.default', 'ipaymu'),
             'payment_method' => $validated['payment_method'],
             'status' => 'pending',
             'tenant_tier_snapshot' => $snapshot['tier'],

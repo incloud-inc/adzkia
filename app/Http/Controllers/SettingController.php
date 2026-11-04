@@ -21,30 +21,23 @@ class SettingController extends Controller
      */
     public function index(): View
     {
-        $currentDriver = $this->getSettingValue('PAYMENT_GATEWAY_DRIVER', 'payment.default', 'duitku');
+        $currentDriver = $this->getSettingValue('PAYMENT_GATEWAY_DRIVER', 'payment.default', 'ipaymu');
+        $ipaymuConfig = [
+            'va' => $this->getSettingValue('IPAYMU_VA', 'payment.gateways.ipaymu.va', '1179001329983555'),
+            'api_key' => $this->getSettingValue('IPAYMU_API_KEY', 'payment.gateways.ipaymu.api_key', 'CEF02541-DB54-48EE-84C1-B96DD1FF0BB4'),
+            'sandbox' => filter_var($this->getSettingValue('IPAYMU_SANDBOX', 'payment.gateways.ipaymu.sandbox', 'false'), FILTER_VALIDATE_BOOLEAN),
+        ];
         $tripayConfig = [
             'merchant_code' => $this->getSettingValue('TRIPAY_MERCHANT_CODE', 'payment.gateways.tripay.merchant_code', ''),
             'api_key' => $this->getSettingValue('TRIPAY_API_KEY', 'payment.gateways.tripay.api_key', ''),
             'private_key' => $this->getSettingValue('TRIPAY_PRIVATE_KEY', 'payment.gateways.tripay.private_key', ''),
-            'sandbox' => filter_var($this->getSettingValue('TRIPAY_SANDBOX', 'payment.gateways.tripay.sandbox', 'true'), FILTER_VALIDATE_BOOLEAN),
-        ];
-        $duitkuConfig = [
-            'merchant_code' => $this->getSettingValue('DUITKU_MERCHANT_CODE', 'payment.gateways.duitku.merchant_code', ''),
-            'api_key' => $this->getSettingValue('DUITKU_API_KEY', 'payment.gateways.duitku.api_key', ''),
-            'sandbox' => filter_var($this->getSettingValue('DUITKU_SANDBOX', 'payment.gateways.duitku.sandbox', 'true'), FILTER_VALIDATE_BOOLEAN),
-        ];
-        $midtransConfig = [
-            'server_key' => $this->getSettingValue('MIDTRANS_SERVER_KEY', 'payment.gateways.midtrans.server_key', ''),
-            'client_key' => $this->getSettingValue('MIDTRANS_CLIENT_KEY', 'payment.gateways.midtrans.client_key', ''),
-            'merchant_id' => $this->getSettingValue('MIDTRANS_MERCHANT_ID', 'payment.gateways.midtrans.merchant_id', ''),
-            'sandbox' => filter_var($this->getSettingValue('MIDTRANS_SANDBOX', 'payment.gateways.midtrans.sandbox', 'true'), FILTER_VALIDATE_BOOLEAN),
+            'sandbox' => filter_var($this->getSettingValue('TRIPAY_SANDBOX', 'payment.gateways.tripay.sandbox', 'false'), FILTER_VALIDATE_BOOLEAN),
         ];
         $methods = config('payment.methods', []);
 
         $webhookUrls = [
+            'ipaymu' => route('payment.webhook.ipaymu'),
             'tripay' => route('payment.webhook.tripay'),
-            'duitku' => route('payment.webhook.duitku'),
-            'midtrans' => route('payment.webhook.midtrans'),
             'generic' => route('payment.webhook.generic'),
         ];
 
@@ -226,9 +219,8 @@ class SettingController extends Controller
 
         return view('settings.index', compact(
             'currentDriver',
+            'ipaymuConfig',
             'tripayConfig',
-            'duitkuConfig',
-            'midtransConfig',
             'methods',
             'webhookUrls',
             'dbStatus',
@@ -248,18 +240,14 @@ class SettingController extends Controller
     {
         $validated = $request->validate([
             // Payment Gateway
-            'payment_driver' => 'required|in:tripay,duitku,midtrans,sandbox',
+            'payment_driver' => 'required|in:ipaymu,tripay',
+            'ipaymu_va' => 'nullable|string|max:50',
+            'ipaymu_api_key' => 'nullable|string|max:255',
+            'ipaymu_sandbox' => 'nullable|boolean',
             'tripay_merchant_code' => 'nullable|string|max:100',
             'tripay_api_key' => 'nullable|string|max:255',
             'tripay_private_key' => 'nullable|string|max:255',
             'tripay_sandbox' => 'nullable|boolean',
-            'duitku_merchant_code' => 'nullable|string|max:100',
-            'duitku_api_key' => 'nullable|string|max:255',
-            'duitku_sandbox' => 'nullable|boolean',
-            'midtrans_server_key' => 'nullable|string|max:255',
-            'midtrans_client_key' => 'nullable|string|max:255',
-            'midtrans_merchant_id' => 'nullable|string|max:100',
-            'midtrans_sandbox' => 'nullable|boolean',
             // Storage Cloudflare R2
             'upload_disk' => 'required|in:r2,public',
             'r2_bucket' => 'nullable|string|max:150',
@@ -279,17 +267,13 @@ class SettingController extends Controller
 
         $envUpdates = [
             'PAYMENT_GATEWAY_DRIVER' => $validated['payment_driver'],
+            'IPAYMU_VA' => $validated['ipaymu_va'] ?? '1179001329983555',
+            'IPAYMU_API_KEY' => $validated['ipaymu_api_key'] ?? 'CEF02541-DB54-48EE-84C1-B96DD1FF0BB4',
+            'IPAYMU_SANDBOX' => $request->has('ipaymu_sandbox') ? 'true' : 'false',
             'TRIPAY_MERCHANT_CODE' => $validated['tripay_merchant_code'] ?? '',
             'TRIPAY_API_KEY' => $validated['tripay_api_key'] ?? '',
             'TRIPAY_PRIVATE_KEY' => $validated['tripay_private_key'] ?? '',
             'TRIPAY_SANDBOX' => $request->has('tripay_sandbox') ? 'true' : 'false',
-            'DUITKU_MERCHANT_CODE' => $validated['duitku_merchant_code'] ?? '',
-            'DUITKU_API_KEY' => $validated['duitku_api_key'] ?? '',
-            'DUITKU_SANDBOX' => $request->has('duitku_sandbox') ? 'true' : 'false',
-            'MIDTRANS_SERVER_KEY' => $validated['midtrans_server_key'] ?? '',
-            'MIDTRANS_CLIENT_KEY' => $validated['midtrans_client_key'] ?? '',
-            'MIDTRANS_MERCHANT_ID' => $validated['midtrans_merchant_id'] ?? '',
-            'MIDTRANS_SANDBOX' => $request->has('midtrans_sandbox') ? 'true' : 'false',
             // Storage
             'UPLOAD_DISK' => $validated['upload_disk'],
             'CLOUDFLARE_R2_BUCKET' => $validated['r2_bucket'] ?? 'adzkia',
@@ -321,9 +305,8 @@ class SettingController extends Controller
         SystemSetting::setMany($envUpdates);
 
         // 2. Terapkan langsung ke config runtime saat ini
+        $isIpaymuSandbox = filter_var($envUpdates['IPAYMU_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
         $isTripaySandbox = filter_var($envUpdates['TRIPAY_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
-        $isDuitkuSandbox = filter_var($envUpdates['DUITKU_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
-        $isMidtransSandbox = filter_var($envUpdates['MIDTRANS_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
 
         $runtimeConfigs = [
             'filesystems.upload_disk' => $envUpdates['UPLOAD_DISK'],
@@ -334,20 +317,15 @@ class SettingController extends Controller
             'filesystems.disks.r2.url' => $envUpdates['CLOUDFLARE_R2_URL'],
             'filesystems.disks.r2.region' => $envUpdates['CLOUDFLARE_R2_REGION'],
             'payment.default' => $envUpdates['PAYMENT_GATEWAY_DRIVER'],
+            'payment.gateways.ipaymu.va' => $envUpdates['IPAYMU_VA'],
+            'payment.gateways.ipaymu.api_key' => $envUpdates['IPAYMU_API_KEY'],
+            'payment.gateways.ipaymu.sandbox' => $isIpaymuSandbox,
+            'payment.gateways.ipaymu.base_url' => $isIpaymuSandbox ? 'https://sandbox.ipaymu.com/api/v2/' : 'https://my.ipaymu.com/api/v2/',
             'payment.gateways.tripay.merchant_code' => $envUpdates['TRIPAY_MERCHANT_CODE'],
             'payment.gateways.tripay.api_key' => $envUpdates['TRIPAY_API_KEY'],
             'payment.gateways.tripay.private_key' => $envUpdates['TRIPAY_PRIVATE_KEY'],
             'payment.gateways.tripay.sandbox' => $isTripaySandbox,
             'payment.gateways.tripay.base_url' => $isTripaySandbox ? 'https://tripay.co.id/api-sandbox/' : 'https://tripay.co.id/api/',
-            'payment.gateways.duitku.merchant_code' => $envUpdates['DUITKU_MERCHANT_CODE'],
-            'payment.gateways.duitku.api_key' => $envUpdates['DUITKU_API_KEY'],
-            'payment.gateways.duitku.sandbox' => $isDuitkuSandbox,
-            'payment.gateways.duitku.base_url' => $isDuitkuSandbox ? 'https://sandbox.duitku.com/webapi/api/merchant/v2/inquiry' : 'https://passport.duitku.com/webapi/api/merchant/v2/inquiry',
-            'payment.gateways.midtrans.server_key' => $envUpdates['MIDTRANS_SERVER_KEY'],
-            'payment.gateways.midtrans.client_key' => $envUpdates['MIDTRANS_CLIENT_KEY'],
-            'payment.gateways.midtrans.merchant_id' => $envUpdates['MIDTRANS_MERCHANT_ID'],
-            'payment.gateways.midtrans.sandbox' => $isMidtransSandbox,
-            'payment.gateways.midtrans.snap_url' => $isMidtransSandbox ? 'https://app.sandbox.midtrans.com/snap/v1/transactions' : 'https://app.midtrans.com/snap/v1/transactions',
         ];
 
         if (isset($envUpdates['GOOGLE_CLIENT_ID'])) {
@@ -542,6 +520,62 @@ class SettingController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'Gagal menghubungi server Google: '.$e->getMessage(),
+                    ], 500);
+                }
+
+            case 'payment-ipaymu':
+                $va = $request->input('ipaymu_va') ?: $this->getSettingValue('IPAYMU_VA', 'payment.gateways.ipaymu.va', '1179001329983555');
+                $apiKey = $request->input('ipaymu_api_key') ?: $this->getSettingValue('IPAYMU_API_KEY', 'payment.gateways.ipaymu.api_key', 'CEF02541-DB54-48EE-84C1-B96DD1FF0BB4');
+                $isSandbox = $request->has('ipaymu_sandbox')
+                    ? filter_var($request->input('ipaymu_sandbox'), FILTER_VALIDATE_BOOLEAN)
+                    : filter_var($this->getSettingValue('IPAYMU_SANDBOX', 'payment.gateways.ipaymu.sandbox', 'false'), FILTER_VALIDATE_BOOLEAN);
+
+                if (empty($va) || empty($apiKey)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Virtual Account (VA) dan API Key iPaymu belum diisi.',
+                    ], 422);
+                }
+
+                try {
+                    $baseUrl = $isSandbox ? 'https://sandbox.ipaymu.com/api/v2/' : 'https://my.ipaymu.com/api/v2/';
+                    $body = json_encode(['account' => $va], JSON_UNESCAPED_SLASHES);
+                    $bodyHash = strtolower(hash('sha256', $body));
+                    $stringToSign = 'POST:'.$va.':'.$bodyHash.':'.$apiKey;
+                    $signature = hash_hmac('sha256', $stringToSign, $apiKey);
+
+                    $res = Http::withHeaders([
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                        'va' => $va,
+                        'signature' => $signature,
+                        'timestamp' => date('YmdHis'),
+                    ])->timeout(12)->post($baseUrl.'balance', ['account' => $va]);
+
+                    $ping = round((microtime(true) - $start) * 1000);
+                    $json = $res->json();
+
+                    if ($res->successful() && ($json['Status'] ?? null) == 200) {
+                        $modeLabel = $isSandbox ? 'Sandbox' : 'Production (Live)';
+                        $balance = $json['Data']['MerchantBalance'] ?? 0;
+
+                        return response()->json([
+                            'success' => true,
+                            'message' => "Koneksi iPaymu ({$modeLabel}) berhasil! Terhubung dengan Akun VA {$va}. Saldo: Rp ".number_format($balance, 0, ',', '.'),
+                            'ping_ms' => $ping,
+                        ]);
+                    }
+
+                    $errMsg = $json['Message'] ?? $res->body();
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'iPaymu API merespons dengan status '.($json['Status'] ?? $res->status()).': '.$errMsg,
+                    ], 500);
+                } catch (\Throwable $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gagal menghubungi server iPaymu: '.$e->getMessage(),
                     ], 500);
                 }
 

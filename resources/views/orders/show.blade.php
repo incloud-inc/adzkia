@@ -94,9 +94,8 @@
             <!-- Payment Instructions Body -->
             @php
                 $gatewayName = match($order->payment_gateway) {
+                    'ipaymu' => 'iPaymu',
                     'tripay' => 'TriPay',
-                    'midtrans' => 'Snap Midtrans',
-                    'duitku' => 'Duitku',
                     default => 'Payment Gateway'
                 };
                 $instructions = data_get($order->gateway_payload, 'data.instructions') ?: data_get($order->gateway_payload, 'instructions', []);
