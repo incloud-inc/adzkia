@@ -191,17 +191,28 @@
                 </div>
 
                 <!-- Sandbox / Local Simulation Button -->
-                @if(app()->environment('local', 'testing') || auth()->user()?->isSuperUser())
-                    <div class="pt-4 border-t border-gray-200 text-center space-y-2">
-                        <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Mode Pengujian / Simulasi</span>
+                @php
+                    $isIpaymuSandbox = filter_var(config('payment.gateways.ipaymu.sandbox'), FILTER_VALIDATE_BOOLEAN);
+                @endphp
+                @if($isIpaymuSandbox || app()->environment('local', 'testing') || auth()->user()?->isSuperUser())
+                    <div class="p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-200/80 text-amber-900 border border-amber-300">
+                                <span class="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
+                                <span>Lingkungan Pengujian Sandbox iPaymu Aktif</span>
+                            </span>
+                            <span class="text-[10px] font-mono font-bold text-amber-800">sandbox.ipaymu.com</span>
+                        </div>
+                        <p class="text-xs text-amber-900 leading-relaxed">
+                            Sistem sedang dalam <strong>Masa Peninjauan / Review Tim iPaymu</strong>. Untuk menyelesaikan alur pembelian asesmen dan membuka akses ujian secara langsung, klik tombol di bawah:
+                        </p>
                         <form method="POST" action="{{ route('orders.simulate-pay', $order) }}">
                             @csrf
-                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer inline-flex items-center gap-1.5">
-                                <x-radix-icon name="lightning-bolt" class="w-4 h-4" />
-                                <span>Simulasikan Pembayaran Berhasil (Instant Settle)</span>
+                            <button type="submit" class="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 cursor-pointer">
+                                <x-radix-icon name="check-circled" class="w-4 h-4" />
+                                <span>Selesaikan Pembayaran Sandbox (Aktifkan Akses Ujian Sekarang)</span>
                             </button>
                         </form>
-                        <p class="text-[11px] text-gray-500">Klik tombol di atas untuk menguji konfirmasi webhook pembayaran dan pembagian bagi hasil secara instan.</p>
                     </div>
                 @endif
             </div>

@@ -309,4 +309,67 @@ class IpaymuPaymentTest extends TestCase
         $this->assertEquals('pending', $order->status);
         $this->assertEquals('https://payment.ipaymu.com/#/SESSION-SUBDOMAIN-777', $order->payment_url);
     }
+
+    public function test_sandbox_mode_shows_simulation_action_and_allows_instant_settlement_and_exam_access(): void
+    {
+        Config::set('payment.gateways.ipaymu.sandbox', true);
+
+        $tenant = Tenant::factory()->create();
+        $student = User::factory()->create(['current_tenant_id' => $tenant->id]);
+        $student->tenants()->attach($tenant->id, ['role' => 'U']);
+
+        $subject = Subject::factory()->create();
+        $assessment = Assessment::factory()->create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subject->id,
+            'title' => 'Simulasi UTBK iPaymu Sandbox',
+            'price_type' => 'paid',
+            'status' => 'published',
+            'price' => 50000.00,
+        ]);
+
+        $order = Order::create([
+            'order_number' => 'ORD-SANDBOX-TEST-99',
+            'user_id' => $student->id,
+            'tenant_id' => $tenant->id,
+            'assessment_id' => $assessment->id,
+            'package_attempts' => 2,
+            'package_validity_days' => 35,
+            'price_amount' => 50000.00,
+            'discount_amount' => 0.00,
+            'admin_fee' => 350.00,
+            'total_amount' => 50350.00,
+            'payment_gateway' => 'ipaymu',
+            'payment_method' => 'QRIS',
+            'status' => 'pending',
+            'tenant_tier_snapshot' => 'pro',
+            'revenue_share_tenant_pct' => 50,
+            'revenue_share_platform_pct' => 50,
+            'tenant_revenue_amount' => 25000.00,
+            'platform_revenue_amount' => 25000.00,
+        ]);
+
+        // 1. Visit orders.show -> displays the sandbox simulation button
+        $response = $this->actingAs($student)->get(route('orders.show', $order));
+        $response->assertOk();
+        $response->assertSeeText('Lingkungan Pengujian Sandbox iPaymu Aktif');
+        $response->assertSeeText('Selesaikan Pembayaran Sandbox (Aktifkan Akses Ujian Sekarang)');
+
+        // 2. Simulate payment settlement
+        $simResponse = $this->actingAs($student)->post(route('orders.simulate-pay', $order));
+        $simResponse->assertRedirect(route('orders.show', $order));
+
+        $order->refresh();
+        $this->assertEquals('settled', $order->status);
+        $this->assertNotNull($order->paid_at);
+
+        // 3. Student now has valid assessment access
+        $this->assertTrue($student->hasPurchasedAssessment($assessment));
+
+        // 4. Visiting show page again reflects settled status and CTA to take exam
+        $settledResponse = $this->actingAs($student)->get(route('orders.show', $order));
+        $settledResponse->assertOk();
+        $settledResponse->assertSeeText('Akses Ujian Telah Aktif!');
+        $settledResponse->assertSeeText('Mulai Kerjakan Ujian Sekarang');
+    }
 }

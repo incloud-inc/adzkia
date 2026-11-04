@@ -36,6 +36,8 @@ return [
     |--------------------------------------------------------------------------
     | Supported Payment Methods
     |--------------------------------------------------------------------------
+    | Kanal pembayaran resmi iPaymu untuk QRIS menggunakan tarif MDR resmi 0.70%
+    | (tanpa biaya flat tambahan dan tanpa minimum fee).
     */
     'methods' => [
         'QRIS' => [
@@ -43,14 +45,15 @@ return [
             'channel_ipaymu' => 'qris',
             'method_ipaymu' => 'qris',
             'channel_tripay' => 'QRIS',
-            'label' => 'QRIS Nasional',
+            'label' => 'QRIS Nasional (iPaymu)',
             'group' => 'qris',
             'icon' => 'qrcode',
-            'fee_flat' => 750,
+            'fee_flat' => 0,
             'fee_percent' => 0.70,
-            'fee_min' => 750,
-            'fee' => 750,
-            'description' => 'Pembayaran dengan cara scan QR Code yang dapat digunakan di berbagai dompet digital seperti OVO, Dana, GoPay dll.',
+            'fee_min' => 0,
+            'fee' => 0,
+            'fee_note' => '0.70% MDR Resmi iPaymu',
+            'description' => 'Pembayaran instan dengan scan kode QRIS menggunakan seluruh aplikasi mobile banking (BCA, Mandiri, BRI, BNI, BSI) dan seluruh e-wallet (GoPay, OVO, DANA, ShopeePay, LinkAja).',
         ],
         'VA_BNI' => [
             'code' => 'VA_BNI',

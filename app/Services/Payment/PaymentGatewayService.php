@@ -369,10 +369,19 @@ class PaymentGatewayService
      */
     public function calculateAdminFee(string $methodCode, float $baseAmount): float
     {
+        $driver = config('payment.default', 'ipaymu');
         $methodConfig = config("payment.methods.{$methodCode}", []);
-        $flat = (float) ($methodConfig['fee_flat'] ?? ($methodConfig['fee'] ?? 0));
-        $percent = (float) ($methodConfig['fee_percent'] ?? 0);
-        $min = (float) ($methodConfig['fee_min'] ?? 0);
+
+        // Khusus kanal Tripay QRIS menggunakan skema biaya Tripay (Rp 750 + 0.70%)
+        if ($driver === 'tripay' && $methodCode === 'QRIS') {
+            $flat = 750.0;
+            $percent = 0.70;
+            $min = 750.0;
+        } else {
+            $flat = (float) ($methodConfig['fee_flat'] ?? ($methodConfig['fee'] ?? 0));
+            $percent = (float) ($methodConfig['fee_percent'] ?? 0);
+            $min = (float) ($methodConfig['fee_min'] ?? 0);
+        }
 
         $percentFee = ($percent > 0) ? ($baseAmount * ($percent / 100)) : 0;
         $totalCalculatedFee = $flat + $percentFee;

@@ -269,13 +269,15 @@ class OrderController extends Controller
      */
     public function simulatePayment(Order $order): RedirectResponse
     {
-        if (! app()->environment('local', 'testing') && ! auth()->user()?->isSuperUser()) {
+        $isIpaymuSandbox = filter_var(config('payment.gateways.ipaymu.sandbox'), FILTER_VALIDATE_BOOLEAN);
+
+        if (! $isIpaymuSandbox && ! app()->environment('local', 'testing') && ! auth()->user()?->isSuperUser()) {
             abort(403, 'Simulasi pembayaran dinonaktifkan di lingkungan produksi.');
         }
 
         $this->paymentService->simulateSettlement($order);
 
         return redirect()->route('orders.show', $order)
-            ->with('success', 'Pembayaran berhasil disimulasikan (Lunas / Settled)! Akses ujian telah dibuka.');
+            ->with('success', 'Pembayaran Sandbox berhasil diselesaikan (Lunas / Settled)! Akses ujian telah dibuka.');
     }
 }
