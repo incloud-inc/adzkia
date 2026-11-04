@@ -134,7 +134,8 @@ class OrderController extends Controller
         $packageAttempts = $package ? (int) $package->attempts : 1;
         $validityDays = $package ? (int) $package->validity_days : ((int) ($assessment->access_validity_days ?: 35));
 
-        $tenant = $assessment->tenant ?? $user->currentTenant;
+        $portalTenant = app()->bound('currentTenant') ? app('currentTenant') : null;
+        $tenant = $portalTenant ?? $assessment->tenant ?? $user->currentTenant;
 
         // Process coupon if submitted
         $coupon = null;
@@ -198,6 +199,7 @@ class OrderController extends Controller
         $paymentResult = $this->paymentService->createPayment($order, $validated['payment_method']);
 
         if (! ($paymentResult['success'] ?? true)) {
+            $order->refresh();
             $order->update([
                 'status' => 'failed',
                 'gateway_payload' => array_merge($order->gateway_payload ?? [], [

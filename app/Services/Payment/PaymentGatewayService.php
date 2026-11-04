@@ -130,22 +130,29 @@ class PaymentGatewayService
             if ($response->successful() && ($data['Status'] ?? null) == 200 && isset($data['Data'])) {
                 $trx = $data['Data'];
 
+                $isQris = strtolower((string) $method) === 'qris' || strtolower((string) $channel) === 'qris';
+                $paymentNo = isset($trx['PaymentNo']) ? (string) $trx['PaymentNo'] : null;
+                // Pada QRIS, PaymentNo dari iPaymu adalah raw QR code string, bukan nomor VA rekening
+                $vaNumber = (! $isQris && $paymentNo && strlen($paymentNo) <= 50) ? $paymentNo : null;
+                $qrCodeUrl = $trx['QrTemplate'] ?? ($trx['QrString'] ?? ($isQris ? $paymentNo : null));
+                $paymentUrl = $trx['Url'] ?? null;
+
                 $order->update([
                     'payment_gateway' => 'ipaymu',
                     'payment_reference' => (string) ($trx['TransactionId'] ?? $trx['SessionID'] ?? $order->order_number),
-                    'payment_url' => $trx['Url'] ?? null,
-                    'va_number' => $trx['PaymentNo'] ?? null,
-                    'qr_code_url' => $trx['QrTemplate'] ?? $trx['QrString'] ?? null,
+                    'payment_url' => $paymentUrl,
+                    'va_number' => $vaNumber,
+                    'qr_code_url' => $qrCodeUrl,
                     'gateway_payload' => $data,
                 ]);
 
                 return [
                     'success' => true,
                     'gateway' => 'ipaymu',
-                    'payment_url' => $trx['Url'] ?? null,
-                    'va_number' => $trx['PaymentNo'] ?? null,
-                    'qr_code' => $trx['QrTemplate'] ?? $trx['QrString'] ?? null,
-                    'reference' => (string) ($trx['TransactionId'] ?? null),
+                    'payment_url' => $paymentUrl,
+                    'va_number' => $vaNumber,
+                    'qr_code' => $qrCodeUrl,
+                    'reference' => (string) ($trx['TransactionId'] ?? $trx['SessionID'] ?? null),
                     'instructions' => $trx['instructions'] ?? [],
                 ];
             }
@@ -156,6 +163,7 @@ class PaymentGatewayService
                 'response' => $data ?? $response->body(),
             ]);
         } catch (\Throwable $e) {
+            $order->refresh();
             Log::warning('iPaymu Direct Payment attempt error: '.$e->getMessage().', trying Redirect Payment');
         }
 
