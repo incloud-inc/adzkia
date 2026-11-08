@@ -16,6 +16,7 @@ use App\Support\MarkdownRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class ExamResultController extends Controller
@@ -358,6 +359,7 @@ class ExamResultController extends Controller
                         'content' => $o->option_text,
                         'is_correct' => (bool) $o->is_correct,
                         'match_key' => $o->match_key,
+                        'score' => $o->score,
                     ])->values()->all(),
                 ];
             }
@@ -912,7 +914,7 @@ class ExamResultController extends Controller
         try {
             $explanationText = $aiService->generateForStudent($question);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('generateAiExplanation error, using fallback: '.$e->getMessage(), [
+            Log::warning('generateAiExplanation error, using fallback: '.$e->getMessage(), [
                 'session_id' => $session->id,
                 'question_id' => $question->id,
             ]);

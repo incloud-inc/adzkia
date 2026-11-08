@@ -317,42 +317,64 @@
                                 <!-- ── 1. PILIHAN JAWABAN MCQ (MODE PEMBAHASAN) ── -->
                                 <template x-if="['mcq_single', 'mcq_multiple', 'mcq_weighted'].includes(q.type)">
                                     <div class="space-y-3 pb-2 mt-3">
-                                        <template x-for="opt in (q.options || [])" :key="opt.id">
+                                        <template x-for="(opt, optIdx) in (q.options || [])" :key="opt.id">
                                             <div>
                                                 <!-- Kasus 1: Pilihan Benar (Correct Answer) - Frame Emerald, BG Emerald Lembut -->
                                                 <template x-if="isOptionCorrect(opt)">
-                                                    <div class="relative flex items-start gap-3 p-4 rounded-xl border-2 border-emerald-600 bg-emerald-50/70 shadow-xs">
-                                                        <div class="absolute -top-3 right-4 bg-emerald-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-md border border-white shadow-2xs font-display">
+                                                    <div class="relative flex items-start gap-3.5 p-4 rounded-xl border-2 border-emerald-600 bg-emerald-50/70 shadow-xs">
+                                                        <div class="absolute -top-3 right-4 bg-emerald-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-md border border-white shadow-2xs font-display flex items-center gap-1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                                                             <span x-text="isOptionChosenByStudent(q, opt) ? 'Jawabanmu — Benar' : 'Kunci Benar'"></span>
                                                         </div>
-                                                        <div class="mt-0.5 w-4 h-4 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                                        </div>
-                                                        <span class="text-[#212529] text-sm md:text-base font-semibold leading-snug prose-q"
-                                                              x-html="renderRich(opt.content)"></span>
+                                                        <span :class="q.type === 'mcq_multiple' ? 'rounded-lg' : 'rounded-full'"
+                                                              class="w-7 h-7 font-mono font-bold text-xs bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs"
+                                                              x-text="opt.label || String.fromCharCode(65 + optIdx)">
+                                                        </span>
+                                                        <div class="text-[#212529] text-sm md:text-base font-semibold leading-snug prose-q flex-1"
+                                                             x-html="renderRich(opt.content)"></div>
+                                                        <template x-if="q.type === 'mcq_weighted' && (opt.score !== undefined && opt.score !== null)">
+                                                            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0 self-center">
+                                                                Skor: <span x-text="opt.score"></span>
+                                                            </span>
+                                                        </template>
                                                     </div>
                                                 </template>
 
                                                 <!-- Kasus 2: Pilihan Salah Jawaban Siswa - Frame Rose, BG Rose Lembut -->
                                                 <template x-if="!isOptionCorrect(opt) && isOptionChosenByStudent(q, opt)">
-                                                    <div class="relative flex items-start gap-3 p-4 rounded-xl border-2 border-rose-500 bg-rose-50/80 shadow-xs">
-                                                        <div class="absolute -top-3 right-4 bg-rose-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-md border border-white shadow-2xs font-display">
-                                                            Jawabanmu — Salah
+                                                    <div class="relative flex items-start gap-3.5 p-4 rounded-xl border-2 border-rose-500 bg-rose-50/80 shadow-xs">
+                                                        <div class="absolute -top-3 right-4 bg-rose-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-md border border-white shadow-2xs font-display flex items-center gap-1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                                            <span x-text="q.type === 'mcq_weighted' ? 'Pilihan Jawabanmu' : 'Jawabanmu — Salah'"></span>
                                                         </div>
-                                                        <div class="mt-0.5 w-4 h-4 rounded-full bg-rose-600 flex items-center justify-center shrink-0">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                                        </div>
-                                                        <span class="text-[#212529] text-sm md:text-base font-semibold leading-snug prose-q"
-                                                              x-html="renderRich(opt.content)"></span>
+                                                        <span :class="q.type === 'mcq_multiple' ? 'rounded-lg' : 'rounded-full'"
+                                                              class="w-7 h-7 font-mono font-bold text-xs bg-rose-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs"
+                                                              x-text="opt.label || String.fromCharCode(65 + optIdx)">
+                                                        </span>
+                                                        <div class="text-[#212529] text-sm md:text-base font-semibold leading-snug prose-q flex-1"
+                                                             x-html="renderRich(opt.content)"></div>
+                                                        <template x-if="q.type === 'mcq_weighted' && (opt.score !== undefined && opt.score !== null)">
+                                                            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200 shrink-0 self-center">
+                                                                Skor: <span x-text="opt.score"></span>
+                                                            </span>
+                                                        </template>
                                                     </div>
                                                 </template>
 
-                                                <!-- Kasus 3: Pilihan Lainnya (Bukan Kunci & Tidak Dipilih) - Opacity 60% -->
+                                                <!-- Kasus 3: Pilihan Lainnya (Bukan Kunci & Tidak Dipilih) - Opacity 70% -->
                                                 <template x-if="!isOptionCorrect(opt) && !isOptionChosenByStudent(q, opt)">
-                                                    <div class="flex items-start gap-3 p-4 rounded-xl border border-[#ced4da] bg-white opacity-60">
-                                                        <div class="mt-0.5 w-4 h-4 rounded-full border border-[#ced4da] shrink-0"></div>
-                                                        <span class="text-[#212529]/80 text-sm md:text-base leading-snug font-medium prose-q"
-                                                              x-html="renderRich(opt.content)"></span>
+                                                    <div class="flex items-start gap-3.5 p-4 rounded-xl border border-[#ced4da] bg-white opacity-70 hover:opacity-100 transition-opacity">
+                                                        <span :class="q.type === 'mcq_multiple' ? 'rounded-lg' : 'rounded-full'"
+                                                              class="w-7 h-7 font-mono font-bold text-xs bg-gray-100 border border-gray-300 text-gray-700 flex items-center justify-center shrink-0 mt-0.5"
+                                                              x-text="opt.label || String.fromCharCode(65 + optIdx)">
+                                                        </span>
+                                                        <div class="text-[#212529]/80 text-sm md:text-base leading-snug font-medium prose-q flex-1"
+                                                             x-html="renderRich(opt.content)"></div>
+                                                        <template x-if="q.type === 'mcq_weighted' && (opt.score !== undefined && opt.score !== null)">
+                                                            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200 shrink-0 self-center">
+                                                                Skor: <span x-text="opt.score"></span>
+                                                            </span>
+                                                        </template>
                                                     </div>
                                                 </template>
                                             </div>

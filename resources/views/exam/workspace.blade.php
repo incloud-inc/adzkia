@@ -311,19 +311,41 @@
 
                                     <!-- ── 1. mcq_single, mcq_multiple, mcq_weighted ── -->
                                     <div x-show="['mcq_single','mcq_multiple','mcq_weighted'].includes(q.type)" class="space-y-3 pb-2">
-                                        <template x-for="opt in q.options" :key="opt.id">
-                                            <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all group"
+                                        <template x-for="(opt, optIdx) in q.options" :key="opt.id">
+                                            <label class="flex items-start gap-3.5 p-3.5 md:p-4 rounded-xl border cursor-pointer transition-all group select-none"
                                                    :class="isChosen(q, opt)
                                                        ? 'border-2 border-[#339af0] bg-blue-50/70 shadow-xs ring-1 ring-[#339af0]/20'
                                                        : 'border-[#ced4da] bg-white hover:border-[#339af0]/60 hover:bg-blue-50/30'">
                                                 <input :type="q.type === 'mcq_multiple' ? 'checkbox' : 'radio'"
                                                        :name="'mcq_choice_' + q.id"
-                                                       class="mt-0.5 w-4 h-4 text-[#339af0] shrink-0 focus:ring-[#339af0] accent-[#339af0] cursor-pointer"
+                                                       class="sr-only"
                                                        :checked="isChosen(q, opt)"
                                                        @change="toggleOption(q, opt)">
-                                                <span class="text-sm md:text-base leading-snug flex-1 prose-q"
-                                                      :class="isChosen(q, opt) ? 'text-[#212529] font-semibold' : 'text-[#212529]/80 font-medium group-hover:text-[#212529]'"
-                                                      x-html="opt.rendered_content || renderRich(opt.content)"></span>
+
+                                                <!-- Single / Weighted: Bulat (rounded-full) -->
+                                                <template x-if="q.type !== 'mcq_multiple'">
+                                                    <span class="w-7 h-7 rounded-full font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 transition-colors"
+                                                          :class="isChosen(q, opt)
+                                                              ? 'bg-blue-600 text-white shadow-2xs'
+                                                              : 'bg-gray-100 border border-gray-300 text-gray-700 group-hover:bg-blue-100/60 group-hover:border-blue-400 group-hover:text-blue-900'"
+                                                          x-text="opt.label || String.fromCharCode(65 + optIdx)">
+                                                    </span>
+                                                </template>
+
+                                                <!-- Multiple (PG Kompleks): Kotak Rounded (rounded-lg) dengan indikator centang saat dipilih -->
+                                                <template x-if="q.type === 'mcq_multiple'">
+                                                    <span class="w-7 h-7 rounded-lg font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 transition-colors relative"
+                                                          :class="isChosen(q, opt)
+                                                              ? 'bg-blue-600 text-white shadow-2xs'
+                                                              : 'bg-gray-100 border border-gray-300 text-gray-700 group-hover:bg-blue-100/60 group-hover:border-blue-400 group-hover:text-blue-900'">
+                                                        <span x-text="opt.label || String.fromCharCode(65 + optIdx)"></span>
+                                                        <span x-show="isChosen(q, opt)" class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-2xs">✓</span>
+                                                    </span>
+                                                </template>
+
+                                                <div class="text-sm md:text-base leading-snug flex-1 prose-q"
+                                                     :class="isChosen(q, opt) ? 'text-[#212529] font-semibold' : 'text-[#212529]/80 font-medium group-hover:text-[#212529]'"
+                                                     x-html="opt.rendered_content || renderRich(opt.content)"></div>
                                             </label>
                                         </template>
                                     </div>

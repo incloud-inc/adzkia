@@ -36,3 +36,4 @@ scratch_*
 
 /scripts/
 database/schema_postgres.sql
+*.zip

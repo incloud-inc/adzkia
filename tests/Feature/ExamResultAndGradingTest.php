@@ -7,6 +7,7 @@ use App\Models\AssessmentSection;
 use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Models\Question;
+use App\Models\QuestionOption;
 use App\Models\Subject;
 use App\Models\Tenant;
 use App\Models\User;
@@ -47,6 +48,7 @@ class ExamResultAndGradingTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'subject_id' => $subject->id,
             'title' => 'Ujian Akhir Semester IPA',
+            'type' => 'pas',
             'status' => 'published',
             'settings' => [
                 'passing_grade' => [
@@ -113,7 +115,15 @@ class ExamResultAndGradingTest extends TestCase
 
     public function test_result_displays_teacher_review_banner_when_essay_is_pending(): void
     {
-        $section = AssessmentSection::factory()->create(['assessment_id' => $this->assessment->id]);
+        $subject = Subject::factory()->create();
+        $assessment = Assessment::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'subject_id' => $subject->id,
+            'title' => 'Ujian Essay',
+            'type' => 'ph',
+            'status' => 'published',
+        ]);
+        $section = AssessmentSection::factory()->create(['assessment_id' => $assessment->id]);
         Question::factory()->create([
             'assessment_section_id' => $section->id,
             'type' => 'essay',
@@ -121,7 +131,7 @@ class ExamResultAndGradingTest extends TestCase
         ]);
 
         $session = ExamSession::create([
-            'assessment_id' => $this->assessment->id,
+            'assessment_id' => $assessment->id,
             'user_id' => $this->student->id,
             'tenant_id' => $this->tenant->id,
             'status' => 'completed',
@@ -232,5 +242,66 @@ class ExamResultAndGradingTest extends TestCase
 
         $session->refresh();
         $this->assertEquals('completed', $session->grading_status);
+    }
+
+    public function test_mcq_review_payload_includes_option_labels_and_scores_for_cbt_badge_rendering(): void
+    {
+        $section = AssessmentSection::factory()->create(['assessment_id' => $this->assessment->id]);
+        $question = Question::factory()->create([
+            'assessment_section_id' => $section->id,
+            'type' => 'mcq_weighted',
+            'points' => 5,
+        ]);
+
+        QuestionOption::create([
+            'question_id' => $question->id,
+            'label' => 'A',
+            'option_text' => 'Pilihan A',
+            'is_correct' => false,
+            'score' => 5,
+            'order' => 1,
+        ]);
+        QuestionOption::create([
+            'question_id' => $question->id,
+            'label' => 'B',
+            'option_text' => 'Pilihan B',
+            'is_correct' => false,
+            'score' => 3,
+            'order' => 2,
+        ]);
+
+        $session = ExamSession::create([
+            'assessment_id' => $this->assessment->id,
+            'user_id' => $this->student->id,
+            'tenant_id' => $this->tenant->id,
+            'status' => 'completed',
+            'grading_status' => 'completed',
+            'score' => 5,
+            'max_score' => 5,
+            'started_at' => now()->subMinutes(20),
+            'completed_at' => now()->subMinutes(1),
+        ]);
+
+        ExamAnswer::create([
+            'exam_session_id' => $session->id,
+            'question_id' => $question->id,
+            'is_correct' => true,
+            'points_awarded' => 5,
+            'answer_payload' => ['option_id' => 1],
+            'answered_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->student)->get(route('exam.result', $session));
+
+        $response->assertOk();
+        $allQuestionsReview = $response->viewData('allQuestionsReview');
+        $this->assertNotEmpty($allQuestionsReview);
+
+        $firstQuestionReview = $allQuestionsReview[0];
+        $this->assertArrayHasKey('options', $firstQuestionReview);
+        $this->assertEquals('A', $firstQuestionReview['options'][0]['label']);
+        $this->assertEquals(5, $firstQuestionReview['options'][0]['score']);
+        $this->assertEquals('B', $firstQuestionReview['options'][1]['label']);
+        $this->assertEquals(3, $firstQuestionReview['options'][1]['score']);
     }
 }
