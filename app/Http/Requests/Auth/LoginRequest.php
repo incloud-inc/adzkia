@@ -28,7 +28,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'email' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -42,7 +42,23 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $rawLogin = trim((string) $this->input('email'));
+        $cleanedLogin = ltrim($rawLogin, '@');
+        $password = (string) $this->input('password');
+        $remember = $this->boolean('remember');
+
+        $isEmail = (bool) filter_var($cleanedLogin, FILTER_VALIDATE_EMAIL);
+        $primaryField = $isEmail ? 'email' : 'username';
+
+        $authenticated = Auth::attempt([$primaryField => $cleanedLogin, 'password' => $password], $remember);
+
+        // Fallback: jika login via username gagal, coba juga via email (atau sebaliknya)
+        if (! $authenticated) {
+            $fallbackField = $isEmail ? 'username' : 'email';
+            $authenticated = Auth::attempt([$fallbackField => $cleanedLogin, 'password' => $password], $remember);
+        }
+
+        if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -81,6 +97,9 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->input('email')).'|'.$this->ip());
+        $rawLogin = trim((string) $this->input('email'));
+        $cleanedLogin = ltrim($rawLogin, '@');
+
+        return Str::transliterate(Str::lower($cleanedLogin).'|'.$this->ip());
     }
 }

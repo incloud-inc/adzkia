@@ -27,6 +27,46 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            if (blank($user->username)) {
+                $source = $user->email ? explode('@', (string) $user->email)[0] : (string) $user->name;
+                $user->username = static::generateUniqueUsername((string) $source);
+            }
+        });
+    }
+
+    /**
+     * Generate a unique, URL-safe username from a given source string.
+     */
+    public static function generateUniqueUsername(string $source, ?int $ignoreId = null): string
+    {
+        $raw = ltrim(trim($source), '@');
+        $raw = str_replace(' ', '_', $raw);
+        $clean = strtolower(preg_replace('/[^a-zA-Z0-9._-]/', '', $raw) ?? '');
+
+        if (strlen($clean) < 3) {
+            $clean = $clean === '' ? 'user' : str_pad($clean, 3, '0');
+        }
+
+        $base = substr($clean, 0, 40);
+        $candidate = $base;
+        $counter = 1;
+
+        while (static::where('username', $candidate)
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists()) {
+            $candidate = $base.'_'.$counter;
+            $counter++;
+        }
+
+        return $candidate;
+    }
+
+    /**
      * Fitur verifikasi email dinonaktifkan: seluruh user otomatis terverifikasi.
      */
     public function hasVerifiedEmail(): bool

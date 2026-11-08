@@ -55,15 +55,15 @@
             <form id="login-form" method="POST" action="{{ route('login') }}" class="space-y-3">
                 @csrf
 
-                <!-- Email Address -->
+                <!-- Email Address or Username -->
                 <div class="flex flex-col gap-1">
-                    <label for="email" class="font-semibold text-xs text-gray-11">Email</label>
+                    <label for="email" class="font-semibold text-xs text-gray-11">Email atau Username</label>
                     <div class="relative flex items-center">
                         <span class="absolute left-3 text-gray-9 pointer-events-none">
-                            <x-radix-icon name="envelope-closed" class="w-4 h-4" />
+                            <x-radix-icon name="person" class="w-4 h-4" />
                         </span>
-                        <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" 
-                               placeholder="nama@email.com"
+                        <input id="email" type="text" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" 
+                               placeholder="nama@email.com atau @username"
                                class="w-full rounded-xl border border-gray-7 bg-white pl-9 pr-3.5 py-2 text-xs sm:text-sm text-gray-12 placeholder:text-gray-8 transition-colors focus:border-green-8 focus:ring-1 focus:ring-green-8 outline-none @error('email') border-red-8 focus:border-red-8 focus:ring-red-8 @enderror" />
                     </div>
                     @error('email')
