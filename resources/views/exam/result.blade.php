@@ -328,7 +328,7 @@
                                                         </div>
                                                         <span :class="q.type === 'mcq_multiple' ? 'rounded-lg' : 'rounded-full'"
                                                               class="w-7 h-7 font-mono font-bold text-xs bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs"
-                                                              x-text="opt.label || String.fromCharCode(65 + optIdx)">
+                                                              x-text="String.fromCharCode(65 + optIdx)">
                                                         </span>
                                                         <div class="text-[#212529] text-sm md:text-base font-semibold leading-snug prose-q flex-1"
                                                              x-html="renderRich(opt.content)"></div>
@@ -349,7 +349,7 @@
                                                         </div>
                                                         <span :class="q.type === 'mcq_multiple' ? 'rounded-lg' : 'rounded-full'"
                                                               class="w-7 h-7 font-mono font-bold text-xs bg-rose-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs"
-                                                              x-text="opt.label || String.fromCharCode(65 + optIdx)">
+                                                              x-text="String.fromCharCode(65 + optIdx)">
                                                         </span>
                                                         <div class="text-[#212529] text-sm md:text-base font-semibold leading-snug prose-q flex-1"
                                                              x-html="renderRich(opt.content)"></div>
@@ -366,7 +366,7 @@
                                                     <div class="flex items-start gap-3.5 p-4 rounded-xl border border-[#ced4da] bg-white opacity-70 hover:opacity-100 transition-opacity">
                                                         <span :class="q.type === 'mcq_multiple' ? 'rounded-lg' : 'rounded-full'"
                                                               class="w-7 h-7 font-mono font-bold text-xs bg-gray-100 border border-gray-300 text-gray-700 flex items-center justify-center shrink-0 mt-0.5"
-                                                              x-text="opt.label || String.fromCharCode(65 + optIdx)">
+                                                              x-text="String.fromCharCode(65 + optIdx)">
                                                         </span>
                                                         <div class="text-[#212529]/80 text-sm md:text-base leading-snug font-medium prose-q flex-1"
                                                              x-html="renderRich(opt.content)"></div>

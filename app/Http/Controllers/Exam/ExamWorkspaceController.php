@@ -456,8 +456,15 @@ class ExamWorkspaceController extends Controller
             $secQuestions = $questions->filter(fn ($q) => ($q['assessment_section_id'] ?? null) == $sec['id']);
 
             if ($randomizeQ) {
-                // Acak HANYA di dalam section ini
-                $secOrdered = $secQuestions->sortBy(fn ($q) => crc32($q['id'].':'.$seed))->values();
+                // Acak HANYA di dalam section ini, namun pastikan butir soal dalam wacana stimulus (question_group) tetap mengelompok bersama
+                $secOrdered = $secQuestions->sortBy(function ($q) use ($seed) {
+                    $groupKey = ! empty($q['question_group_id'])
+                        ? sprintf('grp_%010d', crc32('group:'.$q['question_group_id'].':'.$seed))
+                        : sprintf('grp_%010d', crc32('single:'.$q['id'].':'.$seed));
+                    $innerOrder = (int) ($q['order'] ?? $q['id']);
+
+                    return sprintf('%s_%06d_%09d', $groupKey, $innerOrder, (int) $q['id']);
+                })->values();
             } else {
                 // Urutan sekuensial absolut (jaga hierarki item grup wacana dan soal standalone tanpa collision)
                 $secOrdered = $secQuestions->sortBy(function ($q) {

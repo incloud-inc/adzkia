@@ -224,7 +224,7 @@
         </div>
 
         <!-- AREA SOAL & JAWABAN -->
-        <section id="cbt-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 md:p-8 space-y-5 overscroll-y-contain [webkit-overflow-scrolling:touch]">
+        <section id="cbt-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 md:p-8 pb-28 sm:pb-32 space-y-5 overscroll-y-contain [webkit-overflow-scrolling:touch]">
 
             <template x-if="!questions || questions.length === 0">
                 <div class="rounded-2xl border border-[#ced4da] bg-white p-8 text-center text-[#212529]">
@@ -252,7 +252,7 @@
                     <div x-show="!isCardLocked(card)" class="space-y-6">
                         <!-- Stimulus / Wacana (Jika Ada pada Kartu Ini) -->
                         <template x-if="card.stimulus && (card.stimulus.content || card.stimulus.media_url || card.stimulus.rendered)">
-                            <div :id="'card-stimulus-block-' + cardIdx" class="rounded-2xl border-2 border-blue-300/80 bg-blue-50/70 p-5 md:p-6 space-y-3 shadow-xs">
+                            <div :id="'card-stimulus-block-' + cardIdx" class="rounded-2xl border-2 border-blue-300/80 bg-blue-50/70 p-4 md:p-5 space-y-3 shadow-xs transition-all">
                                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-blue-200 pb-2.5">
                                     <div class="flex items-center gap-2">
                                         <span class="rounded bg-blue-600 text-white px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider font-display shadow-2xs">
@@ -260,14 +260,27 @@
                                         </span>
                                         <span class="text-xs md:text-sm font-bold text-[#212529]" x-text="card.stimulus.title || 'Teks Bacaan'"></span>
                                     </div>
-                                    <template x-if="card.is_group && card.questions.length > 1">
-                                        <span class="px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-blue-900 text-xs font-extrabold font-display">
-                                            📖 Menaungi <span x-text="card.questions.length"></span> Butir Soal Sekaligus
-                                        </span>
-                                    </template>
+                                    <div class="flex items-center gap-2">
+                                        <template x-if="card.is_group && card.questions.length > 1">
+                                            <span class="px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-blue-900 text-xs font-extrabold font-display">
+                                                📖 <span x-text="card.questions.length"></span> Soal
+                                            </span>
+                                        </template>
+                                        <!-- Tombol Ciutkan / Buka Wacana -->
+                                        <button type="button"
+                                                @click="stimulusCollapsed[cardIdx] = !stimulusCollapsed[cardIdx]"
+                                                class="px-2.5 py-1 rounded-lg border border-blue-300 bg-white hover:bg-blue-100/60 text-blue-900 text-xs font-bold transition flex items-center gap-1 cursor-pointer select-none">
+                                            <span x-text="stimulusCollapsed[cardIdx] ? 'Buka Wacana ▾' : 'Ciutkan Wacana ▴'"></span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="prose-q text-sm md:text-base text-[#212529] leading-relaxed"
+                                <div x-show="!stimulusCollapsed[cardIdx]"
+                                     x-transition
+                                     class="prose-q text-sm md:text-base text-[#212529] leading-relaxed max-h-[48vh] overflow-y-auto pr-1"
                                      x-html="renderStimulusHtml(card.stimulus)"></div>
+                                <div x-show="stimulusCollapsed[cardIdx]" class="text-xs text-blue-800 font-medium italic py-0.5">
+                                    Wacana sedang diciutkan untuk memperluas ruang soal. Klik "Buka Wacana" di atas untuk membaca kembali teks lengkap.
+                                </div>
                             </div>
                         </template>
 
@@ -328,7 +341,7 @@
                                                           :class="isChosen(q, opt)
                                                               ? 'bg-blue-600 text-white shadow-2xs'
                                                               : 'bg-gray-100 border border-gray-300 text-gray-700 group-hover:bg-blue-100/60 group-hover:border-blue-400 group-hover:text-blue-900'"
-                                                          x-text="opt.label || String.fromCharCode(65 + optIdx)">
+                                                          x-text="String.fromCharCode(65 + optIdx)">
                                                     </span>
                                                 </template>
 
@@ -338,7 +351,7 @@
                                                           :class="isChosen(q, opt)
                                                               ? 'bg-blue-600 text-white shadow-2xs'
                                                               : 'bg-gray-100 border border-gray-300 text-gray-700 group-hover:bg-blue-100/60 group-hover:border-blue-400 group-hover:text-blue-900'">
-                                                        <span x-text="opt.label || String.fromCharCode(65 + optIdx)"></span>
+                                                        <span x-text="String.fromCharCode(65 + optIdx)"></span>
                                                         <span x-show="isChosen(q, opt)" class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-2xs">✓</span>
                                                     </span>
                                                 </template>
@@ -508,70 +521,85 @@
         </section>
 
         <!-- FOOTER / NAVIGASI NOMOR SOAL -->
-        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex items-center z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] gap-2">
-            <!-- Container Nomor Soal (Scrollable secara horizontal) -->
-            <div class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-2 py-0.5">
-                <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
-                    <div :id="'nav-card-item-' + cIdx" class="shrink-0 flex items-center">
-                        <!-- JIKA KARTU MULTI-SOAL (GROUP) -->
-                        <template x-if="card.is_group && card.questions.length > 1">
-                            <div class="inline-flex items-center gap-1.5 p-1 rounded-xl transition-all"
-                                 :class="currentCardIndex === cIdx
-                                     ? 'bg-blue-300/70 border-2 border-blue-600 shadow-sm ring-2 ring-blue-500/20'
-                                     : 'bg-white/70 border border-blue-200/90'">
-                                <div class="px-1.5 py-0.5 rounded bg-blue-700 text-white text-[9px] font-black uppercase tracking-wider shrink-0 select-none">
-                                    <span x-text="card.questions.length + ' Soal'"></span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <template x-for="q in card.questions" :key="q.id">
-                                        <button type="button" @click="goToQuestion(q.id)"
-                                                :disabled="isQuestionLocked(q)"
-                                                :title="isQuestionLocked(q) ? 'Waktu bagian ini telah habis (Terkunci)' : 'Soal nomor ' + q.number"
-                                                class="font-display shrink-0 flex items-center justify-center transition-all select-none"
-                                                :class="{
-                                                    'w-8 h-8 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed': isQuestionLocked(q),
-                                                    'w-8 h-8 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(q) && isFlagged(q.id),
-                                                    'w-8 h-8 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(q) && !isFlagged(q.id) && isAnsweredQ(q.id),
-                                                    'w-8 h-8 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(q) && !isFlagged(q.id) && !isAnsweredQ(q.id) && visited[q.id],
-                                                    'w-8 h-8 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(q) && !isFlagged(q.id) && !isAnsweredQ(q.id) && !visited[q.id],
-                                                }">
-                                            <span x-text="q.number"></span>
-                                            <span x-show="isQuestionLocked(q)" class="text-[8px] ml-0.5">🔒</span>
-                                        </button>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
+        <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex flex-col z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] transition-all">
+            <!-- Header bar strip navigasi dengan tombol sembunyikan/tampilkan -->
+            <div class="flex items-center justify-between px-3 sm:px-4 py-1 bg-blue-100/70 border-b border-blue-200/60 text-[11px] font-bold text-blue-950 select-none">
+                <div class="flex items-center gap-1.5">
+                    <span class="uppercase tracking-wider font-display">Bilah Nomor Soal</span>
+                    <span class="text-blue-700 font-semibold" x-text="'(' + answeredCount + '/' + questions.length + ' Terjawab)'"></span>
+                </div>
+                <button type="button" @click="navBarCollapsed = !navBarCollapsed"
+                        class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/90 hover:bg-white text-blue-800 border border-blue-300/80 cursor-pointer flex items-center gap-1 shadow-2xs transition active:scale-95">
+                    <span x-text="navBarCollapsed ? 'Tampilkan Bilah Nomor ▴' : 'Sembunyikan Bilah Nomor ▾'"></span>
+                </button>
+            </div>
 
-                        <!-- JIKA KARTU STANDALONE (TUNGGAL) -->
-                        <template x-if="!card.is_group || card.questions.length === 1">
-                            <button type="button" @click="goToQuestion(card.questions[0].id)"
-                                    :disabled="isQuestionLocked(card.questions[0])"
-                                    :title="isQuestionLocked(card.questions[0]) ? 'Waktu bagian ini telah habis (Terkunci)' : 'Soal nomor ' + card.questions[0].number"
-                                    class="font-display shrink-0 flex items-center justify-center transition-all select-none"
-                                    :class="{
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed': isQuestionLocked(card.questions[0]),
-                                        'w-10 h-10 rounded-lg text-sm font-extrabold bg-blue-100 text-blue-900 shadow-md mx-1 border-2 border-blue-500 cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex === cIdx,
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && isFlagged(card.questions[0].id),
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && isAnsweredQ(card.questions[0].id),
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && visited[card.questions[0].id],
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && !visited[card.questions[0].id],
-                                    }">
-                                <span x-text="card.questions[0].number"></span>
-                                <span x-show="isQuestionLocked(card.questions[0])" class="text-[9px] ml-0.5">🔒</span>
-                            </button>
-                        </template>
+            <!-- Container Nomor Soal (Scrollable secara horizontal, dapat diciutkan jika navBarCollapsed) -->
+            <div x-show="!navBarCollapsed" x-transition
+                 class="w-full flex items-center overflow-x-auto hide-scrollbar gap-2 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+                <div class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-2 py-0.5">
+                    <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
+                        <div :id="'nav-card-item-' + cIdx" class="shrink-0 flex items-center">
+                            <!-- JIKA KARTU MULTI-SOAL (GROUP) -->
+                            <template x-if="card.is_group && card.questions.length > 1">
+                                <div class="inline-flex items-center gap-1.5 p-1 rounded-xl transition-all"
+                                     :class="currentCardIndex === cIdx
+                                         ? 'bg-blue-300/70 border-2 border-blue-600 shadow-sm ring-2 ring-blue-500/20'
+                                         : 'bg-white/70 border border-blue-200/90'">
+                                    <div class="px-1.5 py-0.5 rounded bg-blue-700 text-white text-[9px] font-black uppercase tracking-wider shrink-0 select-none">
+                                        <span x-text="card.questions.length + ' Soal'"></span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <template x-for="q in card.questions" :key="q.id">
+                                            <button type="button" @click="goToQuestion(q.id)"
+                                                    :disabled="isQuestionLocked(q)"
+                                                    :title="isQuestionLocked(q) ? 'Waktu bagian ini telah habis (Terkunci)' : 'Soal nomor ' + q.number"
+                                                    class="font-display shrink-0 flex items-center justify-center transition-all select-none"
+                                                    :class="{
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed': isQuestionLocked(q),
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(q) && isFlagged(q.id),
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(q) && !isFlagged(q.id) && isAnsweredQ(q.id),
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(q) && !isFlagged(q.id) && !isAnsweredQ(q.id) && visited[q.id],
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(q) && !isFlagged(q.id) && !isAnsweredQ(q.id) && !visited[q.id],
+                                                    }">
+                                                <span x-text="q.number"></span>
+                                                <span x-show="isQuestionLocked(q)" class="text-[8px] ml-0.5">🔒</span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- JIKA KARTU STANDALONE (TUNGGAL) -->
+                            <template x-if="!card.is_group || card.questions.length === 1">
+                                <button type="button" @click="goToQuestion(card.questions[0].id)"
+                                        :disabled="isQuestionLocked(card.questions[0])"
+                                        :title="isQuestionLocked(card.questions[0]) ? 'Waktu bagian ini telah habis (Terkunci)' : 'Soal nomor ' + card.questions[0].number"
+                                        class="font-display shrink-0 flex items-center justify-center transition-all select-none"
+                                        :class="{
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed': isQuestionLocked(card.questions[0]),
+                                            'w-10 h-10 rounded-lg text-sm font-extrabold bg-blue-100 text-blue-900 shadow-md mx-1 border-2 border-blue-500 cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex === cIdx,
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && isFlagged(card.questions[0].id),
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && isAnsweredQ(card.questions[0].id),
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && visited[card.questions[0].id],
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && !visited[card.questions[0].id],
+                                        }">
+                                    <span x-text="card.questions[0].number"></span>
+                                    <span x-show="isQuestionLocked(card.questions[0])" class="text-[9px] ml-0.5">🔒</span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Tombol SUBMIT Diletakkan di Bagian Paling Belakang (Setelah Nomor Terakhir) -->
+                    <div id="nav-card-submit-btn" class="shrink-0 flex items-center pl-2 ml-1 border-l border-blue-300/80">
+                        <button type="button" @click="openSubmitModal()"
+                                class="font-display h-9 px-4 rounded-md text-xs font-bold bg-[#f03e3e] text-white flex items-center gap-1.5 hover:bg-red-600 active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                                title="Kumpulkan lembar ujian (Selesai)">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            <span>Kumpulkan (SUBMIT)</span>
+                        </button>
                     </div>
-                </template>
-
-                <!-- Tombol SUBMIT Diletakkan di Bagian Paling Belakang (Setelah Nomor Terakhir) -->
-                <div id="nav-card-submit-btn" class="shrink-0 flex items-center pl-2 ml-1 border-l border-blue-300/80">
-                    <button type="button" @click="openSubmitModal()"
-                            class="font-display h-9 px-4 rounded-md text-xs font-bold bg-[#f03e3e] text-white flex items-center gap-1.5 hover:bg-red-600 active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
-                            title="Kumpulkan lembar ujian (Selesai)">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        <span>Kumpulkan (SUBMIT)</span>
-                    </button>
                 </div>
             </div>
         </footer>
@@ -743,6 +771,10 @@
             isFinished: false,
             warningBanner: false,
             warningMessage: '',
+
+            // Layout & Collapsible controls
+            stimulusCollapsed: {},
+            navBarCollapsed: false,
 
             // Proctoring & Lock Screen State
             isViolatedLocked: safePayload.session?.is_locked || false,
