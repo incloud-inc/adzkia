@@ -1,6 +1,6 @@
 {{-- resources/views/exam/workspace.blade.php --}}
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id" class="h-full overflow-hidden">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -66,7 +66,10 @@
         .prose-q th { background: #f1f3f5; color: #212529; padding: 0.6rem 0.85rem; border: 1px solid #ced4da; font-weight: 700; text-align: left; }
         .prose-q td { padding: 0.6rem 0.85rem; border: 1px solid #ced4da; }
         .prose-q tr:nth-child(even) { background: #f8f9fa; }
-        .prose-q img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 0.75rem auto; display: block; }
+        .prose-q img { max-width: 100%; max-height: 280px; width: auto; height: auto; object-fit: contain; border-radius: 0.5rem; margin: 0.75rem auto; display: block; }
+        @media (max-width: 640px) {
+            .prose-q img { max-height: 220px; }
+        }
         .prose-q hr { margin: 1.25rem 0; border: 0; border-top: 1px solid #ced4da; }
 
         /* Animation */
@@ -224,7 +227,7 @@
         </div>
 
         <!-- AREA SOAL & JAWABAN -->
-        <section id="cbt-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 md:p-8 pb-28 sm:pb-32 space-y-5 overscroll-y-contain [webkit-overflow-scrolling:touch]">
+        <section id="cbt-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 md:p-8 pb-8 sm:pb-10 space-y-5 overscroll-y-contain [webkit-overflow-scrolling:touch]">
 
             <template x-if="!questions || questions.length === 0">
                 <div class="rounded-2xl border border-[#ced4da] bg-white p-8 text-center text-[#212529]">
@@ -537,7 +540,7 @@
             <!-- Container Nomor Soal (Scrollable secara horizontal, dapat diciutkan jika navBarCollapsed) -->
             <div x-show="!navBarCollapsed" x-transition
                  class="w-full flex items-center overflow-x-auto hide-scrollbar gap-2 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-                <div class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-2 py-0.5">
+                <div id="nav-pills-scroll-container" class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-2 py-0.5">
                     <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
                         <div :id="'nav-card-item-' + cIdx" class="shrink-0 flex items-center">
                             <!-- JIKA KARTU MULTI-SOAL (GROUP) -->
@@ -1152,46 +1155,35 @@
             },
 
             scrollToCardStimulusOrTop(cardIdx, targetQid = null) {
-                this.$nextTick(() => {
-                    setTimeout(() => {
-                        const scrollContainer = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
-                        const card = this.displayItems[cardIdx];
-                        const hasStimulus = card && card.stimulus && (card.stimulus.content || card.stimulus.media_url || card.stimulus.rendered);
-                        const isFirstQuestion = !targetQid || (card && card.questions && card.questions[0]?.id === targetQid);
+                const scrollContainer = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
+                if (!scrollContainer) return;
+                const card = this.displayItems[cardIdx];
+                const isFirstQuestion = !targetQid || (card && card.questions && card.questions[0]?.id === targetQid);
 
-                        if (hasStimulus && isFirstQuestion) {
-                            const stimulusEl = document.getElementById('card-stimulus-block-' + cardIdx);
-                            if (stimulusEl) {
-                                stimulusEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                return;
-                            }
+                if (targetQid && !isFirstQuestion) {
+                    this.$nextTick(() => {
+                        const targetEl = document.getElementById('question-block-' + targetQid);
+                        if (targetEl) {
+                            const targetTop = targetEl.offsetTop - scrollContainer.offsetTop - 12;
+                            scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
                         }
+                    });
+                    return;
+                }
 
-                        if (targetQid && !isFirstQuestion) {
-                            const targetEl = document.getElementById('question-block-' + targetQid);
-                            if (targetEl) {
-                                targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                return;
-                            }
-                        }
-
-                        if (scrollContainer) {
-                            scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
-                        } else {
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }
-                    }, 60);
-                });
+                scrollContainer.scrollTop = 0;
+                window.scrollTo(0, 0);
             },
 
             scrollNavToActive(cardIdx) {
                 this.$nextTick(() => {
-                    setTimeout(() => {
-                        const el = document.getElementById('nav-card-item-' + cardIdx);
-                        if (el) {
-                            el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                        }
-                    }, 50);
+                    const el = document.getElementById('nav-card-item-' + cardIdx);
+                    if (!el) return;
+                    const container = document.getElementById('nav-pills-scroll-container') || el.closest('.overflow-x-auto') || el.parentElement;
+                    if (container) {
+                        const targetLeft = el.offsetLeft - (container.clientWidth / 2) + (el.clientWidth / 2);
+                        container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+                    }
                 });
             },
 
@@ -1210,10 +1202,20 @@
                     if (qIdx >= 0) this.currentIndex = qIdx;
                 }
                 this.updateCurrentSectionTimer();
+
+                // Segera reset scroll container ke 0 secara sinkron agar tidak tertinggal scroll soal sebelumnya yang bergambar
+                const scrollContainer = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
+                if (scrollContainer) {
+                    scrollContainer.scrollTop = 0;
+                }
+                window.scrollTo(0, 0);
+
                 this.scrollNavToActive(cardIdx);
                 this.$nextTick(() => {
+                    if (scrollContainer) {
+                        scrollContainer.scrollTop = 0;
+                    }
                     this.renderKatex();
-                    this.scrollToCardStimulusOrTop(cardIdx, null);
                     this.triggerQuestionMediaAutoplay();
                 });
             },
@@ -1226,6 +1228,7 @@
                     this.warn('Waktu untuk bagian soal ini telah habis. Soal dan jawaban telah terkunci.');
                     return;
                 }
+                const isCardChanged = this.currentCardIndex !== cardIdx;
                 this.currentCardIndex = cardIdx;
                 this.visited[qid] = true;
                 if (card.questions) {
@@ -1235,10 +1238,30 @@
                 if (qIdx >= 0) this.currentIndex = qIdx;
 
                 this.updateCurrentSectionTimer();
+
+                const scrollContainer = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
+                const isFirstQ = card.questions && card.questions[0]?.id === qid;
+
+                if (isCardChanged || isFirstQ) {
+                    if (scrollContainer) scrollContainer.scrollTop = 0;
+                    window.scrollTo(0, 0);
+                }
+
                 this.scrollNavToActive(cardIdx);
+
                 this.$nextTick(() => {
                     this.renderKatex();
-                    this.scrollToCardStimulusOrTop(cardIdx, qid);
+                    if (scrollContainer) {
+                        if (isFirstQ) {
+                            scrollContainer.scrollTop = 0;
+                        } else {
+                            const targetEl = document.getElementById('question-block-' + qid);
+                            if (targetEl) {
+                                const targetTop = targetEl.offsetTop - scrollContainer.offsetTop - 12;
+                                scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+                            }
+                        }
+                    }
                     this.triggerQuestionMediaAutoplay();
                 });
             },
@@ -1754,13 +1777,12 @@
                 }
 
                 // 8. Scroll ke atas soal
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                const scReset = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
+                if (scReset) scReset.scrollTop = 0;
+                window.scrollTo(0, 0);
                 this.$nextTick(() => {
                     this.renderKatex();
-                    const targetEl = document.getElementById('question-block-' + (this.questions[0]?.id || ''));
-                    if (targetEl) {
-                        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
+                    if (scReset) scReset.scrollTop = 0;
                 });
 
                 // 9. Berikan peringatan / alert kepada siswa

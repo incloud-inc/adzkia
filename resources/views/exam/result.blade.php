@@ -1,6 +1,6 @@
 {{-- resources/views/exam/result.blade.php --}}
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id" class="h-full overflow-hidden">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -74,7 +74,10 @@
         .prose-q th { background: #f1f3f5; color: #212529; padding: 0.6rem 0.85rem; border: 1px solid #ced4da; font-weight: 700; text-align: left; }
         .prose-q td { padding: 0.6rem 0.85rem; border: 1px solid #ced4da; }
         .prose-q tr:nth-child(even) { background: #f8f9fa; }
-        .prose-q img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 0.75rem auto; display: block; }
+        .prose-q img { max-width: 100%; max-height: 280px; width: auto; height: auto; object-fit: contain; border-radius: 0.5rem; margin: 0.75rem auto; display: block; }
+        @media (max-width: 640px) {
+            .prose-q img { max-height: 220px; }
+        }
         .prose-q hr { margin: 1.25rem 0; border: 0; border-top: 1px solid #ced4da; }
     </style>
 </head>
