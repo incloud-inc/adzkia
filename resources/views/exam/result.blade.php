@@ -197,7 +197,7 @@
         </header>
 
         <!-- AREA SOAL & PEMBAHASAN -->
-        <section id="review-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6 overscroll-y-contain [webkit-overflow-scrolling:touch]">
+        <section id="review-scroll-container" x-ref="scrollContainer" @scroll.passive="onScrollContainer()" class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6 relative overscroll-y-contain [webkit-overflow-scrolling:touch]">
 
             @if($summary['teacher_review_required'])
                 <!-- Banner: Menunggu Pemeriksaan Guru -->
@@ -266,10 +266,20 @@
                         </div>
                     </template>
 
+                    <!-- Header Pembagi jika Kartu Menaungi Banyak Soal Sekaligus (USP Stimulus Multi-Soal) -->
+                    <template x-if="card.is_group && card.questions.length > 1">
+                        <div class="flex items-center justify-between pt-1 pb-1 border-b border-blue-200/80">
+                            <h3 class="font-display font-extrabold text-xs sm:text-sm text-blue-950 uppercase tracking-wider flex items-center gap-2">
+                                <span>Butir-Butir Soal Berdasarkan Wacana Di Atas</span>
+                                <span class="text-xs font-bold text-blue-700 bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-md" x-text="'(' + card.questions.length + ' Soal)'"></span>
+                            </h3>
+                        </div>
+                    </template>
+
                     <!-- Loop Seluruh Soal di dalam Kartu Ini (Soal Tunggal atau Seluruh Soal di Bawah Stimulus) -->
                     <div class="space-y-6">
                         <template x-for="q in card.questions" :key="q.id">
-                            <div :id="'review-question-block-' + q.id" class="p-4 sm:p-6 rounded-2xl border border-[#ced4da] bg-white space-y-4 shadow-xs transition-all min-w-0 max-w-full overflow-hidden break-words">
+                            <div :id="'review-question-block-' + q.id" class="p-4 sm:p-6 rounded-2xl border border-[#ced4da] bg-white space-y-4 shadow-xs transition-all min-w-0 max-w-full overflow-hidden break-words relative scroll-mt-6">
 
                                 <!-- Header Butir Soal & Status Jawaban -->
                                 <div class="flex flex-wrap justify-between items-center gap-2 pb-2.5 border-b border-[#ced4da]/60">
@@ -694,13 +704,13 @@
 
                     <!-- Tombol Navigasi Bawah Kartu Pembahasan (Sebelumnya / Selanjutnya) -->
                     <div class="flex items-center justify-between pt-4 border-t border-gray-200 gap-2">
-                        <button type="button" @click="prevCard()" :disabled="currentCardIndex === 0"
+                        <button type="button" @click="handlePrev()" :disabled="isAtFirstQuestion"
                                 class="px-3.5 sm:px-4 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-xs font-bold text-gray-800 transition cursor-pointer flex items-center gap-1.5 font-display shadow-2xs">
                             <span>←</span>
                             <span>Soal Sebelumnya</span>
                         </button>
 
-                        <button type="button" @click="nextCard()" :disabled="currentCardIndex >= displayItems.length - 1"
+                        <button type="button" @click="handleNext()" :disabled="isAtLastQuestion"
                                 class="px-3.5 sm:px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 font-display">
                             <span>Soal Selanjutnya</span>
                             <span>→</span>
@@ -739,16 +749,43 @@
 
             <div class="w-full flex items-center overflow-x-auto hide-scrollbar gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#d0ebff]">
 
-                <!-- Daftar Nomor Soal (1 Tombol Mandiri per Butir Soal) -->
+                <!-- Daftar Nomor Soal (Dikelompokkan Berdasarkan Stimulus) -->
                 <div class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-1.5 py-0.5 min-w-0">
                     <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
                         <div :id="'review-nav-card-item-' + cIdx" class="shrink-0 flex items-center">
-                            <button type="button" @click="goToCard(cIdx)"
-                                    :title="'Buka Soal Nomor ' + card.questions[0].number"
-                                    class="font-display shrink-0 flex items-center justify-center transition-all cursor-pointer select-none"
-                                    :class="getQuestionBtnClass(card.questions[0], cIdx)">
-                                <span x-text="card.questions[0].number"></span>
-                            </button>
+                            <!-- JIKA KARTU MULTI-SOAL (GROUP STIMULUS) -->
+                            <template x-if="card.is_group && card.questions.length > 1">
+                                <div class="inline-flex items-center gap-1.5 p-1 rounded-xl transition-all"
+                                     :class="currentCardIndex === cIdx
+                                         ? 'bg-blue-200/80 border-2 border-blue-500 shadow-sm ring-1 ring-blue-500/30'
+                                         : 'bg-white/80 border border-blue-200/90'">
+                                    <button type="button"
+                                            @click="goToCard(cIdx)"
+                                            class="px-2 py-1 rounded-md bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider shrink-0 select-none hover:bg-blue-800 transition cursor-pointer">
+                                        <span x-text="card.questions.length + ' Soal'"></span>
+                                    </button>
+                                    <div class="flex items-center gap-1">
+                                        <template x-for="q in card.questions" :key="q.id">
+                                            <button type="button" @click="goToQuestion(q.id)"
+                                                    :title="'Buka Soal Nomor ' + q.number"
+                                                    class="font-display shrink-0 flex items-center justify-center transition-all cursor-pointer select-none"
+                                                    :class="getQuestionBtnClass(q, cIdx)">
+                                                <span x-text="q.number"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- JIKA KARTU STANDALONE (TUNGGAL) -->
+                            <template x-if="!card.is_group || card.questions.length === 1">
+                                <button type="button" @click="goToQuestion(card.questions[0].id)"
+                                        :title="'Buka Soal Nomor ' + card.questions[0].number"
+                                        class="font-display shrink-0 flex items-center justify-center transition-all cursor-pointer select-none"
+                                        :class="getQuestionBtnClass(card.questions[0], cIdx)">
+                                    <span x-text="card.questions[0].number"></span>
+                                </button>
+                            </template>
                         </div>
                     </template>
                 </div>
@@ -796,19 +833,48 @@
             aiLoadingMap: {},
             stimulusCollapsed: {},
 
-            // Setiap butir soal ditampilkan 1 per kartu/layar (standar review CBT resmi)
+            // Seluruh butir soal yang berada dalam 1 stimulus ditampilkan bersamaan dalam 1 kartu/layar (USP ADZKIA CBT)
             get displayItems() {
                 if (!Array.isArray(this.questions) || this.questions.length === 0) return [];
-                return this.questions.map((q, idx) => ({
-                    card_index: idx,
-                    is_group: !!q.question_group_id,
-                    group_id: q.question_group_id || null,
-                    section_id: q.section_id,
-                    section_number: q.section_number,
-                    section_title: q.section_title,
-                    stimulus: q.stimulus || null,
-                    questions: [q]
-                }));
+
+                const items = [];
+                let currentGroup = null;
+
+                for (let i = 0; i < this.questions.length; i++) {
+                    const q = this.questions[i];
+                    const groupId = q.question_group_id;
+
+                    if (groupId) {
+                        if (currentGroup && currentGroup.group_id === groupId) {
+                            currentGroup.questions.push(q);
+                        } else {
+                            currentGroup = {
+                                card_index: items.length,
+                                is_group: true,
+                                group_id: groupId,
+                                section_id: q.section_id,
+                                section_number: q.section_number,
+                                section_title: q.section_title,
+                                stimulus: q.stimulus || null,
+                                questions: [q]
+                            };
+                            items.push(currentGroup);
+                        }
+                    } else {
+                        currentGroup = null;
+                        items.push({
+                            card_index: items.length,
+                            is_group: false,
+                            group_id: null,
+                            section_id: q.section_id,
+                            section_number: q.section_number,
+                            section_title: q.section_title,
+                            stimulus: q.stimulus || null,
+                            questions: [q]
+                        });
+                    }
+                }
+                return items;
             },
 
             get currentCard() {
@@ -863,6 +929,47 @@
                 window.scrollTo(0, 0);
             },
 
+            scrollToQuestionBlock(qid, smooth = true) {
+                this.$nextTick(() => {
+                    const container = this.$refs.scrollContainer || document.getElementById('review-scroll-container');
+                    const target = document.getElementById('review-question-block-' + qid);
+                    if (!container || !target) return;
+
+                    const containerRect = container.getBoundingClientRect();
+                    const targetRect = target.getBoundingClientRect();
+                    const targetOffset = (targetRect.top - containerRect.top) + container.scrollTop - 16;
+                    const maxScroll = container.scrollHeight - container.clientHeight;
+                    const safeTop = Math.max(0, Math.min(targetOffset, maxScroll));
+
+                    container.scrollTo({
+                        top: safeTop,
+                        behavior: smooth ? 'smooth' : 'auto'
+                    });
+                });
+            },
+
+            onScrollContainer() {
+                const card = this.currentCard;
+                if (!card || !card.questions || card.questions.length <= 1) return;
+                const container = this.$refs.scrollContainer || document.getElementById('review-scroll-container');
+                if (!container) return;
+                const containerTop = container.getBoundingClientRect().top;
+
+                for (let i = 0; i < card.questions.length; i++) {
+                    const q = card.questions[i];
+                    const el = document.getElementById('review-question-block-' + q.id);
+                    if (el) {
+                        const rect = el.getBoundingClientRect();
+                        if (rect.bottom > containerTop + 60 && rect.top <= containerTop + 240) {
+                            if (this.activeQuestionId !== q.id) {
+                                this.activeQuestionId = q.id;
+                            }
+                            break;
+                        }
+                    }
+                }
+            },
+
             scrollNavToActive(cardIdx) {
                 this.$nextTick(() => {
                     const el = document.getElementById('review-nav-card-item-' + cardIdx);
@@ -875,29 +982,99 @@
                 });
             },
 
-            goToCard(cardIdx) {
+            goToCard(cardIdx, targetQid = null) {
                 if (cardIdx < 0 || cardIdx >= this.displayItems.length) return;
                 this.currentCardIndex = cardIdx;
-                this.activeQuestionId = this.displayItems[cardIdx]?.questions[0]?.id;
-                this.scrollNavToActive(cardIdx);
+                const card = this.displayItems[cardIdx];
+                const chosenQid = targetQid || (card?.questions && card.questions[0]?.id) || null;
+                if (chosenQid) {
+                    this.activeQuestionId = chosenQid;
+                }
 
                 const scrollContainer = this.$refs.scrollContainer || document.getElementById('review-scroll-container');
-                if (scrollContainer) {
-                    scrollContainer.scrollTop = 0;
+                if (targetQid && card && card.questions && card.questions.length > 1 && card.questions[0]?.id !== targetQid) {
+                    this.$nextTick(() => {
+                        this.renderMath();
+                        this.scrollToQuestionBlock(targetQid, true);
+                    });
+                } else {
+                    if (scrollContainer) {
+                        scrollContainer.scrollTop = 0;
+                    }
+                    window.scrollTo(0, 0);
+                    this.$nextTick(() => {
+                        if (scrollContainer) scrollContainer.scrollTop = 0;
+                        this.renderMath();
+                    });
                 }
-                window.scrollTo(0, 0);
 
-                this.$nextTick(() => {
-                    if (scrollContainer) scrollContainer.scrollTop = 0;
-                    this.renderMath();
-                });
+                this.scrollNavToActive(cardIdx);
             },
 
             goToQuestion(qid) {
-                const cardIdx = this.displayItems.findIndex(c => c.questions[0]?.id === qid);
-                if (cardIdx !== -1) {
-                    this.goToCard(cardIdx);
+                const cardIdx = this.displayItems.findIndex(c => c.questions.some(q => q.id === qid));
+                if (cardIdx === -1) return;
+                const card = this.displayItems[cardIdx];
+
+                if (this.currentCardIndex === cardIdx) {
+                    this.activeQuestionId = qid;
+                    const isFirstQ = card.questions && card.questions[0]?.id === qid;
+                    if (isFirstQ) {
+                        const scrollContainer = this.$refs.scrollContainer || document.getElementById('review-scroll-container');
+                        if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                        this.scrollToQuestionBlock(qid, true);
+                    }
+                } else {
+                    this.goToCard(cardIdx, qid);
                 }
+            },
+
+            handlePrev() {
+                const card = this.currentCard;
+                if (card && card.questions && card.questions.length > 1) {
+                    const curIdx = card.questions.findIndex(q => q.id === this.activeQuestionId);
+                    if (curIdx > 0) {
+                        const prevQ = card.questions[curIdx - 1];
+                        this.activeQuestionId = prevQ.id;
+                        if (curIdx - 1 === 0) {
+                            const scrollContainer = this.$refs.scrollContainer || document.getElementById('review-scroll-container');
+                            if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+                        } else {
+                            this.scrollToQuestionBlock(prevQ.id, true);
+                        }
+                        return;
+                    }
+                }
+                this.prevCard();
+            },
+
+            handleNext() {
+                const card = this.currentCard;
+                if (card && card.questions && card.questions.length > 1) {
+                    const curIdx = card.questions.findIndex(q => q.id === this.activeQuestionId);
+                    if (curIdx >= 0 && curIdx < card.questions.length - 1) {
+                        const nextQ = card.questions[curIdx + 1];
+                        this.activeQuestionId = nextQ.id;
+                        this.scrollToQuestionBlock(nextQ.id, true);
+                        return;
+                    }
+                }
+                this.nextCard();
+            },
+
+            get isAtFirstQuestion() {
+                if (this.currentCardIndex !== 0) return false;
+                const card = this.currentCard;
+                if (!card || !card.questions || card.questions.length <= 1) return true;
+                return this.activeQuestionId === card.questions[0]?.id;
+            },
+
+            get isAtLastQuestion() {
+                if (this.currentCardIndex !== this.displayItems.length - 1) return false;
+                const card = this.currentCard;
+                if (!card || !card.questions || card.questions.length <= 1) return true;
+                return this.activeQuestionId === card.questions[card.questions.length - 1]?.id;
             },
 
             prevCard() {
@@ -948,9 +1125,9 @@
                 const isCurrentCard = this.currentCardIndex === cIdx;
                 const isExactActive = isCurrentCard && (this.activeQuestionId === q.id || (!this.activeQuestionId && this.currentCard?.questions[0]?.id === q.id));
 
-                let base = 'rounded-md text-xs font-bold w-9 h-9 ';
+                let base = 'rounded-md text-xs font-bold w-8 h-8 sm:w-9 sm:h-9 ';
                 if (isExactActive) {
-                    base = 'rounded-lg text-sm font-extrabold w-10 h-10 shadow-md mx-0.5 border-2 border-blue-600 ring-2 ring-blue-300 ';
+                    base = 'rounded-lg text-xs sm:text-sm font-extrabold w-9 h-9 sm:w-10 sm:h-10 shadow-md mx-0.5 border-2 border-blue-600 ring-2 ring-blue-300 scale-105 z-10 ';
                 }
 
                 if (q.is_essay) {

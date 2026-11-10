@@ -227,7 +227,7 @@
         </div>
 
         <!-- AREA SOAL & JAWABAN -->
-        <section id="cbt-scroll-container" x-ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 md:p-8 pb-8 sm:pb-10 space-y-5 overscroll-y-contain [webkit-overflow-scrolling:touch]">
+        <section id="cbt-scroll-container" x-ref="scrollContainer" @scroll.passive="onScrollContainer()" class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 md:p-8 pb-10 space-y-5 relative overscroll-y-contain [webkit-overflow-scrolling:touch]">
 
             <template x-if="!questions || questions.length === 0">
                 <div class="rounded-2xl border border-[#ced4da] bg-white p-8 text-center text-[#212529]">
@@ -277,7 +277,7 @@
                                 </div>
                                 <div x-show="!isStimulusCollapsed(card)"
                                      x-transition
-                                     class="prose-q text-sm md:text-base text-[#212529] leading-relaxed max-h-[34vh] overflow-y-auto pr-1"
+                                     class="prose-q text-sm md:text-base text-[#212529] leading-relaxed max-h-[38vh] overflow-y-auto pr-1"
                                      x-html="renderStimulusHtml(card.stimulus)"></div>
                                 <div x-show="isStimulusCollapsed(card)" class="flex items-center justify-between text-xs text-blue-800 font-semibold py-1">
                                     <span>📖 Wacana sedang diciutkan untuk memperluas ruang soal.</span>
@@ -286,10 +286,20 @@
                             </div>
                         </template>
 
-                        <!-- Loop Butir Soal di dalam Kartu Ini (1 Soal per Kartu/Layar) -->
+                        <!-- Header Pembagi jika Kartu Menaungi Banyak Soal Sekaligus (USP Stimulus Multi-Soal) -->
+                        <template x-if="card.is_group && card.questions.length > 1">
+                            <div class="flex items-center justify-between pt-1 pb-1 border-b border-blue-200/80">
+                                <h3 class="font-display font-extrabold text-xs sm:text-sm text-blue-950 uppercase tracking-wider flex items-center gap-2">
+                                    <span>Butir-Butir Soal Berdasarkan Wacana Di Atas</span>
+                                    <span class="text-xs font-bold text-blue-700 bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-md" x-text="'(' + card.questions.length + ' Soal)'"></span>
+                                </h3>
+                            </div>
+                        </template>
+
+                        <!-- Loop Seluruh Soal di dalam Kartu Ini (Soal Tunggal atau Kelompok Soal Stimulus) -->
                         <div class="space-y-6">
                             <template x-for="q in card.questions" :key="q.id">
-                                <div :id="'question-block-' + q.id" class="p-5 md:p-6 rounded-2xl border border-[#ced4da] bg-white space-y-4 shadow-xs transition-all">
+                                <div :id="'question-block-' + q.id" class="p-5 md:p-6 rounded-2xl border border-[#ced4da] bg-white space-y-4 shadow-xs transition-all relative scroll-mt-6">
                                     <!-- Header nomor soal & aksi ragu-ragu -->
                                     <div class="flex items-center justify-between gap-3 pb-2 border-b border-[#ced4da]/50">
                                         <div class="flex items-center gap-2.5">
@@ -485,21 +495,21 @@
 
                         <!-- Tombol Navigasi Bawah Kartu (Sebelumnya / Selanjutnya / Submit) -->
                         <div class="flex items-center justify-between pt-4 border-t border-gray-200 gap-2">
-                            <button type="button" @click="prevCard()" :disabled="currentCardIndex === 0"
+                            <button type="button" @click="handlePrev()" :disabled="isAtFirstQuestion"
                                     class="px-3.5 sm:px-4 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-xs font-bold text-gray-800 transition cursor-pointer flex items-center gap-1.5 font-display shadow-2xs">
                                 <span>←</span>
                                 <span>Soal Sebelumnya</span>
                             </button>
 
-                            <template x-if="currentCardIndex < displayItems.length - 1">
-                                <button type="button" @click="nextCard()"
+                            <template x-if="!isAtLastQuestion">
+                                <button type="button" @click="handleNext()"
                                         class="px-3.5 sm:px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 font-display">
                                     <span>Soal Selanjutnya</span>
                                     <span>→</span>
                                 </button>
                             </template>
 
-                            <template x-if="currentCardIndex === displayItems.length - 1">
+                            <template x-if="isAtLastQuestion">
                                 <button type="button" @click="openSubmitModal()"
                                         class="px-4 sm:px-5 py-2 rounded-xl bg-[#f03e3e] hover:bg-red-600 active:scale-95 text-xs font-bold text-white shadow-sm transition cursor-pointer flex items-center gap-1.5 font-display">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
@@ -533,21 +543,57 @@
                 <div id="nav-pills-scroll-container" class="flex-1 flex items-center overflow-x-auto hide-scrollbar gap-2 py-0.5">
                     <template x-for="(card, cIdx) in displayItems" :key="card.card_index">
                         <div :id="'nav-card-item-' + cIdx" class="shrink-0 flex items-center">
-                            <button type="button" @click="goToCard(cIdx)"
-                                    :disabled="isQuestionLocked(card.questions[0])"
-                                    :title="isQuestionLocked(card.questions[0]) ? 'Waktu bagian ini telah habis (Terkunci)' : 'Soal nomor ' + card.questions[0].number"
-                                    class="font-display shrink-0 flex items-center justify-center transition-all select-none"
-                                    :class="{
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed': isQuestionLocked(card.questions[0]),
-                                        'w-10 h-10 rounded-lg text-sm font-extrabold bg-blue-100 text-blue-900 shadow-md mx-0.5 border-2 border-blue-500 cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex === cIdx,
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && isFlagged(card.questions[0].id),
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && isAnsweredQ(card.questions[0].id),
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && visited[card.questions[0].id],
-                                        'w-9 h-9 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && !visited[card.questions[0].id],
-                                    }">
-                                <span x-text="card.questions[0].number"></span>
-                                <span x-show="isQuestionLocked(card.questions[0])" class="text-[9px] ml-0.5">🔒</span>
-                            </button>
+                            <!-- JIKA KARTU MULTI-SOAL (GROUP STIMULUS) -->
+                            <template x-if="card.is_group && card.questions.length > 1">
+                                <div class="inline-flex items-center gap-1.5 p-1 rounded-xl transition-all"
+                                     :class="currentCardIndex === cIdx
+                                         ? 'bg-blue-200/80 border-2 border-blue-500 shadow-sm ring-1 ring-blue-500/30'
+                                         : 'bg-white/80 border border-blue-200/90'">
+                                    <button type="button"
+                                            @click="goToCard(cIdx)"
+                                            class="px-2 py-1 rounded-md bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider shrink-0 select-none hover:bg-blue-800 transition cursor-pointer">
+                                        <span x-text="card.questions.length + ' Soal'"></span>
+                                    </button>
+                                    <div class="flex items-center gap-1">
+                                        <template x-for="q in card.questions" :key="q.id">
+                                            <button type="button" @click="goToQuestion(q.id)"
+                                                    :disabled="isQuestionLocked(q)"
+                                                    :title="isQuestionLocked(q) ? 'Waktu bagian ini telah habis (Terkunci)' : 'Soal nomor ' + q.number"
+                                                    class="font-display shrink-0 flex items-center justify-center transition-all select-none"
+                                                    :class="{
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed': isQuestionLocked(q),
+                                                        'w-9 h-9 rounded-lg text-sm font-extrabold bg-blue-600 text-white shadow-md mx-0.5 border-2 border-blue-700 cursor-pointer scale-105 z-10': !isQuestionLocked(q) && currentCardIndex === cIdx && activeQuestionId === q.id,
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(q) && activeQuestionId !== q.id && isFlagged(q.id),
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(q) && (currentCardIndex !== cIdx || activeQuestionId !== q.id) && !isFlagged(q.id) && isAnsweredQ(q.id),
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(q) && (currentCardIndex !== cIdx || activeQuestionId !== q.id) && !isFlagged(q.id) && !isAnsweredQ(q.id) && visited[q.id],
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(q) && (currentCardIndex !== cIdx || activeQuestionId !== q.id) && !isFlagged(q.id) && !isAnsweredQ(q.id) && !visited[q.id],
+                                                    }">
+                                                <span x-text="q.number"></span>
+                                                <span x-show="isQuestionLocked(q)" class="text-[8px] ml-0.5">🔒</span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- JIKA KARTU STANDALONE (TUNGGAL) -->
+                            <template x-if="!card.is_group || card.questions.length === 1">
+                                <button type="button" @click="goToQuestion(card.questions[0].id)"
+                                        :disabled="isQuestionLocked(card.questions[0])"
+                                        :title="isQuestionLocked(card.questions[0]) ? 'Waktu bagian ini telah habis (Terkunci)' : 'Soal nomor ' + card.questions[0].number"
+                                        class="font-display shrink-0 flex items-center justify-center transition-all select-none"
+                                        :class="{
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed': isQuestionLocked(card.questions[0]),
+                                            'w-10 h-10 rounded-lg text-sm font-extrabold bg-blue-100 text-blue-900 shadow-md mx-0.5 border-2 border-blue-500 cursor-pointer scale-105 z-10': !isQuestionLocked(card.questions[0]) && currentCardIndex === cIdx,
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && isFlagged(card.questions[0].id),
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && isAnsweredQ(card.questions[0].id),
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && visited[card.questions[0].id],
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && !visited[card.questions[0].id],
+                                        }">
+                                    <span x-text="card.questions[0].number"></span>
+                                    <span x-show="isQuestionLocked(card.questions[0])" class="text-[9px] ml-0.5">🔒</span>
+                                </button>
+                            </template>
                         </div>
                     </template>
 
@@ -750,6 +796,8 @@
             answers: {},
             // Track which questions student has opened/visited
             visited: {},
+            // Active question ID currently viewed or focused by the student
+            activeQuestionId: safePayload.questions?.[0]?.id || null,
             // Section timers state (section_id -> remaining seconds)
             sectionTimers: {},
             // Dedicated scalar for rock-solid Alpine reactivity
@@ -757,20 +805,50 @@
             // List of expired section IDs (locked sections)
             expiredSections: [],
 
-            // Setiap butir soal ditampilkan 1 per kartu/layar (standar CBT/ANBK/UTBK resmi)
+            // Seluruh butir soal yang berada dalam 1 stimulus ditampilkan bersamaan dalam 1 kartu/layar (USP ADZKIA CBT)
             get displayItems() {
                 if (!Array.isArray(this.questions) || this.questions.length === 0) return [];
-                return this.questions.map((q, idx) => ({
-                    card_index: idx,
-                    is_group: !!q.question_group_id,
-                    group_id: q.question_group_id || null,
-                    section_id: q.section_id,
-                    section_number: q.section_number,
-                    section_title: q.section_title,
-                    section_duration_minutes: q.section_duration_minutes,
-                    stimulus: q.stimulus || null,
-                    questions: [q]
-                }));
+
+                const items = [];
+                let currentGroup = null;
+
+                for (let i = 0; i < this.questions.length; i++) {
+                    const q = this.questions[i];
+                    const groupId = q.question_group_id;
+
+                    if (groupId) {
+                        if (currentGroup && currentGroup.group_id === groupId) {
+                            currentGroup.questions.push(q);
+                        } else {
+                            currentGroup = {
+                                card_index: items.length,
+                                is_group: true,
+                                group_id: groupId,
+                                section_id: q.section_id,
+                                section_number: q.section_number,
+                                section_title: q.section_title,
+                                section_duration_minutes: q.section_duration_minutes,
+                                stimulus: q.stimulus || null,
+                                questions: [q]
+                            };
+                            items.push(currentGroup);
+                        }
+                    } else {
+                        currentGroup = null;
+                        items.push({
+                            card_index: items.length,
+                            is_group: false,
+                            group_id: null,
+                            section_id: q.section_id,
+                            section_number: q.section_number,
+                            section_title: q.section_title,
+                            section_duration_minutes: q.section_duration_minutes,
+                            stimulus: q.stimulus || null,
+                            questions: [q]
+                        });
+                    }
+                }
+                return items;
             },
 
             getStimulusKey(card) {
@@ -978,8 +1056,11 @@
                     if (card && card.questions) {
                         card.questions.forEach(q => { this.visited[q.id] = true; });
                         const q0 = card.questions[0];
-                        const qIdx = this.questions.findIndex(q => q.id === q0.id);
-                        if (qIdx >= 0) this.currentIndex = qIdx;
+                        if (q0) {
+                            this.activeQuestionId = q0.id;
+                            const qIdx = this.questions.findIndex(q => q.id === q0.id);
+                            if (qIdx >= 0) this.currentIndex = qIdx;
+                        }
                     }
                 } else if (this.questions.length > 0) {
                     // Semua bagian telah habis waktunya
@@ -1104,6 +1185,48 @@
                 window.scrollTo(0, 0);
             },
 
+            scrollToQuestionBlock(qid, smooth = true) {
+                this.$nextTick(() => {
+                    const container = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
+                    const target = document.getElementById('question-block-' + qid);
+                    if (!container || !target) return;
+
+                    const containerRect = container.getBoundingClientRect();
+                    const targetRect = target.getBoundingClientRect();
+                    const targetOffset = (targetRect.top - containerRect.top) + container.scrollTop - 16;
+                    const maxScroll = container.scrollHeight - container.clientHeight;
+                    const safeTop = Math.max(0, Math.min(targetOffset, maxScroll));
+
+                    container.scrollTo({
+                        top: safeTop,
+                        behavior: smooth ? 'smooth' : 'auto'
+                    });
+                });
+            },
+
+            onScrollContainer() {
+                const card = this.currentCard;
+                if (!card || !card.questions || card.questions.length <= 1) return;
+                const container = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
+                if (!container) return;
+                const containerTop = container.getBoundingClientRect().top;
+
+                for (let i = 0; i < card.questions.length; i++) {
+                    const q = card.questions[i];
+                    const el = document.getElementById('question-block-' + q.id);
+                    if (el) {
+                        const rect = el.getBoundingClientRect();
+                        if (rect.bottom > containerTop + 60 && rect.top <= containerTop + 240) {
+                            if (this.activeQuestionId !== q.id) {
+                                this.activeQuestionId = q.id;
+                                this.visited[q.id] = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+            },
+
             scrollNavToActive(cardIdx) {
                 this.$nextTick(() => {
                     const el = document.getElementById('nav-card-item-' + cardIdx);
@@ -1116,7 +1239,7 @@
                 });
             },
 
-            goToCard(cardIdx) {
+            goToCard(cardIdx, targetQid = null) {
                 const card = this.displayItems[cardIdx];
                 if (!card) return;
                 if (this.isCardLocked(card)) {
@@ -1124,35 +1247,61 @@
                     return;
                 }
                 this.currentCardIndex = cardIdx;
+                const chosenQid = targetQid || (card.questions && card.questions[0]?.id) || null;
+                if (chosenQid) {
+                    this.activeQuestionId = chosenQid;
+                    this.visited[chosenQid] = true;
+                    const qIdx = this.questions.findIndex(q => q.id === chosenQid);
+                    if (qIdx >= 0) this.currentIndex = qIdx;
+                }
                 if (card.questions) {
                     card.questions.forEach(q => { this.visited[q.id] = true; });
-                    const q0 = card.questions[0];
-                    const qIdx = this.questions.findIndex(q => q.id === q0.id);
-                    if (qIdx >= 0) this.currentIndex = qIdx;
                 }
                 this.updateCurrentSectionTimer();
 
-                // Segera reset scroll container ke 0 secara sinkron agar tidak tertinggal scroll soal sebelumnya yang bergambar
                 const scrollContainer = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
-                if (scrollContainer) {
-                    scrollContainer.scrollTop = 0;
-                }
-                window.scrollTo(0, 0);
-
-                this.scrollNavToActive(cardIdx);
-                this.$nextTick(() => {
+                if (targetQid && card.questions && card.questions.length > 1 && card.questions[0]?.id !== targetQid) {
+                    this.$nextTick(() => {
+                        this.renderKatex();
+                        this.scrollToQuestionBlock(targetQid, true);
+                        this.triggerQuestionMediaAutoplay();
+                    });
+                } else {
                     if (scrollContainer) {
                         scrollContainer.scrollTop = 0;
                     }
-                    this.renderKatex();
-                    this.triggerQuestionMediaAutoplay();
-                });
+                    window.scrollTo(0, 0);
+                    this.$nextTick(() => {
+                        if (scrollContainer) scrollContainer.scrollTop = 0;
+                        this.renderKatex();
+                        this.triggerQuestionMediaAutoplay();
+                    });
+                }
+
+                this.scrollNavToActive(cardIdx);
             },
 
             goToQuestion(qid) {
-                const cardIdx = this.displayItems.findIndex(c => c.questions[0]?.id === qid);
-                if (cardIdx !== -1) {
-                    this.goToCard(cardIdx);
+                const cardIdx = this.displayItems.findIndex(c => c.questions.some(q => q.id === qid));
+                if (cardIdx === -1) return;
+                const card = this.displayItems[cardIdx];
+                if (this.isCardLocked(card)) {
+                    this.warn('Waktu untuk bagian soal ini telah habis. Soal dan jawaban telah terkunci.');
+                    return;
+                }
+
+                if (this.currentCardIndex === cardIdx) {
+                    this.activeQuestionId = qid;
+                    this.visited[qid] = true;
+                    const isFirstQ = card.questions && card.questions[0]?.id === qid;
+                    if (isFirstQ) {
+                        const scrollContainer = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
+                        if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                        this.scrollToQuestionBlock(qid, true);
+                    }
+                } else {
+                    this.goToCard(cardIdx, qid);
                 }
             },
 
@@ -1160,6 +1309,55 @@
                 if (idx >= 0 && idx < this.displayItems.length) {
                     this.goToCard(idx);
                 }
+            },
+
+            handlePrev() {
+                const card = this.currentCard;
+                if (card && card.questions && card.questions.length > 1) {
+                    const curIdx = card.questions.findIndex(q => q.id === this.activeQuestionId);
+                    if (curIdx > 0) {
+                        const prevQ = card.questions[curIdx - 1];
+                        this.activeQuestionId = prevQ.id;
+                        this.visited[prevQ.id] = true;
+                        if (curIdx - 1 === 0) {
+                            const scrollContainer = this.$refs.scrollContainer || document.getElementById('cbt-scroll-container');
+                            if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+                        } else {
+                            this.scrollToQuestionBlock(prevQ.id, true);
+                        }
+                        return;
+                    }
+                }
+                this.prevCard();
+            },
+
+            handleNext() {
+                const card = this.currentCard;
+                if (card && card.questions && card.questions.length > 1) {
+                    const curIdx = card.questions.findIndex(q => q.id === this.activeQuestionId);
+                    if (curIdx >= 0 && curIdx < card.questions.length - 1) {
+                        const nextQ = card.questions[curIdx + 1];
+                        this.activeQuestionId = nextQ.id;
+                        this.visited[nextQ.id] = true;
+                        this.scrollToQuestionBlock(nextQ.id, true);
+                        return;
+                    }
+                }
+                this.nextCard();
+            },
+
+            get isAtFirstQuestion() {
+                if (this.currentCardIndex !== 0) return false;
+                const card = this.currentCard;
+                if (!card || !card.questions || card.questions.length <= 1) return true;
+                return this.activeQuestionId === card.questions[0]?.id;
+            },
+
+            get isAtLastQuestion() {
+                if (this.currentCardIndex !== this.displayItems.length - 1) return false;
+                const card = this.currentCard;
+                if (!card || !card.questions || card.questions.length <= 1) return true;
+                return this.activeQuestionId === card.questions[card.questions.length - 1]?.id;
             },
 
             prevCard() {
@@ -1181,11 +1379,11 @@
             },
 
             prevQuestion() {
-                this.prevCard();
+                this.handlePrev();
             },
 
             nextQuestion() {
-                this.nextCard();
+                this.handleNext();
             },
 
             get answeredCount() {
@@ -1219,6 +1417,22 @@
                 const cur = this.answers[q.id]?.answer_payload ?? {};
                 if (q.type === 'mcq_single' || q.type === 'mcq_weighted') {
                     this.setAnswer(q.id, { option_id: opt.id });
+                    this.activeQuestionId = q.id;
+
+                    const card = this.currentCard;
+                    if (card && card.questions && card.questions.length > 1) {
+                        const qIdxInCard = card.questions.findIndex(item => item.id === q.id);
+                        if (qIdxInCard >= 0 && qIdxInCard < card.questions.length - 1) {
+                            const nextQ = card.questions[qIdxInCard + 1];
+                            setTimeout(() => {
+                                this.activeQuestionId = nextQ.id;
+                                this.visited[nextQ.id] = true;
+                                this.scrollToQuestionBlock(nextQ.id, true);
+                            }, 250);
+                            return;
+                        }
+                    }
+
                     if (this.currentCardIndex < this.displayItems.length - 1) {
                         setTimeout(() => {
                             this.nextCard();
@@ -1229,6 +1443,7 @@
                     const idx = ids.indexOf(opt.id);
                     if (idx >= 0) ids.splice(idx, 1); else ids.push(opt.id);
                     this.setAnswer(q.id, { option_ids: ids });
+                    this.activeQuestionId = q.id;
                 }
             },
 
