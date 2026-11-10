@@ -239,8 +239,17 @@ class ExamResultController extends Controller
                 $hasOfficial = filled(trim((string) ($q->explanation ?? '')));
                 $officialExplanation = $hasOfficial ? $q->explanation : '';
 
-                // AI explanation: periksa apakah sudah pernah digenerate untuk jawaban ini
-                $aiExplanationText = (string) (data_get($ans?->answer_payload, 'ai_explanation') ?: '');
+                // AI explanation: periksa jawaban peserta ATAU fallback ke explanation soal (jika sudah digenerate sebelumnya)
+                $ansAiText = (string) (data_get($ans?->answer_payload, 'ai_explanation') ?: '');
+                $aiModel = (string) (data_get($ans?->answer_payload, 'ai_model') ?: ($q->explanation_model ?: 'DEEPSEEK V4 Pro Reasoner'));
+
+                if (filled($ansAiText)) {
+                    $aiExplanationText = $ansAiText;
+                } elseif (filled($q->explanation)) {
+                    $aiExplanationText = (string) $q->explanation;
+                } else {
+                    $aiExplanationText = '';
+                }
                 $hasAiExplanation = filled($aiExplanationText);
 
                 $formattedStudentAnswer = $this->reviewFormatter->formatStudentAnswer($q, $ans);
@@ -332,7 +341,7 @@ class ExamResultController extends Controller
                     'ai_explanation' => $aiExplanationText,
                     'rendered_ai_explanation' => $hasAiExplanation ? MarkdownRenderer::render($aiExplanationText) : '',
                     'has_ai_explanation' => $hasAiExplanation,
-                    'ai_model' => data_get($ans?->answer_payload, 'ai_model') ?: 'DEEPSEEK V4 Pro Reasoner',
+                    'ai_model' => $aiModel,
                     'type' => $q->type,
                     'points' => (float) ($q->points ?? 1),
                     'is_essay' => $isEssay,
@@ -894,7 +903,7 @@ class ExamResultController extends Controller
         $aiService = app(AiExplanationService::class);
         $modelName = $aiService->getModelName();
 
-        // Jika sudah pernah digenerate pada answer peserta ini, langsung kembalikan
+        // 1. Jika sudah pernah digenerate pada answer peserta ini, langsung kembalikan (0ms)
         $existingAi = (string) (data_get($answer?->answer_payload, 'ai_explanation') ?: '');
         if (filled($existingAi)) {
             $savedModel = data_get($answer?->answer_payload, 'ai_model') ?: $modelName;
@@ -911,6 +920,45 @@ class ExamResultController extends Controller
             ]);
         }
 
+        // 2. Jika soal sudah memiliki explanation (misal dari bank soal / DeepSeek), gunakan langsung (0ms)
+        if (filled($question->explanation)) {
+            $existingAi = (string) $question->explanation;
+            $savedModel = (string) ($question->explanation_model ?: $modelName);
+
+            if (! $answer) {
+                $answer = ExamAnswer::firstOrCreate(
+                    [
+                        'exam_session_id' => $session->id,
+                        'question_id' => $question->id,
+                    ],
+                    [
+                        'answer_payload' => [],
+                        'is_correct' => false,
+                        'points_awarded' => 0,
+                    ]
+                );
+            }
+
+            $payload = (array) ($answer->answer_payload ?? []);
+            $payload['ai_explanation'] = $existingAi;
+            $payload['ai_model'] = $savedModel;
+            $payload['ai_explanation_at'] = now()->toIso8601String();
+            $answer->answer_payload = $payload;
+            $answer->save();
+
+            return response()->json([
+                'ok' => true,
+                'success' => true,
+                'content' => $existingAi,
+                'ai_explanation' => $existingAi,
+                'ai_model' => $savedModel,
+                'model' => $savedModel,
+                'rendered' => MarkdownRenderer::render($existingAi),
+                'rendered_ai_explanation' => MarkdownRenderer::render($existingAi),
+            ]);
+        }
+
+        // 3. Generate on-demand via DeepSeek Reasoner
         try {
             $explanationText = $aiService->generateForStudent($question);
         } catch (\Throwable $e) {
@@ -942,6 +990,15 @@ class ExamResultController extends Controller
         $payload['ai_explanation_at'] = now()->toIso8601String();
         $answer->answer_payload = $payload;
         $answer->save();
+
+        if (blank($question->explanation)) {
+            $question->update([
+                'explanation' => $explanationText,
+                'explanation_model' => $modelName,
+                'explanation_status' => 'completed',
+                'explanation_generated_at' => now(),
+            ]);
+        }
 
         return response()->json([
             'ok' => true,

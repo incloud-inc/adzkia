@@ -630,10 +630,10 @@
                                                 :class="showAiMap[q.id] ? 'bg-violet-600 text-white shadow-xs ring-2 ring-violet-300' : 'bg-white text-violet-800 border-2 border-violet-400 hover:bg-violet-50 hover:border-violet-500'"
                                                 class="px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 shadow-2xs select-none active:scale-95">
                                             <template x-if="aiLoadingMap[q.id]">
-                                                <svg class="w-4 h-4 animate-spin text-violet-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity=".2"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+                                                <svg class="w-4 h-4 animate-spin text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="3" opacity=".25"/><path stroke-width="3" d="M12 2a10 10 0 0 1 10 10"/></svg>
                                             </template>
                                             <template x-if="!aiLoadingMap[q.id]">
-                                                <svg class="w-4 h-4 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-4 h-4 text-amber-300 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                                                     <path d="M12 2L14.4 7.6L20 8.4L16 12.4L17.2 18L12 15.2L6.8 18L8 12.4L4 8.4L9.6 7.6L12 2Z"/>
                                                 </svg>
                                             </template>
@@ -679,16 +679,51 @@
                                         </h3>
                                         <span class="text-xs font-bold text-violet-900 bg-violet-100 border border-violet-300 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 shadow-2xs">
                                             <span class="w-2 h-2 rounded-full bg-violet-600 animate-pulse"></span>
-                                            <span x-text="q.ai_model || 'DeepSeek Reasoner'"></span>
+                                            <span x-text="q.ai_model || 'DEEPSEEK V4 Pro Reasoner'"></span>
                                         </span>
                                     </div>
-                                    <div class="text-base text-[#212529] leading-relaxed prose-q
-                                                prose-headings:text-slate-900 prose-headings:font-bold
-                                                prose-h3:text-sm prose-h3:font-black prose-h3:text-violet-900 prose-h3:mt-3 prose-h3:mb-1.5
-                                                prose-p:my-1.5 prose-p:text-xs sm:prose-p:text-sm
-                                                prose-ul:my-1.5 prose-li:my-0.5 prose-li:text-xs sm:prose-li:text-sm
-                                                prose-strong:text-slate-950 prose-strong:font-bold"
-                                         x-html="q.rendered_ai_explanation || renderRich(q.ai_explanation || '')"></div>
+
+                                    <!-- Loading State -->
+                                    <template x-if="aiLoadingMap[q.id]">
+                                        <div class="flex items-center gap-3.5 py-6 px-4 bg-white/90 rounded-xl border border-violet-200 shadow-2xs">
+                                            <svg class="w-6 h-6 animate-spin text-violet-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="3" opacity=".2"/><path stroke-width="3" d="M12 2a10 10 0 0 1 10 10"/></svg>
+                                            <div>
+                                                <p class="text-sm font-bold text-violet-950 font-display">DeepSeek Reasoner sedang menyusun pembahasan mendalam...</p>
+                                                <p class="text-xs text-violet-700">Menganalisis soal, konsep materi, dan alur penalaran secara komprehensif.</p>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Content State -->
+                                    <template x-if="!aiLoadingMap[q.id] && (q.rendered_ai_explanation || q.ai_explanation)">
+                                        <div class="text-base text-[#212529] leading-relaxed prose-q
+                                                    prose-headings:text-slate-900 prose-headings:font-bold
+                                                    prose-h3:text-sm prose-h3:font-black prose-h3:text-violet-900 prose-h3:mt-3 prose-h3:mb-1.5
+                                                    prose-p:my-1.5 prose-p:text-xs sm:prose-p:text-sm
+                                                    prose-ul:my-1.5 prose-li:my-0.5 prose-li:text-xs sm:prose-li:text-sm
+                                                    prose-strong:text-slate-950 prose-strong:font-bold"
+                                             x-html="q.rendered_ai_explanation || renderRich(q.ai_explanation || '')"></div>
+                                    </template>
+
+                                    <!-- Trigger / Fallback Button State -->
+                                    <template x-if="!aiLoadingMap[q.id] && !q.rendered_ai_explanation && !q.ai_explanation">
+                                        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-violet-100/60 rounded-xl border border-violet-200 text-center sm:text-left">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                                                    AI
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-bold text-violet-950 font-display">Pembahasan AI belum dimuat untuk nomor ini</p>
+                                                    <p class="text-xs text-violet-700">Klik tombol di samping untuk menghasilkan penalaran dari DeepSeek Reasoner.</p>
+                                                </div>
+                                            </div>
+                                            <button type="button" @click="fetchAiExplanation(q)"
+                                                    class="px-4 py-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white rounded-lg text-xs font-bold transition shadow-xs shrink-0 flex items-center gap-1.5 cursor-pointer">
+                                                <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.4 7.6L20 8.4L16 12.4L17.2 18L12 15.2L6.8 18L8 12.4L4 8.4L9.6 7.6L12 2Z"/></svg>
+                                                <span>Buat Pembahasan AI</span>
+                                            </button>
+                                        </div>
+                                    </template>
                                 </div>
 
                                 <!-- KETIKA KEDUANYA DI-HIDE -->
@@ -829,7 +864,14 @@
             currentCardIndex: 0,
             activeQuestionId: qList.length > 0 ? qList[0].id : null,
             showOfficialMap: {},
-            showAiMap: {},
+            showAiMap: (function() {
+                const map = {};
+                qList.forEach(q => {
+                    // Aktifkan pembahasan AI secara default untuk setiap soal
+                    map[q.id] = true;
+                });
+                return map;
+            })(),
             aiLoadingMap: {},
             stimulusCollapsed: {},
 
@@ -1167,8 +1209,9 @@
                     return;
                 }
 
+                this.showAiMap = { ...this.showAiMap, [q.id]: true };
+
                 if (q.rendered_ai_explanation || q.ai_explanation) {
-                    this.showAiMap = { ...this.showAiMap, [q.id]: true };
                     this.$nextTick(() => {
                         this.renderMath();
                         this.scrollToAiBox(q.id);
@@ -1176,7 +1219,15 @@
                     return;
                 }
 
+                await this.fetchAiExplanation(q);
+            },
+
+            async fetchAiExplanation(q) {
+                if (!q || this.aiLoadingMap[q.id]) return;
+
+                this.showAiMap = { ...this.showAiMap, [q.id]: true };
                 this.aiLoadingMap = { ...this.aiLoadingMap, [q.id]: true };
+
                 try {
                     const sessionUuid = this.sessionUuid || payload.sessionUuid || window.__reviewData?.sessionUuid || '{{ $session->uuid }}';
                     const questionId = q.id;
@@ -1214,8 +1265,11 @@
 
             scrollToAiBox(qId) {
                 const el = document.getElementById('ai-explanation-box-' + qId);
-                if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                if (!el) return;
+                const rect = el.getBoundingClientRect();
+                const isVisible = (rect.top >= 80 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight));
+                if (!isVisible) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 }
             },
 
