@@ -11,9 +11,10 @@
         showR2Key: false,
         showR2Secret: false,
         showGoogleSecret: false,
+        showDeepseekKey: false,
         copiedUrl: null,
-        testing: { r2: false, database: false, redis: false, ai: false, 'google-oauth': false },
-        testResults: { r2: null, database: null, redis: null, ai: null, 'google-oauth': null },
+        testing: { r2: false, database: false, redis: false, 'ai-deepseek': false, 'google-oauth': false },
+        testResults: { r2: null, database: null, redis: null, 'ai-deepseek': null, 'google-oauth': null },
         copyToClipboard(text, id) {
             navigator.clipboard.writeText(text);
             this.copiedUrl = id;
@@ -756,7 +757,7 @@
                             <p class="text-xs text-gray-11">Diagnostik real-time koneksi server database, Redis cache, Cloudflare R2, dan mesin AI.</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button type="button" @click="runTest('database'); runTest('redis'); runTest('r2'); runTest('google-oauth');"
+                            <button type="button" @click="runTest('database'); runTest('redis'); runTest('r2'); runTest('ai-deepseek'); runTest('google-oauth');"
                                     class="px-3.5 py-1.5 rounded-xl bg-blue-9 hover:bg-blue-10 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer">
                                 <x-radix-icon name="reload" class="w-3.5 h-3.5" />
                                 <span>Uji Semua Koneksi</span>
@@ -915,17 +916,39 @@
                                     <p class="text-[11px] text-gray-10">Digunakan untuk auto-pembahasan soal dan penalaran cerdas.</p>
                                 </div>
 
-                                <div x-show="testResults.ai !== null" x-cloak class="mt-3">
-                                    <p class="text-[11px] font-bold p-2 rounded"
-                                       :class="testResults.ai?.success ? 'bg-purple-2 text-purple-11 border border-purple-5' : 'bg-red-2 text-red-11 border border-red-5'"
-                                       x-text="testResults.ai?.message"></p>
+                                <div class="mt-3 space-y-1.5">
+                                    <label for="deepseek_api_key" class="block text-[11px] font-bold text-gray-11">Input / Perbarui DeepSeek API Key</label>
+                                    <div class="relative">
+                                        <input :type="showDeepseekKey ? 'text' : 'password'"
+                                               name="deepseek_api_key"
+                                               id="deepseek_api_key"
+                                               value="{{ $aiStatus['deepseek']['key_full'] ?? '' }}"
+                                               placeholder="sk-..."
+                                               class="w-full text-xs font-mono px-3 py-2 pr-16 rounded-xl border border-gray-6 bg-white focus:ring-2 focus:ring-purple-9/20 focus:border-purple-9">
+                                        <button type="button" @click="showDeepseekKey = !showDeepseekKey"
+                                                class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-10 hover:text-gray-12 px-2 py-1 rounded bg-gray-3 cursor-pointer">
+                                            <span x-text="showDeepseekKey ? 'Hide' : 'Show'"></span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div x-show="testResults['ai-deepseek'] !== null" x-cloak class="mt-3">
+                                    <p class="text-[11px] font-bold p-2.5 rounded-xl border"
+                                       :class="testResults['ai-deepseek']?.success ? 'bg-purple-2 text-purple-11 border-purple-5' : 'bg-red-2 text-red-11 border-red-5'"
+                                       x-text="testResults['ai-deepseek']?.message"></p>
+                                    <template x-if="testResults['ai-deepseek']?.ping_ms">
+                                        <span class="text-[10px] font-mono text-gray-10 mt-1 block" x-text="'Ping: ' + testResults['ai-deepseek']?.ping_ms + ' ms'"></span>
+                                    </template>
                                 </div>
                             </div>
 
                             <div class="mt-4 pt-3 border-t border-gray-4 flex items-center justify-between">
                                 <span class="text-[11px] text-gray-10">api.deepseek.com</span>
                                 <button type="button" @click="runTest('ai-deepseek')" :disabled="testing['ai-deepseek']"
-                                        class="px-2.5 py-1 rounded-lg bg-gray-3 hover:bg-gray-4 text-gray-12 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50">
+                                        class="px-2.5 py-1.5 rounded-lg bg-gray-3 hover:bg-gray-4 text-gray-12 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
+                                    <span :class="testing['ai-deepseek'] ? 'animate-spin' : ''" class="inline-flex">
+                                        <x-radix-icon name="reload" class="w-3.5 h-3.5" />
+                                    </span>
                                     <span x-text="testing['ai-deepseek'] ? 'Menguji...' : 'Uji API DeepSeek'"></span>
                                 </button>
                             </div>

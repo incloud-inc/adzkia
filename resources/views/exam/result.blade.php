@@ -257,7 +257,7 @@
                             </div>
                             <div x-show="!isStimulusCollapsed(card)"
                                  x-transition
-                                 class="prose-q text-sm md:text-base text-[#212529] leading-relaxed max-h-[34vh] overflow-y-auto pr-1"
+                                 class="prose-q text-sm md:text-base text-[#212529] leading-relaxed w-full min-w-0"
                                  x-html="renderStimulusHtml(card.stimulus)"></div>
                             <div x-show="isStimulusCollapsed(card)" class="flex items-center justify-between text-xs text-blue-800 font-semibold py-1">
                                 <span>📖 Wacana sedang diciutkan untuk memperluas ruang soal.</span>

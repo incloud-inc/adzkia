@@ -167,6 +167,7 @@ class SettingController extends Controller
                 'enabled' => config('services.deepseek.enabled', true),
                 'configured' => ! empty($deepseekKey),
                 'key_preview' => ! empty($deepseekKey) ? substr($deepseekKey, 0, 6).'...'.substr($deepseekKey, -4) : null,
+                'key_full' => $deepseekKey,
                 'model' => config('services.deepseek.model', 'deepseek-reasoner'),
                 'base_url' => config('services.deepseek.base_url', 'https://api.deepseek.com'),
                 'timeout' => config('services.deepseek.timeout', 60),
@@ -463,7 +464,7 @@ class SettingController extends Controller
                 }
 
             case 'ai-deepseek':
-                $apiKey = $request->input('deepseek_api_key', config('services.deepseek.api_key'));
+                $apiKey = trim((string) $request->input('deepseek_api_key')) ?: $this->getSettingValue('DEEPSEEK_API_KEY', 'services.deepseek.api_key', '');
                 if (empty($apiKey)) {
                     return response()->json([
                         'success' => false,
