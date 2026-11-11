@@ -901,17 +901,66 @@
                 }
             },
 
+            convertMediaTagsToPlayers(html) {
+                if (!html) return '';
+                let result = html;
+
+                // 1. Tag [listening:url|title] atau [audio:url|title]
+                result = result.replace(/\[(?:listening|audio):([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
+                    return this.buildListeningPlayer(url, false, title);
+                });
+
+                // 2. Tag [video:url|title]
+                result = result.replace(/\[video:([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
+                    return this.buildListeningPlayer(url, true, title);
+                });
+
+                // 3. Tag <audio ...> (termasuk tag dari database seperti <audio controls autoplay src="..."></audio>)
+                result = result.replace(/<audio\b([^>]*?)(?:>(?:([\s\S]*?)<\/audio>)?|\/>)/gi, (match, attrs, inner) => {
+                    if (attrs.includes('cbt-media-element')) return match;
+
+                    let src = '';
+                    const srcMatch = attrs.match(/\bsrc\s*=\s*(?:["']([^"']+)["']|([^\s>]+))/i);
+                    if (srcMatch) {
+                        src = srcMatch[1] || srcMatch[2];
+                    } else if (inner) {
+                        const sourceMatch = inner.match(/<source\b[^>]*?\bsrc\s*=\s*(?:["']([^"']+)["']|([^\s>]+))/i);
+                        if (sourceMatch) {
+                            src = sourceMatch[1] || sourceMatch[2];
+                        }
+                    }
+                    if (src) {
+                        return this.buildListeningPlayer(src.trim(), false, 'Audio Stimulus');
+                    }
+                    return '';
+                });
+
+                // 4. Tag <video ...>
+                result = result.replace(/<video\b([^>]*?)(?:>(?:([\s\S]*?)<\/video>)?|\/>)/gi, (match, attrs, inner) => {
+                    if (attrs.includes('cbt-media-element')) return match;
+
+                    let src = '';
+                    const srcMatch = attrs.match(/\bsrc\s*=\s*(?:["']([^"']+)["']|([^\s>]+))/i);
+                    if (srcMatch) {
+                        src = srcMatch[1] || srcMatch[2];
+                    } else if (inner) {
+                        const sourceMatch = inner.match(/<source\b[^>]*?\bsrc\s*=\s*(?:["']([^"']+)["']|([^\s>]+))/i);
+                        if (sourceMatch) {
+                            src = sourceMatch[1] || sourceMatch[2];
+                        }
+                    }
+                    if (src) {
+                        return this.buildListeningPlayer(src.trim(), true, 'Video Stimulus');
+                    }
+                    return '';
+                });
+
+                return result;
+            },
+
             renderQuestionStem(q) {
                 let raw = q.rendered_stem || q.prompt || q.stem || '';
-                if (raw.includes('[listening:') || raw.includes('[audio:') || raw.includes('[video:')) {
-                    raw = raw.replace(/\[(?:listening|audio):([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
-                        return this.buildListeningPlayer(url, false, title);
-                    });
-                    raw = raw.replace(/\[video:([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
-                        return this.buildListeningPlayer(url, true, title);
-                    });
-                }
-                return raw;
+                return this.convertMediaTagsToPlayers(raw);
             },
 
             // Seluruh butir soal yang berada dalam 1 stimulus ditampilkan bersamaan dalam 1 kartu/layar (USP ADZKIA CBT)
@@ -1256,13 +1305,27 @@
                 this.lsSetExpiredSections(this.expiredSections);
                 this.logEvent('section_expired', { section_id: secId });
 
+                // PRIORITAS UTAMA WAKTU SECTION:
+                // 1. Matikan dan hentikan seketika seluruh audio/video yang sedang berjalan
+                this.pauseAllMedia();
+                this.isMediaPlaying = false;
+
+                // 2. Tandai media di kartu yang kedaluwarsa sebagai selesai agar tidak mengunci lagi
+                const curCardArt = document.querySelector(`article[data-card-index="${this.currentCardIndex}"]`);
+                if (curCardArt) {
+                    curCardArt.querySelectorAll('audio, video, [data-media-url]').forEach(el => {
+                        const url = el.getAttribute('data-media-url') || el.currentSrc || el.src;
+                        if (url) this.markMediaCompleted(url);
+                    });
+                }
+
                 const expiredSecObj = this.sections.find(s => s.id == secId);
                 const cleanSecTitle = (expiredSecObj?.title || '').replace(/^(?:bagian|section)\s+\d+\s*[:\-–]\s*/i, '').trim();
                 const expiredLabel = cleanSecTitle || (expiredSecObj?.number ? `Bagian ${expiredSecObj.number}` : 'bagian ini');
 
                 this.warn(`⏰ Waktu untuk ${expiredLabel} telah habis! Soal pada bagian ini telah dikunci.`);
 
-                // Cari kartu berikutnya yang TIDAK terkunci (mulai dari currentCardIndex + 1 ke depan)
+                // 3. Cari kartu berikutnya yang TIDAK terkunci (mulai dari currentCardIndex + 1 ke depan)
                 let nextCardIdx = this.displayItems.findIndex((c, i) => i > this.currentCardIndex && !this.isCardLocked(c));
                 if (nextCardIdx === -1) {
                     // Cari dari awal
@@ -1270,9 +1333,8 @@
                 }
 
                 if (nextCardIdx !== -1) {
-                    if (this.currentCard && this.isCardLocked(this.currentCard)) {
-                        this.goToCard(nextCardIdx);
-                    }
+                    // Paksa lanjut ke section berikutnya (force = true)
+                    this.goToCard(nextCardIdx, null, true);
                 } else {
                     // Semua section sudah habis waktunya
                     this.autoSubmit();
@@ -1353,14 +1415,14 @@
                 });
             },
 
-            goToCard(cardIdx, targetQid = null) {
-                if (this.isMediaPlaying && cardIdx !== this.currentCardIndex) {
+            goToCard(cardIdx, targetQid = null, force = false) {
+                if (!force && this.isMediaPlaying && cardIdx !== this.currentCardIndex) {
                     this.warn('🎧 Harap dengarkan audio/video sampai selesai sebelum berpindah soal.');
                     return;
                 }
                 const card = this.displayItems[cardIdx];
                 if (!card) return;
-                if (this.isCardLocked(card)) {
+                if (!force && this.isCardLocked(card)) {
                     this.warn('Waktu untuk bagian soal ini telah habis. Soal dan jawaban telah terkunci.');
                     return;
                 }
@@ -2258,8 +2320,8 @@
                         <audio class="cbt-media-element hidden" src="${cleanUrl}" preload="metadata" oncontextmenu="return false;"></audio>
                     `}
 
-                    <!-- Progress bar & time indicator -->
-                    <div class="cbt-media-progress-box space-y-1.5 mt-2 ${alreadyDone ? 'opacity-60' : ''}">
+                    <!-- Progress bar & time indicator (Non-interactive) -->
+                    <div class="cbt-media-progress-box space-y-1.5 mt-2 pointer-events-none select-none ${alreadyDone ? 'opacity-60' : ''}">
                         <div class="flex items-center justify-between text-[11px] font-mono font-bold text-slate-600">
                             <span class="cbt-media-time-current">${alreadyDone ? '--:--' : '00:00'}</span>
                             <span class="cbt-media-status text-[10px] font-sans font-semibold text-slate-500">${alreadyDone ? 'Terkunci (Hanya 1x Putar)' : 'Memutar otomatis...'}</span>
@@ -2293,45 +2355,34 @@
                 if (!stimulus) return '';
                 let html = '';
 
-                // If stimulus has media_url or stimulus_type is audio/video
-                if (stimulus.media_url) {
-                    const isVid = stimulus.type === 'video' || stimulus.stimulus_type === 'video' || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(stimulus.media_url);
-                    html += this.buildListeningPlayer(stimulus.media_url, isVid, stimulus.title || (isVid ? 'Video Stimulus' : 'Audio Stimulus'));
-                }
-
                 // If stimulus already has pre-rendered HTML from backend
                 if (stimulus.rendered) {
-                    let r = stimulus.rendered;
-                    if (r.includes('[listening:') || r.includes('[audio:') || r.includes('[video:')) {
-                        r = r.replace(/\[(?:listening|audio):([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
-                            return this.buildListeningPlayer(url, false, title);
-                        });
-                        r = r.replace(/\[video:([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
-                            return this.buildListeningPlayer(url, true, title);
-                        });
-                    }
-                    html += r;
+                    html += stimulus.rendered;
                 } else if (stimulus.content) {
                     html += this.renderRich(stimulus.content);
                 }
+
+                // If stimulus has media_url, only add if not already in content
+                if (stimulus.media_url && !html.includes(stimulus.media_url)) {
+                    const isVid = stimulus.type === 'video' || stimulus.stimulus_type === 'video' || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(stimulus.media_url);
+                    html = this.buildListeningPlayer(stimulus.media_url, isVid, stimulus.title || (isVid ? 'Video Stimulus' : 'Audio Stimulus')) + html;
+                }
+
+                // Konversi seluruh tag media ([listening:], <audio ...>, <video ...>) ke player khusus CBT
+                html = this.convertMediaTagsToPlayers(html);
 
                 return html.replace(/<(audio|video)\b([^>]*?)\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?([^>]*?)>/gi, '<$1$2$3>');
             },
 
             renderRich(text) {
                 if (!text) return '';
-                let raw = text;
-
-                raw = raw.replace(/\[(?:listening|audio):([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
-                    return this.buildListeningPlayer(url, false, title);
-                });
-                raw = raw.replace(/\[video:([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
-                    return this.buildListeningPlayer(url, true, title);
-                });
+                let raw = this.convertMediaTagsToPlayers(text);
 
                 if (window.marked && typeof window.marked.parse === 'function') {
                     try { raw = window.marked.parse(raw, { gfm: true, breaks: true }); } catch(_) {}
                 }
+
+                raw = this.convertMediaTagsToPlayers(raw);
 
                 // Hapus atribut autoplay jika ada
                 raw = raw.replace(/<(audio|video)\b([^>]*?)\bautoplay(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?([^>]*?)>/gi, '<$1$2$3>');
@@ -2533,6 +2584,15 @@
                 this.$nextTick(() => {
                     setTimeout(() => {
                         let curCardHasUncompletedMedia = false;
+
+                        // Pastikan TIDAK ADA kontrol multimedia browser yang tersisa di seluruh dokumen
+                        document.querySelectorAll('audio, video').forEach(el => {
+                            el.removeAttribute('controls');
+                            el.controls = false;
+                            if (el.tagName === 'AUDIO' && !el.closest('.cbt-listening-card')) {
+                                el.style.display = 'none';
+                            }
+                        });
 
                         document.querySelectorAll('article[data-card-index]').forEach(art => {
                             const isCurrent = art.getAttribute('data-card-index') === String(this.currentCardIndex);
