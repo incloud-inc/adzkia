@@ -322,7 +322,7 @@
 
                                     <!-- Teks Paragraf / Soal (Stem) -->
                                     <div class="text-[#212529] text-base md:text-lg leading-relaxed prose-q font-medium"
-                                         x-html="q.rendered_stem || renderRich(q.stem)"></div>
+                                         x-html="renderQuestionStem(q)"></div>
 
                                     <!-- ── 1. mcq_single, mcq_multiple, mcq_weighted ── -->
                                     <div x-show="['mcq_single','mcq_multiple','mcq_weighted'].includes(q.type)" class="space-y-3 pb-2">
@@ -495,7 +495,8 @@
 
                         <!-- Tombol Navigasi Bawah Kartu (Sebelumnya / Selanjutnya / Submit) -->
                         <div class="flex items-center justify-between pt-4 border-t border-gray-200 gap-2">
-                            <button type="button" @click="handlePrev()" :disabled="isAtFirstQuestion"
+                            <button type="button" @click="handlePrev()" :disabled="isAtFirstQuestion || isMediaPlaying"
+                                    :class="isMediaPlaying ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''"
                                     class="px-3.5 sm:px-4 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-xs font-bold text-gray-800 transition cursor-pointer flex items-center gap-1.5 font-display shadow-2xs">
                                 <span>←</span>
                                 <span>Soal Sebelumnya</span>
@@ -503,17 +504,29 @@
 
                             <template x-if="!isAtLastQuestion">
                                 <button type="button" @click="handleNext()"
-                                        class="px-3.5 sm:px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 font-display">
-                                    <span>Soal Selanjutnya</span>
-                                    <span>→</span>
+                                        :disabled="isMediaPlaying"
+                                        :class="isMediaPlaying ? 'opacity-50 cursor-not-allowed bg-slate-400' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'"
+                                        class="px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 font-display">
+                                    <span x-show="!isMediaPlaying">Soal Selanjutnya</span>
+                                    <span x-show="isMediaPlaying" class="flex items-center gap-1.5">
+                                        <span>🎧 Audio Berjalan</span>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                                    </span>
+                                    <span x-show="!isMediaPlaying">→</span>
                                 </button>
                             </template>
 
                             <template x-if="isAtLastQuestion">
                                 <button type="button" @click="openSubmitModal()"
-                                        class="px-4 sm:px-5 py-2 rounded-xl bg-[#f03e3e] hover:bg-red-600 active:scale-95 text-xs font-bold text-white shadow-sm transition cursor-pointer flex items-center gap-1.5 font-display">
+                                        :disabled="isMediaPlaying"
+                                        :class="isMediaPlaying ? 'opacity-50 cursor-not-allowed bg-slate-400' : 'bg-[#f03e3e] hover:bg-red-600 active:scale-95'"
+                                        class="px-4 sm:px-5 py-2 rounded-xl text-xs font-bold text-white shadow-sm transition cursor-pointer flex items-center gap-1.5 font-display">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                                    <span>Kumpulkan / Selesai Ujian</span>
+                                    <span x-show="!isMediaPlaying">Kumpulkan / Selesai Ujian</span>
+                                    <span x-show="isMediaPlaying" class="flex items-center gap-1.5">
+                                        <span>🎧 Audio Berjalan</span>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                                    </span>
                                 </button>
                             </template>
                         </div>
@@ -527,9 +540,13 @@
         <footer class="shrink-0 bg-[#d0ebff] border-t border-blue-200/80 flex flex-col z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] transition-all">
             <!-- Header bar strip navigasi dengan tombol sembunyikan/tampilkan -->
             <div class="flex items-center justify-between px-3 sm:px-4 py-1 bg-blue-100/70 border-b border-blue-200/60 text-[11px] font-bold text-blue-950 select-none">
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-2">
                     <span class="uppercase tracking-wider font-display">Bilah Nomor Soal</span>
                     <span class="text-blue-700 font-semibold" x-text="'(' + answeredCount + '/' + questions.length + ' Terjawab)'"></span>
+                    <span x-show="isMediaPlaying" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black animate-pulse">
+                        <span>🔒</span>
+                        <span>Audio Berputar (Navigasi Terkunci)</span>
+                    </span>
                 </div>
                 <button type="button" @click="navBarCollapsed = !navBarCollapsed"
                         class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/90 hover:bg-white text-blue-800 border border-blue-300/80 cursor-pointer flex items-center gap-1 shadow-2xs transition active:scale-95">
@@ -551,22 +568,24 @@
                                          : 'bg-white/80 border border-blue-200/90'">
                                     <button type="button"
                                             @click="goToCard(cIdx)"
-                                            class="px-2 py-1 rounded-md bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider shrink-0 select-none hover:bg-blue-800 transition cursor-pointer">
+                                            :disabled="isMediaPlaying && currentCardIndex !== cIdx"
+                                            class="px-2 py-1 rounded-md bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider shrink-0 select-none transition"
+                                            :class="isMediaPlaying && currentCardIndex !== cIdx ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'hover:bg-blue-800 cursor-pointer'">
                                         <span x-text="card.questions.length + ' Soal'"></span>
                                     </button>
                                     <div class="flex items-center gap-1">
                                         <template x-for="q in card.questions" :key="q.id">
                                             <button type="button" @click="goToQuestion(q.id)"
-                                                    :disabled="isQuestionLocked(q)"
-                                                    :title="isQuestionLocked(q) ? 'Waktu bagian ini telah habis (Terkunci)' : 'Soal nomor ' + q.number"
+                                                    :disabled="isQuestionLocked(q) || (isMediaPlaying && currentCardIndex !== cIdx)"
+                                                    :title="isQuestionLocked(q) ? 'Waktu bagian ini telah habis (Terkunci)' : (isMediaPlaying && currentCardIndex !== cIdx ? 'Audio sedang diputar' : 'Soal nomor ' + q.number)"
                                                     class="font-display shrink-0 flex items-center justify-center transition-all select-none"
                                                     :class="{
-                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed': isQuestionLocked(q),
-                                                        'w-9 h-9 rounded-lg text-sm font-extrabold bg-blue-600 text-white shadow-md mx-0.5 border-2 border-blue-700 cursor-pointer scale-105 z-10': !isQuestionLocked(q) && currentCardIndex === cIdx && activeQuestionId === q.id,
-                                                        'w-8 h-8 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(q) && activeQuestionId !== q.id && isFlagged(q.id),
-                                                        'w-8 h-8 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(q) && (currentCardIndex !== cIdx || activeQuestionId !== q.id) && !isFlagged(q.id) && isAnsweredQ(q.id),
-                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(q) && (currentCardIndex !== cIdx || activeQuestionId !== q.id) && !isFlagged(q.id) && !isAnsweredQ(q.id) && visited[q.id],
-                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(q) && (currentCardIndex !== cIdx || activeQuestionId !== q.id) && !isFlagged(q.id) && !isAnsweredQ(q.id) && !visited[q.id],
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed pointer-events-none': isQuestionLocked(q) || (isMediaPlaying && currentCardIndex !== cIdx),
+                                                        'w-9 h-9 rounded-lg text-sm font-extrabold bg-blue-600 text-white shadow-md mx-0.5 border-2 border-blue-700 cursor-pointer scale-105 z-10': !isQuestionLocked(q) && !(isMediaPlaying && currentCardIndex !== cIdx) && currentCardIndex === cIdx && activeQuestionId === q.id,
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(q) && !(isMediaPlaying && currentCardIndex !== cIdx) && activeQuestionId !== q.id && isFlagged(q.id),
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(q) && !(isMediaPlaying && currentCardIndex !== cIdx) && (currentCardIndex !== cIdx || activeQuestionId !== q.id) && !isFlagged(q.id) && isAnsweredQ(q.id),
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(q) && !(isMediaPlaying && currentCardIndex !== cIdx) && (currentCardIndex !== cIdx || activeQuestionId !== q.id) && !isFlagged(q.id) && !isAnsweredQ(q.id) && visited[q.id],
+                                                        'w-8 h-8 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(q) && !(isMediaPlaying && currentCardIndex !== cIdx) && (currentCardIndex !== cIdx || activeQuestionId !== q.id) && !isFlagged(q.id) && !isAnsweredQ(q.id) && !visited[q.id],
                                                     }">
                                                 <span x-text="q.number"></span>
                                                 <span x-show="isQuestionLocked(q)" class="text-[8px] ml-0.5">🔒</span>
@@ -579,16 +598,16 @@
                             <!-- JIKA KARTU STANDALONE (TUNGGAL) -->
                             <template x-if="!card.is_group || card.questions.length === 1">
                                 <button type="button" @click="goToQuestion(card.questions[0].id)"
-                                        :disabled="isQuestionLocked(card.questions[0])"
-                                        :title="isQuestionLocked(card.questions[0]) ? 'Waktu bagian ini telah habis (Terkunci)' : 'Soal nomor ' + card.questions[0].number"
+                                        :disabled="isQuestionLocked(card.questions[0]) || (isMediaPlaying && currentCardIndex !== cIdx)"
+                                        :title="isQuestionLocked(card.questions[0]) ? 'Waktu bagian ini telah habis (Terkunci)' : (isMediaPlaying && currentCardIndex !== cIdx ? 'Audio sedang diputar' : 'Soal nomor ' + card.questions[0].number)"
                                         class="font-display shrink-0 flex items-center justify-center transition-all select-none"
                                         :class="{
-                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed': isQuestionLocked(card.questions[0]),
-                                            'w-10 h-10 rounded-lg text-sm font-extrabold bg-blue-100 text-blue-900 shadow-md mx-0.5 border-2 border-blue-500 cursor-pointer scale-105 z-10': !isQuestionLocked(card.questions[0]) && currentCardIndex === cIdx,
-                                            'w-9 h-9 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && isFlagged(card.questions[0].id),
-                                            'w-9 h-9 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && isAnsweredQ(card.questions[0].id),
-                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && visited[card.questions[0].id],
-                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(card.questions[0]) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && !visited[card.questions[0].id],
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-200/90 text-slate-400 border border-slate-300/80 opacity-60 cursor-not-allowed pointer-events-none': isQuestionLocked(card.questions[0]) || (isMediaPlaying && currentCardIndex !== cIdx),
+                                            'w-10 h-10 rounded-lg text-sm font-extrabold bg-blue-100 text-blue-900 shadow-md mx-0.5 border-2 border-blue-500 cursor-pointer scale-105 z-10': !isQuestionLocked(card.questions[0]) && !(isMediaPlaying && currentCardIndex !== cIdx) && currentCardIndex === cIdx,
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-[#f59f00] text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && !(isMediaPlaying && currentCardIndex !== cIdx) && currentCardIndex !== cIdx && isFlagged(card.questions[0].id),
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs cursor-pointer': !isQuestionLocked(card.questions[0]) && !(isMediaPlaying && currentCardIndex !== cIdx) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && isAnsweredQ(card.questions[0].id),
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-800 text-white cursor-pointer': !isQuestionLocked(card.questions[0]) && !(isMediaPlaying && currentCardIndex !== cIdx) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && visited[card.questions[0].id],
+                                            'w-9 h-9 rounded-md text-xs font-bold bg-slate-200 text-slate-700 cursor-pointer': !isQuestionLocked(card.questions[0]) && !(isMediaPlaying && currentCardIndex !== cIdx) && currentCardIndex !== cIdx && !isFlagged(card.questions[0].id) && !isAnsweredQ(card.questions[0].id) && !visited[card.questions[0].id],
                                         }">
                                     <span x-text="card.questions[0].number"></span>
                                     <span x-show="isQuestionLocked(card.questions[0])" class="text-[9px] ml-0.5">🔒</span>
@@ -600,10 +619,13 @@
                     <!-- Tombol SUBMIT Diletakkan di Bagian Paling Belakang (Setelah Nomor Terakhir) -->
                     <div id="nav-card-submit-btn" class="shrink-0 flex items-center pl-2 ml-1 border-l border-blue-300/80">
                         <button type="button" @click="openSubmitModal()"
-                                class="font-display h-9 px-4 rounded-md text-xs font-bold bg-[#f03e3e] text-white flex items-center gap-1.5 hover:bg-red-600 active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                                :disabled="isMediaPlaying"
+                                :class="isMediaPlaying ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'hover:bg-red-600 cursor-pointer'"
+                                class="font-display h-9 px-4 rounded-md text-xs font-bold bg-[#f03e3e] text-white flex items-center gap-1.5 active:scale-95 transition-all shadow-sm whitespace-nowrap"
                                 title="Kumpulkan lembar ujian (Selesai)">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                            <span>Kumpulkan (SUBMIT)</span>
+                            <span x-show="!isMediaPlaying">Kumpulkan (SUBMIT)</span>
+                            <span x-show="isMediaPlaying">Audio Berjalan</span>
                         </button>
                     </div>
                 </div>
@@ -805,6 +827,93 @@
             // List of expired section IDs (locked sections)
             expiredSections: [],
 
+            // Audio & Video Media Locking State (Single-play, Non-interruptible, Navigation Lock)
+            sessionUuid: safePayload.session?.uuid || safePayload.session?.id || 'session',
+            isMediaPlaying: false,
+            completedMediaKeys: {},
+
+            initCompletedMediaState() {
+                try {
+                    const raw = localStorage.getItem('cbt_media_done_' + this.sessionUuid);
+                    this.completedMediaKeys = raw ? JSON.parse(raw) : {};
+                } catch(_) {
+                    this.completedMediaKeys = {};
+                }
+            },
+
+            saveCompletedMediaState() {
+                try {
+                    localStorage.setItem('cbt_media_done_' + this.sessionUuid, JSON.stringify(this.completedMediaKeys));
+                } catch(_) {}
+            },
+
+            getMediaKey(url) {
+                if (!url) return '';
+                const clean = url.trim().split('?')[0].split('#')[0];
+                let hash = 0;
+                for (let i = 0; i < clean.length; i++) {
+                    hash = ((hash << 5) - hash) + clean.charCodeAt(i);
+                    hash |= 0;
+                }
+                return 'm_' + Math.abs(hash);
+            },
+
+            isMediaCompleted(url) {
+                const key = this.getMediaKey(url);
+                return Boolean(this.completedMediaKeys[key]);
+            },
+
+            markMediaCompleted(url) {
+                const key = this.getMediaKey(url);
+                if (!key) return;
+                this.completedMediaKeys[key] = true;
+                this.saveCompletedMediaState();
+            },
+
+            isCurrentCardMedia(element) {
+                const art = element.closest('article[data-card-index]');
+                if (!art) return false;
+                return art.getAttribute('data-card-index') === String(this.currentCardIndex);
+            },
+
+            checkCurrentCardMediaStatus() {
+                const curCardArt = document.querySelector(`article[data-card-index="${this.currentCardIndex}"]`);
+                if (!curCardArt) {
+                    this.isMediaPlaying = false;
+                    return;
+                }
+
+                let hasPlayingMedia = false;
+                const mediaElements = curCardArt.querySelectorAll('audio, video');
+                mediaElements.forEach(el => {
+                    const url = el.closest('[data-media-url]')?.getAttribute('data-media-url') || el.currentSrc || el.src;
+                    if (url) {
+                        const key = this.getMediaKey(url);
+                        if (!this.completedMediaKeys[key] && !el.ended) {
+                            hasPlayingMedia = true;
+                        }
+                    }
+                });
+
+                this.isMediaPlaying = hasPlayingMedia;
+                if (!hasPlayingMedia) {
+                    this.warn('✓ Audio/Video telah selesai diputar. Tombol navigasi soal telah terbuka.');
+                }
+            },
+
+            renderQuestionStem(q) {
+                let raw = q.rendered_stem || q.prompt || q.stem || '';
+                if (raw.includes('[listening:') || raw.includes('[audio:') || raw.includes('[video:')) {
+                    raw = raw.replace(/\[(?:listening|audio):([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
+                        return this.buildListeningPlayer(url, false, title);
+                    });
+                    raw = raw.replace(/\[video:([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
+                        return this.buildListeningPlayer(url, true, title);
+                    });
+                }
+                return raw;
+            },
+
             // Seluruh butir soal yang berada dalam 1 stimulus ditampilkan bersamaan dalam 1 kartu/layar (USP ADZKIA CBT)
             get displayItems() {
                 if (!Array.isArray(this.questions) || this.questions.length === 0) return [];
@@ -980,6 +1089,9 @@
             },
 
             init() {
+                // Initialize media locking state
+                this.initCompletedMediaState();
+
                 // Restore expired sections from server / localStorage
                 const savedExpired = this.lsGetExpiredSections();
                 const serverExpired = Array.isArray(safePayload.session?.expired_sections) ? safePayload.session.expired_sections : [];
@@ -1034,6 +1146,8 @@
                         try { localStorage.removeItem(this.lsKeySection(s.id)); } catch(_) {}
                     });
                     try { localStorage.removeItem(this.lsKeyExpired()); } catch(_) {}
+                try { localStorage.removeItem('cbt_media_done_' + this.sessionUuid); } catch(_) {}
+                this.completedMediaKeys = {};
                     try { localStorage.setItem(`exam_${safePayload.session?.uuid}_reset_count`, String(serverResetCount)); } catch(_) {}
                     this.lastHandledResetCount = serverResetCount;
                 }
@@ -1240,6 +1354,10 @@
             },
 
             goToCard(cardIdx, targetQid = null) {
+                if (this.isMediaPlaying && cardIdx !== this.currentCardIndex) {
+                    this.warn('🎧 Harap dengarkan audio/video sampai selesai sebelum berpindah soal.');
+                    return;
+                }
                 const card = this.displayItems[cardIdx];
                 if (!card) return;
                 if (this.isCardLocked(card)) {
@@ -1284,6 +1402,10 @@
             goToQuestion(qid) {
                 const cardIdx = this.displayItems.findIndex(c => c.questions.some(q => q.id === qid));
                 if (cardIdx === -1) return;
+                if (this.isMediaPlaying && cardIdx !== this.currentCardIndex) {
+                    this.warn('🎧 Harap dengarkan audio/video sampai selesai sebelum berpindah soal.');
+                    return;
+                }
                 const card = this.displayItems[cardIdx];
                 if (this.isCardLocked(card)) {
                     this.warn('Waktu untuk bagian soal ini telah habis. Soal dan jawaban telah terkunci.');
@@ -1312,6 +1434,10 @@
             },
 
             handlePrev() {
+                if (this.isMediaPlaying) {
+                    this.warn('🎧 Harap dengarkan audio/video sampai selesai sebelum berpindah soal.');
+                    return;
+                }
                 const card = this.currentCard;
                 if (card && card.questions && card.questions.length > 1) {
                     const curIdx = card.questions.findIndex(q => q.id === this.activeQuestionId);
@@ -1332,6 +1458,10 @@
             },
 
             handleNext() {
+                if (this.isMediaPlaying) {
+                    this.warn('🎧 Harap dengarkan audio/video sampai selesai sebelum melanjutkan ke soal berikutnya.');
+                    return;
+                }
                 const card = this.currentCard;
                 if (card && card.questions && card.questions.length > 1) {
                     const curIdx = card.questions.findIndex(q => q.id === this.activeQuestionId);
@@ -1361,6 +1491,10 @@
             },
 
             prevCard() {
+                if (this.isMediaPlaying) {
+                    this.warn('🎧 Harap dengarkan audio/video sampai selesai sebelum berpindah soal.');
+                    return;
+                }
                 for (let i = this.currentCardIndex - 1; i >= 0; i--) {
                     if (!this.isCardLocked(this.displayItems[i])) {
                         this.goToCard(i);
@@ -1370,6 +1504,10 @@
             },
 
             nextCard() {
+                if (this.isMediaPlaying) {
+                    this.warn('🎧 Harap dengarkan audio/video sampai selesai sebelum melanjutkan ke soal berikutnya.');
+                    return;
+                }
                 for (let i = this.currentCardIndex + 1; i < this.displayItems.length; i++) {
                     if (!this.isCardLocked(this.displayItems[i])) {
                         this.goToCard(i);
@@ -1434,9 +1572,13 @@
                     }
 
                     if (this.currentCardIndex < this.displayItems.length - 1) {
-                        setTimeout(() => {
-                            this.nextCard();
-                        }, 250);
+                        if (!this.isMediaPlaying) {
+                            setTimeout(() => {
+                                if (!this.isMediaPlaying) {
+                                    this.nextCard();
+                                }
+                            }, 250);
+                        }
                     }
                 } else {
                     const ids = [...(cur.option_ids ?? [])];
@@ -1696,6 +1838,13 @@
                         this.logEvent('page_exit');
                     }
                 });
+
+                // Cegah tombol spasi memicu jeda (pause) audio/video jika tidak sedang mengetik teks
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' && !['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) {
+                        e.preventDefault();
+                    }
+                });
             },
 
             triggerViolatedLock(reason) {
@@ -1840,6 +1989,8 @@
                     try { localStorage.removeItem(this.lsKeySection(s.id)); } catch(_) {}
                 });
                 try { localStorage.removeItem(this.lsKeyExpired()); } catch(_) {}
+                try { localStorage.removeItem('cbt_media_done_' + this.sessionUuid); } catch(_) {}
+                this.completedMediaKeys = {};
 
                 // 4. Buka kembali kunci section agar soal nomor 1 dapat diakses
                 this.expiredSections = [];
@@ -1958,6 +2109,10 @@
             },
 
             openSubmitModal() {
+                if (this.isMediaPlaying) {
+                    this.warn('🎧 Harap dengarkan audio/video sampai selesai sebelum mengumpulkan ujian.');
+                    return;
+                }
                 this.showSubmitModal = true;
             },
 
@@ -2075,18 +2230,61 @@
             buildListeningPlayer(url, isVideo = false, title = '') {
                 const cleanUrl = url.trim();
                 const cleanTitle = (title || (isVideo ? 'Video Stimulus' : 'Audio Stimulus')).replace(/"/g, '&quot;');
+                const mediaKey = this.getMediaKey(cleanUrl);
+                const alreadyDone = this.isMediaCompleted(cleanUrl);
+
                 return `
-                <div class="cbt-listening-card my-4 rounded-xl border border-blue-300 bg-blue-50/70 p-4 shadow-xs"
-                     data-media-url="${cleanUrl}">
-                    <div class="flex items-center justify-between gap-3 mb-2">
-                        <span class="font-display text-xs font-bold text-blue-950">${isVideo ? '🎬' : '🎧'} ${cleanTitle}</span>
-                        <span class="cbt-play-badge text-[11px] font-bold text-slate-500">Siap Diputar</span>
+                <div class="cbt-listening-card my-4 rounded-2xl border ${alreadyDone ? 'border-slate-300 bg-slate-50/80' : 'border-blue-200 bg-gradient-to-br from-blue-50/90 to-indigo-50/60'} p-4 sm:p-5 shadow-xs transition-all select-none"
+                     data-media-url="${cleanUrl}"
+                     data-media-key="${mediaKey}">
+                    <div class="flex items-center justify-between gap-3 mb-2.5">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-base">${isVideo ? '🎬' : '🎧'}</span>
+                            <div>
+                                <h4 class="font-display text-xs sm:text-sm font-bold ${alreadyDone ? 'text-slate-700' : 'text-blue-950'} truncate">${cleanTitle}</h4>
+                                <p class="text-[10px] text-slate-500 font-medium">${isVideo ? 'Video' : 'Audio'} tidak dapat dijeda atau diulang</p>
+                            </div>
+                        </div>
+                        <span class="cbt-play-badge shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full ${alreadyDone ? 'bg-slate-200 text-slate-600' : 'bg-blue-100 text-blue-700'}">
+                            ${alreadyDone ? '🔒 Selesai Diputar (1x)' : 'Siap Diputar'}
+                        </span>
                     </div>
-                    ${isVideo ? `<video class="cbt-media-element w-full max-h-72 object-contain bg-black rounded-lg mb-2" src="${cleanUrl}" controls playsinline preload="metadata"></video>`
-                              : `<audio class="cbt-media-element w-full" src="${cleanUrl}" controls preload="metadata"></audio>`}
-                    <div class="flex items-center gap-2 mt-2">
-                        <button type="button" class="btn-media-toggle px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs cursor-pointer hover:bg-blue-700 transition">▶ Putar</button>
-                        <button type="button" class="btn-media-replay px-3 py-1.5 rounded-lg bg-white border border-[#ced4da] text-xs font-bold text-[#212529] cursor-pointer hover:bg-slate-100 transition">↺ Putar Ulang</button>
+
+                    ${isVideo ? `
+                        <div class="relative rounded-xl overflow-hidden bg-black mb-3 shadow-inner pointer-events-none">
+                            <video class="cbt-media-element w-full max-h-72 object-contain mx-auto" src="${cleanUrl}" playsinline webkit-playsinline preload="metadata" oncontextmenu="return false;"></video>
+                        </div>
+                    ` : `
+                        <audio class="cbt-media-element hidden" src="${cleanUrl}" preload="metadata" oncontextmenu="return false;"></audio>
+                    `}
+
+                    <!-- Progress bar & time indicator -->
+                    <div class="cbt-media-progress-box space-y-1.5 mt-2 ${alreadyDone ? 'opacity-60' : ''}">
+                        <div class="flex items-center justify-between text-[11px] font-mono font-bold text-slate-600">
+                            <span class="cbt-media-time-current">${alreadyDone ? '--:--' : '00:00'}</span>
+                            <span class="cbt-media-status text-[10px] font-sans font-semibold text-slate-500">${alreadyDone ? 'Terkunci (Hanya 1x Putar)' : 'Memutar otomatis...'}</span>
+                            <span class="cbt-media-time-total">--:--</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-200/90 rounded-full overflow-hidden relative shadow-inner">
+                            <div class="cbt-media-progress-bar h-full ${alreadyDone ? 'bg-slate-400 w-full' : 'bg-gradient-to-r from-blue-500 to-indigo-600 w-0'} rounded-full transition-all duration-200"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Fallback jika Browser Blokir Autoplay -->
+                    <div class="cbt-media-fallback-prompt hidden mt-3 p-3 bg-amber-50 rounded-xl border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="text-xs text-amber-900 font-medium flex items-center gap-2">
+                            <span class="text-base">⚠️</span>
+                            <span>Browser Anda memerlukan izin untuk memulai audio ujian:</span>
+                        </div>
+                        <button type="button" class="btn-media-start px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap animate-bounce font-display">
+                            <span>▶ Mulai Putar Audio</span>
+                        </button>
+                    </div>
+
+                    <!-- Notifikasi saat media telah selesai -->
+                    <div class="cbt-media-completed-alert ${alreadyDone ? 'flex' : 'hidden'} mt-3 text-[11px] font-semibold text-slate-600 items-center gap-1.5 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                        <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span>Audio telah selesai diputar secara penuh dan terkunci (tidak dapat diputar ulang).</span>
                     </div>
                 </div>`;
             },
@@ -2103,7 +2301,16 @@
 
                 // If stimulus already has pre-rendered HTML from backend
                 if (stimulus.rendered) {
-                    html += stimulus.rendered;
+                    let r = stimulus.rendered;
+                    if (r.includes('[listening:') || r.includes('[audio:') || r.includes('[video:')) {
+                        r = r.replace(/\[(?:listening|audio):([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
+                            return this.buildListeningPlayer(url, false, title);
+                        });
+                        r = r.replace(/\[video:([^\|\]]+)(?:\|([^\]]+))?\]/gi, (match, url, title) => {
+                            return this.buildListeningPlayer(url, true, title);
+                        });
+                    }
+                    html += r;
                 } else if (stimulus.content) {
                     html += this.renderRich(stimulus.content);
                 }
@@ -2140,57 +2347,180 @@
                 if (!cardEl) return null;
                 if (cardEl.__cbtPlayer) return cardEl.__cbtPlayer;
                 const mediaEl = cardEl.querySelector('.cbt-media-element');
-                const playToggleBtn = cardEl.querySelector('.btn-media-toggle');
-                const replayBtn = cardEl.querySelector('.btn-media-replay');
-                const badge = cardEl.querySelector('.cbt-play-badge');
                 if (!mediaEl) return null;
 
-                const updateState = () => {
-                    if (mediaEl.paused) {
-                        if (playToggleBtn) playToggleBtn.textContent = '▶ Putar';
-                        if (badge) { badge.textContent = 'Jeda'; badge.className = 'cbt-play-badge text-[11px] font-bold text-amber-600'; }
-                    } else {
-                        if (playToggleBtn) playToggleBtn.textContent = '⏸ Jeda';
-                        if (badge) { badge.textContent = 'Sedang Memutar...'; badge.className = 'cbt-play-badge text-[11px] font-bold text-blue-600 animate-pulse'; }
-                    }
+                const url = cardEl.getAttribute('data-media-url') || mediaEl.currentSrc || mediaEl.src || '';
+                const key = cardEl.getAttribute('data-media-key') || this.getMediaKey(url);
+                const badge = cardEl.querySelector('.cbt-play-badge');
+                const timeCurrent = cardEl.querySelector('.cbt-media-time-current');
+                const timeTotal = cardEl.querySelector('.cbt-media-time-total');
+                const statusText = cardEl.querySelector('.cbt-media-status');
+                const progressBar = cardEl.querySelector('.cbt-media-progress-bar');
+                const fallbackBox = cardEl.querySelector('.cbt-media-fallback-prompt');
+                const startBtn = cardEl.querySelector('.btn-media-start');
+                const completedAlert = cardEl.querySelector('.cbt-media-completed-alert');
+
+                const formatSec = (secs) => {
+                    if (isNaN(secs) || secs < 0) return '00:00';
+                    const m = Math.floor(secs / 60);
+                    const s = Math.floor(secs % 60);
+                    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
                 };
 
-                mediaEl.addEventListener('play', updateState);
-                mediaEl.addEventListener('pause', updateState);
-                mediaEl.addEventListener('ended', () => {
-                    if (playToggleBtn) playToggleBtn.textContent = '▶ Putar';
-                    if (badge) { badge.textContent = 'Selesai'; badge.className = 'cbt-play-badge text-[11px] font-bold text-green-600'; }
-                });
+                let lastTime = 0;
 
-                playToggleBtn?.addEventListener('click', () => {
-                    if (mediaEl.paused) {
-                        mediaEl.play().catch(() => {});
-                    } else {
-                        mediaEl.pause();
+                // Check if already completed
+                if (this.completedMediaKeys[key]) {
+                    if (badge) {
+                        badge.textContent = '🔒 Selesai Diputar (1x)';
+                        badge.className = 'cbt-play-badge shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-200 text-slate-600';
+                    }
+                    if (statusText) statusText.textContent = 'Terkunci (Hanya 1x Putar)';
+                    if (progressBar) {
+                        progressBar.style.width = '100%';
+                        progressBar.className = 'cbt-media-progress-bar h-full bg-slate-400 w-full rounded-full';
+                    }
+                    if (completedAlert) {
+                        completedAlert.classList.remove('hidden');
+                        completedAlert.classList.add('flex');
+                    }
+                    if (fallbackBox) fallbackBox.classList.add('hidden');
+                    try { mediaEl.pause(); } catch(_) {}
+
+                    const completedPlayer = {
+                        mediaEl,
+                        key,
+                        url,
+                        isCompleted: true,
+                        play: () => {},
+                        pause: () => { try { mediaEl.pause(); } catch(_) {} }
+                    };
+                    cardEl.__cbtPlayer = completedPlayer;
+                    return completedPlayer;
+                }
+
+                // Metadata loaded
+                const onLoadedMetadata = () => {
+                    if (timeTotal && mediaEl.duration && !isNaN(mediaEl.duration)) {
+                        timeTotal.textContent = formatSec(mediaEl.duration);
+                    }
+                };
+                if (mediaEl.readyState >= 1) {
+                    onLoadedMetadata();
+                } else {
+                    mediaEl.addEventListener('loadedmetadata', onLoadedMetadata);
+                }
+
+                // Update progress on timeupdate
+                mediaEl.addEventListener('timeupdate', () => {
+                    if (this.completedMediaKeys[key]) return;
+
+                    if (timeCurrent) timeCurrent.textContent = formatSec(mediaEl.currentTime);
+                    if (timeTotal && mediaEl.duration && !isNaN(mediaEl.duration)) {
+                        timeTotal.textContent = formatSec(mediaEl.duration);
+                    }
+
+                    if (progressBar && mediaEl.duration) {
+                        const pct = Math.min(100, Math.max(0, (mediaEl.currentTime / mediaEl.duration) * 100));
+                        progressBar.style.width = pct + '%';
+                    }
+
+                    // Anti-scrub / anti-seek forward
+                    if (!mediaEl.seeking) {
+                        lastTime = mediaEl.currentTime;
                     }
                 });
 
-                replayBtn?.addEventListener('click', () => {
-                    mediaEl.currentTime = 0;
-                    mediaEl.play().catch(() => {});
+                // Block forward scrubbing
+                mediaEl.addEventListener('seeking', () => {
+                    if (this.completedMediaKeys[key]) return;
+                    if (mediaEl.currentTime > lastTime + 0.5) {
+                        mediaEl.currentTime = lastTime;
+                    }
                 });
 
-                cardEl.__cbtPlayer = {
+                // Enforce un-pausable playback: if paused before completion, resume!
+                mediaEl.addEventListener('pause', () => {
+                    if (this.completedMediaKeys[key]) return;
+                    if (!mediaEl.ended && this.isCurrentCardMedia(cardEl)) {
+                        setTimeout(() => {
+                            if (!mediaEl.ended && !this.completedMediaKeys[key] && this.isCurrentCardMedia(cardEl)) {
+                                mediaEl.play().catch(() => {});
+                            }
+                        }, 120);
+                    }
+                });
+
+                // State change listeners
+                mediaEl.addEventListener('playing', () => {
+                    if (this.completedMediaKeys[key]) return;
+                    this.isMediaPlaying = true;
+                    if (badge) {
+                        badge.innerHTML = '<span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span><span>Sedang Memutar...</span></span>';
+                        badge.className = 'cbt-play-badge shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 animate-pulse';
+                    }
+                    if (statusText) statusText.textContent = 'Memutar otomatis (tidak dapat dijeda)';
+                    if (fallbackBox) fallbackBox.classList.add('hidden');
+                });
+
+                // When media ends naturally
+                mediaEl.addEventListener('ended', () => {
+                    this.markMediaCompleted(url);
+                    if (badge) {
+                        badge.textContent = '✓ Selesai Diputar (1x)';
+                        badge.className = 'cbt-play-badge shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800';
+                    }
+                    if (statusText) statusText.textContent = 'Selesai (Hanya 1x Putar)';
+                    if (progressBar) {
+                        progressBar.style.width = '100%';
+                        progressBar.className = 'cbt-media-progress-bar h-full bg-emerald-500 w-full rounded-full';
+                    }
+                    if (completedAlert) {
+                        completedAlert.classList.remove('hidden');
+                        completedAlert.classList.add('flex');
+                    }
+                    if (fallbackBox) fallbackBox.classList.add('hidden');
+
+                    this.checkCurrentCardMediaStatus();
+                });
+
+                // Fallback start button click
+                if (startBtn) {
+                    startBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        mediaEl.play().then(() => {
+                            if (fallbackBox) fallbackBox.classList.add('hidden');
+                        }).catch(() => {});
+                    });
+                }
+
+                const player = {
                     mediaEl,
+                    key,
+                    url,
+                    isCompleted: false,
                     play: () => {
+                        if (this.completedMediaKeys[key]) return;
                         try {
                             const p = mediaEl.play();
                             if (p && typeof p.catch === 'function') {
-                                p.catch(() => {
-                                    if (badge) { badge.textContent = 'Klik ▶ Putar'; badge.className = 'cbt-play-badge text-[11px] font-bold text-slate-500'; }
-                                    if (playToggleBtn) playToggleBtn.textContent = '▶ Putar';
+                                p.catch((err) => {
+                                    if (fallbackBox) fallbackBox.classList.remove('hidden');
+                                    if (badge) {
+                                        badge.textContent = 'Menunggu Mulai';
+                                        badge.className = 'cbt-play-badge shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800';
+                                    }
                                 });
                             }
                         } catch(_) {}
                     },
-                    pause: () => { try { mediaEl.pause(); } catch(_) {} }
+                    pause: () => {
+                        try { mediaEl.pause(); } catch(_) {}
+                    }
                 };
-                return cardEl.__cbtPlayer;
+
+                cardEl.__cbtPlayer = player;
+                return player;
             },
 
             pauseAllMedia() {
@@ -2202,6 +2532,8 @@
             triggerQuestionMediaAutoplay() {
                 this.$nextTick(() => {
                     setTimeout(() => {
+                        let curCardHasUncompletedMedia = false;
+
                         document.querySelectorAll('article[data-card-index]').forEach(art => {
                             const isCurrent = art.getAttribute('data-card-index') === String(this.currentCardIndex);
                             const cardData = this.displayItems[Number(art.getAttribute('data-card-index'))];
@@ -2211,17 +2543,27 @@
                                 art.querySelectorAll('.cbt-listening-card').forEach(card => {
                                     const player = this.attachListeningPlayer(card);
                                     if (player) {
-                                        player.play();
+                                        if (!this.completedMediaKeys[player.key]) {
+                                            curCardHasUncompletedMedia = true;
+                                            player.play();
+                                        } else {
+                                            player.pause();
+                                        }
                                     }
                                 });
+
                                 art.querySelectorAll('audio, video').forEach(el => {
                                     if (!el.closest('.cbt-listening-card')) {
-                                        try {
-                                            const p = el.play();
-                                            if (p && typeof p.catch === 'function') {
-                                                p.catch(() => {});
+                                        const url = el.closest('[data-media-url]')?.getAttribute('data-media-url') || el.currentSrc || el.src;
+                                        if (url) {
+                                            const key = this.getMediaKey(url);
+                                            if (!this.completedMediaKeys[key] && !el.ended) {
+                                                curCardHasUncompletedMedia = true;
+                                                try {
+                                                    el.play().catch(() => {});
+                                                } catch(_) {}
                                             }
-                                        } catch(_) {}
+                                        }
                                     }
                                 });
                             } else {
@@ -2236,6 +2578,8 @@
                                 });
                             }
                         });
+
+                        this.isMediaPlaying = curCardHasUncompletedMedia;
                     }, 120);
                 });
             },
