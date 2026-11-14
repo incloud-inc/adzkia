@@ -99,7 +99,14 @@
                     'kaserapay' => 'Kasera Pay',
                     default => 'Payment Gateway'
                 };
-                $instructions = data_get($order->gateway_payload, 'data.instructions') ?: data_get($order->gateway_payload, 'instructions', []);
+                $rawInstructions = data_get($order->gateway_payload, 'data.instructions') ?: data_get($order->gateway_payload, 'instructions', []);
+                if (is_array($rawInstructions) && isset($rawInstructions['steps'])) {
+                    $instructions = [$rawInstructions];
+                } elseif (is_array($rawInstructions) && ! empty($rawInstructions) && ! isset($rawInstructions[0])) {
+                    $instructions = [$rawInstructions];
+                } else {
+                    $instructions = is_array($rawInstructions) ? $rawInstructions : [];
+                }
             @endphp
             <div class="p-6 space-y-6">
                 <!-- Payment URL / Hosted Checkout -->
@@ -163,17 +170,21 @@
                     <div class="space-y-3" x-data="{ activeAccordion: 0 }">
                         <h4 class="font-display font-bold text-xs uppercase tracking-wider text-gray-12">Panduan Cara Pembayaran</h4>
                         <div class="space-y-2">
-                            @foreach($instructions as $idx => $inst)
+                            @foreach($instructions as $inst)
+                                @php
+                                    $instTitle = is_array($inst) ? ($inst['title'] ?? 'Panduan '.$loop->iteration) : 'Panduan '.$loop->iteration;
+                                    $instSteps = is_array($inst) ? ($inst['steps'] ?? []) : [];
+                                @endphp
                                 <div class="rounded-xl border border-gray-6 bg-gray-1 overflow-hidden">
-                                    <button type="button" @click="activeAccordion = (activeAccordion === {{ $idx }} ? null : {{ $idx }})"
+                                    <button type="button" @click="activeAccordion = (activeAccordion === {{ $loop->index }} ? null : {{ $loop->index }})"
                                             class="w-full px-4 py-3 flex items-center justify-between text-left text-xs font-bold text-gray-12 hover:bg-gray-2 cursor-pointer transition-colors">
-                                        <span>{{ $inst['title'] ?? 'Panduan '.($idx + 1) }}</span>
-                                        <x-radix-icon name="chevron-down" class="w-4 h-4 text-gray-9 transition-transform" ::class="activeAccordion === {{ $idx }} ? 'rotate-180' : ''" />
+                                        <span>{{ $instTitle }}</span>
+                                        <x-radix-icon name="chevron-down" class="w-4 h-4 text-gray-9 transition-transform" ::class="activeAccordion === {{ $loop->index }} ? 'rotate-180' : ''" />
                                     </button>
-                                    <div x-show="activeAccordion === {{ $idx }}" x-collapse class="px-4 pb-3 pt-1 text-xs text-gray-11 space-y-1.5 border-t border-gray-4">
+                                    <div x-show="activeAccordion === {{ $loop->index }}" x-collapse class="px-4 pb-3 pt-1 text-xs text-gray-11 space-y-1.5 border-t border-gray-4">
                                         <ol class="list-decimal list-inside space-y-1">
-                                            @foreach(($inst['steps'] ?? []) as $step)
-                                                <li class="text-xs leading-relaxed">{!! strip_tags($step, '<b><strong><i><em><code>') !!}</li>
+                                            @foreach($instSteps as $step)
+                                                <li class="text-xs leading-relaxed">{!! is_string($step) ? strip_tags($step, '<b><strong><i><em><code>') : '' !!}</li>
                                             @endforeach
                                         </ol>
                                     </div>

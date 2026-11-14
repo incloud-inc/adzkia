@@ -443,7 +443,11 @@ class PaymentGatewayService
                     ?? ($data['data']['payment']['va_number'] ?? null);
 
                 $order->update([
+                    'payment_gateway' => 'kaserapay',
                     'payment_reference' => $transactionId ?: $order->payment_reference,
+                    'payment_url' => $checkoutUrl,
+                    'va_number' => $vaNumber,
+                    'qr_code_url' => $qrUrl ?: $qrString,
                     'gateway_payload' => $data,
                 ]);
 
