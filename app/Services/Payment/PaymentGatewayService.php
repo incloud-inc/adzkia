@@ -515,13 +515,16 @@ class PaymentGatewayService
 
         // Khusus kanal Tripay QRIS menggunakan skema biaya Tripay (Rp 750 + 0.70%)
         if ($driver === 'tripay' && $methodCode === 'QRIS') {
-            $flat = 750.0;
-            $percent = 0.70;
-            $min = 750.0;
-        } else {
-            $flat = (float) ($methodConfig['fee_flat'] ?? ($methodConfig['fee'] ?? 0));
-            $percent = (float) ($methodConfig['fee_percent'] ?? 0);
-            $min = (float) ($methodConfig['fee_min'] ?? 0);
+            $totalCalculatedFee = 750.0 + ($baseAmount * 0.007);
+
+            return (float) round($totalCalculatedFee);
+        }
+
+        // Khusus kanal iPaymu QRIS menggunakan MDR resmi 0.70% tanpa flat fee
+        if ($driver === 'ipaymu' && $methodCode === 'QRIS') {
+            $totalCalculatedFee = $baseAmount * 0.007;
+
+            return (float) round($totalCalculatedFee);
         }
 
         $percentFee = ($percent > 0) ? ($baseAmount * ($percent / 100)) : 0;

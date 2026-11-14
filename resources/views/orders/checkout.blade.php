@@ -21,15 +21,22 @@
         selectedAttempts: {{ $initialAttempts }},
         activeDriver: '{{ $activeDriver }}',
         calculateFee(method, amount) {
-            if (this.activeDriver === 'kaserapay' || method === 'QRIS') {
-                if (amount <= 1000000) {
-                    return Math.round((amount * 0.007) + 250);
-                } else {
-                    return Math.round(amount * 0.01);
+            if (this.activeDriver === 'kaserapay') {
+                if (method === 'QRIS') {
+                    if (amount <= 1000000) {
+                        return Math.round((amount * 0.007) + 250);
+                    } else {
+                        return Math.round(amount * 0.01);
+                    }
                 }
-            }
-            if (this.activeDriver === 'tripay') {
-                return Math.round(750 + (amount * 0.007));
+            } else if (this.activeDriver === 'tripay') {
+                if (method === 'QRIS') {
+                    return Math.round(750 + (amount * 0.007));
+                }
+            } else if (this.activeDriver === 'ipaymu') {
+                if (method === 'QRIS') {
+                    return Math.round(amount * 0.007);
+                }
             }
             let percentFee = amount > 0 ? (amount * 0.007) : 0;
             return Math.round(percentFee);
@@ -232,58 +239,162 @@
                                 <span class="px-2 py-0.5 rounded bg-white border border-gray-4 text-gray-12">LinkAja</span>
                             </div>
 
-                            <!-- Rincian Biaya Layanan Kasera Payment -->
-                            <div class="pt-3 border-t border-green-6/30 space-y-2.5">
-                                <div class="flex items-center justify-between text-xs">
-                                    <div>
-                                        <span class="font-bold text-gray-12">Biaya Transaksi {{ $gatewayDisplayName }}:</span>
-                                        <span class="text-gray-11 ml-1 font-medium" x-text="finalAmount <= 1000000 ? '0,7% + Rp 250 (≤ Rp 1.000.000)' : '1% (> Rp 1.000.000)'">0,7% + Rp 250</span>
-                                    </div>
-                                    <div class="font-mono font-black text-green-11 text-sm" x-text="'Rp ' + calculateFee('QRIS', finalAmount).toLocaleString('id-ID')">
-                                    </div>
-                                </div>
-
-                                <!-- Tabel Info Biaya Layanan Kasera Payment -->
-                                <div class="p-3 rounded-xl bg-white/95 border border-green-5 shadow-2xs space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-[11px] font-bold text-gray-12 flex items-center gap-1.5">
-                                            <x-radix-icon name="info-circled" class="w-3.5 h-3.5 text-green-10" />
-                                            <span>Informasi Biaya Layanan Kasera Payment</span>
-                                        </span>
-                                        <span class="text-[10px] font-mono font-bold text-green-11 bg-green-2 border border-green-4 px-2 py-0.5 rounded-full">KASERA PAY</span>
+                            @if($activeDriver === 'kaserapay')
+                                <!-- Rincian Biaya Layanan Kasera Payment -->
+                                <div class="pt-3 border-t border-green-6/30 space-y-2.5">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <div>
+                                            <span class="font-bold text-gray-12">Biaya Transaksi Kasera Pay:</span>
+                                            <span class="text-gray-11 ml-1 font-medium" x-text="finalAmount <= 1000000 ? '0,7% + Rp 250 (≤ Rp 1.000.000)' : '1% (> Rp 1.000.000)'">0,7% + Rp 250</span>
+                                        </div>
+                                        <div class="font-mono font-black text-green-11 text-sm" x-text="'Rp ' + calculateFee('QRIS', finalAmount).toLocaleString('id-ID')">
+                                        </div>
                                     </div>
 
-                                    <div class="overflow-hidden rounded-lg border border-gray-4 text-[11px]">
-                                        <table class="w-full text-left border-collapse">
-                                            <thead>
-                                                <tr class="bg-gray-2 border-b border-gray-4 text-gray-11 text-[10px] font-bold uppercase tracking-wider">
-                                                    <th class="p-2 border-r border-gray-4">Biaya</th>
-                                                    <th class="p-2 border-r border-gray-4">Sampai Rp 1.000.000</th>
-                                                    <th class="p-2">Di atas Rp 1.000.000</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="divide-y divide-gray-3 text-gray-12">
-                                                <tr class="bg-white">
-                                                    <td class="p-2 font-bold border-r border-gray-4">
-                                                        <span>QRIS</span>
-                                                    </td>
-                                                    <td class="p-2 border-r border-gray-4 font-semibold transition-colors" :class="finalAmount <= 1000000 ? 'bg-green-2 text-green-12 font-bold' : ''">
-                                                        <span>0,7% + Rp 250</span>
-                                                        <span x-show="finalAmount <= 1000000" class="ml-1 text-[9px] px-1.5 py-0.5 bg-green-600 text-white rounded font-bold inline-block">Aktif</span>
-                                                    </td>
-                                                    <td class="p-2 font-semibold transition-colors" :class="finalAmount > 1000000 ? 'bg-green-2 text-green-12 font-bold' : ''">
-                                                        <span>1%</span>
-                                                        <span x-show="finalAmount > 1000000" class="ml-1 text-[9px] px-1.5 py-0.5 bg-green-600 text-white rounded font-bold inline-block">Aktif</span>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                    <!-- Tabel Info Biaya Layanan Kasera Payment -->
+                                    <div class="p-3 rounded-xl bg-white/95 border border-green-5 shadow-2xs space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-[11px] font-bold text-gray-12 flex items-center gap-1.5">
+                                                <x-radix-icon name="info-circled" class="w-3.5 h-3.5 text-green-10" />
+                                                <span>Informasi Biaya Layanan Kasera Payment</span>
+                                            </span>
+                                            <span class="text-[10px] font-mono font-bold text-green-11 bg-green-2 border border-green-4 px-2 py-0.5 rounded-full">KASERA PAY</span>
+                                        </div>
+
+                                        <div class="overflow-hidden rounded-lg border border-gray-4 text-[11px]">
+                                            <table class="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr class="bg-gray-2 border-b border-gray-4 text-gray-11 text-[10px] font-bold uppercase tracking-wider">
+                                                        <th class="p-2 border-r border-gray-4">Biaya</th>
+                                                        <th class="p-2 border-r border-gray-4">Sampai Rp 1.000.000</th>
+                                                        <th class="p-2">Di atas Rp 1.000.000</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-3 text-gray-12">
+                                                    <tr class="bg-white">
+                                                        <td class="p-2 font-bold border-r border-gray-4">
+                                                            <span>QRIS</span>
+                                                        </td>
+                                                        <td class="p-2 border-r border-gray-4 font-semibold transition-colors" :class="finalAmount <= 1000000 ? 'bg-green-2 text-green-12 font-bold' : ''">
+                                                            <span>0,7% + Rp 250</span>
+                                                            <span x-show="finalAmount <= 1000000" class="ml-1 text-[9px] px-1.5 py-0.5 bg-green-600 text-white rounded font-bold inline-block">Aktif</span>
+                                                        </td>
+                                                        <td class="p-2 font-semibold transition-colors" :class="finalAmount > 1000000 ? 'bg-green-2 text-green-12 font-bold' : ''">
+                                                            <span>1%</span>
+                                                            <span x-show="finalAmount > 1000000" class="ml-1 text-[9px] px-1.5 py-0.5 bg-green-600 text-white rounded font-bold inline-block">Aktif</span>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p class="text-[10px] text-gray-10 italic">
+                                            *Biaya layanan transaksi dihitung otomatis berdasarkan nominal paket asesmen yang dipilih.
+                                        </p>
                                     </div>
-                                    <p class="text-[10px] text-gray-10 italic">
-                                        *Biaya layanan transaksi dihitung otomatis berdasarkan nominal paket asesmen yang dipilih.
-                                    </p>
                                 </div>
-                            </div>
+                            @elseif($activeDriver === 'tripay')
+                                <!-- Rincian Biaya Layanan TriPay -->
+                                <div class="pt-3 border-t border-green-6/30 space-y-2.5">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <div>
+                                            <span class="font-bold text-gray-12">Biaya Transaksi TriPay:</span>
+                                            <span class="text-gray-11 ml-1 font-medium">Rp 750 + 0,70% (MDR QRIS)</span>
+                                        </div>
+                                        <div class="font-mono font-black text-green-11 text-sm" x-text="'Rp ' + calculateFee('QRIS', finalAmount).toLocaleString('id-ID')">
+                                        </div>
+                                    </div>
+
+                                    <!-- Tabel Info Biaya Layanan TriPay -->
+                                    <div class="p-3 rounded-xl bg-white/95 border border-green-5 shadow-2xs space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-[11px] font-bold text-gray-12 flex items-center gap-1.5">
+                                                <x-radix-icon name="info-circled" class="w-3.5 h-3.5 text-green-10" />
+                                                <span>Informasi Biaya Layanan TriPay</span>
+                                            </span>
+                                            <span class="text-[10px] font-mono font-bold text-blue-11 bg-blue-2 border border-blue-4 px-2 py-0.5 rounded-full">TRIPAY</span>
+                                        </div>
+
+                                        <div class="overflow-hidden rounded-lg border border-gray-4 text-[11px]">
+                                            <table class="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr class="bg-gray-2 border-b border-gray-4 text-gray-11 text-[10px] font-bold uppercase tracking-wider">
+                                                        <th class="p-2 border-r border-gray-4">Metode</th>
+                                                        <th class="p-2 border-r border-gray-4">Biaya Layanan</th>
+                                                        <th class="p-2">Keterangan</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-3 text-gray-12">
+                                                    <tr class="bg-white">
+                                                        <td class="p-2 font-bold border-r border-gray-4">
+                                                            <span>QRIS</span>
+                                                        </td>
+                                                        <td class="p-2 border-r border-gray-4 font-bold text-green-12 bg-green-2">
+                                                            <span>Rp 750 + 0,70%</span>
+                                                        </td>
+                                                        <td class="p-2 text-gray-11">
+                                                            <span>Tarif MDR resmi TriPay Realtime</span>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p class="text-[10px] text-gray-10 italic">
+                                            *Biaya layanan transaksi dihitung otomatis sesuai skema gerbang pembayaran TriPay.
+                                        </p>
+                                    </div>
+                                </div>
+                            @else
+                                <!-- Rincian Biaya Layanan iPaymu -->
+                                <div class="pt-3 border-t border-green-6/30 space-y-2.5">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <div>
+                                            <span class="font-bold text-gray-12">Biaya Transaksi iPaymu:</span>
+                                            <span class="text-gray-11 ml-1 font-medium">0,70% (MDR QRIS Bank Indonesia)</span>
+                                        </div>
+                                        <div class="font-mono font-black text-green-11 text-sm" x-text="'Rp ' + calculateFee('QRIS', finalAmount).toLocaleString('id-ID')">
+                                        </div>
+                                    </div>
+
+                                    <!-- Tabel Info Biaya Layanan iPaymu -->
+                                    <div class="p-3 rounded-xl bg-white/95 border border-green-5 shadow-2xs space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-[11px] font-bold text-gray-12 flex items-center gap-1.5">
+                                                <x-radix-icon name="info-circled" class="w-3.5 h-3.5 text-green-10" />
+                                                <span>Informasi Biaya Layanan iPaymu</span>
+                                            </span>
+                                            <span class="text-[10px] font-mono font-bold text-orange-11 bg-orange-2 border border-orange-4 px-2 py-0.5 rounded-full">IPAYMU</span>
+                                        </div>
+
+                                        <div class="overflow-hidden rounded-lg border border-gray-4 text-[11px]">
+                                            <table class="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr class="bg-gray-2 border-b border-gray-4 text-gray-11 text-[10px] font-bold uppercase tracking-wider">
+                                                        <th class="p-2 border-r border-gray-4">Metode</th>
+                                                        <th class="p-2 border-r border-gray-4">Biaya Layanan</th>
+                                                        <th class="p-2">Keterangan</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-3 text-gray-12">
+                                                    <tr class="bg-white">
+                                                        <td class="p-2 font-bold border-r border-gray-4">
+                                                            <span>QRIS</span>
+                                                        </td>
+                                                        <td class="p-2 border-r border-gray-4 font-bold text-green-12 bg-green-2">
+                                                            <span>0,70%</span>
+                                                        </td>
+                                                        <td class="p-2 text-gray-11">
+                                                            <span>MDR resmi Bank Indonesia tanpa biaya flat tambahan</span>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p class="text-[10px] text-gray-10 italic">
+                                            *Biaya transaksi dihitung otomatis sesuai skema gerbang pembayaran iPaymu.
+                                        </p>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </form>

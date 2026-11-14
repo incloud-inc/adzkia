@@ -369,5 +369,19 @@ class KaseraPaymentTest extends TestCase
         $response->assertSeeText('Di atas Rp 1.000.000');
         $response->assertSeeText('0,7% + Rp 250');
         $response->assertSeeText('1%');
+
+        // Test switching to TriPay dynamically
+        Config::set('payment.default', 'tripay');
+        $resTripay = $this->actingAs($student)->get(route('orders.checkout', $assessment));
+        $resTripay->assertOk();
+        $resTripay->assertSeeText('Informasi Biaya Layanan TriPay');
+        $resTripay->assertSeeText('Rp 750 + 0,70%');
+
+        // Test switching to iPaymu dynamically
+        Config::set('payment.default', 'ipaymu');
+        $resIpaymu = $this->actingAs($student)->get(route('orders.checkout', $assessment));
+        $resIpaymu->assertOk();
+        $resIpaymu->assertSeeText('Informasi Biaya Layanan iPaymu');
+        $resIpaymu->assertSeeText('0,70%');
     }
 }
