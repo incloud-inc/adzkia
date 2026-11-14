@@ -279,4 +279,50 @@ class KaseraPaymentTest extends TestCase
         $this->assertNotNull($order->paid_at);
         $this->assertEquals('payreq_settle_999', $order->payment_reference);
     }
+
+    public function test_kaserapay_sandbox_simulation_settles_order_and_grants_access(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $student = User::factory()->create([
+            'current_tenant_id' => $tenant->id,
+            'whatsapp_number' => '081299998888',
+        ]);
+        $subject = Subject::factory()->create();
+        $assessment = Assessment::factory()->create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subject->id,
+            'price_type' => 'paid',
+            'price' => 50000.00,
+            'status' => 'published',
+        ]);
+
+        $order = Order::create([
+            'order_number' => 'ORD-KASERA-SIM-001',
+            'user_id' => $student->id,
+            'tenant_id' => $tenant->id,
+            'assessment_id' => $assessment->id,
+            'package_attempts' => 1,
+            'package_validity_days' => 30,
+            'price_amount' => 50000.00,
+            'discount_amount' => 0.00,
+            'admin_fee' => 0.00,
+            'total_amount' => 50000.00,
+            'status' => 'pending',
+            'payment_gateway' => 'kaserapay',
+            'payment_method' => 'QRIS',
+        ]);
+
+        Config::set('payment.gateways.kaserapay.sandbox', true);
+        Config::set('payment.gateways.ipaymu.sandbox', false);
+
+        $response = $this->actingAs($student)->post(route('orders.simulate-pay', $order));
+
+        $response->assertRedirect(route('orders.show', $order));
+        $response->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertEquals('settled', $order->status);
+        $this->assertNotNull($order->paid_at);
+        $this->assertTrue($student->hasPurchasedAssessment($assessment));
+    }
 }

@@ -269,10 +269,25 @@ class OrderController extends Controller
      */
     public function simulatePayment(Order $order): RedirectResponse
     {
-        $isIpaymuSandbox = filter_var(config('payment.gateways.ipaymu.sandbox'), FILTER_VALIDATE_BOOLEAN);
+        $user = Auth::user();
+        if ($user && $order->user_id !== $user->id && ! $user->isAdmin() && ! $user->isSuperUser()) {
+            abort(403, 'Akses ditolak.');
+        }
 
-        if (! $isIpaymuSandbox && ! app()->environment('local', 'testing') && ! auth()->user()?->isSuperUser()) {
+        $gateway = $order->payment_gateway ?: config('payment.default', 'kaserapay');
+        $isGatewaySandbox = match ($gateway) {
+            'kaserapay' => filter_var(config('payment.gateways.kaserapay.sandbox'), FILTER_VALIDATE_BOOLEAN),
+            'tripay' => filter_var(config('payment.gateways.tripay.sandbox'), FILTER_VALIDATE_BOOLEAN),
+            default => filter_var(config('payment.gateways.ipaymu.sandbox'), FILTER_VALIDATE_BOOLEAN),
+        };
+
+        if (! $isGatewaySandbox && ! app()->environment('local', 'testing') && ! auth()->user()?->isSuperUser()) {
             abort(403, 'Simulasi pembayaran dinonaktifkan di lingkungan produksi.');
+        }
+
+        if ($order->isSettled()) {
+            return redirect()->route('orders.show', $order)
+                ->with('info', 'Pesanan ini sudah berstatus lunas (Settled).');
         }
 
         $this->paymentService->simulateSettlement($order);
