@@ -7,7 +7,7 @@ return [
     |--------------------------------------------------------------------------
     | Supported: "ipaymu", "tripay", "kaserapay"
     */
-    'default' => env('PAYMENT_GATEWAY_DRIVER', 'ipaymu'),
+    'default' => env('PAYMENT_GATEWAY_DRIVER', 'kaserapay'),
 
     'gateways' => [
         'ipaymu' => [
@@ -44,8 +44,9 @@ return [
     |--------------------------------------------------------------------------
     | Supported Payment Methods
     |--------------------------------------------------------------------------
-    | Kanal pembayaran resmi iPaymu untuk QRIS menggunakan tarif MDR resmi 0.70%
-    | (tanpa biaya flat tambahan dan tanpa minimum fee).
+    | Kanal pembayaran resmi untuk QRIS Kasera Pay menggunakan skema tarif:
+    | - Sampai Rp 1.000.000: 0,7% + Rp 250
+    | - Di atas Rp 1.000.000: 1%
     */
     'methods' => [
         'QRIS' => [
@@ -54,14 +55,14 @@ return [
             'method_ipaymu' => 'qris',
             'channel_tripay' => 'QRIS',
             'channel_kaserapay' => 'qris',
-            'label' => 'QRIS Nasional (iPaymu)',
+            'label' => 'QRIS',
             'group' => 'qris',
             'icon' => 'qrcode',
-            'fee_flat' => 0,
+            'fee_flat' => 250,
             'fee_percent' => 0.70,
-            'fee_min' => 0,
-            'fee' => 0,
-            'fee_note' => '0.70% MDR Resmi iPaymu',
+            'fee_min' => 250,
+            'fee' => 250,
+            'fee_note' => '0,7% + Rp 250 (≤ Rp 1.000.000) / 1% (> Rp 1.000.000)',
             'description' => 'Pembayaran instan dengan scan kode QRIS menggunakan seluruh aplikasi mobile banking (BCA, Mandiri, BRI, BNI, BSI) dan seluruh e-wallet (GoPay, OVO, DANA, ShopeePay, LinkAja).',
         ],
         'VA_BNI' => [

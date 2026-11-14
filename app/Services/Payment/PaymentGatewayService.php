@@ -497,8 +497,21 @@ class PaymentGatewayService
      */
     public function calculateAdminFee(string $methodCode, float $baseAmount): float
     {
-        $driver = config('payment.default', 'ipaymu');
+        $driver = config('payment.default', 'kaserapay');
         $methodConfig = config("payment.methods.{$methodCode}", []);
+
+        // Khusus kanal Kasera Pay QRIS menggunakan skema biaya Kasera Pay:
+        // Sampai Rp 1.000.000: 0,7% + Rp 250
+        // Di atas Rp 1.000.000: 1%
+        if (($driver === 'kaserapay' || $driver === 'default') && $methodCode === 'QRIS') {
+            if ($baseAmount <= 1000000) {
+                $totalCalculatedFee = ($baseAmount * 0.007) + 250.0;
+            } else {
+                $totalCalculatedFee = $baseAmount * 0.01;
+            }
+
+            return (float) round($totalCalculatedFee);
+        }
 
         // Khusus kanal Tripay QRIS menggunakan skema biaya Tripay (Rp 750 + 0.70%)
         if ($driver === 'tripay' && $methodCode === 'QRIS') {

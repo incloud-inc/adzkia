@@ -3,6 +3,12 @@
     $initialPrice = $defaultPackage ? (float) $defaultPackage->price : (float) $assessment->price;
     $initialPackageId = $defaultPackage ? $defaultPackage->id : 'null';
     $initialAttempts = $defaultPackage ? (int) $defaultPackage->attempts : 1;
+    $activeDriver = config('payment.default', 'kaserapay');
+    $gatewayDisplayName = match($activeDriver) {
+        'kaserapay' => 'Kasera Pay',
+        'tripay' => 'TriPay',
+        default => 'iPaymu',
+    };
 @endphp
 
 <x-layouts.app>
@@ -13,15 +19,20 @@
         selectedPackageId: {{ $initialPackageId }},
         basePrice: {{ $initialPrice }},
         selectedAttempts: {{ $initialAttempts }},
-        feeConfig: {
-            QRIS: { flat: 0, percent: 0.70, min: 0 }
-        },
+        activeDriver: '{{ $activeDriver }}',
         calculateFee(method, amount) {
-            let conf = this.feeConfig[method] || { flat: 0, percent: 0.70, min: 0 };
-            let percentFee = conf.percent > 0 ? (amount * conf.percent / 100) : 0;
-            let total = conf.flat + percentFee;
-            if (conf.min > 0 && total < conf.min) total = conf.min;
-            return Math.round(total);
+            if (this.activeDriver === 'kaserapay' || method === 'QRIS') {
+                if (amount <= 1000000) {
+                    return Math.round((amount * 0.007) + 250);
+                } else {
+                    return Math.round(amount * 0.01);
+                }
+            }
+            if (this.activeDriver === 'tripay') {
+                return Math.round(750 + (amount * 0.007));
+            }
+            let percentFee = amount > 0 ? (amount * 0.007) : 0;
+            return Math.round(percentFee);
         },
         get finalAmount() {
             return Math.max(0, this.basePrice - this.discountAmount);
@@ -171,14 +182,14 @@
                         </div>
                     @endif
 
-                    <!-- Metode Pembayaran Resmi: QRIS Nasional (iPaymu) -->
+                    <!-- Metode Pembayaran Resmi: QRIS Nasional (Kasera Pay) -->
                     <div class="bg-white p-5 rounded-2xl border border-gray-6 shadow-xs space-y-4">
                         <div class="flex items-center justify-between border-b border-gray-5 pb-3">
                             <div class="flex items-center gap-2">
                                 <span class="w-7 h-7 rounded-lg bg-green-3 text-green-11 font-bold flex items-center justify-center text-xs">{{ isset($packages) && $packages->count() > 0 ? '2' : '1' }}</span>
                                 <div>
                                     <h3 class="font-display font-bold text-sm text-gray-12">Metode Pembayaran Resmi: QRIS</h3>
-                                    <p class="text-[11px] text-gray-11">Pembayaran aman berstandar Bank Indonesia via gerbang iPaymu.</p>
+                                    <p class="text-[11px] text-gray-11">Pembayaran aman berstandar Bank Indonesia via gerbang {{ $gatewayDisplayName }}.</p>
                                 </div>
                             </div>
                             <span class="text-[11px] font-bold text-green-11 bg-green-2 border border-green-4 px-2.5 py-0.5 rounded-full flex items-center gap-1">
@@ -188,7 +199,7 @@
                         </div>
 
                         <!-- Card Pilihan QRIS Tunggal -->
-                        <div class="p-5 rounded-xl border-2 border-green-8 bg-green-2/40 ring-2 ring-green-7/50 shadow-xs relative space-y-3">
+                        <div class="p-5 rounded-xl border-2 border-green-8 bg-green-2/40 ring-2 ring-green-7/50 shadow-xs relative space-y-3.5">
                             <div class="flex items-start justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 rounded-xl bg-white border border-green-4 shadow-2xs flex items-center justify-center text-green-11">
@@ -197,7 +208,7 @@
                                     <div>
                                         <div class="flex items-center gap-2">
                                             <span class="font-display font-extrabold text-base text-gray-12">QRIS Nasional</span>
-                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-green-3 text-green-11 border border-green-5">iPaymu</span>
+                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-green-3 text-green-11 border border-green-5">{{ $gatewayDisplayName }}</span>
                                         </div>
                                         <p class="text-xs text-gray-11 mt-0.5">Scan kode QR menggunakan seluruh e-wallet &amp; mobile banking Indonesia</p>
                                     </div>
@@ -221,13 +232,56 @@
                                 <span class="px-2 py-0.5 rounded bg-white border border-gray-4 text-gray-12">LinkAja</span>
                             </div>
 
-                            <!-- Kalkulasi Transparan Biaya Layanan iPaymu -->
-                            <div class="pt-2 border-t border-green-6/30 flex items-center justify-between text-xs">
-                                <div>
-                                    <span class="font-bold text-gray-12">Biaya Transaksi iPaymu:</span>
-                                    <span class="text-gray-11 ml-1">0.70% (MDR QRIS Resmi)</span>
+                            <!-- Rincian Biaya Layanan Kasera Payment -->
+                            <div class="pt-3 border-t border-green-6/30 space-y-2.5">
+                                <div class="flex items-center justify-between text-xs">
+                                    <div>
+                                        <span class="font-bold text-gray-12">Biaya Transaksi {{ $gatewayDisplayName }}:</span>
+                                        <span class="text-gray-11 ml-1 font-medium" x-text="finalAmount <= 1000000 ? '0,7% + Rp 250 (≤ Rp 1.000.000)' : '1% (> Rp 1.000.000)'">0,7% + Rp 250</span>
+                                    </div>
+                                    <div class="font-mono font-black text-green-11 text-sm" x-text="'Rp ' + calculateFee('QRIS', finalAmount).toLocaleString('id-ID')">
+                                    </div>
                                 </div>
-                                <div class="font-mono font-black text-green-11 text-sm" x-text="'Rp ' + calculateFee('QRIS', finalAmount).toLocaleString('id-ID')">
+
+                                <!-- Tabel Info Biaya Layanan Kasera Payment -->
+                                <div class="p-3 rounded-xl bg-white/95 border border-green-5 shadow-2xs space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[11px] font-bold text-gray-12 flex items-center gap-1.5">
+                                            <x-radix-icon name="info-circled" class="w-3.5 h-3.5 text-green-10" />
+                                            <span>Informasi Biaya Layanan Kasera Payment</span>
+                                        </span>
+                                        <span class="text-[10px] font-mono font-bold text-green-11 bg-green-2 border border-green-4 px-2 py-0.5 rounded-full">KASERA PAY</span>
+                                    </div>
+
+                                    <div class="overflow-hidden rounded-lg border border-gray-4 text-[11px]">
+                                        <table class="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr class="bg-gray-2 border-b border-gray-4 text-gray-11 text-[10px] font-bold uppercase tracking-wider">
+                                                    <th class="p-2 border-r border-gray-4">Biaya</th>
+                                                    <th class="p-2 border-r border-gray-4">Sampai Rp 1.000.000</th>
+                                                    <th class="p-2">Di atas Rp 1.000.000</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-3 text-gray-12">
+                                                <tr class="bg-white">
+                                                    <td class="p-2 font-bold border-r border-gray-4">
+                                                        <span>QRIS</span>
+                                                    </td>
+                                                    <td class="p-2 border-r border-gray-4 font-semibold transition-colors" :class="finalAmount <= 1000000 ? 'bg-green-2 text-green-12 font-bold' : ''">
+                                                        <span>0,7% + Rp 250</span>
+                                                        <span x-show="finalAmount <= 1000000" class="ml-1 text-[9px] px-1.5 py-0.5 bg-green-600 text-white rounded font-bold inline-block">Aktif</span>
+                                                    </td>
+                                                    <td class="p-2 font-semibold transition-colors" :class="finalAmount > 1000000 ? 'bg-green-2 text-green-12 font-bold' : ''">
+                                                        <span>1%</span>
+                                                        <span x-show="finalAmount > 1000000" class="ml-1 text-[9px] px-1.5 py-0.5 bg-green-600 text-white rounded font-bold inline-block">Aktif</span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p class="text-[10px] text-gray-10 italic">
+                                        *Biaya layanan transaksi dihitung otomatis berdasarkan nominal paket asesmen yang dipilih.
+                                    </p>
                                 </div>
                             </div>
                         </div>

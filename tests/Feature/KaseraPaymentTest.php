@@ -325,4 +325,49 @@ class KaseraPaymentTest extends TestCase
         $this->assertNotNull($order->paid_at);
         $this->assertTrue($student->hasPurchasedAssessment($assessment));
     }
+
+    public function test_kaserapay_qris_fee_calculation_tiered(): void
+    {
+        $service = app(PaymentGatewayService::class);
+        Config::set('payment.default', 'kaserapay');
+
+        // Nominal <= Rp 1.000.000: 0,7% + Rp 250
+        $feeSmall = $service->calculateAdminFee('QRIS', 50000);
+        $this->assertEquals(600.0, $feeSmall); // 50000 * 0.007 = 350 + 250 = 600
+
+        $feeThreshold = $service->calculateAdminFee('QRIS', 1000000);
+        $this->assertEquals(7250.0, $feeThreshold); // 1000000 * 0.007 = 7000 + 250 = 7250
+
+        // Nominal > Rp 1.000.000: 1%
+        $feeAboveThreshold = $service->calculateAdminFee('QRIS', 2000000);
+        $this->assertEquals(20000.0, $feeAboveThreshold); // 2000000 * 0.01 = 20000
+    }
+
+    public function test_checkout_page_renders_kaserapay_fee_information(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $student = User::factory()->create([
+            'current_tenant_id' => $tenant->id,
+            'whatsapp_number' => '081299998888',
+        ]);
+        $subject = Subject::factory()->create();
+        $assessment = Assessment::factory()->create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subject->id,
+            'price_type' => 'paid',
+            'price' => 50000.00,
+            'status' => 'published',
+        ]);
+
+        Config::set('payment.default', 'kaserapay');
+
+        $response = $this->actingAs($student)->get(route('orders.checkout', $assessment));
+
+        $response->assertOk();
+        $response->assertSeeText('Informasi Biaya Layanan Kasera Payment');
+        $response->assertSeeText('Sampai Rp 1.000.000');
+        $response->assertSeeText('Di atas Rp 1.000.000');
+        $response->assertSeeText('0,7% + Rp 250');
+        $response->assertSeeText('1%');
+    }
 }
