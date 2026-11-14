@@ -83,6 +83,7 @@ Route::get('/api/postal-codes/search', [PostalCodeController::class, 'search'])-
 // 4. Payment Gateway Webhooks (B2B2C, No CSRF)
 Route::post('api/webhooks/payment/ipaymu', [PaymentWebhookController::class, 'ipaymu'])->name('payment.webhook.ipaymu');
 Route::post('api/webhooks/payment/tripay', [PaymentWebhookController::class, 'tripay'])->name('payment.webhook.tripay');
+Route::post('api/webhooks/payment/kaserapay', [PaymentWebhookController::class, 'kaserapay'])->name('payment.webhook.kaserapay');
 Route::post('api/webhooks/payment/generic', [PaymentWebhookController::class, 'generic'])->name('payment.webhook.generic');
 
 // 5. Media Proxy & Cache Cloudflare R2 (Bypass blokir DNS *.r2.dev oleh ISP Indonesia)

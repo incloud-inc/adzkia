@@ -51,6 +51,19 @@ class PaymentGatewayService
             return $this->createTripayPayment($order, $methodCode, $methodConfig);
         }
 
+        if ($driver === 'kaserapay') {
+            $apiKey = config('payment.gateways.kaserapay.api_key');
+
+            if (blank($apiKey)) {
+                return [
+                    'success' => false,
+                    'message' => 'Kredensial Kasera Pay (API Key) belum dikonfigurasi lengkap di Pengaturan sistem.',
+                ];
+            }
+
+            return $this->createKaseraPayment($order, $methodCode, $methodConfig);
+        }
+
         // Default & Primary Gateway: iPaymu
         $va = config('payment.gateways.ipaymu.va');
         $apiKey = config('payment.gateways.ipaymu.api_key');
@@ -365,6 +378,112 @@ class PaymentGatewayService
     }
 
     /**
+     * Create payment using Kasera Pay API v1 (/v1/transactions).
+     */
+    protected function createKaseraPayment(Order $order, string $methodCode, ?array $methodConfig): array
+    {
+        $apiKey = (string) config('payment.gateways.kaserapay.api_key');
+        $baseUrl = rtrim((string) config('payment.gateways.kaserapay.base_url', 'https://pay.kasera.id/v1/'), '/').'/';
+        $paymentAmount = (int) round($order->total_amount);
+
+        // Format customer phone
+        $customerPhone = preg_replace('/[^0-9]/', '', (string) ($order->user?->whatsapp_number ?: ($order->user?->phone ?? '081329983555')));
+        if (strlen($customerPhone) < 10) {
+            $customerPhone = '081329983555';
+        }
+
+        $customerEmail = $order->user?->email ?: 'adzkia.tryout@gmail.com';
+        $customerName = $order->user?->name ?: 'Siswa ADZKIA';
+
+        // Canonical webhook callback URL
+        $appUrl = config('app.url');
+        $callbackUrl = (! empty($appUrl) && ! str_contains($appUrl, 'localhost') && ! str_contains($appUrl, '127.0.0.1'))
+            ? rtrim($appUrl, '/').'/api/webhooks/payment/kaserapay'
+            : route('payment.webhook.kaserapay');
+
+        $returnUrl = (! empty($appUrl) && ! str_contains($appUrl, 'localhost') && ! str_contains($appUrl, '127.0.0.1'))
+            ? rtrim($appUrl, '/')."/orders/{$order->id}"
+            : route('orders.show', $order);
+
+        $channel = $methodConfig['channel_kaserapay'] ?? strtolower($methodCode);
+
+        $payload = [
+            'amount' => $paymentAmount,
+            'external_id' => $order->order_number,
+            'payment_methods' => [$channel],
+            'customer' => [
+                'name' => substr($customerName, 0, 50),
+                'email' => $customerEmail,
+                'phone' => $customerPhone,
+            ],
+            'return_url' => $returnUrl,
+            'callback_url' => $callbackUrl,
+            'metadata' => [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'assessment_id' => $order->assessment_id,
+            ],
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer '.$apiKey,
+                'Idempotency-Key' => $order->order_number,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ])->timeout(15)->post($baseUrl.'transactions', $payload);
+
+            $data = $response->json();
+
+            if ($response->successful()) {
+                $transactionId = $data['id'] ?? ($data['data']['id'] ?? null);
+                $checkoutUrl = $data['checkout_url']
+                    ?? $data['payment']['redirect_url']
+                    ?? ($data['data']['checkout_url'] ?? ($data['data']['payment']['redirect_url'] ?? null));
+                $qrString = $data['payment']['qr_string']
+                    ?? ($data['data']['payment']['qr_string'] ?? null);
+                $qrUrl = $data['payment']['qr_url']
+                    ?? ($data['data']['payment']['qr_url'] ?? null);
+                $vaNumber = $data['payment']['va_number']
+                    ?? ($data['data']['payment']['va_number'] ?? null);
+
+                $order->update([
+                    'payment_reference' => $transactionId ?: $order->payment_reference,
+                    'gateway_payload' => $data,
+                ]);
+
+                return [
+                    'success' => true,
+                    'checkout_url' => $checkoutUrl,
+                    'qr_string' => $qrString,
+                    'qr_url' => $qrUrl,
+                    'va_number' => $vaNumber,
+                    'data' => $data,
+                ];
+            }
+
+            $errorMessage = $data['message'] ?? ($data['error'] ?? $response->body());
+            Log::error('Kasera Pay transaction creation failed', [
+                'order' => $order->order_number,
+                'status' => $response->status(),
+                'response' => $response->body(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Kasera Pay Error: '.$errorMessage,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('Kasera Pay API connection failed: '.$e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Gagal terhubung ke gateway Kasera Pay: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Hitung biaya layanan (admin fee) secara dinamis sesuai skema flat / persentase / minimal biaya.
      */
     public function calculateAdminFee(string $methodCode, float $baseAmount): float
@@ -440,21 +559,76 @@ class PaymentGatewayService
     }
 
     /**
-     * Process webhook notification from iPaymu, Tripay, or generic gateway.
+     * Verify Kasera Pay webhook signature.
+     * Header Kasera-Signature-V1 format: t=<timestamp>,v1=<signature>
+     * Signature: HMAC-SHA256(timestamp . "." . rawBody, signingSecret)
+     */
+    public function verifyKaseraWebhook(Request $request): bool
+    {
+        $signingSecret = config('payment.gateways.kaserapay.signing_secret');
+
+        if (blank($signingSecret) && app()->environment('local', 'testing')) {
+            return true;
+        }
+
+        $headerSignature = $request->header('Kasera-Signature-V1')
+            ?? $request->header('X-Kasera-Signature')
+            ?? $request->header('Signature');
+
+        if (! $headerSignature) {
+            return blank($signingSecret);
+        }
+
+        $rawBody = $request->getContent();
+
+        // Check if format is t=...,v1=...
+        if (preg_match('/t=(\d+),v1=([a-f0-9]+)/i', $headerSignature, $matches)) {
+            $timestamp = (int) $matches[1];
+            $providedSignature = $matches[2];
+
+            // Verify timestamp tolerance (within 5 minutes / 300 seconds)
+            if (abs(time() - $timestamp) > 300) {
+                Log::warning('Kasera Pay Webhook timestamp expired', [
+                    'timestamp' => $timestamp,
+                    'now' => time(),
+                ]);
+
+                return false;
+            }
+
+            $payloadToSign = $timestamp.'.'.$rawBody;
+            $expectedSignature = hash_hmac('sha256', $payloadToSign, (string) $signingSecret);
+
+            return hash_equals($expectedSignature, $providedSignature);
+        }
+
+        // Direct raw HMAC check fallback
+        $expectedSignature = hash_hmac('sha256', $rawBody, (string) $signingSecret);
+
+        return hash_equals($expectedSignature, (string) $headerSignature);
+    }
+
+    /**
+     * Process webhook notification from iPaymu, Tripay, Kasera Pay, or generic gateway.
      */
     public function processWebhook(array $payload): array
     {
+        $data = $payload['data'] ?? [];
         $orderNumber = $payload['reference_id']
             ?? $payload['referenceId']
             ?? $payload['merchant_ref']
+            ?? $payload['external_id']
+            ?? ($data['external_id'] ?? null)
+            ?? ($data['order_number'] ?? null)
             ?? $payload['order_id']
             ?? $payload['order_number']
             ?? null;
 
-        $status = strtoupper((string) ($payload['status'] ?? ''));
-        $statusCode = (string) ($payload['status_code'] ?? '');
-        $trxStatus = strtolower((string) ($payload['transaction_status'] ?? ''));
-        $reference = $payload['trx_id'] ?? $payload['trscode'] ?? $payload['reference'] ?? null;
+        $event = strtolower((string) ($payload['event'] ?? ''));
+        $status = strtoupper((string) ($payload['status'] ?? ($data['status'] ?? '')));
+        $statusCode = (string) ($payload['status_code'] ?? ($data['status_code'] ?? ''));
+        $trxStatus = strtolower((string) ($payload['transaction_status'] ?? ($data['transaction_status'] ?? '')));
+        $reference = $payload['trx_id'] ?? $payload['trscode'] ?? $payload['reference'] ?? ($data['id'] ?? ($payload['id'] ?? null));
 
         if (! $orderNumber) {
             return ['status' => 'error', 'message' => 'Missing order reference'];
@@ -467,10 +641,11 @@ class PaymentGatewayService
 
         // Success condition:
         // iPaymu: status === 'berhasil' or 'success' or status_code === '1'
-        // Tripay / Generic: status === 'PAID' or 'SUCCESS'
-        $isSuccess = in_array($status, ['BERHASIL', 'SUCCESS', 'PAID'], true)
+        // Tripay / Kasera Pay / Generic: status === 'PAID' or 'SUCCESS' or 'SETTLED' or event === 'payment.paid'
+        $isSuccess = in_array($status, ['BERHASIL', 'SUCCESS', 'PAID', 'SETTLED', 'SETTLEMENT'], true)
             || $statusCode === '1'
-            || $trxStatus === 'settlement';
+            || $trxStatus === 'settlement'
+            || in_array($event, ['payment.paid', 'transaction.paid', 'payment.success'], true);
 
         if ($isSuccess) {
             if ($order->status !== 'settled') {

@@ -33,11 +33,17 @@ class SettingController extends Controller
             'private_key' => $this->getSettingValue('TRIPAY_PRIVATE_KEY', 'payment.gateways.tripay.private_key', ''),
             'sandbox' => filter_var($this->getSettingValue('TRIPAY_SANDBOX', 'payment.gateways.tripay.sandbox', 'false'), FILTER_VALIDATE_BOOLEAN),
         ];
+        $kaserapayConfig = [
+            'api_key' => $this->getSettingValue('KASERAPAY_API_KEY', 'payment.gateways.kaserapay.api_key', ''),
+            'signing_secret' => $this->getSettingValue('KASERAPAY_SIGNING_SECRET', 'payment.gateways.kaserapay.signing_secret', ''),
+            'sandbox' => filter_var($this->getSettingValue('KASERAPAY_SANDBOX', 'payment.gateways.kaserapay.sandbox', 'false'), FILTER_VALIDATE_BOOLEAN),
+        ];
         $methods = config('payment.methods', []);
 
         $webhookUrls = [
             'ipaymu' => route('payment.webhook.ipaymu'),
             'tripay' => route('payment.webhook.tripay'),
+            'kaserapay' => route('payment.webhook.kaserapay'),
             'generic' => route('payment.webhook.generic'),
         ];
 
@@ -222,6 +228,7 @@ class SettingController extends Controller
             'currentDriver',
             'ipaymuConfig',
             'tripayConfig',
+            'kaserapayConfig',
             'methods',
             'webhookUrls',
             'dbStatus',
@@ -241,7 +248,7 @@ class SettingController extends Controller
     {
         $validated = $request->validate([
             // Payment Gateway
-            'payment_driver' => 'required|in:ipaymu,tripay',
+            'payment_driver' => 'required|in:ipaymu,tripay,kaserapay',
             'ipaymu_va' => 'nullable|string|max:50',
             'ipaymu_api_key' => 'nullable|string|max:255',
             'ipaymu_sandbox' => 'nullable|boolean',
@@ -249,6 +256,9 @@ class SettingController extends Controller
             'tripay_api_key' => 'nullable|string|max:255',
             'tripay_private_key' => 'nullable|string|max:255',
             'tripay_sandbox' => 'nullable|boolean',
+            'kaserapay_api_key' => 'nullable|string|max:255',
+            'kaserapay_signing_secret' => 'nullable|string|max:255',
+            'kaserapay_sandbox' => 'nullable|boolean',
             // Storage Cloudflare R2
             'upload_disk' => 'required|in:r2,public',
             'r2_bucket' => 'nullable|string|max:150',
@@ -275,6 +285,9 @@ class SettingController extends Controller
             'TRIPAY_API_KEY' => $validated['tripay_api_key'] ?? '',
             'TRIPAY_PRIVATE_KEY' => $validated['tripay_private_key'] ?? '',
             'TRIPAY_SANDBOX' => $request->has('tripay_sandbox') ? 'true' : 'false',
+            'KASERAPAY_API_KEY' => $validated['kaserapay_api_key'] ?? '',
+            'KASERAPAY_SIGNING_SECRET' => $validated['kaserapay_signing_secret'] ?? '',
+            'KASERAPAY_SANDBOX' => $request->has('kaserapay_sandbox') ? 'true' : 'false',
             // Storage
             'UPLOAD_DISK' => $validated['upload_disk'],
             'CLOUDFLARE_R2_BUCKET' => $validated['r2_bucket'] ?? 'adzkia',
@@ -308,6 +321,7 @@ class SettingController extends Controller
         // 2. Terapkan langsung ke config runtime saat ini
         $isIpaymuSandbox = filter_var($envUpdates['IPAYMU_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
         $isTripaySandbox = filter_var($envUpdates['TRIPAY_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
+        $isKaserapaySandbox = filter_var($envUpdates['KASERAPAY_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
 
         $runtimeConfigs = [
             'filesystems.upload_disk' => $envUpdates['UPLOAD_DISK'],
@@ -327,6 +341,10 @@ class SettingController extends Controller
             'payment.gateways.tripay.private_key' => $envUpdates['TRIPAY_PRIVATE_KEY'],
             'payment.gateways.tripay.sandbox' => $isTripaySandbox,
             'payment.gateways.tripay.base_url' => $isTripaySandbox ? 'https://tripay.co.id/api-sandbox/' : 'https://tripay.co.id/api/',
+            'payment.gateways.kaserapay.api_key' => $envUpdates['KASERAPAY_API_KEY'],
+            'payment.gateways.kaserapay.signing_secret' => $envUpdates['KASERAPAY_SIGNING_SECRET'],
+            'payment.gateways.kaserapay.sandbox' => $isKaserapaySandbox,
+            'payment.gateways.kaserapay.base_url' => 'https://pay.kasera.id/v1/',
         ];
 
         if (isset($envUpdates['GOOGLE_CLIENT_ID'])) {
@@ -623,6 +641,60 @@ class SettingController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'Gagal menghubungi server TriPay: '.$e->getMessage(),
+                    ], 500);
+                }
+
+            case 'payment-kaserapay':
+                $apiKey = $request->input('kaserapay_api_key') ?: $this->getSettingValue('KASERAPAY_API_KEY', 'payment.gateways.kaserapay.api_key', '');
+                $isSandbox = $request->has('kaserapay_sandbox')
+                    ? filter_var($request->input('kaserapay_sandbox'), FILTER_VALIDATE_BOOLEAN)
+                    : filter_var($this->getSettingValue('KASERAPAY_SANDBOX', 'payment.gateways.kaserapay.sandbox', 'false'), FILTER_VALIDATE_BOOLEAN);
+
+                if (empty($apiKey)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'API Key Kasera Pay belum diisi.',
+                    ], 422);
+                }
+
+                try {
+                    $baseUrl = rtrim((string) config('payment.gateways.kaserapay.base_url', 'https://pay.kasera.id/v1/'), '/');
+                    $res = Http::withToken($apiKey)->timeout(12)->get($baseUrl.'/payment-methods');
+                    if ($res->status() === 404) {
+                        $res = Http::withToken($apiKey)->timeout(12)->get($baseUrl.'/payment_methods');
+                    }
+                    if ($res->status() === 404) {
+                        $res = Http::withToken($apiKey)->timeout(12)->get($baseUrl.'/transactions');
+                    }
+
+                    $ping = round((microtime(true) - $start) * 1000);
+                    $modeLabel = $isSandbox ? 'Sandbox' : 'Production (Live)';
+
+                    if ($res->successful()) {
+                        $json = $res->json();
+                        $items = is_array($json) ? ($json['data'] ?? $json) : [];
+                        $count = is_array($items) ? count($items) : 0;
+                        $channelInfo = $count > 0 ? " Terdeteksi {$count} metode/kanal pembayaran." : '';
+
+                        return response()->json([
+                            'success' => true,
+                            'message' => "Koneksi Kasera Pay ({$modeLabel}) berhasil! API Key valid dan terhubung ke pay.kasera.id.{$channelInfo}",
+                            'ping_ms' => $ping,
+                            'channels_active' => $count,
+                        ]);
+                    }
+
+                    $body = $res->json();
+                    $errMsg = $body['message'] ?? $body['error'] ?? $res->body();
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Kasera Pay API merespons dengan kode HTTP '.$res->status().': '.$errMsg,
+                    ], 500);
+                } catch (\Throwable $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gagal menghubungi server Kasera Pay: '.$e->getMessage(),
                     ], 500);
                 }
 

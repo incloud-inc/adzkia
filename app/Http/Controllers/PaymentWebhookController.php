@@ -91,6 +91,45 @@ class PaymentWebhookController extends Controller
     }
 
     /**
+     * Webhook handler for Kasera Pay payment gateway.
+     */
+    public function kaserapay(Request $request): JsonResponse
+    {
+        Log::info('Kasera Pay Webhook Received', [
+            'header_signature' => $request->header('Kasera-Signature-V1') ?? $request->header('X-Kasera-Signature'),
+            'header_event' => $request->header('Kasera-Event-Id'),
+            'payload' => $request->all(),
+        ]);
+
+        // Verify webhook signature (Kasera-Signature-V1 HMAC-SHA256 with signing secret)
+        if (! $this->paymentService->verifyKaseraWebhook($request)) {
+            Log::warning('Kasera Pay Webhook Invalid Signature', [
+                'ip' => $request->ip(),
+                'external_id' => $request->input('external_id') ?? $request->input('data.external_id'),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid signature',
+            ], 400);
+        }
+
+        $result = $this->paymentService->processWebhook($request->all());
+
+        if (($result['status'] ?? '') === 'error') {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Error processing payment',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification handled',
+        ], 200);
+    }
+
+    /**
      * Generic webhook handler for fallback / other gateways.
      */
     public function generic(Request $request): JsonResponse

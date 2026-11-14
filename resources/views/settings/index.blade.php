@@ -8,13 +8,15 @@
         showIpaymuKey: false,
         showTripayKey: false,
         showTripaySecret: false,
+        showKaseraKey: false,
+        showKaseraSecret: false,
         showR2Key: false,
         showR2Secret: false,
         showGoogleSecret: false,
         showDeepseekKey: false,
         copiedUrl: null,
-        testing: { r2: false, database: false, redis: false, 'ai-deepseek': false, 'google-oauth': false },
-        testResults: { r2: null, database: null, redis: null, 'ai-deepseek': null, 'google-oauth': null },
+        testing: { r2: false, database: false, redis: false, 'ai-deepseek': false, 'google-oauth': false, 'payment-ipaymu': false, 'payment-tripay': false, 'payment-kaserapay': false },
+        testResults: { r2: null, database: null, redis: null, 'ai-deepseek': null, 'google-oauth': null, 'payment-ipaymu': null, 'payment-tripay': null, 'payment-kaserapay': null },
         copyToClipboard(text, id) {
             navigator.clipboard.writeText(text);
             this.copiedUrl = id;
@@ -157,7 +159,7 @@
                     <h3 class="font-display font-bold text-base text-gray-12 mb-1">Pilih Driver Gateway Aktif</h3>
                     <p class="text-xs text-gray-11 mb-4">Sistem akan mengarahkan semua transaksi checkout siswa ke gateway yang dipilih secara langsung.</p>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <!-- 1. iPaymu -->
                         <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
                                :class="activeDriver === 'ipaymu' ? 'border-orange-500 bg-orange-50/40 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
@@ -192,6 +194,24 @@
                                 <p class="text-xs text-gray-11 mt-1">Mendukung Closed Payment QRIS, VA Bank (BCA, Mandiri, BRI, BNI), ShopeePay, dan Webhook HMAC-SHA256.</p>
                             </div>
                             <span class="inline-flex mt-4 text-[11px] font-semibold text-blue-11">Opsi Gateway Alternatif</span>
+                        </label>
+
+                        <!-- 3. Kasera Pay -->
+                        <label class="relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
+                               :class="activeDriver === 'kaserapay' ? 'border-emerald-500 bg-emerald-50/40 shadow-xs' : 'border-gray-5 hover:border-gray-7 bg-white'">
+                            <input type="radio" name="payment_driver" value="kaserapay" x-model="activeDriver" class="sr-only">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">Kasera Pay</span>
+                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                         :class="activeDriver === 'kaserapay' ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-gray-6'">
+                                        <div class="w-2 h-2 bg-white rounded-full" x-show="activeDriver === 'kaserapay'"></div>
+                                    </div>
+                                </div>
+                                <h4 class="font-bold text-sm text-gray-12">Kasera Pay Gateway</h4>
+                                <p class="text-xs text-gray-11 mt-1">Dukungan QRIS Realtime, Virtual Account Bank (BCA, Mandiri, BRI, BNI, BSI), E-Wallet, dan Notifikasi Webhook Otomatis.</p>
+                            </div>
+                            <span class="inline-flex mt-4 text-[11px] font-semibold text-emerald-700">Opsi Gateway Terintegrasi &bull; Mode Sandbox</span>
                         </label>
                     </div>
                 </div>
@@ -379,6 +399,101 @@
                             {{ $webhookUrls['tripay'] }}
                         </code>
                         <p class="text-[11px] text-gray-11">Pilih Event: <span class="font-bold text-gray-12">Payment Status</span>. Header signature HMAC-SHA256 akan otomatis diverifikasi.</p>
+                    </div>
+                </div>
+
+                <!-- Kasera Pay Credentials Form -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-6 shadow-xs space-y-5" x-show="activeDriver === 'kaserapay'">
+                    <div class="flex items-center justify-between border-b border-gray-5 pb-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-sm">KP</div>
+                            <div>
+                                <h3 class="font-display font-bold text-base text-gray-12">Kredensial Akun Kasera Pay</h3>
+                                <p class="text-xs text-gray-11">Dapatkan API Key dan Signing Secret di Dashboard Kasera Pay (pay.kasera.id) &gt; Integrasi &gt; Developer.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-12">
+                                <input type="checkbox" name="kaserapay_sandbox" value="1" {{ ($kaserapayConfig['sandbox'] ?? false) ? 'checked' : '' }} class="rounded border-gray-6 text-emerald-600 focus:ring-emerald-600">
+                                <span>Mode Sandbox</span>
+                            </label>
+                            <button type="button" 
+                                    @click="runTest('payment-kaserapay')" 
+                                    :disabled="testing['payment-kaserapay']"
+                                    class="px-3 py-1.5 rounded-xl bg-white border border-gray-6 hover:bg-gray-3 text-gray-12 text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-60">
+                                <span :class="testing['payment-kaserapay'] ? 'animate-spin' : ''" class="inline-flex">
+                                    <x-radix-icon name="reload" class="w-3.5 h-3.5" />
+                                </span>
+                                <span x-text="testing['payment-kaserapay'] ? 'Menguji...' : 'Uji Koneksi Kasera Pay'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live AJAX Test Result Feedback -->
+                    <div x-show="testResults['payment-kaserapay'] !== null" x-cloak class="pt-1">
+                        <template x-if="testResults['payment-kaserapay']?.success">
+                            <div class="p-3 rounded-xl bg-green-3 border border-green-6 text-green-12 text-xs font-semibold flex items-center gap-2">
+                                <x-radix-icon name="check-circled" class="w-4 h-4 text-green-9 shrink-0" />
+                                <span x-text="testResults['payment-kaserapay']?.message"></span>
+                                <span class="ml-auto font-mono text-[11px]" x-text="'Ping: ' + testResults['payment-kaserapay']?.ping_ms + ' ms'"></span>
+                            </div>
+                        </template>
+                        <template x-if="testResults['payment-kaserapay'] && !testResults['payment-kaserapay']?.success">
+                            <div class="p-3 rounded-xl bg-red-3 border border-red-6 text-red-12 text-xs font-semibold flex items-start gap-2">
+                                <x-radix-icon name="cross-circled" class="w-4 h-4 text-red-9 shrink-0 mt-0.5" />
+                                <div>
+                                    <p class="font-bold">Pengujian Gagal:</p>
+                                    <p class="font-mono text-[11px] mt-0.5" x-text="testResults['payment-kaserapay']?.message"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">API Key (Test / Live)</label>
+                            <div class="relative">
+                                <input :type="showKaseraKey ? 'text' : 'password'" name="kaserapay_api_key" value="{{ old('kaserapay_api_key', $kaserapayConfig['api_key'] ?? '') }}"
+                                       placeholder="kp_test_... atau kp_live_..."
+                                       class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-gray-6 text-sm text-gray-12 font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                                <button type="button" @click="showKaseraKey = !showKaseraKey" class="absolute right-3 top-2.5 text-gray-9 hover:text-gray-12">
+                                    <x-radix-icon name="eye-open" class="w-4 h-4" x-show="!showKaseraKey" />
+                                    <x-radix-icon name="eye-none" class="w-4 h-4" x-show="showKaseraKey" />
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-gray-11 mt-1">Gunakan prefix <code class="font-mono font-bold">kp_test_</code> untuk Sandbox dan <code class="font-mono font-bold">kp_live_</code> untuk Produksi.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-12 mb-1">Webhook Signing Secret</label>
+                            <div class="relative">
+                                <input :type="showKaseraSecret ? 'text' : 'password'" name="kaserapay_signing_secret" value="{{ old('kaserapay_signing_secret', $kaserapayConfig['signing_secret'] ?? '') }}"
+                                       placeholder="whsec_..."
+                                       class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-gray-6 text-sm text-gray-12 font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                                <button type="button" @click="showKaseraSecret = !showKaseraSecret" class="absolute right-3 top-2.5 text-gray-9 hover:text-gray-12">
+                                    <x-radix-icon name="eye-open" class="w-4 h-4" x-show="!showKaseraSecret" />
+                                    <x-radix-icon name="eye-none" class="w-4 h-4" x-show="showKaseraSecret" />
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-gray-11 mt-1">Digunakan untuk validasi header keamanan <code class="font-mono font-bold">Kasera-Signature-V1</code> HMAC-SHA256.</p>
+                        </div>
+                    </div>
+
+                    <!-- Webhook instructions -->
+                    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold flex items-center gap-1.5">
+                                <x-radix-icon name="link-2" class="w-4 h-4 text-emerald-600" />
+                                <span>URL Webhook Kasera Pay (Salin ke Dashboard Kasera Pay):</span>
+                            </span>
+                            <button type="button" @click="copyToClipboard('{{ $webhookUrls['kaserapay'] }}', 'kaserapay')" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition-colors cursor-pointer">
+                                <span x-show="copiedUrl !== 'kaserapay'">Salin URL</span>
+                                <span x-show="copiedUrl === 'kaserapay'">Tersalin!</span>
+                            </button>
+                        </div>
+                        <code class="block px-3 py-1.5 rounded-lg bg-white border border-emerald-200 text-emerald-900 font-mono select-all">
+                            {{ $webhookUrls['kaserapay'] }}
+                        </code>
+                        <p class="text-[11px] text-gray-600">Daftarkan URL di atas pada menu <span class="font-semibold text-gray-900">Developer &gt; Webhooks</span> di dashboard Kasera Pay dengan event <code class="font-mono font-bold">payment.paid</code> agar status transaksi siswa otomatis terupdate real-time.</p>
                     </div>
                 </div>
 

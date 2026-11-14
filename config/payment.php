@@ -5,7 +5,7 @@ return [
     |--------------------------------------------------------------------------
     | Default Payment Gateway Driver
     |--------------------------------------------------------------------------
-    | Supported: "ipaymu", "tripay"
+    | Supported: "ipaymu", "tripay", "kaserapay"
     */
     'default' => env('PAYMENT_GATEWAY_DRIVER', 'ipaymu'),
 
@@ -30,6 +30,14 @@ return [
                 : 'https://tripay.co.id/api/',
             'expiry_period' => 1440, // 24 hours in minutes
         ],
+
+        'kaserapay' => [
+            'api_key' => env('KASERAPAY_API_KEY', ''),
+            'signing_secret' => env('KASERAPAY_SIGNING_SECRET', ''),
+            'sandbox' => env('KASERAPAY_SANDBOX', false),
+            'base_url' => env('KASERAPAY_BASE_URL', 'https://pay.kasera.id/v1/'),
+            'expiry_period' => 1440, // 24 hours in minutes
+        ],
     ],
 
     /*
@@ -45,6 +53,7 @@ return [
             'channel_ipaymu' => 'qris',
             'method_ipaymu' => 'qris',
             'channel_tripay' => 'QRIS',
+            'channel_kaserapay' => 'qris',
             'label' => 'QRIS Nasional (iPaymu)',
             'group' => 'qris',
             'icon' => 'qrcode',
@@ -60,6 +69,7 @@ return [
             'channel_ipaymu' => 'bni',
             'method_ipaymu' => 'va',
             'channel_tripay' => 'BNIVA',
+            'channel_kaserapay' => 'bni_va',
             'label' => 'BNI Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -74,6 +84,7 @@ return [
             'channel_ipaymu' => 'bri',
             'method_ipaymu' => 'va',
             'channel_tripay' => 'BRIVA',
+            'channel_kaserapay' => 'bri_va',
             'label' => 'BRI Virtual Account (BRIVA)',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -88,6 +99,7 @@ return [
             'channel_ipaymu' => 'mandiri',
             'method_ipaymu' => 'va',
             'channel_tripay' => 'MANDIRIVA',
+            'channel_kaserapay' => 'mandiri_va',
             'label' => 'Mandiri Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -102,6 +114,7 @@ return [
             'channel_ipaymu' => 'bca',
             'method_ipaymu' => 'va',
             'channel_tripay' => 'BCAVA',
+            'channel_kaserapay' => 'bca_va',
             'label' => 'BCA Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -117,6 +130,7 @@ return [
             'channel_ipaymu' => 'muamalat',
             'method_ipaymu' => 'va',
             'channel_tripay' => 'MUAMALATVA',
+            'channel_kaserapay' => 'muamalat_va',
             'label' => 'Muamalat Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -131,6 +145,7 @@ return [
             'channel_ipaymu' => 'bsi',
             'method_ipaymu' => 'va',
             'channel_tripay' => 'BSIVA',
+            'channel_kaserapay' => 'bsi_va',
             'label' => 'BSI Virtual Account',
             'group' => 'va',
             'icon' => 'credit-card',
@@ -145,6 +160,7 @@ return [
             'channel_ipaymu' => 'ovo',
             'method_ipaymu' => 'ewallet',
             'channel_tripay' => 'OVO',
+            'channel_kaserapay' => 'ovo',
             'label' => 'OVO',
             'group' => 'ewallet',
             'icon' => 'mobile',
@@ -159,6 +175,7 @@ return [
             'channel_ipaymu' => 'dana',
             'method_ipaymu' => 'ewallet',
             'channel_tripay' => 'DANA',
+            'channel_kaserapay' => 'dana',
             'label' => 'DANA',
             'group' => 'ewallet',
             'icon' => 'mobile',
@@ -173,6 +190,7 @@ return [
             'channel_ipaymu' => 'shopeepay',
             'method_ipaymu' => 'ewallet',
             'channel_tripay' => 'SHOPEEPAY',
+            'channel_kaserapay' => 'shopeepay',
             'label' => 'ShopeePay',
             'group' => 'ewallet',
             'icon' => 'mobile',

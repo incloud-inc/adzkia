@@ -96,6 +96,7 @@
                 $gatewayName = match($order->payment_gateway) {
                     'ipaymu' => 'iPaymu',
                     'tripay' => 'TriPay',
+                    'kaserapay' => 'Kasera Pay',
                     default => 'Payment Gateway'
                 };
                 $instructions = data_get($order->gateway_payload, 'data.instructions') ?: data_get($order->gateway_payload, 'instructions', []);
@@ -192,19 +193,28 @@
 
                 <!-- Sandbox / Local Simulation Button -->
                 @php
-                    $isIpaymuSandbox = filter_var(config('payment.gateways.ipaymu.sandbox'), FILTER_VALIDATE_BOOLEAN);
+                    $isGatewaySandbox = match($order->payment_gateway) {
+                        'kaserapay' => filter_var(config('payment.gateways.kaserapay.sandbox'), FILTER_VALIDATE_BOOLEAN),
+                        'tripay' => filter_var(config('payment.gateways.tripay.sandbox'), FILTER_VALIDATE_BOOLEAN),
+                        default => filter_var(config('payment.gateways.ipaymu.sandbox'), FILTER_VALIDATE_BOOLEAN),
+                    };
+                    $sandboxHost = match($order->payment_gateway) {
+                        'kaserapay' => 'pay.kasera.id (Sandbox)',
+                        'tripay' => 'tripay.co.id (Sandbox)',
+                        default => 'sandbox.ipaymu.com',
+                    };
                 @endphp
-                @if($isIpaymuSandbox || app()->environment('local', 'testing') || auth()->user()?->isSuperUser())
+                @if($isGatewaySandbox || app()->environment('local', 'testing') || auth()->user()?->isSuperUser())
                     <div class="p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 shadow-xs">
                         <div class="flex items-center justify-between">
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-200/80 text-amber-900 border border-amber-300">
                                 <span class="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
-                                <span>Lingkungan Pengujian Sandbox iPaymu Aktif</span>
+                                <span>Lingkungan Pengujian Sandbox {{ $gatewayName }} Aktif</span>
                             </span>
-                            <span class="text-[10px] font-mono font-bold text-amber-800">sandbox.ipaymu.com</span>
+                            <span class="text-[10px] font-mono font-bold text-amber-800">{{ $sandboxHost }}</span>
                         </div>
                         <p class="text-xs text-amber-900 leading-relaxed">
-                            Sistem sedang dalam <strong>Masa Peninjauan / Review Tim iPaymu</strong>. Untuk menyelesaikan alur pembelian asesmen dan membuka akses ujian secara langsung, klik tombol di bawah:
+                            Mode sandbox/pengujian sedang aktif untuk gateway <strong>{{ $gatewayName }}</strong>. Untuk menyelesaikan alur pembelian asesmen dan membuka akses ujian secara langsung, klik tombol di bawah:
                         </p>
                         <form method="POST" action="{{ route('orders.simulate-pay', $order) }}">
                             @csrf
