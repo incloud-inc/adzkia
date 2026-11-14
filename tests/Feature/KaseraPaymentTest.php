@@ -100,6 +100,53 @@ class KaseraPaymentTest extends TestCase
         $this->assertEquals('payreq_test_123456789', $order->payment_reference);
     }
 
+    public function test_kaserapay_handles_api_error_response_object_gracefully(): void
+    {
+        Http::fake([
+            'https://pay.kasera.id/v1/transactions' => Http::response([
+                'error' => [
+                    'code' => 'unknown_field',
+                    'message' => 'unknown field "callback_url" — check the spelling against the API reference',
+                ],
+            ], 422),
+        ]);
+
+        $tenant = Tenant::factory()->create();
+        $student = User::factory()->create([
+            'current_tenant_id' => $tenant->id,
+            'whatsapp_number' => '081299998888',
+        ]);
+        $subject = Subject::factory()->create();
+        $assessment = Assessment::factory()->create([
+            'tenant_id' => $tenant->id,
+            'subject_id' => $subject->id,
+            'price_type' => 'paid',
+            'price' => 50000.00,
+        ]);
+
+        $order = Order::create([
+            'order_number' => 'ORD-KASERA-ERR-001',
+            'user_id' => $student->id,
+            'tenant_id' => $tenant->id,
+            'assessment_id' => $assessment->id,
+            'package_attempts' => 1,
+            'package_validity_days' => 30,
+            'price_amount' => 50000.00,
+            'discount_amount' => 0.00,
+            'admin_fee' => 0.00,
+            'total_amount' => 50000.00,
+            'status' => 'pending',
+            'payment_method' => 'QRIS',
+        ]);
+
+        $service = app(PaymentGatewayService::class);
+        $result = $service->createPayment($order, 'QRIS');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('unknown field "callback_url"', $result['message']);
+        $this->assertStringNotContainsString('Array to string conversion', $result['message']);
+    }
+
     public function test_kaserapay_webhook_signature_verification(): void
     {
         $service = app(PaymentGatewayService::class);

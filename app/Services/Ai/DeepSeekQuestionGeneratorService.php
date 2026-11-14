@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai;
 
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -84,7 +85,7 @@ class DeepSeekQuestionGeneratorService
         $systemPrompt = $this->buildSystemPrompt($params);
         $userPrompt = $this->buildUserPrompt($params);
 
-        $apiKey = config('services.deepseek.api_key');
+        $apiKey = config('services.deepseek.api_key') ?: SystemSetting::get('DEEPSEEK_API_KEY', '');
         if (filled($apiKey)) {
             try {
                 $baseUrl = rtrim((string) config('services.deepseek.base_url', 'https://api.deepseek.com'), '/');
@@ -115,7 +116,7 @@ class DeepSeekQuestionGeneratorService
                     $payload['response_format'] = ['type' => 'json_object'];
                 }
 
-                $timeout = (int) config('services.deepseek.timeout', 120);
+                $timeout = (int) config('services.deepseek.timeout', 180);
 
                 $response = Http::withHeaders([
                     'Authorization' => "Bearer {$apiKey}",

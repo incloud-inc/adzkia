@@ -347,6 +347,12 @@ class SettingController extends Controller
             'payment.gateways.kaserapay.base_url' => 'https://pay.kasera.id/v1/',
         ];
 
+        if (isset($envUpdates['DEEPSEEK_API_KEY'])) {
+            $runtimeConfigs['services.deepseek.api_key'] = $envUpdates['DEEPSEEK_API_KEY'];
+        }
+        if (isset($envUpdates['GEMINI_API_KEY'])) {
+            $runtimeConfigs['services.gemini.api_key'] = $envUpdates['GEMINI_API_KEY'];
+        }
         if (isset($envUpdates['GOOGLE_CLIENT_ID'])) {
             $runtimeConfigs['services.google.client_id'] = $envUpdates['GOOGLE_CLIENT_ID'];
         }

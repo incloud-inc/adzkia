@@ -410,18 +410,13 @@ class PaymentGatewayService
         $payload = [
             'amount' => $paymentAmount,
             'external_id' => $order->order_number,
+            'description' => substr('Pembayaran '.($order->assessment?->title ?: 'Tryout ADZKIA'), 0, 100),
             'payment_methods' => [$channel],
+            'return_url' => $returnUrl,
             'customer' => [
                 'name' => substr($customerName, 0, 50),
                 'email' => $customerEmail,
                 'phone' => $customerPhone,
-            ],
-            'return_url' => $returnUrl,
-            'callback_url' => $callbackUrl,
-            'metadata' => [
-                'order_id' => $order->id,
-                'order_number' => $order->order_number,
-                'assessment_id' => $order->assessment_id,
             ],
         ];
 
@@ -462,7 +457,17 @@ class PaymentGatewayService
                 ];
             }
 
-            $errorMessage = $data['message'] ?? ($data['error'] ?? $response->body());
+            $errorObj = $data['error'] ?? null;
+            if (is_array($errorObj)) {
+                $errorMessage = $errorObj['message'] ?? ($errorObj['code'] ?? json_encode($errorObj));
+            } elseif (is_string($errorObj)) {
+                $errorMessage = $errorObj;
+            } elseif (! empty($data['message']) && is_string($data['message'])) {
+                $errorMessage = $data['message'];
+            } else {
+                $errorMessage = $response->body();
+            }
+
             Log::error('Kasera Pay transaction creation failed', [
                 'order' => $order->order_number,
                 'status' => $response->status(),

@@ -46,7 +46,7 @@ return [
         'api_key' => env('DEEPSEEK_API_KEY'),
         'base_url' => env('DEEPSEEK_BASE_URL', 'https://api.deepseek.com'),
         'model' => env('DEEPSEEK_MODEL', 'deepseek-reasoner'),
-        'timeout' => (int) env('DEEPSEEK_TIMEOUT', 60),
+        'timeout' => (int) env('DEEPSEEK_TIMEOUT', 180),
         'retry_times' => (int) env('DEEPSEEK_RETRY_TIMES', 2),
         'retry_sleep' => (int) env('DEEPSEEK_RETRY_SLEEP_MS', 500),
         'max_tokens' => (int) env('DEEPSEEK_MAX_TOKENS', 800),

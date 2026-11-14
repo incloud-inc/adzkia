@@ -87,6 +87,18 @@ class AppServiceProvider extends ServiceProvider
                         ? 'https://sandbox.ipaymu.com/api/v2/'
                         : 'https://my.ipaymu.com/api/v2/';
                 }
+                // Kasera Pay Gateway Settings
+                if (! empty($sysSettings['KASERAPAY_API_KEY'])) {
+                    $configUpdates['payment.gateways.kaserapay.api_key'] = $sysSettings['KASERAPAY_API_KEY'];
+                }
+                if (! empty($sysSettings['KASERAPAY_SIGNING_SECRET'])) {
+                    $configUpdates['payment.gateways.kaserapay.signing_secret'] = $sysSettings['KASERAPAY_SIGNING_SECRET'];
+                }
+                if (isset($sysSettings['KASERAPAY_SANDBOX']) && $sysSettings['KASERAPAY_SANDBOX'] !== '') {
+                    $isKaserapaySandbox = filter_var($sysSettings['KASERAPAY_SANDBOX'], FILTER_VALIDATE_BOOLEAN);
+                    $configUpdates['payment.gateways.kaserapay.sandbox'] = $isKaserapaySandbox;
+                    $configUpdates['payment.gateways.kaserapay.base_url'] = 'https://pay.kasera.id/v1/';
+                }
                 if (! empty($sysSettings['DEEPSEEK_API_KEY'])) {
                     $configUpdates['services.deepseek.api_key'] = $sysSettings['DEEPSEEK_API_KEY'];
                 }

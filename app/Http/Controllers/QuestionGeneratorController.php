@@ -73,6 +73,9 @@ class QuestionGeneratorController extends Controller
     {
         $this->authorizeStaffAccess();
 
+        @set_time_limit(240);
+        @ignore_user_abort(true);
+
         $supportedKeys = implode(',', array_keys(DeepSeekQuestionGeneratorService::getSupportedModels()));
 
         $validated = $request->validate([

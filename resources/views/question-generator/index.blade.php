@@ -1301,16 +1301,22 @@
                             body: JSON.stringify(payload)
                         });
 
-                        const data = await res.json();
-                        if (data.status === 'success') {
+                        let data = null;
+                        const contentType = res.headers.get('content-type') || '';
+                        if (contentType.includes('application/json')) {
+                            data = await res.json();
+                        }
+
+                        if (res.ok && data?.status === 'success') {
                             this.resultPackage = data.package;
                             this.wordText = data.word_text;
                             this.resultTab = 'print';
                         } else {
-                            alert('Gagal membuat soal: ' + (data.message || 'Terjadi kesalahan'));
+                            const errorMsg = data?.message || (res.status ? `Server merespons kode ${res.status}: ${res.statusText || 'Gagal memproses permintaan'}` : 'Terjadi kesalahan pada server');
+                            alert('Gagal membuat soal: ' + errorMsg);
                         }
                     } catch (e) {
-                        alert('Terjadi kesalahan koneksi server: ' + e.message);
+                        alert('Terjadi kendala koneksi atau batas waktu server: ' + e.message);
                     } finally {
                         this.generating = false;
                     }
