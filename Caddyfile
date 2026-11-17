@@ -1,5 +1,7 @@
 {
-    frankenphp
+    frankenphp {
+        worker /app/public/frankenphp-worker.php {$FRANKENPHP_WORKERS:2}
+    }
     order php_server before file_server
 }
 
@@ -17,6 +19,8 @@
     # Serve static files
     file_server
 
-    # Pass everything else to Laravel via FrankenPHP
-    php_server
+    # Pass everything else to Laravel via FrankenPHP Worker Mode
+    php_server {
+        resolve_root_symlink
+    }
 }
