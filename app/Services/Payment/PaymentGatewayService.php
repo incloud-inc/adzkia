@@ -493,6 +493,75 @@ class PaymentGatewayService
     }
 
     /**
+     * Check payment status directly from Kasera Pay API (v1 /transactions/{id}).
+     */
+    public function checkKaseraPaymentStatus(Order $order): array
+    {
+        $apiKey = (string) config('payment.gateways.kaserapay.api_key');
+        $baseUrl = rtrim((string) config('payment.gateways.kaserapay.base_url', 'https://pay.kasera.id/v1/'), '/').'/';
+        $reference = $order->payment_reference;
+
+        if (blank($reference) || blank($apiKey)) {
+            return ['status' => $order->status, 'synced' => false];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer '.$apiKey,
+                'Accept' => 'application/json',
+            ])->timeout(10)->get($baseUrl.'transactions/'.$reference);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $status = strtolower((string) ($data['status'] ?? ''));
+
+                if (in_array($status, ['succeeded', 'paid', 'settled', 'success'], true)) {
+                    $this->processWebhook([
+                        'type' => 'payment.paid',
+                        'data' => $data,
+                    ]);
+
+                    return [
+                        'status' => 'settled',
+                        'synced' => true,
+                        'data' => $data,
+                    ];
+                }
+
+                if (in_array($status, ['expired', 'cancelled', 'canceled'], true) && $order->status !== 'settled') {
+                    $order->update(['status' => 'expired']);
+                }
+
+                return [
+                    'status' => $order->fresh()->status,
+                    'synced' => true,
+                    'data' => $data,
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Kasera Pay status check failed: '.$e->getMessage(), ['order' => $order->order_number]);
+        }
+
+        return ['status' => $order->status, 'synced' => false];
+    }
+
+    /**
+     * Synchronize order status with active payment gateway if pending or recently failed.
+     */
+    public function syncOrderStatus(Order $order): Order
+    {
+        if ($order->isSettled()) {
+            return $order;
+        }
+
+        if ($order->payment_gateway === 'kaserapay' || ($order->payment_gateway === null && config('payment.default') === 'kaserapay')) {
+            $this->checkKaseraPaymentStatus($order);
+        }
+
+        return $order->fresh();
+    }
+
+    /**
      * Hitung biaya layanan (admin fee) secara dinamis sesuai skema flat / persentase / minimal biaya.
      */
     public function calculateAdminFee(string $methodCode, float $baseAmount): float
@@ -649,11 +718,11 @@ class PaymentGatewayService
             ?? $payload['order_number']
             ?? null;
 
-        $event = strtolower((string) ($payload['event'] ?? ''));
+        $event = strtolower((string) ($payload['event'] ?? ($payload['type'] ?? '')));
         $status = strtoupper((string) ($payload['status'] ?? ($data['status'] ?? '')));
         $statusCode = (string) ($payload['status_code'] ?? ($data['status_code'] ?? ''));
         $trxStatus = strtolower((string) ($payload['transaction_status'] ?? ($data['transaction_status'] ?? '')));
-        $reference = $payload['trx_id'] ?? $payload['trscode'] ?? $payload['reference'] ?? ($data['id'] ?? ($payload['id'] ?? null));
+        $reference = $payload['trx_id'] ?? $payload['trscode'] ?? $payload['reference'] ?? ($data['payment_request_id'] ?? ($data['id'] ?? ($payload['id'] ?? null)));
 
         if (! $orderNumber) {
             return ['status' => 'error', 'message' => 'Missing order reference'];
@@ -666,11 +735,11 @@ class PaymentGatewayService
 
         // Success condition:
         // iPaymu: status === 'berhasil' or 'success' or status_code === '1'
-        // Tripay / Kasera Pay / Generic: status === 'PAID' or 'SUCCESS' or 'SETTLED' or event === 'payment.paid'
-        $isSuccess = in_array($status, ['BERHASIL', 'SUCCESS', 'PAID', 'SETTLED', 'SETTLEMENT'], true)
+        // Tripay / Kasera Pay / Generic: status === 'PAID', 'SUCCESS', 'SETTLED', 'SETTLEMENT', 'SUCCEEDED', or event === 'payment.paid' / 'payment.succeeded'
+        $isSuccess = in_array($status, ['BERHASIL', 'SUCCESS', 'PAID', 'SETTLED', 'SETTLEMENT', 'SUCCEEDED'], true)
             || $statusCode === '1'
             || $trxStatus === 'settlement'
-            || in_array($event, ['payment.paid', 'transaction.paid', 'payment.success'], true);
+            || in_array($event, ['payment.paid', 'transaction.paid', 'payment.success', 'payment.succeeded'], true);
 
         if ($isSuccess) {
             if ($order->status !== 'settled') {
@@ -704,7 +773,7 @@ class PaymentGatewayService
         }
 
         // Failed / Expired condition
-        $isExpired = in_array(strtolower($status), ['expired', 'expire', 'cancel', 'batal', 'gagal'], true);
+        $isExpired = in_array(strtolower($status), ['expired', 'expire', 'cancelled', 'canceled', 'cancel', 'batal', 'gagal'], true);
         $newStatus = $isExpired ? 'expired' : 'failed';
         $order->update([
             'status' => $newStatus,

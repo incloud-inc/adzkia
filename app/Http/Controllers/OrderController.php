@@ -241,6 +241,10 @@ class OrderController extends Controller
             abort(403);
         }
 
+        if (! $order->isSettled()) {
+            $order = $this->paymentService->syncOrderStatus($order);
+        }
+
         $order->load(['assessment', 'tenant', 'user']);
 
         return view('orders.show', compact('order'));
@@ -254,6 +258,10 @@ class OrderController extends Controller
         $user = Auth::user();
         if ($user && $order->user_id !== $user->id && ! $user->isAdmin() && ! $user->isSuperUser()) {
             abort(403, 'Akses ditolak.');
+        }
+
+        if (! $order->isSettled()) {
+            $order = $this->paymentService->syncOrderStatus($order);
         }
 
         return response()->json([

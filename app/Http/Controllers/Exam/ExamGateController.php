@@ -9,6 +9,7 @@ use App\Models\ExamSession;
 use App\Models\User;
 use App\Models\UserAssessmentAccess;
 use App\Services\ExamGradingService;
+use App\Services\Payment\PaymentGatewayService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -93,6 +94,19 @@ class ExamGateController extends Controller
             $isStaff = $user->isSuperUser() || $user->isAdmin() || $user->isTeacher();
             if ($assessment->price_type === 'paid' && (float) $assessment->price > 0 && ! $isStaff) {
                 $access = $user->getAssessmentAccess($assessment);
+
+                if (! $access) {
+                    $recentUnsettledOrder = $user->orders()
+                        ->where('assessment_id', $assessment->id)
+                        ->where('status', '!=', 'settled')
+                        ->latest()
+                        ->first();
+
+                    if ($recentUnsettledOrder) {
+                        app(PaymentGatewayService::class)->syncOrderStatus($recentUnsettledOrder);
+                        $access = $user->getAssessmentAccess($assessment);
+                    }
+                }
 
                 if (! $access) {
                     $lastSettledOrder = $user->orders()

@@ -1,6 +1,8 @@
 <x-layouts.app>
     <x-slot:title>Instruksi Pembayaran - Order #{{ $order->order_number }}</x-slot:title>
 
+    <script src="{{ asset('js/qrcode.min.js') }}"></script>
+
     <div class="max-w-2xl mx-auto space-y-6 pb-16"
          x-data="{
              status: '{{ $order->status }}',
@@ -8,7 +10,7 @@
              pollInterval: null,
              copied: false,
              init() {
-                 if (!this.isSettled && this.status === 'pending') {
+                 if (!this.isSettled) {
                      this.pollInterval = setInterval(() => {
                          fetch('{{ route('orders.status', $order) }}')
                              .then(res => res.json())
@@ -109,21 +111,99 @@
                 }
             @endphp
             <div class="p-6 space-y-6">
-                <!-- Payment URL / Hosted Checkout -->
-                @if($order->payment_url)
-                    <div class="p-5 rounded-2xl bg-cyan-50 border border-cyan-200 text-center space-y-3">
-                        <span class="text-xs font-bold text-cyan-900 uppercase tracking-wider block">Portal Pembayaran Digital ({{ $gatewayName }})</span>
-                        <p class="text-xs text-cyan-800">
-                            Selesaikan pembayaran menggunakan GoPay, ShopeePay, DANA, OVO, Virtual Account, QRIS, atau Kartu Kredit.
-                        </p>
-                        <div>
-                            <a href="{{ $order->payment_url }}" target="_blank" rel="noopener noreferrer"
-                               class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer">
-                                <span>Buka Halaman Pembayaran {{ $gatewayName }}</span>
-                                <x-radix-icon name="external-link" class="w-4 h-4" />
-                            </a>
+                @php
+                    $isQris = ($order->payment_method === 'QRIS');
+                    $hasQrData = ! empty($order->qr_code_url);
+                    $isQrUrl = $hasQrData && filter_var($order->qr_code_url, FILTER_VALIDATE_URL);
+                @endphp
+
+                <!-- QRIS Display -->
+                @if($isQris)
+                    @if($hasQrData)
+                        <div x-data="{ qrCopied: false }"
+                             x-init="$nextTick(() => {
+                                 const el = $refs.qrContainer;
+                                 if (el && typeof QRCode !== 'undefined') {
+                                     el.innerHTML = '';
+                                     new QRCode(el, {
+                                         text: @js($order->qr_code_url),
+                                         width: 220,
+                                         height: 220,
+                                         colorDark: '#000000',
+                                         colorLight: '#ffffff',
+                                         correctLevel: QRCode.CorrectLevel.M
+                                     });
+                                 }
+                             })"
+                             class="p-6 rounded-2xl bg-gray-50 border border-gray-200 text-center space-y-4">
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span>Scan QRIS untuk Pembayaran Langsung</span>
+                            </div>
+
+                            <!-- QR Container -->
+                            <div class="w-60 h-60 mx-auto bg-white p-2.5 rounded-2xl border-2 border-gray-200 shadow-sm flex items-center justify-center">
+                                @if($isQrUrl)
+                                    <img src="{{ $order->qr_code_url }}" alt="Kode QRIS" class="w-full h-full object-contain">
+                                @else
+                                    <div x-ref="qrContainer" class="flex items-center justify-center"></div>
+                                @endif
+                            </div>
+
+                            <div class="flex items-center justify-center gap-2">
+                                <button type="button" @click="navigator.clipboard.writeText(@js($order->qr_code_url)); qrCopied = true; setTimeout(() => qrCopied = false, 2500)"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs font-bold transition-all shadow-xs cursor-pointer">
+                                    <x-radix-icon name="copy" class="w-3.5 h-3.5 text-gray-600" />
+                                    <span x-text="qrCopied ? 'String QRIS Tersalin!' : 'Salin String QRIS'"></span>
+                                </button>
+                            </div>
+
+                            <p class="text-xs text-gray-600 max-w-sm mx-auto leading-relaxed">
+                                Buka aplikasi <strong>BCA, Mandiri Livin, BRImo, BNI, BSI, GoPay, OVO, DANA, ShopeePay</strong> atau aplikasi perbankan apa pun, pilih menu <strong>Scan QR</strong>, lalu scan kode di atas.
+                            </p>
+
+                            @if($order->payment_url)
+                                <div class="pt-2 border-t border-gray-200 text-center">
+                                    <a href="{{ $order->payment_url }}" target="_blank" rel="noopener noreferrer"
+                                       class="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-cyan-700 font-semibold underline underline-offset-4 transition-colors">
+                                        <span>Buka Halaman Pembayaran Kasera Pay (Opsi Cadangan)</span>
+                                        <x-radix-icon name="external-link" class="w-3.5 h-3.5" />
+                                    </a>
+                                </div>
+                            @endif
                         </div>
-                    </div>
+                    @elseif($order->payment_url)
+                        <div class="p-6 rounded-2xl bg-cyan-50 border border-cyan-200 text-center space-y-3">
+                            <span class="text-xs font-bold text-cyan-900 uppercase tracking-wider block">Pembayaran QRIS {{ $gatewayName }}</span>
+                            <p class="text-xs text-cyan-800 max-w-md mx-auto">
+                                Selesaikan transaksi Anda melalui portal resmi {{ $gatewayName }}. Klik tombol di bawah untuk menampilkan kode QRIS dan menyelesaikan pembayaran.
+                            </p>
+                            <div>
+                                <a href="{{ $order->payment_url }}" target="_blank" rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer">
+                                    <span>Buka Halaman Pembayaran {{ $gatewayName }}</span>
+                                    <x-radix-icon name="external-link" class="w-4 h-4" />
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+                @else
+                    <!-- Payment URL / Hosted Checkout (Non-QRIS) -->
+                    @if($order->payment_url)
+                        <div class="p-5 rounded-2xl bg-cyan-50 border border-cyan-200 text-center space-y-3">
+                            <span class="text-xs font-bold text-cyan-900 uppercase tracking-wider block">Portal Pembayaran Digital ({{ $gatewayName }})</span>
+                            <p class="text-xs text-cyan-800">
+                                Selesaikan pembayaran menggunakan GoPay, ShopeePay, DANA, OVO, Virtual Account, atau Kartu Kredit.
+                            </p>
+                            <div>
+                                <a href="{{ $order->payment_url }}" target="_blank" rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer">
+                                    <span>Buka Halaman Pembayaran {{ $gatewayName }}</span>
+                                    <x-radix-icon name="external-link" class="w-4 h-4" />
+                                </a>
+                            </div>
+                        </div>
+                    @endif
                 @endif
 
                 <!-- Virtual Account Display -->
@@ -139,29 +219,6 @@
                             </button>
                         </div>
                         <p class="text-xs text-blue-700">Transfer tepat sesuai nominal melalui ATM, Mobile Banking, atau Internet Banking.</p>
-                    </div>
-                @endif
-
-                <!-- QRIS Display -->
-                @if($order->qr_code_url || $order->payment_method === 'QRIS')
-                    <div class="p-5 rounded-2xl bg-gray-50 border border-gray-200 text-center space-y-3">
-                        <span class="text-xs font-bold text-gray-900 uppercase tracking-wider block">Scan QRIS Nasional</span>
-                        
-                        <!-- QR Code Illustration / Image -->
-                        <div class="w-48 h-48 mx-auto bg-white p-2 rounded-xl border border-gray-300 shadow-sm flex items-center justify-center">
-                            @if(filter_var($order->qr_code_url, FILTER_VALIDATE_URL))
-                                <img src="{{ $order->qr_code_url }}" alt="QRIS Code" class="w-full h-full object-contain">
-                            @else
-                                <div class="text-center p-3 space-y-2">
-                                    <x-radix-icon name="view-grid" class="w-16 h-16 text-gray-800 mx-auto" />
-                                    <span class="text-[10px] font-mono text-gray-600 block break-all">QRIS ADZKIA CBT</span>
-                                </div>
-                            @endif
-                        </div>
-
-                        <p class="text-xs text-gray-600 max-w-sm mx-auto">
-                            Buka aplikasi BCA, Mandiri Livin, GoPay, OVO, Dana, atau ShopeePay, pilih menu <strong>Scan QR</strong>, lalu scan kode di atas.
-                        </p>
                     </div>
                 @endif
 
